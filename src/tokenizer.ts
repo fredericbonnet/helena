@@ -16,18 +16,41 @@ export enum TokenType {
   SEMICOLON,
 }
 
+export class Position {
+  index: number = 0;
+
+  copy() {
+    const copy = new Position();
+    copy.index = this.index;
+    return copy;
+  }
+  next() {
+    return this.index++;
+  }
+}
+
+export interface Token {
+  type: TokenType;
+  position: Position;
+}
+
 export class Tokenizer {
   tokenize(source: string) {
     let stream = new StringStream(source);
-    let tokens = [];
+    let tokens: Token[] = [];
 
-    function addText() {
-      if (tokens[tokens.length - 1] != TokenType.TEXT) {
-        tokens.push(TokenType.TEXT);
+    function addToken(type: TokenType, position: Position) {
+      tokens.push({ type, position });
+    }
+
+    function addText(position: Position) {
+      if (tokens[tokens.length - 1]?.type != TokenType.TEXT) {
+        addToken(TokenType.TEXT, position);
       }
     }
 
     while (!stream.end()) {
+      const position = stream.position.copy();
       const c = stream.next();
       switch (c) {
         // Whitespaces
@@ -38,18 +61,18 @@ export class Tokenizer {
           while (!stream.end() && this.isWhitespace(stream.current())) {
             stream.next();
           }
-          tokens.push(TokenType.WHITESPACE);
+          addToken(TokenType.WHITESPACE, position);
           break;
 
         // Newline
         case "\n":
-          tokens.push(TokenType.NEWLINE);
+          addToken(TokenType.NEWLINE, position);
           break;
 
         // Escape sequence
         case "\\":
           if (stream.end()) {
-            tokens.push(TokenType.TEXT);
+            addToken(TokenType.TEXT, position);
             break;
           }
           if (stream.current() == "\n") {
@@ -57,12 +80,12 @@ export class Tokenizer {
             while (!stream.end() && this.isWhitespace(stream.current())) {
               stream.next();
             }
-            tokens.push(TokenType.CONTINUATION);
+            addToken(TokenType.CONTINUATION, position);
             break;
           }
           if (this.isEscape(stream.current())) {
             stream.next();
-            tokens.push(TokenType.ESCAPE);
+            addToken(TokenType.ESCAPE, position);
             break;
           }
           if (this.isOctal(stream.current())) {
@@ -72,7 +95,7 @@ export class Tokenizer {
               stream.next();
               i++;
             }
-            tokens.push(TokenType.ESCAPE);
+            addToken(TokenType.ESCAPE, position);
             break;
           }
           if (stream.current() == "x") {
@@ -87,7 +110,7 @@ export class Tokenizer {
               i++;
             }
             if (i > 0) {
-              tokens.push(TokenType.ESCAPE);
+              addToken(TokenType.ESCAPE, position);
               break;
             }
           }
@@ -103,7 +126,7 @@ export class Tokenizer {
               i++;
             }
             if (i > 0) {
-              tokens.push(TokenType.ESCAPE);
+              addToken(TokenType.ESCAPE, position);
               break;
             }
           }
@@ -119,12 +142,12 @@ export class Tokenizer {
               i++;
             }
             if (i > 0) {
-              tokens.push(TokenType.ESCAPE);
+              addToken(TokenType.ESCAPE, position);
               break;
             }
           }
           stream.next();
-          addText();
+          addText(position);
           break;
 
         // Comment
@@ -132,51 +155,51 @@ export class Tokenizer {
           while (!stream.end() && stream.current() == "#") {
             stream.next();
           }
-          tokens.push(TokenType.COMMENT);
+          addToken(TokenType.COMMENT, position);
           break;
 
         // List delimiters
         case "(":
-          tokens.push(TokenType.OPEN_LIST);
+          addToken(TokenType.OPEN_LIST, position);
           break;
         case ")":
-          tokens.push(TokenType.CLOSE_LIST);
+          addToken(TokenType.CLOSE_LIST, position);
           break;
 
         // Block delimiters
         case "{":
-          tokens.push(TokenType.OPEN_BLOCK);
+          addToken(TokenType.OPEN_BLOCK, position);
           break;
         case "}":
-          tokens.push(TokenType.CLOSE_BLOCK);
+          addToken(TokenType.CLOSE_BLOCK, position);
           break;
 
         // Command delimiters
         case "[":
-          tokens.push(TokenType.OPEN_COMMAND);
+          addToken(TokenType.OPEN_COMMAND, position);
           break;
         case "]":
-          tokens.push(TokenType.CLOSE_COMMAND);
+          addToken(TokenType.CLOSE_COMMAND, position);
           break;
 
         // String delimiter
         case '"':
-          tokens.push(TokenType.STRING_DELIMITER);
+          addToken(TokenType.STRING_DELIMITER, position);
           break;
 
         // Dollar
         case "$":
-          tokens.push(TokenType.DOLLAR);
+          addToken(TokenType.DOLLAR, position);
           break;
 
         // Semicolon
         case ";":
-          tokens.push(TokenType.SEMICOLON);
+          addToken(TokenType.SEMICOLON, position);
 
           break;
 
         default:
-          addText();
+          addText(position);
       }
     }
 
@@ -199,21 +222,21 @@ export class Tokenizer {
 
 class StringStream {
   source: string;
-  position: number = 0;
+  position: Position = new Position();
   constructor(source: string) {
     this.source = source;
   }
 
   end() {
-    return this.position >= this.source.length;
+    return this.position.index >= this.source.length;
   }
   next() {
-    return this.source[this.position++];
+    return this.source[this.position.next()];
   }
   current() {
-    return this.source[this.position];
+    return this.source[this.position.index];
   }
   peek() {
-    return this.source[this.position + 1];
+    return this.source[this.position.index + 1];
   }
 }
