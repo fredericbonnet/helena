@@ -3,6 +3,9 @@ import { Token, Tokenizer, TokenType } from "./tokenizer";
 
 const toType = (token: Token) => token.type;
 const toIndex = (token: Token) => token.position.index;
+const toLine = (token: Token) => token.position.line;
+const toColumn = (token: Token) => token.position.column;
+const toLength = (token: Token) => token.length;
 
 describe("Tokenizer", () => {
   let tokenizer: Tokenizer;
@@ -255,6 +258,27 @@ describe("Tokenizer", () => {
       expect(tokenizer.tokenize("a b c").map(toIndex)).to.eql([0, 1, 2, 3, 4]);
       expect(tokenizer.tokenize("abc \r\f de\tf").map(toIndex)).to.eql([
         0, 3, 7, 9, 10,
+      ]);
+    });
+    it("should track line", () => {
+      expect(tokenizer.tokenize("a b c").map(toLine)).to.eql([0, 0, 0, 0, 0]);
+      expect(tokenizer.tokenize("a\nbcd e\nfg  h").map(toLine)).to.eql([
+        0, 0, 1, 1, 1, 1, 2, 2, 2,
+      ]);
+    });
+    it("should track column", () => {
+      expect(tokenizer.tokenize("a b c").map(toColumn)).to.eql([0, 1, 2, 3, 4]);
+      expect(tokenizer.tokenize("a\nbcd e\nfg  h").map(toColumn)).to.eql([
+        0, 1, 0, 3, 4, 5, 0, 2, 4,
+      ]);
+    });
+    it("should track length", () => {
+      expect(tokenizer.tokenize("a b c").map(toLength)).to.eql([1, 1, 1, 1, 1]);
+      expect(tokenizer.tokenize("abc \r\f de\tf").map(toLength)).to.eql([
+        3, 4, 2, 1, 1,
+      ]);
+      expect(tokenizer.tokenize("# ## ### ").map(toLength)).to.eql([
+        1, 1, 2, 1, 3, 1,
       ]);
     });
   });

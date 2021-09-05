@@ -18,13 +18,23 @@ export enum TokenType {
 
 export class Position {
   index: number = 0;
+  line: number = 0;
+  column: number = 0;
 
   copy() {
     const copy = new Position();
     copy.index = this.index;
+    copy.line = this.line;
+    copy.column = this.column;
     return copy;
   }
-  next() {
+  next(newline: boolean) {
+    if (newline) {
+      this.line++;
+      this.column = 0;
+    } else {
+      this.column++;
+    }
     return this.index++;
   }
 }
@@ -32,6 +42,7 @@ export class Position {
 export interface Token {
   type: TokenType;
   position: Position;
+  length: number;
 }
 
 export class Tokenizer {
@@ -40,12 +51,19 @@ export class Tokenizer {
     let tokens: Token[] = [];
 
     function addToken(type: TokenType, position: Position) {
-      tokens.push({ type, position });
+      tokens.push({
+        type,
+        position,
+        length: stream.position.index - position.index,
+      });
     }
 
     function addText(position: Position) {
-      if (tokens[tokens.length - 1]?.type != TokenType.TEXT) {
+      const last = tokens[tokens.length - 1];
+      if (last?.type != TokenType.TEXT) {
         addToken(TokenType.TEXT, position);
+      } else {
+        last.length = stream.position.index - last.position.index;
       }
     }
 
@@ -231,7 +249,7 @@ class StringStream {
     return this.position.index >= this.source.length;
   }
   next() {
-    return this.source[this.position.next()];
+    return this.source[this.position.next(this.current() === "\n")];
   }
   current() {
     return this.source[this.position.index];
