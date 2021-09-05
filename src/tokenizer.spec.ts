@@ -6,6 +6,7 @@ const toIndex = (token: Token) => token.position.index;
 const toLine = (token: Token) => token.position.line;
 const toColumn = (token: Token) => token.position.column;
 const toLength = (token: Token) => token.length;
+const toLiteral = (token: Token) => token.literal;
 
 describe("Tokenizer", () => {
   let tokenizer: Tokenizer;
@@ -280,6 +281,23 @@ describe("Tokenizer", () => {
       expect(tokenizer.tokenize("# ## ### ").map(toLength)).to.eql([
         1, 1, 2, 1, 3, 1,
       ]);
+    });
+  });
+
+  describe("literals", () => {
+    specify("text", () => {
+      expect(tokenizer.tokenize("abcd").map(toLiteral)).to.eql(["abcd"]);
+    });
+    specify("escape", () => {
+      expect(
+        tokenizer.tokenize("\\a\\b\\f\\n\\r\\t\\v\\\\").map(toLiteral)
+      ).to.eql(["a", "\b", "\f", "\n", "\r", "\t", "\v", "\\"]);
+      expect(tokenizer.tokenize("\\123").map(toLiteral)).to.eql(["S"]);
+      expect(tokenizer.tokenize("\\xA5").map(toLiteral)).to.eql(["¥"]);
+      expect(tokenizer.tokenize("\\u1234").map(toLiteral)).to.eql(["\u1234"]);
+      expect(
+        tokenizer.tokenize("\\U00012345\\U0006789A").map(toLiteral)
+      ).to.eql([String.fromCharCode(0x12345), String.fromCharCode(0x6789a)]);
     });
   });
 });

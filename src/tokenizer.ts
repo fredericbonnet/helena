@@ -43,6 +43,7 @@ export interface Token {
   type: TokenType;
   position: Position;
   length: number;
+  literal?: string;
 }
 
 export class Tokenizer {
@@ -50,20 +51,23 @@ export class Tokenizer {
     let stream = new StringStream(source);
     let tokens: Token[] = [];
 
-    function addToken(type: TokenType, position: Position) {
+    function addToken(type: TokenType, position: Position, literal?: string) {
       tokens.push({
         type,
         position,
         length: stream.position.index - position.index,
+        literal,
       });
     }
 
     function addText(position: Position) {
       const last = tokens[tokens.length - 1];
       if (last?.type != TokenType.TEXT) {
-        addToken(TokenType.TEXT, position);
+        const literal = stream.range(position.index, stream.position.index);
+        addToken(TokenType.TEXT, position, literal);
       } else {
         last.length = stream.position.index - last.position.index;
+        last.literal = stream.range(last.position.index, stream.position.index);
       }
     }
 
@@ -102,21 +106,26 @@ export class Tokenizer {
             break;
           }
           if (this.isEscape(stream.current())) {
+            const escape = this.getEscape(stream.current());
             stream.next();
-            addToken(TokenType.ESCAPE, position);
+            addToken(TokenType.ESCAPE, position, escape);
             break;
           }
           if (this.isOctal(stream.current())) {
+            let literal = Number.parseInt(stream.current());
             stream.next();
             let i = 1;
             while (!stream.end() && this.isOctal(stream.current()) && i < 3) {
+              literal *= 8;
+              literal += Number.parseInt(stream.current());
               stream.next();
               i++;
             }
-            addToken(TokenType.ESCAPE, position);
+            addToken(TokenType.ESCAPE, position, String.fromCharCode(literal));
             break;
           }
           if (stream.current() == "x") {
+            let literal = 0;
             stream.next();
             let i = 0;
             while (
@@ -124,15 +133,22 @@ export class Tokenizer {
               this.isHexadecimal(stream.current()) &&
               i < 2
             ) {
+              literal *= 16;
+              literal += Number.parseInt("0x" + stream.current());
               stream.next();
               i++;
             }
             if (i > 0) {
-              addToken(TokenType.ESCAPE, position);
+              addToken(
+                TokenType.ESCAPE,
+                position,
+                String.fromCharCode(literal)
+              );
               break;
             }
           }
           if (stream.current() == "u") {
+            let literal = 0;
             stream.next();
             let i = 0;
             while (
@@ -140,15 +156,22 @@ export class Tokenizer {
               this.isHexadecimal(stream.current()) &&
               i < 4
             ) {
+              literal *= 16;
+              literal += Number.parseInt("0x" + stream.current());
               stream.next();
               i++;
             }
             if (i > 0) {
-              addToken(TokenType.ESCAPE, position);
+              addToken(
+                TokenType.ESCAPE,
+                position,
+                String.fromCharCode(literal)
+              );
               break;
             }
           }
           if (stream.current() == "U") {
+            let literal = 0;
             stream.next();
             let i = 0;
             while (
@@ -156,11 +179,17 @@ export class Tokenizer {
               this.isHexadecimal(stream.current()) &&
               i < 8
             ) {
+              literal *= 16;
+              literal += Number.parseInt("0x" + stream.current());
               stream.next();
               i++;
             }
             if (i > 0) {
-              addToken(TokenType.ESCAPE, position);
+              addToken(
+                TokenType.ESCAPE,
+                position,
+                String.fromCharCode(literal)
+              );
               break;
             }
           }
@@ -230,6 +259,18 @@ export class Tokenizer {
   isEscape(c: string) {
     return c.match(/[abfnrtv\\]/);
   }
+  getEscape(c: string) {
+    return {
+      a: "a",
+      b: "\b",
+      f: "\f",
+      n: "\n",
+      r: "\r",
+      t: "\t",
+      v: "\v",
+      "\\": "\\",
+    }[c];
+  }
   isOctal(c: string) {
     return c.match(/[0-7]/);
   }
@@ -256,5 +297,8 @@ class StringStream {
   }
   peek() {
     return this.source[this.position.index + 1];
+  }
+  range(start: number, end: number) {
+    return this.source.substring(start, end);
   }
 }
