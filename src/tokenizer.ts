@@ -14,6 +14,7 @@ export enum TokenType {
   STRING_DELIMITER,
   DOLLAR,
   SEMICOLON,
+  ASTERISK,
 }
 
 export class Position {
@@ -242,7 +243,11 @@ export class Tokenizer {
         // Semicolon
         case ";":
           addToken(TokenType.SEMICOLON, position);
+          break;
 
+        // Asterisk
+        case "*":
+          addToken(TokenType.ASTERISK, position);
           break;
 
         default:

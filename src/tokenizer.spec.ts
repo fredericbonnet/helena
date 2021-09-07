@@ -252,6 +252,12 @@ describe("Tokenizer", () => {
 
       expect(tokenizer.tokenize("\\;").map(toType)).to.eql([TokenType.TEXT]);
     });
+
+    specify("asterisk", () => {
+      expect(tokenizer.tokenize("*").map(toType)).to.eql([TokenType.ASTERISK]);
+
+      expect(tokenizer.tokenize("\\*").map(toType)).to.eql([TokenType.TEXT]);
+    });
   });
 
   describe("positions", () => {
