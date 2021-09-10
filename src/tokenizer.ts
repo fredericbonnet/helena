@@ -48,7 +48,7 @@ export interface Token {
 }
 
 export class Tokenizer {
-  tokenize(source: string) {
+  tokenize(source: string): Token[] {
     let stream = new StringStream(source);
     let tokens: Token[] = [];
 
