@@ -44,7 +44,7 @@ export interface Token {
   type: TokenType;
   position: Position;
   length: number;
-  literal?: string;
+  literal: string;
 }
 
 export class Tokenizer {
@@ -57,7 +57,7 @@ export class Tokenizer {
         type,
         position,
         length: stream.position.index - position.index,
-        literal,
+        literal: literal ?? stream.range(position.index, stream.position.index),
       });
     }
 
@@ -103,7 +103,7 @@ export class Tokenizer {
             while (!stream.end() && this.isWhitespace(stream.current())) {
               stream.next();
             }
-            addToken(TokenType.CONTINUATION, position);
+            addToken(TokenType.CONTINUATION, position, " ");
             break;
           }
           if (this.isEscape(stream.current())) {

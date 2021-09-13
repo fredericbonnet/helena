@@ -305,5 +305,10 @@ describe("Tokenizer", () => {
         tokenizer.tokenize("\\U00012345\\U0006789A").map(toLiteral)
       ).to.eql([String.fromCharCode(0x12345), String.fromCharCode(0x6789a)]);
     });
+    specify("continuation", () => {
+      expect(tokenizer.tokenize("\\\n").map(toLiteral)).to.eql([" "]);
+      expect(tokenizer.tokenize("\\\n   ").map(toLiteral)).to.eql([" "]);
+      expect(tokenizer.tokenize("\\\n \t\r\f ").map(toLiteral)).to.eql([" "]);
+    });
   });
 });

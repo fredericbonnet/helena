@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { describe } from "mocha";
 import {
   BlockSyllable,
   CommandSyllable,
@@ -6,28 +7,32 @@ import {
   LiteralSyllable,
   Parser,
   Script,
+  StringSyllable,
+  Syllable,
 } from "./parser";
 import { Tokenizer } from "./tokenizer";
 
+const mapSyllable = (syllable: Syllable) => {
+  if (syllable instanceof LiteralSyllable) {
+    return { LITERAL: syllable.value };
+  }
+  if (syllable instanceof ListSyllable) {
+    return { LIST: toTree(syllable.subscript) };
+  }
+  if (syllable instanceof BlockSyllable) {
+    return { BLOCK: toTree(syllable.subscript) };
+  }
+  if (syllable instanceof CommandSyllable) {
+    return { COMMAND: toTree(syllable.subscript) };
+  }
+  if (syllable instanceof StringSyllable) {
+    return { STRING: syllable.syllables.map(mapSyllable) };
+  }
+  throw new Error("TODO");
+};
 const toTree = (script: Script) =>
   script.commands.map((command) =>
-    command.words.map((word) =>
-      word.syllables.map((syllable) => {
-        if (syllable instanceof LiteralSyllable) {
-          return { LITERAL: syllable.value };
-        }
-        if (syllable instanceof ListSyllable) {
-          return { LIST: toTree(syllable.value) };
-        }
-        if (syllable instanceof BlockSyllable) {
-          return { BLOCK: toTree(syllable.value) };
-        }
-        if (syllable instanceof CommandSyllable) {
-          return { COMMAND: toTree(syllable.value) };
-        }
-        throw new Error("TODO");
-      })
-    )
+    command.words.map((word) => word.syllables.map(mapSyllable))
   );
 
 describe("Parser", () => {
@@ -276,6 +281,51 @@ describe("Parser", () => {
           const tokens = tokenizer.tokenize("]");
           expect(() => parser.parse(tokens)).to.throws(
             "unmatched right bracket"
+          );
+        });
+      });
+    });
+    describe("strings", () => {
+      specify("empty string", () => {
+        const tokens = tokenizer.tokenize('""');
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([[[{ STRING: [] }]]]);
+      });
+      specify("simple string", () => {
+        const tokens = tokenizer.tokenize('"string"');
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [[{ STRING: [{ LITERAL: "string" }] }]],
+        ]);
+      });
+      specify("longer string", () => {
+        const tokens = tokenizer.tokenize('"this is a string"');
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [[{ STRING: [{ LITERAL: "this is a string" }] }]],
+        ]);
+      });
+      specify("string with whitespaces and continuations", () => {
+        const tokens = tokenizer.tokenize(
+          '"this  \t  is\r\f a   \\\n  \t  string"'
+        );
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [[{ STRING: [{ LITERAL: "this  \t  is\r\f a    string" }] }]],
+        ]);
+      });
+      specify("string with special characters", () => {
+        const tokens = tokenizer.tokenize('"this {is (a #string"');
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [[{ STRING: [{ LITERAL: "this {is (a #string" }] }]],
+        ]);
+      });
+      describe("exceptions", () => {
+        specify("unterminated string", () => {
+          const tokens = tokenizer.tokenize('"');
+          expect(() => parser.parse(tokens)).to.throws(
+            "unmatched string delimiter"
           );
         });
       });
