@@ -43,7 +43,7 @@ export class Position {
 export interface Token {
   type: TokenType;
   position: Position;
-  length: number;
+  sequence: string;
   literal: string;
 }
 
@@ -53,11 +53,12 @@ export class Tokenizer {
     let tokens: Token[] = [];
 
     function addToken(type: TokenType, position: Position, literal?: string) {
+      const sequence = stream.range(position.index, stream.position.index);
       tokens.push({
         type,
         position,
-        length: stream.position.index - position.index,
-        literal: literal ?? stream.range(position.index, stream.position.index),
+        sequence,
+        literal: literal ?? sequence,
       });
     }
 
@@ -67,8 +68,8 @@ export class Tokenizer {
         const literal = stream.range(position.index, stream.position.index);
         addToken(TokenType.TEXT, position, literal);
       } else {
-        last.length = stream.position.index - last.position.index;
         last.literal = stream.range(last.position.index, stream.position.index);
+        last.sequence = last.literal;
       }
     }
 
@@ -232,6 +233,9 @@ export class Tokenizer {
 
         // String delimiter
         case '"':
+          while (!stream.end() && stream.current() == '"') {
+            stream.next();
+          }
           addToken(TokenType.STRING_DELIMITER, position);
           break;
 
@@ -266,7 +270,7 @@ export class Tokenizer {
   }
   getEscape(c: string) {
     return {
-      a: "a",
+      a: "\x07",
       b: "\b",
       f: "\f",
       n: "\n",

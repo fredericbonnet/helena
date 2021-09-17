@@ -6,6 +6,7 @@ export enum SyllableType {
   BLOCK,
   COMMAND,
   STRING,
+  HERESTRING,
 }
 
 export class LiteralSyllable {
@@ -32,10 +33,16 @@ export class StringSyllable {
   syllables: Syllable[];
   path?;
 }
+export class HereStringSyllable {
+  type: SyllableType = SyllableType.HERESTRING;
+  syllables: Syllable[];
+  delimiterLength: number;
+  path?;
+}
 
 type SubscriptSyllable = ListSyllable | BlockSyllable | CommandSyllable;
 type RecursiveSyllable = SubscriptSyllable | StringSyllable;
-export type Syllable = LiteralSyllable | RecursiveSyllable;
+export type Syllable = LiteralSyllable | RecursiveSyllable | HereStringSyllable;
 
 export class Word {
   syllables: Syllable[] = [];
@@ -88,9 +95,25 @@ export class Parser {
         command,
         word,
       });
-      mode = "string";
     };
     const closeString = (syllable: StringSyllable) => {
+      popPath(syllable);
+    };
+    const openHereString = (
+      syllable: HereStringSyllable,
+      delimiter: string
+    ) => {
+      syllable.syllables = [];
+      syllable.delimiterLength = delimiter.length;
+      pushPath(syllable, {
+        mode: "herestring",
+        parent: syllable,
+        script,
+        command,
+        word,
+      });
+    };
+    const closeHereString = (syllable: StringSyllable) => {
       popPath(syllable);
     };
 
@@ -201,9 +224,23 @@ export class Parser {
                 throw new Error("unexpected string delimiter");
               }
               ensureWord();
-              syllable = new StringSyllable();
-              word.syllables.push(syllable);
-              openString(syllable);
+              if (token.literal == '"') {
+                // Regular strings
+                syllable = new StringSyllable();
+                word.syllables.push(syllable);
+                openString(syllable);
+              } else if (token.literal == '""') {
+                // Special case for empty strings
+                syllable = new StringSyllable();
+                word.syllables.push(syllable);
+                openString(syllable);
+                closeString(parent);
+              } else {
+                // Herestrings
+                syllable = new HereStringSyllable();
+                word.syllables.push(syllable);
+                openHereString(syllable as HereStringSyllable, token.literal);
+              }
               break;
 
             default:
@@ -221,6 +258,30 @@ export class Parser {
               addStringSequence(token.literal);
           }
           break;
+
+        case "herestring":
+          switch (token.type) {
+            case TokenType.STRING_DELIMITER:
+              if (
+                token.sequence.length >=
+                (parent as HereStringSyllable).delimiterLength
+              ) {
+                const extra =
+                  token.sequence.length -
+                  (parent as HereStringSyllable).delimiterLength;
+                if (extra > 0) {
+                  // End delimiter is longer, append extra characters
+                  addStringSequence(token.sequence.substr(0, extra));
+                }
+                closeHereString(parent);
+                break;
+              }
+            /* continued */
+
+            default:
+              addStringSequence(token.sequence);
+          }
+          break;
       }
     }
 
@@ -234,6 +295,8 @@ export class Parser {
           throw new Error("unmatched left bracket");
         case SyllableType.STRING:
           throw new Error("unmatched string delimiter");
+        case SyllableType.HERESTRING:
+          throw new Error("unmatched herestring delimiter");
         default:
           throw new Error("unterminated script");
       }

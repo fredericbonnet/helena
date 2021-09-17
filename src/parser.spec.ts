@@ -3,6 +3,7 @@ import { describe } from "mocha";
 import {
   BlockSyllable,
   CommandSyllable,
+  HereStringSyllable,
   ListSyllable,
   LiteralSyllable,
   Parser,
@@ -27,6 +28,9 @@ const mapSyllable = (syllable: Syllable) => {
   }
   if (syllable instanceof StringSyllable) {
     return { STRING: syllable.syllables.map(mapSyllable) };
+  }
+  if (syllable instanceof HereStringSyllable) {
+    return { HERESTRING: syllable.syllables.map(mapSyllable) };
   }
   throw new Error("TODO");
 };
@@ -326,6 +330,72 @@ describe("Parser", () => {
           const tokens = tokenizer.tokenize('"');
           expect(() => parser.parse(tokens)).to.throws(
             "unmatched string delimiter"
+          );
+        });
+      });
+    });
+    describe("herestring", () => {
+      specify("3-quote delimiter", () => {
+        const tokens = tokenizer.tokenize(
+          '"""some " \\\n    $arbitrary [character\n  "" sequence"""'
+        );
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [
+            [
+              {
+                HERESTRING: [
+                  {
+                    LITERAL:
+                      'some " \\\n    $arbitrary [character\n  "" sequence',
+                  },
+                ],
+              },
+            ],
+          ],
+        ]);
+      });
+      specify("4-quote delimiter", () => {
+        const tokens = tokenizer.tokenize('""""here is """ some text""""');
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [
+            [
+              {
+                HERESTRING: [
+                  {
+                    LITERAL: 'here is """ some text',
+                  },
+                ],
+              },
+            ],
+          ],
+        ]);
+      });
+      specify("quote-terminated herestring", () => {
+        const tokens = tokenizer.tokenize(
+          '"""<- 3 quotes here / 4 quotes there -> """"'
+        );
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [
+            [
+              {
+                HERESTRING: [
+                  {
+                    LITERAL: '<- 3 quotes here / 4 quotes there -> "',
+                  },
+                ],
+              },
+            ],
+          ],
+        ]);
+      });
+      describe("exceptions", () => {
+        specify("unterminated herestring", () => {
+          const tokens = tokenizer.tokenize('"""hello');
+          expect(() => parser.parse(tokens)).to.throws(
+            "unmatched herestring delimiter"
           );
         });
       });

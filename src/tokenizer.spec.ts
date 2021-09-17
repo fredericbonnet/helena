@@ -5,8 +5,8 @@ const toType = (token: Token) => token.type;
 const toIndex = (token: Token) => token.position.index;
 const toLine = (token: Token) => token.position.line;
 const toColumn = (token: Token) => token.position.column;
-const toLength = (token: Token) => token.length;
 const toLiteral = (token: Token) => token.literal;
+const toSequence = (token: Token) => token.sequence;
 
 describe("Tokenizer", () => {
   let tokenizer: Tokenizer;
@@ -279,15 +279,6 @@ describe("Tokenizer", () => {
         0, 1, 0, 3, 4, 5, 0, 2, 4,
       ]);
     });
-    it("should track length", () => {
-      expect(tokenizer.tokenize("a b c").map(toLength)).to.eql([1, 1, 1, 1, 1]);
-      expect(tokenizer.tokenize("abc \r\f de\tf").map(toLength)).to.eql([
-        3, 4, 2, 1, 1,
-      ]);
-      expect(tokenizer.tokenize("# ## ### ").map(toLength)).to.eql([
-        1, 1, 2, 1, 3, 1,
-      ]);
-    });
   });
 
   describe("literals", () => {
@@ -297,7 +288,7 @@ describe("Tokenizer", () => {
     specify("escape", () => {
       expect(
         tokenizer.tokenize("\\a\\b\\f\\n\\r\\t\\v\\\\").map(toLiteral)
-      ).to.eql(["a", "\b", "\f", "\n", "\r", "\t", "\v", "\\"]);
+      ).to.eql(["\x07", "\b", "\f", "\n", "\r", "\t", "\v", "\\"]);
       expect(tokenizer.tokenize("\\123").map(toLiteral)).to.eql(["S"]);
       expect(tokenizer.tokenize("\\xA5").map(toLiteral)).to.eql(["¥"]);
       expect(tokenizer.tokenize("\\u1234").map(toLiteral)).to.eql(["\u1234"]);
@@ -309,6 +300,29 @@ describe("Tokenizer", () => {
       expect(tokenizer.tokenize("\\\n").map(toLiteral)).to.eql([" "]);
       expect(tokenizer.tokenize("\\\n   ").map(toLiteral)).to.eql([" "]);
       expect(tokenizer.tokenize("\\\n \t\r\f ").map(toLiteral)).to.eql([" "]);
+    });
+  });
+  describe("sequences", () => {
+    specify("text", () => {
+      expect(tokenizer.tokenize("abcd").map(toSequence)).to.eql(["abcd"]);
+    });
+    specify("escape", () => {
+      expect(
+        tokenizer.tokenize("\\a\\b\\f\\n\\r\\t\\v\\\\").map(toSequence)
+      ).to.eql(["\\a", "\\b", "\\f", "\\n", "\\r", "\\t", "\\v", "\\\\"]);
+      expect(tokenizer.tokenize("\\123").map(toSequence)).to.eql(["\\123"]);
+      expect(tokenizer.tokenize("\\xA5").map(toSequence)).to.eql(["\\xA5"]);
+      expect(tokenizer.tokenize("\\u1234").map(toSequence)).to.eql(["\\u1234"]);
+      expect(
+        tokenizer.tokenize("\\U00012345\\U0006789A").map(toSequence)
+      ).to.eql(["\\U00012345", "\\U0006789A"]);
+    });
+    specify("continuation", () => {
+      expect(tokenizer.tokenize("\\\n").map(toSequence)).to.eql(["\\\n"]);
+      expect(tokenizer.tokenize("\\\n   ").map(toSequence)).to.eql(["\\\n   "]);
+      expect(tokenizer.tokenize("\\\n \t\r\f ").map(toSequence)).to.eql([
+        "\\\n \t\r\f ",
+      ]);
     });
   });
 });
