@@ -88,6 +88,18 @@ export class Parser {
     while (!this.stream.end()) {
       const token = this.stream.next();
       switch (this.context.parent?.type) {
+        case SyllableType.LIST:
+          this.parseList(token);
+          break;
+
+        case SyllableType.BLOCK:
+          this.parseBlock(token);
+          break;
+
+        case SyllableType.COMMAND:
+          this.parseCommand(token);
+          break;
+
         case SyllableType.STRING:
           this.parseString(token);
           break;
@@ -121,7 +133,115 @@ export class Parser {
     return this.context.script;
   }
 
+  private pushContext(syllable: RecursiveSyllable, ctx: Partial<Context>) {
+    syllable.parentContext = this.context;
+    this.context = new Context({ ...ctx, parent: syllable });
+  }
+  private popContext() {
+    let syllable = this.context.parent;
+    this.context = syllable.parentContext;
+    syllable.parentContext = undefined;
+  }
+
+  /*
+   * Scripts
+   */
+
   private parseScript(token: Token) {
+    switch (token.type) {
+      case TokenType.CLOSE_LIST:
+        throw new Error("unmatched right parenthesis");
+
+      case TokenType.CLOSE_BLOCK:
+        throw new Error("unmatched right brace");
+
+      case TokenType.CLOSE_COMMAND:
+        throw new Error("unmatched right bracket");
+
+      default:
+        this.parseWord(token);
+    }
+  }
+
+  /*
+   * Lists
+   */
+
+  private parseList(token: Token) {
+    switch (token.type) {
+      case TokenType.CLOSE_LIST:
+        this.closeList();
+        break;
+
+      default:
+        this.parseWord(token);
+    }
+  }
+  private openList() {
+    this.context.syllable = new ListSyllable();
+    this.context.word.syllables.push(this.context.syllable);
+    this.pushContext(this.context.syllable, {
+      script: this.context.syllable.subscript,
+    });
+  }
+  private closeList() {
+    this.popContext();
+  }
+
+  /*
+   * Blocks
+   */
+
+  private parseBlock(token: Token) {
+    switch (token.type) {
+      case TokenType.CLOSE_BLOCK:
+        this.closeBlock();
+        break;
+
+      default:
+        this.parseWord(token);
+    }
+  }
+  private openBlock() {
+    this.context.syllable = new BlockSyllable();
+    this.context.word.syllables.push(this.context.syllable);
+    this.pushContext(this.context.syllable, {
+      script: this.context.syllable.subscript,
+    });
+  }
+  private closeBlock() {
+    this.popContext();
+  }
+
+  /*
+   * Commands
+   */
+  private parseCommand(token: Token) {
+    switch (token.type) {
+      case TokenType.CLOSE_COMMAND:
+        this.closeSubcommand();
+        break;
+
+      default:
+        this.parseWord(token);
+    }
+  }
+  private openSubcommand() {
+    this.context.syllable = new CommandSyllable();
+    this.context.word.syllables.push(this.context.syllable);
+    this.pushContext(this.context.syllable, {
+      script: this.context.syllable.subscript,
+    });
+  }
+  private closeSubcommand() {
+    this.popContext();
+  }
+
+  /*
+   * Words
+   */
+
+  private parseWord(token: Token) {
     switch (token.type) {
       case TokenType.WHITESPACE:
       case TokenType.CONTINUATION:
@@ -137,42 +257,6 @@ export class Parser {
       case TokenType.ESCAPE:
         this.ensureWord();
         this.addLiteral(token.literal);
-        break;
-
-      case TokenType.OPEN_LIST:
-        this.ensureWord();
-        this.openList();
-        break;
-
-      case TokenType.CLOSE_LIST:
-        if (!this.context.parent) {
-          throw new Error("unmatched right parenthesis");
-        }
-        this.closeList();
-        break;
-
-      case TokenType.OPEN_BLOCK:
-        this.ensureWord();
-        this.openBlock();
-        break;
-
-      case TokenType.CLOSE_BLOCK:
-        if (!this.context.parent) {
-          throw new Error("unmatched right brace");
-        }
-        this.closeBlock();
-        break;
-
-      case TokenType.OPEN_COMMAND:
-        this.ensureWord();
-        this.openSubcommand();
-        break;
-
-      case TokenType.CLOSE_COMMAND:
-        if (!this.context.parent) {
-          throw new Error("unmatched right bracket");
-        }
-        this.closeSubcommand();
         break;
 
       case TokenType.STRING_DELIMITER:
@@ -193,9 +277,62 @@ export class Parser {
         }
         break;
 
+      case TokenType.OPEN_LIST:
+        this.ensureWord();
+        this.openList();
+        break;
+
+      case TokenType.OPEN_BLOCK:
+        this.ensureWord();
+        this.openBlock();
+        break;
+
+      case TokenType.OPEN_COMMAND:
+        this.ensureWord();
+        this.openSubcommand();
+        break;
+
+      case TokenType.CLOSE_LIST:
+        throw new Error("mismatched right parenthesis");
+
+      case TokenType.CLOSE_BLOCK:
+        throw new Error("mismatched right brace");
+
+      case TokenType.CLOSE_COMMAND:
+        throw new Error("mismatched right bracket");
+
       default:
         throw new Error("syntax error");
     }
+  }
+  private ensureWord() {
+    if (!this.context.command) {
+      this.context.command = new Command();
+      this.context.script.commands.push(this.context.command);
+      this.context.word = undefined;
+    }
+    if (!this.context.word) {
+      this.context.word = new Word();
+      this.context.command.words.push(this.context.word);
+      this.context.syllable = undefined;
+    }
+  }
+  private addLiteral(value: string) {
+    if (this.context.syllable?.type == SyllableType.LITERAL) {
+      (this.context.syllable as LiteralSyllable).value += value;
+    } else {
+      this.context.syllable = new LiteralSyllable();
+      (this.context.syllable as LiteralSyllable).value = value;
+      this.context.word.syllables.push(this.context.syllable);
+    }
+  }
+  private closeWord() {
+    this.context.syllable = undefined;
+    this.context.word = undefined;
+  }
+  private closeCommand() {
+    this.closeWord();
+    this.context.command = undefined;
   }
 
   /*
@@ -285,78 +422,6 @@ export class Parser {
         this.context.syllable
       );
     }
-  }
-
-  private pushContext(syllable: RecursiveSyllable, ctx: Partial<Context>) {
-    syllable.parentContext = this.context;
-    this.context = new Context({ ...ctx, parent: syllable });
-  }
-  private popContext() {
-    let syllable = this.context.parent;
-    this.context = syllable.parentContext;
-    syllable.parentContext = undefined;
-  }
-
-  private openList() {
-    this.context.syllable = new ListSyllable();
-    this.context.word.syllables.push(this.context.syllable);
-    this.pushContext(this.context.syllable, {
-      script: this.context.syllable.subscript,
-    });
-  }
-  private closeList() {
-    this.popContext();
-  }
-  private openBlock() {
-    this.context.syllable = new BlockSyllable();
-    this.context.word.syllables.push(this.context.syllable);
-    this.pushContext(this.context.syllable, {
-      script: this.context.syllable.subscript,
-    });
-  }
-  private closeBlock() {
-    this.popContext();
-  }
-  private openSubcommand() {
-    this.context.syllable = new CommandSyllable();
-    this.context.word.syllables.push(this.context.syllable);
-    this.pushContext(this.context.syllable, {
-      script: this.context.syllable.subscript,
-    });
-  }
-  private closeSubcommand() {
-    this.popContext();
-  }
-
-  private ensureWord() {
-    if (!this.context.command) {
-      this.context.command = new Command();
-      this.context.script.commands.push(this.context.command);
-      this.context.word = undefined;
-    }
-    if (!this.context.word) {
-      this.context.word = new Word();
-      this.context.command.words.push(this.context.word);
-      this.context.syllable = undefined;
-    }
-  }
-  private addLiteral(value: string) {
-    if (this.context.syllable?.type == SyllableType.LITERAL) {
-      (this.context.syllable as LiteralSyllable).value += value;
-    } else {
-      this.context.syllable = new LiteralSyllable();
-      (this.context.syllable as LiteralSyllable).value = value;
-      this.context.word.syllables.push(this.context.syllable);
-    }
-  }
-
-  private closeWord() {
-    this.context.syllable = undefined;
-    this.context.word = undefined;
-  }
-  private closeCommand() {
-    this.closeWord();
-    this.context.command = undefined;
   }
 }
 

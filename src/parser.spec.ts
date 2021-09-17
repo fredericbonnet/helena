@@ -171,6 +171,18 @@ describe("Parser", () => {
             "unmatched right parenthesis"
           );
         });
+        specify("mismatched right brace", () => {
+          const tokens = tokenizer.tokenize("(}");
+          expect(() => parser.parse(tokens)).to.throws(
+            "mismatched right brace"
+          );
+        });
+        specify("mismatched right bracket", () => {
+          const tokens = tokenizer.tokenize("(]");
+          expect(() => parser.parse(tokens)).to.throws(
+            "mismatched right bracket"
+          );
+        });
       });
     });
     describe("blocks", () => {
@@ -222,6 +234,18 @@ describe("Parser", () => {
         specify("unmatched right brace", () => {
           const tokens = tokenizer.tokenize("}");
           expect(() => parser.parse(tokens)).to.throws("unmatched right brace");
+        });
+        specify("mismatched right parenthesis", () => {
+          const tokens = tokenizer.tokenize("{)");
+          expect(() => parser.parse(tokens)).to.throws(
+            "mismatched right parenthesis"
+          );
+        });
+        specify("mismatched right bracket", () => {
+          const tokens = tokenizer.tokenize("{]");
+          expect(() => parser.parse(tokens)).to.throws(
+            "mismatched right bracket"
+          );
         });
       });
     });
@@ -285,6 +309,18 @@ describe("Parser", () => {
           const tokens = tokenizer.tokenize("]");
           expect(() => parser.parse(tokens)).to.throws(
             "unmatched right bracket"
+          );
+        });
+        specify("mismatched right parenthesis", () => {
+          const tokens = tokenizer.tokenize("[)");
+          expect(() => parser.parse(tokens)).to.throws(
+            "mismatched right parenthesis"
+          );
+        });
+        specify("mismatched right brace", () => {
+          const tokens = tokenizer.tokenize("[}");
+          expect(() => parser.parse(tokens)).to.throws(
+            "mismatched right brace"
           );
         });
       });
