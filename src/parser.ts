@@ -6,7 +6,8 @@ export enum SyllableType {
   BLOCK,
   COMMAND,
   STRING,
-  HERESTRING,
+  HERE_STRING,
+  TAGGED_STRING,
 }
 
 export class LiteralSyllable {
@@ -34,8 +35,8 @@ export class StringSyllable {
   parentContext?;
 }
 export class HereStringSyllable {
-  type: SyllableType = SyllableType.HERESTRING;
-  syllables: Syllable[] = [];
+  type: SyllableType = SyllableType.HERE_STRING;
+  value: string = "";
   delimiterLength: number;
   parentContext?;
 
@@ -43,12 +44,23 @@ export class HereStringSyllable {
     this.delimiterLength = delimiter.length;
   }
 }
+export class TaggedStringSyllable {
+  type: SyllableType = SyllableType.TAGGED_STRING;
+  value: string = "";
+  delimiter: string;
+  parentContext?;
+
+  constructor(delimiter: string) {
+    this.delimiter = delimiter;
+  }
+}
 
 type SubscriptSyllable = ListSyllable | BlockSyllable | CommandSyllable;
 type RecursiveSyllable =
   | SubscriptSyllable
   | StringSyllable
-  | HereStringSyllable;
+  | HereStringSyllable
+  | TaggedStringSyllable;
 export type Syllable = LiteralSyllable | RecursiveSyllable;
 
 export class Word {
@@ -104,8 +116,12 @@ export class Parser {
           this.parseString(token);
           break;
 
-        case SyllableType.HERESTRING:
+        case SyllableType.HERE_STRING:
           this.parseHereString(token);
+          break;
+
+        case SyllableType.TAGGED_STRING:
+          this.parseTaggedString(token);
           break;
 
         default:
@@ -123,8 +139,8 @@ export class Parser {
           throw new Error("unmatched left bracket");
         case SyllableType.STRING:
           throw new Error("unmatched string delimiter");
-        case SyllableType.HERESTRING:
-          throw new Error("unmatched herestring delimiter");
+        case SyllableType.HERE_STRING:
+          throw new Error("unmatched here-string delimiter");
         default:
           throw new Error("unterminated script");
       }
@@ -268,11 +284,17 @@ export class Parser {
           // Regular strings
           this.openString();
         } else if (token.literal == '""') {
-          // Special case for empty strings
-          this.openString();
-          this.closeString();
+          const next = this.stream.current();
+          if (next?.type == TokenType.TEXT) {
+            // Tagged strings
+            this.openTaggedString(next.literal);
+          } else {
+            // Special case for empty strings
+            this.openString();
+            this.closeString();
+          }
         } else {
-          // Herestrings
+          // Here-strings
           this.openHereString(token.literal);
         }
         break;
@@ -322,7 +344,7 @@ export class Parser {
       (this.context.syllable as LiteralSyllable).value += value;
     } else {
       this.context.syllable = new LiteralSyllable();
-      (this.context.syllable as LiteralSyllable).value = value;
+      this.context.syllable.value = value;
       this.context.word.syllables.push(this.context.syllable);
     }
   }
@@ -345,6 +367,14 @@ export class Parser {
         this.closeString();
         break;
 
+      case TokenType.CONTINUATION:
+        this.addStringSequence(token.literal);
+        // Eat up all subsequent whitespaces
+        while (this.stream.current()?.type == TokenType.WHITESPACE) {
+          this.stream.next();
+        }
+        break;
+
       default:
         this.addStringSequence(token.literal);
     }
@@ -362,19 +392,18 @@ export class Parser {
     this.popContext();
   }
   private addStringSequence(value: string) {
+    const parent = this.context.parent as StringSyllable;
     if (this.context.syllable?.type == SyllableType.LITERAL) {
       (this.context.syllable as LiteralSyllable).value += value;
     } else {
       this.context.syllable = new LiteralSyllable();
-      (this.context.syllable as LiteralSyllable).value = value;
-      (this.context.parent as StringSyllable).syllables.push(
-        this.context.syllable
-      );
+      this.context.syllable.value = value;
+      parent.syllables.push(this.context.syllable);
     }
   }
 
   /*
-   * Herestrings
+   * Here-strings
    */
 
   private parseHereString(token: Token) {
@@ -396,32 +425,77 @@ export class Parser {
       word: this.context.word,
     });
   }
-  private closeHereString(sequence: string) {
-    if (
-      sequence.length >=
-      (this.context.parent as HereStringSyllable).delimiterLength
-    ) {
-      const extra =
-        sequence.length -
-        (this.context.parent as HereStringSyllable).delimiterLength;
-      if (extra > 0) {
-        // End delimiter is longer, append extra characters
-        this.addHereStringSequence(sequence.substr(0, extra));
-      }
-      this.popContext();
-      return true;
+  private closeHereString(delimiter: string) {
+    const parent = this.context.parent as HereStringSyllable;
+    if (delimiter.length < parent.delimiterLength) {
+      // Delimiter too short
+      return false;
     }
+    const extra = delimiter.length - parent.delimiterLength;
+    if (extra > 0) {
+      // Delimiter is longer, append extra characters verbatim
+      this.addHereStringSequence(delimiter.substr(0, extra));
+    }
+    this.popContext();
+    return true;
   }
   private addHereStringSequence(value: string) {
-    if (this.context.syllable?.type == SyllableType.LITERAL) {
-      (this.context.syllable as LiteralSyllable).value += value;
-    } else {
-      this.context.syllable = new LiteralSyllable();
-      (this.context.syllable as LiteralSyllable).value = value;
-      (this.context.parent as HereStringSyllable).syllables.push(
-        this.context.syllable
-      );
+    const parent = this.context.parent as HereStringSyllable;
+    parent.value += value;
+  }
+
+  /*
+   * Tagged strings
+   */
+
+  private parseTaggedString(token: Token) {
+    switch (token.type) {
+      case TokenType.TEXT:
+        if (this.closeTaggedString(token.literal)) break;
+      /* continued */
+
+      default:
+        this.addTaggedStringSequence(token.sequence);
     }
+  }
+  private openTaggedString(delimiter: string) {
+    const syllable = new TaggedStringSyllable(delimiter);
+    this.context.word.syllables.push(syllable);
+    this.pushContext(syllable, {
+      script: this.context.script,
+      sentence: this.context.sentence,
+      word: this.context.word,
+    });
+
+    // Discard everything until the next newline
+    while (this.stream.next()?.type != TokenType.NEWLINE);
+  }
+  private closeTaggedString(delimiter: string) {
+    const parent = this.context.parent as TaggedStringSyllable;
+    if (delimiter == parent.delimiter) {
+      const next = this.stream.current();
+      if (
+        next?.type == TokenType.STRING_DELIMITER &&
+        next.literal.length == 2
+      ) {
+        this.stream.next();
+
+        // Shift lines by prefix length
+        const lines = parent.value.split("\n");
+        const prefix = lines[lines.length - 1];
+        parent.value = lines
+          .map((line) => line.substr(prefix.length))
+          .join("\n");
+
+        this.popContext();
+        return true;
+      }
+    }
+    return false;
+  }
+  private addTaggedStringSequence(value: string) {
+    const parent = this.context.parent as TaggedStringSyllable;
+    parent.value += value;
   }
 }
 

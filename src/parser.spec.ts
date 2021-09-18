@@ -10,6 +10,7 @@ import {
   Script,
   StringSyllable,
   Syllable,
+  TaggedStringSyllable,
 } from "./parser";
 import { Tokenizer } from "./tokenizer";
 
@@ -30,7 +31,10 @@ const mapSyllable = (syllable: Syllable) => {
     return { STRING: syllable.syllables.map(mapSyllable) };
   }
   if (syllable instanceof HereStringSyllable) {
-    return { HERESTRING: syllable.syllables.map(mapSyllable) };
+    return { HERE_STRING: syllable.value };
+  }
+  if (syllable instanceof TaggedStringSyllable) {
+    return { TAGGED_STRING: syllable.value };
   }
   throw new Error("TODO");
 };
@@ -370,7 +374,7 @@ describe("Parser", () => {
         });
       });
     });
-    describe("herestring", () => {
+    describe("here-strings", () => {
       specify("3-quote delimiter", () => {
         const tokens = tokenizer.tokenize(
           '"""some " \\\n    $arbitrary [character\n  "" sequence"""'
@@ -380,12 +384,8 @@ describe("Parser", () => {
           [
             [
               {
-                HERESTRING: [
-                  {
-                    LITERAL:
-                      'some " \\\n    $arbitrary [character\n  "" sequence',
-                  },
-                ],
+                HERE_STRING:
+                  'some " \\\n    $arbitrary [character\n  "" sequence',
               },
             ],
           ],
@@ -398,17 +398,13 @@ describe("Parser", () => {
           [
             [
               {
-                HERESTRING: [
-                  {
-                    LITERAL: 'here is """ some text',
-                  },
-                ],
+                HERE_STRING: 'here is """ some text',
               },
             ],
           ],
         ]);
       });
-      specify("quote-terminated herestring", () => {
+      specify("quote-terminated here-string", () => {
         const tokens = tokenizer.tokenize(
           '"""<- 3 quotes here / 4 quotes there -> """"'
         );
@@ -417,23 +413,102 @@ describe("Parser", () => {
           [
             [
               {
-                HERESTRING: [
-                  {
-                    LITERAL: '<- 3 quotes here / 4 quotes there -> "',
-                  },
-                ],
+                HERE_STRING: '<- 3 quotes here / 4 quotes there -> "',
               },
             ],
           ],
         ]);
       });
       describe("exceptions", () => {
-        specify("unterminated herestring", () => {
+        specify("unterminated here-string", () => {
           const tokens = tokenizer.tokenize('"""hello');
           expect(() => parser.parse(tokens)).to.throws(
-            "unmatched herestring delimiter"
+            "unmatched here-string delimiter"
           );
         });
+      });
+    });
+    describe("tagged strings", () => {
+      specify("empty tagged string", () => {
+        const tokens = tokenizer.tokenize('""EOF\nEOF""');
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([[[{ TAGGED_STRING: "" }]]]);
+      });
+      specify("single empty line", () => {
+        const tokens = tokenizer.tokenize('""EOF\n\nEOF""');
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([[[{ TAGGED_STRING: "\n" }]]]);
+      });
+      specify("extra characters after delimiter", () => {
+        const tokens = tokenizer.tokenize(
+          '""EOF some $arbitrary[ }text\\\n (with continuation\nfoo\nbar\nEOF""'
+        );
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([[[{ TAGGED_STRING: "foo\nbar\n" }]]]);
+      });
+      specify("tag within string", () => {
+        const tokens = tokenizer.tokenize('""EOF\nEOF ""\nEOF""');
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([[[{ TAGGED_STRING: 'EOF ""\n' }]]]);
+      });
+      specify("continuations", () => {
+        const tokens = tokenizer.tokenize('""EOF\nsome\\\n   string\nEOF""');
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [[{ TAGGED_STRING: "some\\\n   string\n" }]],
+        ]);
+      });
+      specify("indentation", () => {
+        const tokens = tokenizer.tokenize(`""EOF
+          #include <stdio.h>
+          
+          int main(void) {
+            printf("Hello, world!");
+            return 0;
+          }
+          EOF""`);
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [
+            [
+              {
+                TAGGED_STRING: `#include <stdio.h>
+
+int main(void) {
+  printf("Hello, world!");
+  return 0;
+}
+`,
+              },
+            ],
+          ],
+        ]);
+      });
+      specify("line prefix", () => {
+        const tokens = tokenizer.tokenize(`""EOF
+1  #include <stdio.h>
+2  
+3  int main(void) {
+4    printf("Hello, world!");
+5    return 0;
+6  }
+   EOF""`);
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [
+            [
+              {
+                TAGGED_STRING: `#include <stdio.h>
+
+int main(void) {
+  printf("Hello, world!");
+  return 0;
+}
+`,
+              },
+            ],
+          ],
+        ]);
       });
     });
     describe("compound words", () => {

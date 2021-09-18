@@ -101,9 +101,6 @@ export class Tokenizer {
           }
           if (stream.current() == "\n") {
             stream.next();
-            while (!stream.end() && this.isWhitespace(stream.current())) {
-              stream.next();
-            }
             addToken(TokenType.CONTINUATION, position, " ");
             break;
           }

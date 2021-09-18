@@ -63,9 +63,11 @@ describe("Tokenizer", () => {
         ]);
         expect(tokenizer.tokenize("\\\n   ").map(toType)).to.eql([
           TokenType.CONTINUATION,
+          TokenType.WHITESPACE,
         ]);
         expect(tokenizer.tokenize("\\\n \t\r\f ").map(toType)).to.eql([
           TokenType.CONTINUATION,
+          TokenType.WHITESPACE,
         ]);
       });
       specify("control characters", () => {
@@ -298,8 +300,11 @@ describe("Tokenizer", () => {
     });
     specify("continuation", () => {
       expect(tokenizer.tokenize("\\\n").map(toLiteral)).to.eql([" "]);
-      expect(tokenizer.tokenize("\\\n   ").map(toLiteral)).to.eql([" "]);
-      expect(tokenizer.tokenize("\\\n \t\r\f ").map(toLiteral)).to.eql([" "]);
+      expect(tokenizer.tokenize("\\\n   ").map(toLiteral)).to.eql([" ", "   "]);
+      expect(tokenizer.tokenize("\\\n \t\r\f ").map(toLiteral)).to.eql([
+        " ",
+        " \t\r\f ",
+      ]);
     });
   });
   describe("sequences", () => {
@@ -319,9 +324,13 @@ describe("Tokenizer", () => {
     });
     specify("continuation", () => {
       expect(tokenizer.tokenize("\\\n").map(toSequence)).to.eql(["\\\n"]);
-      expect(tokenizer.tokenize("\\\n   ").map(toSequence)).to.eql(["\\\n   "]);
+      expect(tokenizer.tokenize("\\\n   ").map(toSequence)).to.eql([
+        "\\\n",
+        "   ",
+      ]);
       expect(tokenizer.tokenize("\\\n \t\r\f ").map(toSequence)).to.eql([
-        "\\\n \t\r\f ",
+        "\\\n",
+        " \t\r\f ",
       ]);
     });
   });
