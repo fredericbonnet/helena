@@ -54,24 +54,24 @@ export type Syllable = LiteralSyllable | RecursiveSyllable;
 export class Word {
   syllables: Syllable[] = [];
 }
-export class Command {
+export class Sentence {
   words: Word[] = [];
 }
 export class Script {
-  commands: Command[] = [];
+  sentences: Sentence[] = [];
 }
 
 class Context {
   parent: RecursiveSyllable;
   script: Script;
-  command: Command;
+  sentence: Sentence;
   word: Word;
   syllable: Syllable;
 
   constructor(ctx: Partial<Context>) {
     this.parent = ctx.parent;
     this.script = ctx.script;
-    this.command = ctx.command;
+    this.sentence = ctx.sentence;
     this.word = ctx.word;
   }
 }
@@ -219,21 +219,21 @@ export class Parser {
   private parseCommand(token: Token) {
     switch (token.type) {
       case TokenType.CLOSE_COMMAND:
-        this.closeSubcommand();
+        this.closeCommand();
         break;
 
       default:
         this.parseWord(token);
     }
   }
-  private openSubcommand() {
+  private openCommand() {
     this.context.syllable = new CommandSyllable();
     this.context.word.syllables.push(this.context.syllable);
     this.pushContext(this.context.syllable, {
       script: this.context.syllable.subscript,
     });
   }
-  private closeSubcommand() {
+  private closeCommand() {
     this.popContext();
   }
 
@@ -250,7 +250,7 @@ export class Parser {
 
       case TokenType.NEWLINE:
       case TokenType.SEMICOLON:
-        this.closeCommand();
+        this.closeSentence();
         break;
 
       case TokenType.TEXT:
@@ -289,7 +289,7 @@ export class Parser {
 
       case TokenType.OPEN_COMMAND:
         this.ensureWord();
-        this.openSubcommand();
+        this.openCommand();
         break;
 
       case TokenType.CLOSE_LIST:
@@ -306,14 +306,14 @@ export class Parser {
     }
   }
   private ensureWord() {
-    if (!this.context.command) {
-      this.context.command = new Command();
-      this.context.script.commands.push(this.context.command);
+    if (!this.context.sentence) {
+      this.context.sentence = new Sentence();
+      this.context.script.sentences.push(this.context.sentence);
       this.context.word = undefined;
     }
     if (!this.context.word) {
       this.context.word = new Word();
-      this.context.command.words.push(this.context.word);
+      this.context.sentence.words.push(this.context.word);
       this.context.syllable = undefined;
     }
   }
@@ -330,9 +330,9 @@ export class Parser {
     this.context.syllable = undefined;
     this.context.word = undefined;
   }
-  private closeCommand() {
+  private closeSentence() {
     this.closeWord();
-    this.context.command = undefined;
+    this.context.sentence = undefined;
   }
 
   /*
@@ -354,7 +354,7 @@ export class Parser {
     this.context.word.syllables.push(this.context.syllable);
     this.pushContext(this.context.syllable, {
       script: this.context.script,
-      command: this.context.command,
+      sentence: this.context.sentence,
       word: this.context.word,
     });
   }
@@ -392,7 +392,7 @@ export class Parser {
     this.context.word.syllables.push(syllable);
     this.pushContext(syllable, {
       script: this.context.script,
-      command: this.context.command,
+      sentence: this.context.sentence,
       word: this.context.word,
     });
   }

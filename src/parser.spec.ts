@@ -35,8 +35,8 @@ const mapSyllable = (syllable: Syllable) => {
   throw new Error("TODO");
 };
 const toTree = (script: Script) =>
-  script.commands.map((command) =>
-    command.words.map((word) => word.syllables.map(mapSyllable))
+  script.sentences.map((sentence) =>
+    sentence.words.map((word) => word.syllables.map(mapSyllable))
   );
 
 describe("Parser", () => {
@@ -51,37 +51,37 @@ describe("Parser", () => {
     specify("empty script", () => {
       const tokens = tokenizer.tokenize("");
       const script = parser.parse(tokens);
-      expect(script.commands).to.be.empty;
+      expect(script.sentences).to.be.empty;
     });
     specify("blank lines", () => {
       const tokens = tokenizer.tokenize(" \n\n    \n");
       const script = parser.parse(tokens);
-      expect(script.commands).to.be.empty;
+      expect(script.sentences).to.be.empty;
     });
-    specify("single command", () => {
-      const tokens = tokenizer.tokenize("command");
+    specify("single sentence", () => {
+      const tokens = tokenizer.tokenize("sentence");
       const script = parser.parse(tokens);
-      expect(toTree(script)).to.eql([[[{ LITERAL: "command" }]]]);
+      expect(toTree(script)).to.eql([[[{ LITERAL: "sentence" }]]]);
     });
-    specify("single command surrounded by blank lines", () => {
-      const tokens = tokenizer.tokenize("  \ncommand\n  ");
+    specify("single sentence surrounded by blank lines", () => {
+      const tokens = tokenizer.tokenize("  \nsentence\n  ");
       const script = parser.parse(tokens);
-      expect(toTree(script)).to.eql([[[{ LITERAL: "command" }]]]);
+      expect(toTree(script)).to.eql([[[{ LITERAL: "sentence" }]]]);
     });
-    specify("two commands separated by newline", () => {
-      const tokens = tokenizer.tokenize("command1\ncommand2");
+    specify("two sentences separated by newline", () => {
+      const tokens = tokenizer.tokenize("sentence1\nsentence2");
       const script = parser.parse(tokens);
       expect(toTree(script)).to.eql([
-        [[{ LITERAL: "command1" }]],
-        [[{ LITERAL: "command2" }]],
+        [[{ LITERAL: "sentence1" }]],
+        [[{ LITERAL: "sentence2" }]],
       ]);
     });
-    specify("two commands separated by semicolon", () => {
-      const tokens = tokenizer.tokenize("command1;command2");
+    specify("two sentences separated by semicolon", () => {
+      const tokens = tokenizer.tokenize("sentence1;sentence2");
       const script = parser.parse(tokens);
       expect(toTree(script)).to.eql([
-        [[{ LITERAL: "command1" }]],
-        [[{ LITERAL: "command2" }]],
+        [[{ LITERAL: "sentence1" }]],
+        [[{ LITERAL: "sentence2" }]],
       ]);
     });
   });
