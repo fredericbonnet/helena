@@ -9,6 +9,7 @@ export enum SyllableType {
   HERE_STRING,
   TAGGED_STRING,
   LINE_COMMENT,
+  BLOCK_COMMENT,
 }
 
 export class LiteralSyllable {
@@ -65,14 +66,27 @@ export class LineCommentSyllable {
     this.delimiter = delimiter;
   }
 }
+export class BlockCommentSyllable {
+  type: SyllableType = SyllableType.BLOCK_COMMENT;
+  value: string = "";
+  delimiterLength: number;
+  nesting: number = 1;
+  parentContext?;
 
-type SubscriptSyllable = ListSyllable | BlockSyllable | CommandSyllable;
+  constructor(delimiter: string) {
+    this.delimiterLength = delimiter.length;
+  }
+}
+
 type ContextualSyllable =
-  | SubscriptSyllable
+  | ListSyllable
+  | BlockSyllable
+  | CommandSyllable
   | StringSyllable
   | HereStringSyllable
   | TaggedStringSyllable
-  | LineCommentSyllable;
+  | LineCommentSyllable
+  | BlockCommentSyllable;
 export type Syllable = LiteralSyllable | ContextualSyllable;
 
 export class Word {
@@ -140,6 +154,10 @@ export class Parser {
           this.parseLineComment(token);
           break;
 
+        case SyllableType.BLOCK_COMMENT:
+          this.parseBlockComment(token);
+          break;
+
         default:
           this.parseScript(token);
       }
@@ -161,6 +179,8 @@ export class Parser {
           throw new Error("unmatched tagged string delimiter");
         case SyllableType.LINE_COMMENT:
           break;
+        case SyllableType.BLOCK_COMMENT:
+          throw new Error("unmatched block comment delimiter");
         default:
           throw new Error("unterminated script");
       }
@@ -336,7 +356,9 @@ export class Parser {
 
       case TokenType.COMMENT:
         this.ensureWord();
-        this.openLineComment(token.literal);
+        if (!this.openBlockComment(token.literal)) {
+          this.openLineComment(token.literal);
+        }
         break;
 
       case TokenType.CLOSE_LIST:
@@ -556,6 +578,62 @@ export class Parser {
   }
   private addLineCommentSequence(value: string) {
     const parent = this.context.parent as LineCommentSyllable;
+    parent.value += value;
+  }
+
+  /*
+   * Tagged strings
+   */
+
+  private parseBlockComment(token: Token) {
+    switch (token.type) {
+      case TokenType.COMMENT:
+        if (!this.openBlockComment(token.literal, true)) {
+          this.addBlockCommentSequence(token.sequence);
+        }
+        break;
+
+      case TokenType.CLOSE_BLOCK:
+        if (!this.closeBlockComment()) {
+          this.addBlockCommentSequence(token.sequence);
+        }
+        break;
+
+      default:
+        this.addBlockCommentSequence(token.sequence);
+    }
+  }
+  private openBlockComment(delimiter: string, nested = false) {
+    if (this.stream.current()?.type != TokenType.OPEN_BLOCK) return false;
+    if (nested) {
+      const parent = this.context.parent as BlockCommentSyllable;
+      if (parent.delimiterLength == delimiter.length) {
+        parent.nesting++;
+      }
+      return false;
+    }
+    this.stream.next();
+    const syllable = new BlockCommentSyllable(delimiter);
+    this.context.word.syllables.push(syllable);
+    this.pushContext(syllable, {
+      script: this.context.script,
+      sentence: this.context.sentence,
+      word: this.context.word,
+    });
+    return true;
+  }
+  private closeBlockComment() {
+    const parent = this.context.parent as BlockCommentSyllable;
+    const token = this.stream.current();
+    if (token?.type != TokenType.COMMENT) return false;
+    if (token.literal.length != parent.delimiterLength) return false;
+    if (--parent.nesting > 0) return false;
+    this.stream.next();
+    this.popContext();
+    return true;
+  }
+  private addBlockCommentSequence(value: string) {
+    const parent = this.context.parent as BlockCommentSyllable;
     parent.value += value;
   }
 }

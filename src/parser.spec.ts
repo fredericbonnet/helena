@@ -12,6 +12,7 @@ import {
   Syllable,
   TaggedStringSyllable,
   LineCommentSyllable,
+  BlockCommentSyllable,
 } from "./parser";
 import { Tokenizer } from "./tokenizer";
 
@@ -39,6 +40,9 @@ const mapSyllable = (syllable: Syllable) => {
   }
   if (syllable instanceof LineCommentSyllable) {
     return { LINE_COMMENT: syllable.value };
+  }
+  if (syllable instanceof BlockCommentSyllable) {
+    return { BLOCK_COMMENT: syllable.value };
   }
   throw new Error("TODO");
 };
@@ -416,7 +420,7 @@ describe("Parser", () => {
       });
       specify("4-quote sequence between 3-quote delimiters", () => {
         const tokens = tokenizer.tokenize(
-          '"""<- 3 quotes here / 4 quotes there -> """" / 3 quotes here -> """'
+          '""" <- 3 quotes here / 4 quotes there -> """" / 3 quotes here -> """'
         );
         const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([
@@ -424,7 +428,7 @@ describe("Parser", () => {
             [
               {
                 HERE_STRING:
-                  '<- 3 quotes here / 4 quotes there -> """" / 3 quotes here -> ',
+                  ' <- 3 quotes here / 4 quotes there -> """" / 3 quotes here -> ',
               },
             ],
           ],
@@ -439,7 +443,7 @@ describe("Parser", () => {
         });
         specify("extra quotes", () => {
           const tokens = tokenizer.tokenize(
-            '"""<- 3 quotes here / 4 quotes there -> """"'
+            '""" <- 3 quotes here / 4 quotes there -> """"'
           );
           expect(() => parser.parse(tokens)).to.throws(
             "unmatched here-string delimiter"
@@ -545,43 +549,107 @@ int main(void) {
       });
     });
     describe("line comments", () => {
-      specify("empty comment", () => {
+      specify("empty line comment", () => {
         const tokens = tokenizer.tokenize("#");
         const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([[[{ LINE_COMMENT: "" }]]]);
       });
-      specify("simple comment", () => {
+      specify("simple line comment", () => {
         const tokens = tokenizer.tokenize("# this is a comment");
         const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([
           [[{ LINE_COMMENT: " this is a comment" }]],
         ]);
       });
-      specify("comment with special characters", () => {
+      specify("line comment with special characters", () => {
         const tokens = tokenizer.tokenize("# this ; is$ (a [comment{");
         const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([
           [[{ LINE_COMMENT: " this ; is$ (a [comment{" }]],
         ]);
       });
-      specify("comment with continuation", () => {
+      specify("line comment with continuation", () => {
         const tokens = tokenizer.tokenize("# this is\\\na comment");
         const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([
           [[{ LINE_COMMENT: " this is a comment" }]],
         ]);
       });
-      specify("comment with escapes", () => {
+      specify("line comment with escapes", () => {
         const tokens = tokenizer.tokenize("# hello \\x41\\t");
         const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([[[{ LINE_COMMENT: " hello A\t" }]]]);
       });
-      specify("comment with multiple hashes", () => {
+      specify("line comment with multiple hashes", () => {
         const tokens = tokenizer.tokenize("### this is a comment");
         const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([
           [[{ LINE_COMMENT: " this is a comment" }]],
         ]);
+      });
+    });
+    describe("block comments", () => {
+      specify("empty block comment", () => {
+        const tokens = tokenizer.tokenize("#{}#");
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([[[{ BLOCK_COMMENT: "" }]]]);
+      });
+      specify("simple block comment", () => {
+        const tokens = tokenizer.tokenize("#{comment}#");
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([[[{ BLOCK_COMMENT: "comment" }]]]);
+      });
+      specify("multiple line block comment", () => {
+        const tokens = tokenizer.tokenize("#{\ncomment\n}#");
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([[[{ BLOCK_COMMENT: "\ncomment\n" }]]]);
+      });
+      specify("block comment with continuation", () => {
+        const tokens = tokenizer.tokenize("#{this is\\\na comment}#");
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [[{ BLOCK_COMMENT: "this is\\\na comment" }]],
+        ]);
+      });
+      specify("block comment with escapes", () => {
+        const tokens = tokenizer.tokenize("#{hello \\x41\\t}#");
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [[{ BLOCK_COMMENT: "hello \\x41\\t" }]],
+        ]);
+      });
+      specify("block comment with multiple hashes", () => {
+        const tokens = tokenizer.tokenize("##{comment}##");
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([[[{ BLOCK_COMMENT: "comment" }]]]);
+      });
+      specify("nested block comments", () => {
+        const tokens = tokenizer.tokenize("##{comment ##{}##}##");
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [[{ BLOCK_COMMENT: "comment ##{}##" }]],
+        ]);
+      });
+      specify("nested block comments with different prefixes", () => {
+        const tokens = tokenizer.tokenize("##{comment #{}##");
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([[[{ BLOCK_COMMENT: "comment #{" }]]]);
+      });
+      describe("exceptions", () => {
+        specify("unterminated block comment", () => {
+          const tokens = tokenizer.tokenize("#{hello");
+          expect(() => parser.parse(tokens)).to.throws(
+            "unmatched block comment delimiter"
+          );
+        });
+        specify("extra hashes", () => {
+          const tokens = tokenizer.tokenize(
+            "#{ <- 1 hash here / 2 hashes there -> }##"
+          );
+          expect(() => parser.parse(tokens)).to.throws(
+            "unmatched block comment delimiter"
+          );
+        });
       });
     });
     describe("compound words", () => {
