@@ -141,6 +141,8 @@ export class Parser {
           throw new Error("unmatched string delimiter");
         case SyllableType.HERE_STRING:
           throw new Error("unmatched here-string delimiter");
+        case SyllableType.TAGGED_STRING:
+          throw new Error("unmatched tagged string delimiter");
         default:
           throw new Error("unterminated script");
       }
@@ -280,10 +282,10 @@ export class Parser {
           throw new Error("unexpected string delimiter");
         }
         this.ensureWord();
-        if (token.literal == '"') {
+        if (token.literal.length == 1) {
           // Regular strings
           this.openString();
-        } else if (token.literal == '""') {
+        } else if (token.literal.length == 2) {
           const next = this.stream.current();
           if (next?.type == TokenType.TEXT) {
             // Tagged strings
@@ -291,7 +293,7 @@ export class Parser {
           } else {
             // Special case for empty strings
             this.openString();
-            this.closeString();
+            this.closeString('"');
           }
         } else {
           // Here-strings
@@ -363,15 +365,17 @@ export class Parser {
 
   private parseString(token: Token) {
     switch (token.type) {
-      case TokenType.STRING_DELIMITER:
-        this.closeString();
-        break;
-
       case TokenType.CONTINUATION:
         this.addStringSequence(token.literal);
         // Eat up all subsequent whitespaces
         while (this.stream.current()?.type == TokenType.WHITESPACE) {
           this.stream.next();
+        }
+        break;
+
+      case TokenType.STRING_DELIMITER:
+        if (!this.closeString(token.literal)) {
+          throw new Error("extra characters after string delimiter");
         }
         break;
 
@@ -388,8 +392,12 @@ export class Parser {
       word: this.context.word,
     });
   }
-  private closeString() {
+  private closeString(delimiter: string) {
+    if (delimiter.length != 1) {
+      return false;
+    }
     this.popContext();
+    return true;
   }
   private addStringSequence(value: string) {
     const parent = this.context.parent as StringSyllable;
@@ -409,7 +417,7 @@ export class Parser {
   private parseHereString(token: Token) {
     switch (token.type) {
       case TokenType.STRING_DELIMITER:
-        if (this.closeHereString(token.sequence)) break;
+        if (this.closeHereString(token.literal)) break;
       /* continued */
 
       default:

@@ -372,6 +372,12 @@ describe("Parser", () => {
             "unmatched string delimiter"
           );
         });
+        specify("extra quotes", () => {
+          const tokens = tokenizer.tokenize('"hello""');
+          expect(() => parser.parse(tokens)).to.throws(
+            "extra characters after string delimiter"
+          );
+        });
       });
     });
     describe("here-strings", () => {
@@ -427,7 +433,7 @@ describe("Parser", () => {
             "unmatched here-string delimiter"
           );
         });
-        specify("quote-terminated here-string", () => {
+        specify("extra quotes", () => {
           const tokens = tokenizer.tokenize(
             '"""<- 3 quotes here / 4 quotes there -> """"'
           );
@@ -518,6 +524,20 @@ int main(void) {
             ],
           ],
         ]);
+      });
+      describe("exceptions", () => {
+        specify("unterminated tagged string", () => {
+          const tokens = tokenizer.tokenize('""EOF\nhello');
+          expect(() => parser.parse(tokens)).to.throws(
+            "unmatched tagged string delimiter"
+          );
+        });
+        specify("extra quotes", () => {
+          const tokens = tokenizer.tokenize('""EOF\nhello\nEOF"""');
+          expect(() => parser.parse(tokens)).to.throws(
+            "unmatched tagged string delimiter"
+          );
+        });
       });
     });
     describe("compound words", () => {
