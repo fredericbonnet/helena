@@ -11,6 +11,7 @@ import {
   StringSyllable,
   Syllable,
   TaggedStringSyllable,
+  LineCommentSyllable,
 } from "./parser";
 import { Tokenizer } from "./tokenizer";
 
@@ -35,6 +36,9 @@ const mapSyllable = (syllable: Syllable) => {
   }
   if (syllable instanceof TaggedStringSyllable) {
     return { TAGGED_STRING: syllable.value };
+  }
+  if (syllable instanceof LineCommentSyllable) {
+    return { LINE_COMMENT: syllable.value };
   }
   throw new Error("TODO");
 };
@@ -538,6 +542,46 @@ int main(void) {
             "unmatched tagged string delimiter"
           );
         });
+      });
+    });
+    describe("line comments", () => {
+      specify("empty comment", () => {
+        const tokens = tokenizer.tokenize("#");
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([[[{ LINE_COMMENT: "" }]]]);
+      });
+      specify("simple comment", () => {
+        const tokens = tokenizer.tokenize("# this is a comment");
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [[{ LINE_COMMENT: " this is a comment" }]],
+        ]);
+      });
+      specify("comment with special characters", () => {
+        const tokens = tokenizer.tokenize("# this ; is$ (a [comment{");
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [[{ LINE_COMMENT: " this ; is$ (a [comment{" }]],
+        ]);
+      });
+      specify("comment with continuation", () => {
+        const tokens = tokenizer.tokenize("# this is\\\na comment");
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [[{ LINE_COMMENT: " this is a comment" }]],
+        ]);
+      });
+      specify("comment with escapes", () => {
+        const tokens = tokenizer.tokenize("# hello \\x41\\t");
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([[[{ LINE_COMMENT: " hello A\t" }]]]);
+      });
+      specify("comment with multiple hashes", () => {
+        const tokens = tokenizer.tokenize("### this is a comment");
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [[{ LINE_COMMENT: " this is a comment" }]],
+        ]);
       });
     });
     describe("compound words", () => {

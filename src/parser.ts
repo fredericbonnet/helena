@@ -8,6 +8,7 @@ export enum SyllableType {
   STRING,
   HERE_STRING,
   TAGGED_STRING,
+  LINE_COMMENT,
 }
 
 export class LiteralSyllable {
@@ -54,14 +55,25 @@ export class TaggedStringSyllable {
     this.delimiter = delimiter;
   }
 }
+export class LineCommentSyllable {
+  type: SyllableType = SyllableType.LINE_COMMENT;
+  value: string = "";
+  delimiter: string;
+  parentContext?;
+
+  constructor(delimiter: string) {
+    this.delimiter = delimiter;
+  }
+}
 
 type SubscriptSyllable = ListSyllable | BlockSyllable | CommandSyllable;
-type RecursiveSyllable =
+type ContextualSyllable =
   | SubscriptSyllable
   | StringSyllable
   | HereStringSyllable
-  | TaggedStringSyllable;
-export type Syllable = LiteralSyllable | RecursiveSyllable;
+  | TaggedStringSyllable
+  | LineCommentSyllable;
+export type Syllable = LiteralSyllable | ContextualSyllable;
 
 export class Word {
   syllables: Syllable[] = [];
@@ -74,7 +86,7 @@ export class Script {
 }
 
 class Context {
-  parent: RecursiveSyllable;
+  parent: ContextualSyllable;
   script: Script;
   sentence: Sentence;
   word: Word;
@@ -124,6 +136,10 @@ export class Parser {
           this.parseTaggedString(token);
           break;
 
+        case SyllableType.LINE_COMMENT:
+          this.parseLineComment(token);
+          break;
+
         default:
           this.parseScript(token);
       }
@@ -143,6 +159,8 @@ export class Parser {
           throw new Error("unmatched here-string delimiter");
         case SyllableType.TAGGED_STRING:
           throw new Error("unmatched tagged string delimiter");
+        case SyllableType.LINE_COMMENT:
+          break;
         default:
           throw new Error("unterminated script");
       }
@@ -151,7 +169,7 @@ export class Parser {
     return this.context.script;
   }
 
-  private pushContext(syllable: RecursiveSyllable, ctx: Partial<Context>) {
+  private pushContext(syllable: ContextualSyllable, ctx: Partial<Context>) {
     syllable.parentContext = this.context;
     this.context = new Context({ ...ctx, parent: syllable });
   }
@@ -196,10 +214,10 @@ export class Parser {
     }
   }
   private openList() {
-    this.context.syllable = new ListSyllable();
-    this.context.word.syllables.push(this.context.syllable);
-    this.pushContext(this.context.syllable, {
-      script: this.context.syllable.subscript,
+    const syllable = new ListSyllable();
+    this.context.word.syllables.push(syllable);
+    this.pushContext(syllable, {
+      script: syllable.subscript,
     });
   }
   private closeList() {
@@ -221,10 +239,10 @@ export class Parser {
     }
   }
   private openBlock() {
-    this.context.syllable = new BlockSyllable();
-    this.context.word.syllables.push(this.context.syllable);
-    this.pushContext(this.context.syllable, {
-      script: this.context.syllable.subscript,
+    const syllable = new BlockSyllable();
+    this.context.word.syllables.push(syllable);
+    this.pushContext(syllable, {
+      script: syllable.subscript,
     });
   }
   private closeBlock() {
@@ -245,10 +263,10 @@ export class Parser {
     }
   }
   private openCommand() {
-    this.context.syllable = new CommandSyllable();
-    this.context.word.syllables.push(this.context.syllable);
-    this.pushContext(this.context.syllable, {
-      script: this.context.syllable.subscript,
+    const syllable = new CommandSyllable();
+    this.context.word.syllables.push(syllable);
+    this.pushContext(syllable, {
+      script: syllable.subscript,
     });
   }
   private closeCommand() {
@@ -316,6 +334,11 @@ export class Parser {
         this.openCommand();
         break;
 
+      case TokenType.COMMENT:
+        this.ensureWord();
+        this.openLineComment(token.literal);
+        break;
+
       case TokenType.CLOSE_LIST:
         throw new Error("mismatched right parenthesis");
 
@@ -343,11 +366,13 @@ export class Parser {
   }
   private addLiteral(value: string) {
     if (this.context.syllable?.type == SyllableType.LITERAL) {
-      (this.context.syllable as LiteralSyllable).value += value;
+      const syllable = this.context.syllable as LiteralSyllable;
+      syllable.value += value;
     } else {
-      this.context.syllable = new LiteralSyllable();
-      this.context.syllable.value = value;
-      this.context.word.syllables.push(this.context.syllable);
+      const syllable = new LiteralSyllable();
+      syllable.value = value;
+      this.context.syllable = syllable;
+      this.context.word.syllables.push(syllable);
     }
   }
   private closeWord() {
@@ -384,9 +409,9 @@ export class Parser {
     }
   }
   private openString() {
-    this.context.syllable = new StringSyllable();
-    this.context.word.syllables.push(this.context.syllable);
-    this.pushContext(this.context.syllable, {
+    const syllable = new StringSyllable();
+    this.context.word.syllables.push(syllable);
+    this.pushContext(syllable, {
       script: this.context.script,
       sentence: this.context.sentence,
       word: this.context.word,
@@ -402,11 +427,13 @@ export class Parser {
   private addStringSequence(value: string) {
     const parent = this.context.parent as StringSyllable;
     if (this.context.syllable?.type == SyllableType.LITERAL) {
-      (this.context.syllable as LiteralSyllable).value += value;
+      const syllable = this.context.syllable as LiteralSyllable;
+      syllable.value += value;
     } else {
-      this.context.syllable = new LiteralSyllable();
-      this.context.syllable.value = value;
-      parent.syllables.push(this.context.syllable);
+      const syllable = new LiteralSyllable();
+      syllable.value = value;
+      this.context.syllable = syllable;
+      parent.syllables.push(syllable);
     }
   }
 
@@ -497,6 +524,38 @@ export class Parser {
   }
   private addTaggedStringSequence(value: string) {
     const parent = this.context.parent as TaggedStringSyllable;
+    parent.value += value;
+  }
+
+  /*
+   * Line comments
+   */
+
+  private parseLineComment(token: Token) {
+    switch (token.type) {
+      case TokenType.NEWLINE:
+        this.closeLineComment();
+        this.closeSentence();
+        break;
+
+      default:
+        this.addLineCommentSequence(token.literal);
+    }
+  }
+  private openLineComment(delimiter: string) {
+    const syllable = new LineCommentSyllable(delimiter);
+    this.context.word.syllables.push(syllable);
+    this.pushContext(syllable, {
+      script: this.context.script,
+      sentence: this.context.sentence,
+      word: this.context.word,
+    });
+  }
+  private closeLineComment() {
+    this.popContext();
+  }
+  private addLineCommentSequence(value: string) {
+    const parent = this.context.parent as LineCommentSyllable;
     parent.value += value;
   }
 }
