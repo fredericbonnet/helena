@@ -404,16 +404,17 @@ describe("Parser", () => {
           ],
         ]);
       });
-      specify("quote-terminated here-string", () => {
+      specify("4-quote sequence between 3-quote delimiters", () => {
         const tokens = tokenizer.tokenize(
-          '"""<- 3 quotes here / 4 quotes there -> """"'
+          '"""<- 3 quotes here / 4 quotes there -> """" / 3 quotes here -> """'
         );
         const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([
           [
             [
               {
-                HERE_STRING: '<- 3 quotes here / 4 quotes there -> "',
+                HERE_STRING:
+                  '<- 3 quotes here / 4 quotes there -> """" / 3 quotes here -> ',
               },
             ],
           ],
@@ -422,6 +423,14 @@ describe("Parser", () => {
       describe("exceptions", () => {
         specify("unterminated here-string", () => {
           const tokens = tokenizer.tokenize('"""hello');
+          expect(() => parser.parse(tokens)).to.throws(
+            "unmatched here-string delimiter"
+          );
+        });
+        specify("quote-terminated here-string", () => {
+          const tokens = tokenizer.tokenize(
+            '"""<- 3 quotes here / 4 quotes there -> """"'
+          );
           expect(() => parser.parse(tokens)).to.throws(
             "unmatched here-string delimiter"
           );
@@ -439,7 +448,7 @@ describe("Parser", () => {
         const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([[[{ TAGGED_STRING: "\n" }]]]);
       });
-      specify("extra characters after delimiter", () => {
+      specify("extra characters after open delimiter", () => {
         const tokens = tokenizer.tokenize(
           '""EOF some $arbitrary[ }text\\\n (with continuation\nfoo\nbar\nEOF""'
         );

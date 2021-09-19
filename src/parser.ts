@@ -427,14 +427,8 @@ export class Parser {
   }
   private closeHereString(delimiter: string) {
     const parent = this.context.parent as HereStringSyllable;
-    if (delimiter.length < parent.delimiterLength) {
-      // Delimiter too short
+    if (delimiter.length != parent.delimiterLength) {
       return false;
-    }
-    const extra = delimiter.length - parent.delimiterLength;
-    if (extra > 0) {
-      // Delimiter is longer, append extra characters verbatim
-      this.addHereStringSequence(delimiter.substr(0, extra));
     }
     this.popContext();
     return true;
