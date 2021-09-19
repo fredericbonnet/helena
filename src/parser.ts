@@ -49,21 +49,21 @@ export class HereStringSyllable {
 export class TaggedStringSyllable {
   type: SyllableType = SyllableType.TAGGED_STRING;
   value: string = "";
-  delimiter: string;
+  tag: string;
   parentContext?;
 
-  constructor(delimiter: string) {
-    this.delimiter = delimiter;
+  constructor(tag: string) {
+    this.tag = tag;
   }
 }
 export class LineCommentSyllable {
   type: SyllableType = SyllableType.LINE_COMMENT;
   value: string = "";
-  delimiter: string;
+  delimiterLength: number;
   parentContext?;
 
   constructor(delimiter: string) {
-    this.delimiter = delimiter;
+    this.delimiterLength = delimiter.length;
   }
 }
 export class BlockCommentSyllable {
@@ -178,6 +178,7 @@ export class Parser {
         case SyllableType.TAGGED_STRING:
           throw new Error("unmatched tagged string delimiter");
         case SyllableType.LINE_COMMENT:
+          this.closeLineComment();
           break;
         case SyllableType.BLOCK_COMMENT:
           throw new Error("unmatched block comment delimiter");
@@ -440,9 +441,7 @@ export class Parser {
     });
   }
   private closeString(delimiter: string) {
-    if (delimiter.length != 1) {
-      return false;
-    }
+    if (delimiter.length != 1) return false;
     this.popContext();
     return true;
   }
@@ -484,9 +483,7 @@ export class Parser {
   }
   private closeHereString(delimiter: string) {
     const parent = this.context.parent as HereStringSyllable;
-    if (delimiter.length != parent.delimiterLength) {
-      return false;
-    }
+    if (delimiter.length != parent.delimiterLength) return false;
     this.popContext();
     return true;
   }
@@ -509,8 +506,8 @@ export class Parser {
         this.addTaggedStringSequence(token.sequence);
     }
   }
-  private openTaggedString(delimiter: string) {
-    const syllable = new TaggedStringSyllable(delimiter);
+  private openTaggedString(tag: string) {
+    const syllable = new TaggedStringSyllable(tag);
     this.context.word.syllables.push(syllable);
     this.pushContext(syllable, {
       script: this.context.script,
@@ -521,28 +518,21 @@ export class Parser {
     // Discard everything until the next newline
     while (this.stream.next()?.type != TokenType.NEWLINE);
   }
-  private closeTaggedString(delimiter: string) {
+  private closeTaggedString(literal: string) {
     const parent = this.context.parent as TaggedStringSyllable;
-    if (delimiter == parent.delimiter) {
-      const next = this.stream.current();
-      if (
-        next?.type == TokenType.STRING_DELIMITER &&
-        next.literal.length == 2
-      ) {
-        this.stream.next();
+    if (literal != parent.tag) return false;
+    const next = this.stream.current();
+    if (next?.type != TokenType.STRING_DELIMITER) return false;
+    if (next.literal.length != 2) return false;
+    this.stream.next();
 
-        // Shift lines by prefix length
-        const lines = parent.value.split("\n");
-        const prefix = lines[lines.length - 1];
-        parent.value = lines
-          .map((line) => line.substr(prefix.length))
-          .join("\n");
+    // Shift lines by prefix length
+    const lines = parent.value.split("\n");
+    const prefix = lines[lines.length - 1];
+    parent.value = lines.map((line) => line.substr(prefix.length)).join("\n");
 
-        this.popContext();
-        return true;
-      }
-    }
-    return false;
+    this.popContext();
+    return true;
   }
   private addTaggedStringSequence(value: string) {
     const parent = this.context.parent as TaggedStringSyllable;
