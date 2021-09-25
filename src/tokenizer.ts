@@ -64,12 +64,15 @@ export class Tokenizer {
 
     function addText(position: Position) {
       const last = tokens[tokens.length - 1];
+      const literal = stream.range(position.index, stream.position.index);
       if (last?.type != TokenType.TEXT) {
-        const literal = stream.range(position.index, stream.position.index);
         addToken(TokenType.TEXT, position, literal);
       } else {
-        last.literal = stream.range(last.position.index, stream.position.index);
-        last.sequence = last.literal;
+        last.literal += literal;
+        last.sequence = stream.range(
+          last.position.index,
+          stream.position.index
+        );
       }
     }
 
@@ -99,20 +102,16 @@ export class Tokenizer {
             addToken(TokenType.TEXT, position);
             break;
           }
-          if (stream.current() == "\n") {
-            stream.next();
+          const e = stream.next();
+          if (e == "\n") {
             addToken(TokenType.CONTINUATION, position, " ");
             break;
-          }
-          if (this.isEscape(stream.current())) {
-            const escape = this.getEscape(stream.current());
-            stream.next();
+          } else if (this.isEscape(e)) {
+            const escape = this.getEscape(e);
             addToken(TokenType.ESCAPE, position, escape);
             break;
-          }
-          if (this.isOctal(stream.current())) {
-            let literal = Number.parseInt(stream.current());
-            stream.next();
+          } else if (this.isOctal(e)) {
+            let literal = Number.parseInt(e);
             let i = 1;
             while (!stream.end() && this.isOctal(stream.current()) && i < 3) {
               literal *= 8;
@@ -122,10 +121,8 @@ export class Tokenizer {
             }
             addToken(TokenType.ESCAPE, position, String.fromCharCode(literal));
             break;
-          }
-          if (stream.current() == "x") {
+          } else if (e == "x") {
             let literal = 0;
-            stream.next();
             let i = 0;
             while (
               !stream.end() &&
@@ -145,10 +142,8 @@ export class Tokenizer {
               );
               break;
             }
-          }
-          if (stream.current() == "u") {
+          } else if (e == "u") {
             let literal = 0;
-            stream.next();
             let i = 0;
             while (
               !stream.end() &&
@@ -168,10 +163,8 @@ export class Tokenizer {
               );
               break;
             }
-          }
-          if (stream.current() == "U") {
+          } else if (e == "U") {
             let literal = 0;
-            stream.next();
             let i = 0;
             while (
               !stream.end() &&
@@ -192,8 +185,7 @@ export class Tokenizer {
               break;
             }
           }
-          stream.next();
-          addText(position);
+          addToken(TokenType.TEXT, position, e);
           break;
 
         // Comment

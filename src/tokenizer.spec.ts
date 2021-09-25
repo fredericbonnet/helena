@@ -297,6 +297,11 @@ describe("Tokenizer", () => {
       expect(
         tokenizer.tokenize("\\U00012345\\U0006789A").map(toLiteral)
       ).to.eql([String.fromCharCode(0x12345), String.fromCharCode(0x6789a)]);
+      expect(
+        tokenizer
+          .tokenize("\\8\\9\\c\\d\\e\\x\\xg\\u\\ug\\U\\Ug")
+          .map(toLiteral)
+      ).to.eql(["8", "9", "c", "d", "e", "x", "xg", "u", "ug", "U", "Ug"]);
     });
     specify("continuation", () => {
       expect(tokenizer.tokenize("\\\n").map(toLiteral)).to.eql([" "]);
