@@ -106,86 +106,74 @@ export class Tokenizer {
           if (e == "\n") {
             addToken(TokenType.CONTINUATION, position, " ");
             break;
-          } else if (this.isEscape(e)) {
-            const escape = this.getEscape(e);
-            addToken(TokenType.ESCAPE, position, escape);
-            break;
+          }
+          let escape;
+          if (this.isEscape(e)) {
+            escape = this.getEscape(e);
           } else if (this.isOctal(e)) {
-            let literal = Number.parseInt(e);
+            let codepoint = Number.parseInt(e);
             let i = 1;
             while (!stream.end() && this.isOctal(stream.current()) && i < 3) {
-              literal *= 8;
-              literal += Number.parseInt(stream.current());
+              codepoint *= 8;
+              codepoint += Number.parseInt(stream.current());
               stream.next();
               i++;
             }
-            addToken(TokenType.ESCAPE, position, String.fromCharCode(literal));
-            break;
+            escape = String.fromCharCode(codepoint);
           } else if (e == "x") {
-            let literal = 0;
+            let codepoint = 0;
             let i = 0;
             while (
               !stream.end() &&
               this.isHexadecimal(stream.current()) &&
               i < 2
             ) {
-              literal *= 16;
-              literal += Number.parseInt("0x" + stream.current());
+              codepoint *= 16;
+              codepoint += Number.parseInt("0x" + stream.current());
               stream.next();
               i++;
             }
             if (i > 0) {
-              addToken(
-                TokenType.ESCAPE,
-                position,
-                String.fromCharCode(literal)
-              );
-              break;
+              escape = String.fromCharCode(codepoint);
             }
           } else if (e == "u") {
-            let literal = 0;
+            let codepoint = 0;
             let i = 0;
             while (
               !stream.end() &&
               this.isHexadecimal(stream.current()) &&
               i < 4
             ) {
-              literal *= 16;
-              literal += Number.parseInt("0x" + stream.current());
+              codepoint *= 16;
+              codepoint += Number.parseInt("0x" + stream.current());
               stream.next();
               i++;
             }
             if (i > 0) {
-              addToken(
-                TokenType.ESCAPE,
-                position,
-                String.fromCharCode(literal)
-              );
-              break;
+              escape = String.fromCharCode(codepoint);
             }
           } else if (e == "U") {
-            let literal = 0;
+            let codepoint = 0;
             let i = 0;
             while (
               !stream.end() &&
               this.isHexadecimal(stream.current()) &&
               i < 8
             ) {
-              literal *= 16;
-              literal += Number.parseInt("0x" + stream.current());
+              codepoint *= 16;
+              codepoint += Number.parseInt("0x" + stream.current());
               stream.next();
               i++;
             }
             if (i > 0) {
-              addToken(
-                TokenType.ESCAPE,
-                position,
-                String.fromCharCode(literal)
-              );
-              break;
+              escape = String.fromCharCode(codepoint);
             }
           }
-          addToken(TokenType.TEXT, position, e);
+          if (escape) {
+            addToken(TokenType.ESCAPE, position, escape);
+          } else {
+            addToken(TokenType.TEXT, position, e);
+          }
           break;
 
         // Comment
