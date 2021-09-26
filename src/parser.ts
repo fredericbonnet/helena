@@ -10,11 +10,13 @@ export enum SyllableType {
   TAGGED_STRING,
   LINE_COMMENT,
   BLOCK_COMMENT,
+  SUBSTITUTE_NEXT,
 }
 
 export class LiteralSyllable {
   type: SyllableType = SyllableType.LITERAL;
   value: string;
+  substituted: boolean = false;
 }
 export class ListSyllable {
   type: SyllableType = SyllableType.LIST;
@@ -77,6 +79,12 @@ export class BlockCommentSyllable {
     this.delimiterLength = delimiter.length;
   }
 }
+export class SubstituteNextSyllable {
+  type: SyllableType = SyllableType.SUBSTITUTE_NEXT;
+  expansion: boolean = false;
+  nesting: number = 1;
+  value: string = "";
+}
 
 type ContextualSyllable =
   | ListSyllable
@@ -87,7 +95,10 @@ type ContextualSyllable =
   | TaggedStringSyllable
   | LineCommentSyllable
   | BlockCommentSyllable;
-export type Syllable = LiteralSyllable | ContextualSyllable;
+export type Syllable =
+  | LiteralSyllable
+  | ContextualSyllable
+  | SubstituteNextSyllable;
 
 export class Word {
   syllables: Syllable[] = [];
@@ -186,6 +197,7 @@ export class Parser {
           throw new Error("unterminated script");
       }
     }
+    this.closeSentence();
 
     return this.context.script;
   }
@@ -317,10 +329,9 @@ export class Parser {
         break;
 
       case TokenType.STRING_DELIMITER:
-        if (this.context.word) {
+        if (!this.ensureWord()) {
           throw new Error("unexpected string delimiter");
         }
-        this.ensureWord();
         if (token.literal.length == 1) {
           // Regular strings
           this.openString();
@@ -356,10 +367,23 @@ export class Parser {
         break;
 
       case TokenType.COMMENT:
-        this.ensureWord();
+        if (!this.ensureWord()) {
+          this.addLiteral(token.literal);
+          break;
+        }
         if (!this.openBlockComment(token.literal)) {
           this.openLineComment(token.literal);
         }
+        break;
+
+      case TokenType.DOLLAR:
+        this.ensureWord();
+        this.addSubstitution(token.literal);
+        break;
+
+      case TokenType.ASTERISK:
+        this.ensureWord();
+        this.addLiteral(token.literal);
         break;
 
       case TokenType.CLOSE_LIST:
@@ -376,29 +400,34 @@ export class Parser {
     }
   }
   private ensureWord() {
+    if (this.context.word) return false;
     if (!this.context.sentence) {
       this.context.sentence = new Sentence();
       this.context.script.sentences.push(this.context.sentence);
       this.context.word = undefined;
     }
-    if (!this.context.word) {
-      this.context.word = new Word();
-      this.context.sentence.words.push(this.context.word);
-      this.context.syllable = undefined;
-    }
+    this.context.word = new Word();
+    this.context.sentence.words.push(this.context.word);
+    this.context.syllable = undefined;
+    return true;
   }
   private addLiteral(value: string) {
+    // Attempt to merge consecutive, non substituted literals
     if (this.context.syllable?.type == SyllableType.LITERAL) {
       const syllable = this.context.syllable as LiteralSyllable;
-      syllable.value += value;
-    } else {
-      const syllable = new LiteralSyllable();
-      syllable.value = value;
-      this.context.syllable = syllable;
-      this.context.word.syllables.push(syllable);
+      if (!syllable.substituted) {
+        syllable.value += value;
+        return;
+      }
     }
+    const syllable = new LiteralSyllable();
+    syllable.value = value;
+    syllable.substituted = this.afterSubstitution();
+    this.context.syllable = syllable;
+    this.context.word.syllables.push(syllable);
   }
   private closeWord() {
+    this.closeSubstitution();
     this.context.syllable = undefined;
     this.context.word = undefined;
   }
@@ -572,7 +601,7 @@ export class Parser {
   }
 
   /*
-   * Tagged strings
+   * Block comment
    */
 
   private parseBlockComment(token: Token) {
@@ -625,6 +654,45 @@ export class Parser {
   private addBlockCommentSequence(value: string) {
     const parent = this.context.parent as BlockCommentSyllable;
     parent.value += value;
+  }
+
+  /*
+   * Substitutions
+   */
+
+  private addSubstitution(value: string) {
+    if (this.context.syllable?.type == SyllableType.SUBSTITUTE_NEXT) {
+      const syllable = this.context.syllable as SubstituteNextSyllable;
+      syllable.value += value;
+      syllable.nesting++;
+      if (this.stream.current()?.type == TokenType.ASTERISK) {
+        // Ignore expansion on inner substitutions
+        syllable.value += this.stream.next().literal;
+      }
+    } else {
+      const syllable = new SubstituteNextSyllable();
+      syllable.value = value;
+      if (this.stream.current()?.type == TokenType.ASTERISK) {
+        syllable.expansion = true;
+        syllable.value += this.stream.next().literal;
+      }
+      this.context.syllable = syllable;
+      this.context.word.syllables.push(syllable);
+    }
+  }
+  private closeSubstitution() {
+    if (!this.afterSubstitution()) return;
+
+    // Convert stale substitutions to literals
+    const value = (this.context.syllable as SubstituteNextSyllable).value;
+    this.context.word.syllables.pop();
+    const syllable = new LiteralSyllable();
+    syllable.value = value;
+    this.context.syllable = syllable;
+    this.context.word.syllables.push(syllable);
+  }
+  private afterSubstitution() {
+    return this.context.syllable?.type == SyllableType.SUBSTITUTE_NEXT;
   }
 }
 
