@@ -39,10 +39,10 @@ describe("Tokenizer", () => {
         TokenType.WHITESPACE,
       ]);
 
-      expect(tokenizer.tokenize("\\ ").map(toType)).to.eql([TokenType.TEXT]);
-      expect(tokenizer.tokenize("\\\t").map(toType)).to.eql([TokenType.TEXT]);
-      expect(tokenizer.tokenize("\\\r").map(toType)).to.eql([TokenType.TEXT]);
-      expect(tokenizer.tokenize("\\\f").map(toType)).to.eql([TokenType.TEXT]);
+      expect(tokenizer.tokenize("\\ ").map(toType)).to.eql([TokenType.ESCAPE]);
+      expect(tokenizer.tokenize("\\\t").map(toType)).to.eql([TokenType.ESCAPE]);
+      expect(tokenizer.tokenize("\\\r").map(toType)).to.eql([TokenType.ESCAPE]);
+      expect(tokenizer.tokenize("\\\f").map(toType)).to.eql([TokenType.ESCAPE]);
     });
 
     specify("newline", () => {
@@ -180,17 +180,42 @@ describe("Tokenizer", () => {
         ]);
       });
       specify("unrecognized sequences", () => {
-        expect(tokenizer.tokenize("\\8").map(toType)).to.eql([TokenType.TEXT]);
-        expect(tokenizer.tokenize("\\9").map(toType)).to.eql([TokenType.TEXT]);
-        expect(tokenizer.tokenize("\\c").map(toType)).to.eql([TokenType.TEXT]);
-        expect(tokenizer.tokenize("\\d").map(toType)).to.eql([TokenType.TEXT]);
-        expect(tokenizer.tokenize("\\e").map(toType)).to.eql([TokenType.TEXT]);
-        expect(tokenizer.tokenize("\\x").map(toType)).to.eql([TokenType.TEXT]);
-        expect(tokenizer.tokenize("\\xg").map(toType)).to.eql([TokenType.TEXT]);
-        expect(tokenizer.tokenize("\\u").map(toType)).to.eql([TokenType.TEXT]);
-        expect(tokenizer.tokenize("\\ug").map(toType)).to.eql([TokenType.TEXT]);
-        expect(tokenizer.tokenize("\\U").map(toType)).to.eql([TokenType.TEXT]);
-        expect(tokenizer.tokenize("\\Ug").map(toType)).to.eql([TokenType.TEXT]);
+        expect(tokenizer.tokenize("\\8").map(toType)).to.eql([
+          TokenType.ESCAPE,
+        ]);
+        expect(tokenizer.tokenize("\\9").map(toType)).to.eql([
+          TokenType.ESCAPE,
+        ]);
+        expect(tokenizer.tokenize("\\c").map(toType)).to.eql([
+          TokenType.ESCAPE,
+        ]);
+        expect(tokenizer.tokenize("\\d").map(toType)).to.eql([
+          TokenType.ESCAPE,
+        ]);
+        expect(tokenizer.tokenize("\\e").map(toType)).to.eql([
+          TokenType.ESCAPE,
+        ]);
+        expect(tokenizer.tokenize("\\x").map(toType)).to.eql([
+          TokenType.ESCAPE,
+        ]);
+        expect(tokenizer.tokenize("\\xg").map(toType)).to.eql([
+          TokenType.ESCAPE,
+          TokenType.TEXT,
+        ]);
+        expect(tokenizer.tokenize("\\u").map(toType)).to.eql([
+          TokenType.ESCAPE,
+        ]);
+        expect(tokenizer.tokenize("\\ug").map(toType)).to.eql([
+          TokenType.ESCAPE,
+          TokenType.TEXT,
+        ]);
+        expect(tokenizer.tokenize("\\U").map(toType)).to.eql([
+          TokenType.ESCAPE,
+        ]);
+        expect(tokenizer.tokenize("\\Ug").map(toType)).to.eql([
+          TokenType.ESCAPE,
+          TokenType.TEXT,
+        ]);
       });
     });
 
@@ -198,7 +223,7 @@ describe("Tokenizer", () => {
       expect(tokenizer.tokenize("#").map(toType)).to.eql([TokenType.COMMENT]);
       expect(tokenizer.tokenize("###").map(toType)).to.eql([TokenType.COMMENT]);
 
-      expect(tokenizer.tokenize("\\#").map(toType)).to.eql([TokenType.TEXT]);
+      expect(tokenizer.tokenize("\\#").map(toType)).to.eql([TokenType.ESCAPE]);
     });
 
     specify("lists", () => {
@@ -207,8 +232,8 @@ describe("Tokenizer", () => {
         TokenType.CLOSE_LIST,
       ]);
 
-      expect(tokenizer.tokenize("\\(").map(toType)).to.eql([TokenType.TEXT]);
-      expect(tokenizer.tokenize("\\)").map(toType)).to.eql([TokenType.TEXT]);
+      expect(tokenizer.tokenize("\\(").map(toType)).to.eql([TokenType.ESCAPE]);
+      expect(tokenizer.tokenize("\\)").map(toType)).to.eql([TokenType.ESCAPE]);
     });
 
     specify("blocks", () => {
@@ -219,8 +244,8 @@ describe("Tokenizer", () => {
         TokenType.CLOSE_BLOCK,
       ]);
 
-      expect(tokenizer.tokenize("\\{").map(toType)).to.eql([TokenType.TEXT]);
-      expect(tokenizer.tokenize("\\}").map(toType)).to.eql([TokenType.TEXT]);
+      expect(tokenizer.tokenize("\\{").map(toType)).to.eql([TokenType.ESCAPE]);
+      expect(tokenizer.tokenize("\\}").map(toType)).to.eql([TokenType.ESCAPE]);
     });
 
     specify("commands", () => {
@@ -231,8 +256,8 @@ describe("Tokenizer", () => {
         TokenType.CLOSE_COMMAND,
       ]);
 
-      expect(tokenizer.tokenize("\\[").map(toType)).to.eql([TokenType.TEXT]);
-      expect(tokenizer.tokenize("\\]").map(toType)).to.eql([TokenType.TEXT]);
+      expect(tokenizer.tokenize("\\[").map(toType)).to.eql([TokenType.ESCAPE]);
+      expect(tokenizer.tokenize("\\]").map(toType)).to.eql([TokenType.ESCAPE]);
     });
 
     specify("strings", () => {
@@ -240,25 +265,25 @@ describe("Tokenizer", () => {
         TokenType.STRING_DELIMITER,
       ]);
 
-      expect(tokenizer.tokenize('\\"').map(toType)).to.eql([TokenType.TEXT]);
+      expect(tokenizer.tokenize('\\"').map(toType)).to.eql([TokenType.ESCAPE]);
     });
 
     specify("dollar", () => {
       expect(tokenizer.tokenize("$").map(toType)).to.eql([TokenType.DOLLAR]);
 
-      expect(tokenizer.tokenize("\\$").map(toType)).to.eql([TokenType.TEXT]);
+      expect(tokenizer.tokenize("\\$").map(toType)).to.eql([TokenType.ESCAPE]);
     });
 
     specify("semicolon", () => {
       expect(tokenizer.tokenize(";").map(toType)).to.eql([TokenType.SEMICOLON]);
 
-      expect(tokenizer.tokenize("\\;").map(toType)).to.eql([TokenType.TEXT]);
+      expect(tokenizer.tokenize("\\;").map(toType)).to.eql([TokenType.ESCAPE]);
     });
 
     specify("asterisk", () => {
       expect(tokenizer.tokenize("*").map(toType)).to.eql([TokenType.ASTERISK]);
 
-      expect(tokenizer.tokenize("\\*").map(toType)).to.eql([TokenType.TEXT]);
+      expect(tokenizer.tokenize("\\*").map(toType)).to.eql([TokenType.ESCAPE]);
     });
   });
 
@@ -301,7 +326,22 @@ describe("Tokenizer", () => {
         tokenizer
           .tokenize("\\8\\9\\c\\d\\e\\x\\xg\\u\\ug\\U\\Ug")
           .map(toLiteral)
-      ).to.eql(["8", "9", "c", "d", "e", "x", "xg", "u", "ug", "U", "Ug"]);
+      ).to.eql([
+        "8",
+        "9",
+        "c",
+        "d",
+        "e",
+        "x",
+        "x",
+        "g",
+        "u",
+        "u",
+        "g",
+        "U",
+        "U",
+        "g",
+      ]);
     });
     specify("continuation", () => {
       expect(tokenizer.tokenize("\\\n").map(toLiteral)).to.eql([" "]);

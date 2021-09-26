@@ -107,7 +107,7 @@ export class Tokenizer {
             addToken(TokenType.CONTINUATION, position, " ");
             break;
           }
-          let escape;
+          let escape = e; // Default value for unrecognized sequences
           if (this.isEscape(e)) {
             escape = this.getEscape(e);
           } else if (this.isOctal(e)) {
@@ -169,11 +169,7 @@ export class Tokenizer {
               escape = String.fromCharCode(codepoint);
             }
           }
-          if (escape) {
-            addToken(TokenType.ESCAPE, position, escape);
-          } else {
-            addToken(TokenType.TEXT, position, e);
-          }
+          addToken(TokenType.ESCAPE, position, escape);
           break;
 
         // Comment
