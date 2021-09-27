@@ -431,18 +431,7 @@ describe("Parser", () => {
             const tokens = tokenizer.tokenize('"a$ b$*$ c$$*$"');
             const script = parser.parse(tokens);
             expect(toTree(script)).to.eql([
-              [
-                [
-                  {
-                    STRING: [
-                      { LITERAL: "a" },
-                      { LITERAL: "$ b" },
-                      { LITERAL: "$*$ c" },
-                      { LITERAL: "$$*$" },
-                    ],
-                  },
-                ],
-              ],
+              [[{ STRING: [{ LITERAL: "a$ b$*$ c$$*$" }] }]],
             ]);
           });
           specify("escapes", () => {
@@ -988,9 +977,9 @@ int main(void) {
           const script = parser.parse(tokens);
           expect(toTree(script)).to.eql([
             [
-              [{ LITERAL: "a" }, { LITERAL: "$" }],
-              [{ LITERAL: "b" }, { LITERAL: "$*$" }],
-              [{ LITERAL: "c" }, { LITERAL: "$$*$" }],
+              [{ LITERAL: "a$" }],
+              [{ LITERAL: "b$*$" }],
+              [{ LITERAL: "c$$*$" }],
             ],
           ]);
         });

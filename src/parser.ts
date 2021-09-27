@@ -119,7 +119,6 @@ class Context {
   sentence: Sentence;
   word: Word;
   syllables: Syllable[];
-  syllable: Syllable;
 
   constructor(ctx: Partial<Context>) {
     this.parent = ctx.parent;
@@ -127,6 +126,11 @@ class Context {
     this.sentence = ctx.sentence;
     this.word = ctx.word;
     this.syllables = ctx.syllables;
+  }
+  currentSyllable() {
+    return this.syllables
+      ? this.syllables[this.syllables.length - 1]
+      : undefined;
   }
 }
 export class Parser {
@@ -416,13 +420,12 @@ export class Parser {
     this.context.word = new Word();
     this.context.sentence.words.push(this.context.word);
     this.context.syllables = this.context.word.syllables;
-    this.context.syllable = undefined;
     return true;
   }
   private addLiteral(value: string) {
     // Attempt to merge consecutive, non substituted literals
-    if (this.context.syllable?.type == SyllableType.LITERAL) {
-      const syllable = this.context.syllable as LiteralSyllable;
+    if (this.context.currentSyllable()?.type == SyllableType.LITERAL) {
+      const syllable = this.context.currentSyllable() as LiteralSyllable;
       if (!syllable.substituted) {
         syllable.value += value;
         return;
@@ -431,12 +434,10 @@ export class Parser {
     const syllable = new LiteralSyllable();
     syllable.value = value;
     syllable.substituted = this.afterSubstitution();
-    this.context.syllable = syllable;
     this.context.syllables.push(syllable);
   }
   private closeWord() {
     this.closeSubstitution();
-    this.context.syllable = undefined;
     this.context.word = undefined;
   }
   private closeSentence() {
@@ -689,8 +690,8 @@ export class Parser {
    */
 
   private addSubstitution(value: string) {
-    if (this.context.syllable?.type == SyllableType.SUBSTITUTE_NEXT) {
-      const syllable = this.context.syllable as SubstituteNextSyllable;
+    if (this.context.currentSyllable()?.type == SyllableType.SUBSTITUTE_NEXT) {
+      const syllable = this.context.currentSyllable() as SubstituteNextSyllable;
       syllable.value += value;
       syllable.nesting++;
       if (this.stream.current()?.type == TokenType.ASTERISK) {
@@ -704,7 +705,6 @@ export class Parser {
         syllable.expansion = true;
         syllable.value += this.stream.next().literal;
       }
-      this.context.syllable = syllable;
       this.context.syllables.push(syllable);
     }
   }
@@ -712,21 +712,21 @@ export class Parser {
     if (!this.afterSubstitution()) return;
 
     // Convert stale substitutions to literals
-    const value = (this.context.syllable as SubstituteNextSyllable).value;
+    const value = (this.context.currentSyllable() as SubstituteNextSyllable)
+      .value;
     this.context.syllables.pop();
-    this.context.syllable = undefined;
     this.addLiteral(value);
   }
   private afterSubstitution() {
-    return this.context.syllable?.type == SyllableType.SUBSTITUTE_NEXT;
+    return this.context.currentSyllable()?.type == SyllableType.SUBSTITUTE_NEXT;
   }
   private expectSelector() {
-    switch (this.context.syllable?.type) {
+    switch (this.context.currentSyllable()?.type) {
       case SyllableType.LITERAL:
-        return (this.context.syllable as LiteralSyllable).substituted;
+        return (this.context.currentSyllable() as LiteralSyllable).substituted;
       case SyllableType.LIST:
       case SyllableType.BLOCK:
-        return (this.context.syllable as SelectorSyllable).selector;
+        return (this.context.currentSyllable() as SelectorSyllable).selector;
       default:
         return false;
     }
