@@ -21,11 +21,13 @@ export class LiteralSyllable {
 export class ListSyllable {
   type: SyllableType = SyllableType.LIST;
   subscript: Script = new Script();
+  selector: boolean = false;
   parentContext?;
 }
 export class BlockSyllable {
   type: SyllableType = SyllableType.BLOCK;
   subscript: Script = new Script();
+  selector: boolean = false;
   parentContext?;
 }
 export class CommandSyllable {
@@ -95,6 +97,7 @@ type ContextualSyllable =
   | TaggedStringSyllable
   | LineCommentSyllable
   | BlockCommentSyllable;
+type SelectorSyllable = ListSyllable | BlockSyllable;
 export type Syllable =
   | LiteralSyllable
   | ContextualSyllable
@@ -115,6 +118,7 @@ class Context {
   script: Script;
   sentence: Sentence;
   word: Word;
+  syllables: Syllable[];
   syllable: Syllable;
 
   constructor(ctx: Partial<Context>) {
@@ -122,6 +126,7 @@ class Context {
     this.script = ctx.script;
     this.sentence = ctx.sentence;
     this.word = ctx.word;
+    this.syllables = ctx.syllables;
   }
 }
 export class Parser {
@@ -248,7 +253,8 @@ export class Parser {
   }
   private openList() {
     const syllable = new ListSyllable();
-    this.context.word.syllables.push(syllable);
+    syllable.selector = this.expectSelector();
+    this.context.syllables.push(syllable);
     this.pushContext(syllable, {
       script: syllable.subscript,
     });
@@ -273,7 +279,8 @@ export class Parser {
   }
   private openBlock() {
     const syllable = new BlockSyllable();
-    this.context.word.syllables.push(syllable);
+    syllable.selector = this.expectSelector();
+    this.context.syllables.push(syllable);
     this.pushContext(syllable, {
       script: syllable.subscript,
     });
@@ -408,6 +415,7 @@ export class Parser {
     }
     this.context.word = new Word();
     this.context.sentence.words.push(this.context.word);
+    this.context.syllables = this.context.word.syllables;
     this.context.syllable = undefined;
     return true;
   }
@@ -424,7 +432,7 @@ export class Parser {
     syllable.value = value;
     syllable.substituted = this.afterSubstitution();
     this.context.syllable = syllable;
-    this.context.word.syllables.push(syllable);
+    this.context.syllables.push(syllable);
   }
   private closeWord() {
     this.closeSubstitution();
@@ -441,13 +449,27 @@ export class Parser {
    */
 
   private parseString(token: Token) {
+    if (this.afterSubstitution()) {
+      switch (token.type) {
+        case TokenType.TEXT:
+        case TokenType.DOLLAR:
+          break;
+
+        default:
+          this.closeSubstitution();
+      }
+    }
     switch (token.type) {
       case TokenType.CONTINUATION:
-        this.addStringSequence(token.literal);
+        this.addLiteral(token.literal);
         // Eat up all subsequent whitespaces
         while (this.stream.current()?.type == TokenType.WHITESPACE) {
           this.stream.next();
         }
+        break;
+
+      case TokenType.DOLLAR:
+        this.addSubstitution(token.literal);
         break;
 
       case TokenType.STRING_DELIMITER:
@@ -456,8 +478,24 @@ export class Parser {
         }
         break;
 
+      case TokenType.OPEN_LIST:
+        if (this.expectSelector()) {
+          this.openList();
+        } else {
+          this.addLiteral(token.literal);
+        }
+        break;
+
+      case TokenType.OPEN_BLOCK:
+        if (this.expectSelector()) {
+          this.openBlock();
+        } else {
+          this.addLiteral(token.literal);
+        }
+        break;
+
       default:
-        this.addStringSequence(token.literal);
+        this.addLiteral(token.literal);
     }
   }
   private openString() {
@@ -467,24 +505,14 @@ export class Parser {
       script: this.context.script,
       sentence: this.context.sentence,
       word: this.context.word,
+      syllables: syllable.syllables,
     });
   }
   private closeString(delimiter: string) {
     if (delimiter.length != 1) return false;
+    this.closeSubstitution();
     this.popContext();
     return true;
-  }
-  private addStringSequence(value: string) {
-    const parent = this.context.parent as StringSyllable;
-    if (this.context.syllable?.type == SyllableType.LITERAL) {
-      const syllable = this.context.syllable as LiteralSyllable;
-      syllable.value += value;
-    } else {
-      const syllable = new LiteralSyllable();
-      syllable.value = value;
-      this.context.syllable = syllable;
-      parent.syllables.push(syllable);
-    }
   }
 
   /*
@@ -677,7 +705,7 @@ export class Parser {
         syllable.value += this.stream.next().literal;
       }
       this.context.syllable = syllable;
-      this.context.word.syllables.push(syllable);
+      this.context.syllables.push(syllable);
     }
   }
   private closeSubstitution() {
@@ -685,14 +713,23 @@ export class Parser {
 
     // Convert stale substitutions to literals
     const value = (this.context.syllable as SubstituteNextSyllable).value;
-    this.context.word.syllables.pop();
-    const syllable = new LiteralSyllable();
-    syllable.value = value;
-    this.context.syllable = syllable;
-    this.context.word.syllables.push(syllable);
+    this.context.syllables.pop();
+    this.context.syllable = undefined;
+    this.addLiteral(value);
   }
   private afterSubstitution() {
     return this.context.syllable?.type == SyllableType.SUBSTITUTE_NEXT;
+  }
+  private expectSelector() {
+    switch (this.context.syllable?.type) {
+      case SyllableType.LITERAL:
+        return (this.context.syllable as LiteralSyllable).substituted;
+      case SyllableType.LIST:
+      case SyllableType.BLOCK:
+        return (this.context.syllable as SelectorSyllable).selector;
+      default:
+        return false;
+    }
   }
 }
 
