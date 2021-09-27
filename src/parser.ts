@@ -16,35 +16,32 @@ export enum SyllableType {
 export class LiteralSyllable {
   type: SyllableType = SyllableType.LITERAL;
   value: string;
-  substituted: boolean = false;
 }
 export class ListSyllable {
   type: SyllableType = SyllableType.LIST;
   subscript: Script = new Script();
-  selector: boolean = false;
-  parentContext?;
+  parentContext?: Context;
 }
 export class BlockSyllable {
   type: SyllableType = SyllableType.BLOCK;
   subscript: Script = new Script();
-  selector: boolean = false;
-  parentContext?;
+  parentContext?: Context;
 }
 export class CommandSyllable {
   type: SyllableType = SyllableType.COMMAND;
   subscript: Script = new Script();
-  parentContext?;
+  parentContext?: Context;
 }
 export class StringSyllable {
   type: SyllableType = SyllableType.STRING;
   syllables: Syllable[] = [];
-  parentContext?;
+  parentContext?: Context;
 }
 export class HereStringSyllable {
   type: SyllableType = SyllableType.HERE_STRING;
   value: string = "";
   delimiterLength: number;
-  parentContext?;
+  parentContext?: Context;
 
   constructor(delimiter: string) {
     this.delimiterLength = delimiter.length;
@@ -54,7 +51,7 @@ export class TaggedStringSyllable {
   type: SyllableType = SyllableType.TAGGED_STRING;
   value: string = "";
   tag: string;
-  parentContext?;
+  parentContext?: Context;
 
   constructor(tag: string) {
     this.tag = tag;
@@ -64,7 +61,7 @@ export class LineCommentSyllable {
   type: SyllableType = SyllableType.LINE_COMMENT;
   value: string = "";
   delimiterLength: number;
-  parentContext?;
+  parentContext?: Context;
 
   constructor(delimiter: string) {
     this.delimiterLength = delimiter.length;
@@ -75,7 +72,7 @@ export class BlockCommentSyllable {
   value: string = "";
   delimiterLength: number;
   nesting: number = 1;
-  parentContext?;
+  parentContext?: Context;
 
   constructor(delimiter: string) {
     this.delimiterLength = delimiter.length;
@@ -97,7 +94,6 @@ type ContextualSyllable =
   | TaggedStringSyllable
   | LineCommentSyllable
   | BlockCommentSyllable;
-type SelectorSyllable = ListSyllable | BlockSyllable;
 export type Syllable =
   | LiteralSyllable
   | ContextualSyllable
@@ -119,6 +115,7 @@ class Context {
   sentence: Sentence;
   word: Word;
   syllables: Syllable[];
+  substitutionMode: "" | "expect-source" | "expect-selector";
 
   constructor(ctx: Partial<Context>) {
     this.parent = ctx.parent;
@@ -257,7 +254,6 @@ export class Parser {
   }
   private openList() {
     const syllable = new ListSyllable();
-    syllable.selector = this.expectSelector();
     this.context.syllables.push(syllable);
     this.pushContext(syllable, {
       script: syllable.subscript,
@@ -283,7 +279,6 @@ export class Parser {
   }
   private openBlock() {
     const syllable = new BlockSyllable();
-    syllable.selector = this.expectSelector();
     this.context.syllables.push(syllable);
     this.pushContext(syllable, {
       script: syllable.subscript,
@@ -389,7 +384,7 @@ export class Parser {
 
       case TokenType.DOLLAR:
         this.ensureWord();
-        this.addSubstitution(token.literal);
+        this.beginSubstitution(token.literal);
         break;
 
       case TokenType.ASTERISK:
@@ -426,18 +421,18 @@ export class Parser {
     // Attempt to merge consecutive, non substituted literals
     if (this.context.currentSyllable()?.type == SyllableType.LITERAL) {
       const syllable = this.context.currentSyllable() as LiteralSyllable;
-      if (!syllable.substituted) {
+      if (!this.withinSubstitution()) {
         syllable.value += value;
         return;
       }
     }
     const syllable = new LiteralSyllable();
     syllable.value = value;
-    syllable.substituted = this.afterSubstitution();
     this.context.syllables.push(syllable);
+    this.continueSubstitution();
   }
   private closeWord() {
-    this.closeSubstitution();
+    this.endSubstitution();
     this.context.word = undefined;
   }
   private closeSentence() {
@@ -450,14 +445,14 @@ export class Parser {
    */
 
   private parseString(token: Token) {
-    if (this.afterSubstitution()) {
+    if (this.expectSource()) {
       switch (token.type) {
         case TokenType.TEXT:
         case TokenType.DOLLAR:
           break;
 
         default:
-          this.closeSubstitution();
+          this.endSubstitution();
       }
     }
     switch (token.type) {
@@ -470,7 +465,7 @@ export class Parser {
         break;
 
       case TokenType.DOLLAR:
-        this.addSubstitution(token.literal);
+        this.beginSubstitution(token.literal);
         break;
 
       case TokenType.STRING_DELIMITER:
@@ -511,7 +506,7 @@ export class Parser {
   }
   private closeString(delimiter: string) {
     if (delimiter.length != 1) return false;
-    this.closeSubstitution();
+    this.endSubstitution();
     this.popContext();
     return true;
   }
@@ -689,7 +684,7 @@ export class Parser {
    * Substitutions
    */
 
-  private addSubstitution(value: string) {
+  private beginSubstitution(value: string) {
     if (this.context.currentSyllable()?.type == SyllableType.SUBSTITUTE_NEXT) {
       const syllable = this.context.currentSyllable() as SubstituteNextSyllable;
       syllable.value += value;
@@ -698,38 +693,40 @@ export class Parser {
         // Ignore expansion on inner substitutions
         syllable.value += this.stream.next().literal;
       }
-    } else {
-      const syllable = new SubstituteNextSyllable();
-      syllable.value = value;
-      if (this.stream.current()?.type == TokenType.ASTERISK) {
-        syllable.expansion = true;
-        syllable.value += this.stream.next().literal;
-      }
-      this.context.syllables.push(syllable);
+      return;
     }
+    const syllable = new SubstituteNextSyllable();
+    syllable.value = value;
+    if (this.stream.current()?.type == TokenType.ASTERISK) {
+      syllable.expansion = true;
+      syllable.value += this.stream.next().literal;
+    }
+    this.context.syllables.push(syllable);
+    this.context.substitutionMode = "expect-source";
   }
-  private closeSubstitution() {
-    if (!this.afterSubstitution()) return;
+  private continueSubstitution() {
+    this.context.substitutionMode = this.expectSource()
+      ? "expect-selector"
+      : "";
+  }
+  private endSubstitution() {
+    if (!this.expectSource()) return;
 
     // Convert stale substitutions to literals
+    this.context.substitutionMode = "";
     const value = (this.context.currentSyllable() as SubstituteNextSyllable)
       .value;
     this.context.syllables.pop();
     this.addLiteral(value);
   }
-  private afterSubstitution() {
-    return this.context.currentSyllable()?.type == SyllableType.SUBSTITUTE_NEXT;
+  private withinSubstitution() {
+    return this.context.substitutionMode != "";
+  }
+  private expectSource() {
+    return this.context.substitutionMode == "expect-source";
   }
   private expectSelector() {
-    switch (this.context.currentSyllable()?.type) {
-      case SyllableType.LITERAL:
-        return (this.context.currentSyllable() as LiteralSyllable).substituted;
-      case SyllableType.LIST:
-      case SyllableType.BLOCK:
-        return (this.context.currentSyllable() as SelectorSyllable).selector;
-      default:
-        return false;
-    }
+    return this.context.substitutionMode == "expect-selector";
   }
 }
 
