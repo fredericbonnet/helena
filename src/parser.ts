@@ -304,7 +304,7 @@ export class Parser {
   }
   private openCommand() {
     const syllable = new CommandSyllable();
-    this.context.word.syllables.push(syllable);
+    this.context.syllables.push(syllable);
     this.pushContext(syllable, {
       script: syllable.subscript,
     });
@@ -450,6 +450,7 @@ export class Parser {
       switch (token.type) {
         case TokenType.TEXT:
         case TokenType.DOLLAR:
+        case TokenType.OPEN_COMMAND:
           break;
 
         default:
@@ -489,6 +490,10 @@ export class Parser {
         } else {
           this.addLiteral(token.literal);
         }
+        break;
+
+      case TokenType.OPEN_COMMAND:
+        this.openCommand();
         break;
 
       default:

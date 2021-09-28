@@ -272,15 +272,7 @@ describe("Parser", () => {
       specify("empty command", () => {
         const tokens = tokenizer.tokenize("[]");
         const script = parser.parse(tokens);
-        expect(toTree(script)).to.eql([
-          [
-            [
-              {
-                COMMAND: [],
-              },
-            ],
-          ],
-        ]);
+        expect(toTree(script)).to.eql([[[{ COMMAND: [] }]]]);
       });
       specify("command with one word", () => {
         const tokens = tokenizer.tokenize("[word]");
@@ -380,6 +372,74 @@ describe("Parser", () => {
           [[{ STRING: [{ LITERAL: "this {is (a #string" }] }]],
         ]);
       });
+      describe("commands", () => {
+        specify("empty command", () => {
+          const tokens = tokenizer.tokenize('"[]"');
+          const script = parser.parse(tokens);
+          expect(toTree(script)).to.eql([[[{ STRING: [{ COMMAND: [] }] }]]]);
+        });
+        specify("command with one word", () => {
+          const tokens = tokenizer.tokenize('"[word]"');
+          const script = parser.parse(tokens);
+          expect(toTree(script)).to.eql([
+            [[{ STRING: [{ COMMAND: [[[{ LITERAL: "word" }]]] }] }]],
+          ]);
+        });
+        specify("command with two levels", () => {
+          const tokens = tokenizer.tokenize(
+            '"[word1 [subword1 subword2] word2]"'
+          );
+          const script = parser.parse(tokens);
+          expect(toTree(script)).to.eql([
+            [
+              [
+                {
+                  STRING: [
+                    {
+                      COMMAND: [
+                        [
+                          [{ LITERAL: "word1" }],
+                          [
+                            {
+                              COMMAND: [
+                                [
+                                  [{ LITERAL: "subword1" }],
+                                  [{ LITERAL: "subword2" }],
+                                ],
+                              ],
+                            },
+                          ],
+                          [{ LITERAL: "word2" }],
+                        ],
+                      ],
+                    },
+                  ],
+                },
+              ],
+            ],
+          ]);
+        });
+        describe("exceptions", () => {
+          specify("unterminated command", () => {
+            const tokens = tokenizer.tokenize('"[');
+            expect(() => parser.parse(tokens)).to.throws(
+              "unmatched left bracket"
+            );
+          });
+          specify("mismatched right parenthesis", () => {
+            const tokens = tokenizer.tokenize('"[)"');
+            expect(() => parser.parse(tokens)).to.throws(
+              "mismatched right parenthesis"
+            );
+          });
+          specify("mismatched right brace", () => {
+            const tokens = tokenizer.tokenize('"[}"');
+            expect(() => parser.parse(tokens)).to.throws(
+              "mismatched right brace"
+            );
+          });
+        });
+      });
       describe("substitutions", () => {
         specify("lone dollar", () => {
           const tokens = tokenizer.tokenize('"$"');
@@ -400,8 +460,24 @@ describe("Parser", () => {
             [[{ STRING: [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a\u1234" }] }]],
           ]);
         });
+        specify("command", () => {
+          const tokens = tokenizer.tokenize('"$[a]"');
+          const script = parser.parse(tokens);
+          expect(toTree(script)).to.eql([
+            [
+              [
+                {
+                  STRING: [
+                    { SUBSTITUTE_NEXT: 1 },
+                    { COMMAND: [[[{ LITERAL: "a" }]]] },
+                  ],
+                },
+              ],
+            ],
+          ]);
+        });
         specify("multiple substitution", () => {
-          const tokens = tokenizer.tokenize('"$$a $$$b"');
+          const tokens = tokenizer.tokenize('"$$a $$$b $$$$[c]"');
           const script = parser.parse(tokens);
           expect(toTree(script)).to.eql([
             [
@@ -413,6 +489,9 @@ describe("Parser", () => {
                     { LITERAL: " " },
                     { SUBSTITUTE_NEXT: 3 },
                     { LITERAL: "b" },
+                    { LITERAL: " " },
+                    { SUBSTITUTE_NEXT: 4 },
+                    { COMMAND: [[[{ LITERAL: "c" }]]] },
                   ],
                 },
               ],
@@ -420,10 +499,22 @@ describe("Parser", () => {
           ]);
         });
         specify("expansion", () => {
-          const tokens = tokenizer.tokenize('"$*$$*a"');
+          const tokens = tokenizer.tokenize('"$*$$*a $*$[b]"');
           const script = parser.parse(tokens);
           expect(toTree(script)).to.eql([
-            [[{ STRING: [{ EXPAND_NEXT: 3 }, { LITERAL: "a" }] }]],
+            [
+              [
+                {
+                  STRING: [
+                    { EXPAND_NEXT: 3 },
+                    { LITERAL: "a" },
+                    { LITERAL: " " },
+                    { EXPAND_NEXT: 2 },
+                    { COMMAND: [[[{ LITERAL: "b" }]]] },
+                  ],
+                },
+              ],
+            ],
           ]);
         });
         describe("variable name delimiters", () => {
@@ -458,7 +549,9 @@ describe("Parser", () => {
         describe("selectors", () => {
           describe("generic selectors", () => {
             specify("single", () => {
-              const tokens = tokenizer.tokenize('"$name{selector}"');
+              const tokens = tokenizer.tokenize(
+                '"$name{selector1} $[command]{selector2}"'
+              );
               const script = parser.parse(tokens);
               expect(toTree(script)).to.eql([
                 [
@@ -467,7 +560,11 @@ describe("Parser", () => {
                       STRING: [
                         { SUBSTITUTE_NEXT: 1 },
                         { LITERAL: "name" },
-                        { BLOCK: [[[{ LITERAL: "selector" }]]] },
+                        { BLOCK: [[[{ LITERAL: "selector1" }]]] },
+                        { LITERAL: " " },
+                        { SUBSTITUTE_NEXT: 1 },
+                        { COMMAND: [[[{ LITERAL: "command" }]]] },
+                        { BLOCK: [[[{ LITERAL: "selector2" }]]] },
                       ],
                     },
                   ],
@@ -475,7 +572,9 @@ describe("Parser", () => {
               ]);
             });
             specify("multiple", () => {
-              const tokens = tokenizer.tokenize('"$name{selector1 selector2}"');
+              const tokens = tokenizer.tokenize(
+                '"$name{selector1 selector2} $[command]{selector3 selector4}"'
+              );
               const script = parser.parse(tokens);
               expect(toTree(script)).to.eql([
                 [
@@ -492,6 +591,17 @@ describe("Parser", () => {
                             ],
                           ],
                         },
+                        { LITERAL: " " },
+                        { SUBSTITUTE_NEXT: 1 },
+                        { COMMAND: [[[{ LITERAL: "command" }]]] },
+                        {
+                          BLOCK: [
+                            [
+                              [{ LITERAL: "selector3" }],
+                              [{ LITERAL: "selector4" }],
+                            ],
+                          ],
+                        },
                       ],
                     },
                   ],
@@ -500,7 +610,7 @@ describe("Parser", () => {
             });
             specify("chained", () => {
               const tokens = tokenizer.tokenize(
-                '"$name{selector1}{selector2 selector3}{selector4}"'
+                '"$name{selector1}{selector2 selector3}{selector4} $[command]{selector5 selector6}{selector7}{selector8 selector9}"'
               );
               const script = parser.parse(tokens);
               expect(toTree(script)).to.eql([
@@ -520,6 +630,26 @@ describe("Parser", () => {
                           ],
                         },
                         { BLOCK: [[[{ LITERAL: "selector4" }]]] },
+                        { LITERAL: " " },
+                        { SUBSTITUTE_NEXT: 1 },
+                        { COMMAND: [[[{ LITERAL: "command" }]]] },
+                        {
+                          BLOCK: [
+                            [
+                              [{ LITERAL: "selector5" }],
+                              [{ LITERAL: "selector6" }],
+                            ],
+                          ],
+                        },
+                        { BLOCK: [[[{ LITERAL: "selector7" }]]] },
+                        {
+                          BLOCK: [
+                            [
+                              [{ LITERAL: "selector8" }],
+                              [{ LITERAL: "selector9" }],
+                            ],
+                          ],
+                        },
                       ],
                     },
                   ],
@@ -529,7 +659,9 @@ describe("Parser", () => {
           });
           describe("keyed selectors", () => {
             specify("single", () => {
-              const tokens = tokenizer.tokenize('"$name(key)"');
+              const tokens = tokenizer.tokenize(
+                '"$name(key1) $[command](key2)"'
+              );
               const script = parser.parse(tokens);
               expect(toTree(script)).to.eql([
                 [
@@ -538,7 +670,11 @@ describe("Parser", () => {
                       STRING: [
                         { SUBSTITUTE_NEXT: 1 },
                         { LITERAL: "name" },
-                        { LIST: [[[{ LITERAL: "key" }]]] },
+                        { LIST: [[[{ LITERAL: "key1" }]]] },
+                        { LITERAL: " " },
+                        { SUBSTITUTE_NEXT: 1 },
+                        { COMMAND: [[[{ LITERAL: "command" }]]] },
+                        { LIST: [[[{ LITERAL: "key2" }]]] },
                       ],
                     },
                   ],
@@ -546,7 +682,9 @@ describe("Parser", () => {
               ]);
             });
             specify("multiple", () => {
-              const tokens = tokenizer.tokenize('"$name(key1 key2)"');
+              const tokens = tokenizer.tokenize(
+                '"$name(key1 key2) $[command](key3 key4)"'
+              );
               const script = parser.parse(tokens);
               expect(toTree(script)).to.eql([
                 [
@@ -560,6 +698,14 @@ describe("Parser", () => {
                             [[{ LITERAL: "key1" }], [{ LITERAL: "key2" }]],
                           ],
                         },
+                        { LITERAL: " " },
+                        { SUBSTITUTE_NEXT: 1 },
+                        { COMMAND: [[[{ LITERAL: "command" }]]] },
+                        {
+                          LIST: [
+                            [[{ LITERAL: "key3" }], [{ LITERAL: "key4" }]],
+                          ],
+                        },
                       ],
                     },
                   ],
@@ -568,7 +714,7 @@ describe("Parser", () => {
             });
             specify("chained", () => {
               const tokens = tokenizer.tokenize(
-                '"$name(key1)(key2 key3)(key4)"'
+                '"$name(key1)(key2 key3)(key4) $[command](key5 key6)(key7)(key8 key9)"'
               );
               const script = parser.parse(tokens);
               expect(toTree(script)).to.eql([
@@ -585,6 +731,20 @@ describe("Parser", () => {
                           ],
                         },
                         { LIST: [[[{ LITERAL: "key4" }]]] },
+                        { LITERAL: " " },
+                        { SUBSTITUTE_NEXT: 1 },
+                        { COMMAND: [[[{ LITERAL: "command" }]]] },
+                        {
+                          LIST: [
+                            [[{ LITERAL: "key5" }], [{ LITERAL: "key6" }]],
+                          ],
+                        },
+                        { LIST: [[[{ LITERAL: "key7" }]]] },
+                        {
+                          LIST: [
+                            [[{ LITERAL: "key8" }], [{ LITERAL: "key9" }]],
+                          ],
+                        },
                       ],
                     },
                   ],
@@ -594,7 +754,7 @@ describe("Parser", () => {
           });
           specify("mixed selectors", () => {
             const tokens = tokenizer.tokenize(
-              '"$name(key1 key2){selector1}(key3){selector2 selector3}"'
+              '"$name(key1 key2){selector1}(key3){selector2 selector3} $[command]{selector4 selector5}(key4 key5){selector6}(key6)"'
             );
             const script = parser.parse(tokens);
             expect(toTree(script)).to.eql([
@@ -617,6 +777,22 @@ describe("Parser", () => {
                           ],
                         ],
                       },
+                      { LITERAL: " " },
+                      { SUBSTITUTE_NEXT: 1 },
+                      { COMMAND: [[[{ LITERAL: "command" }]]] },
+                      {
+                        BLOCK: [
+                          [
+                            [{ LITERAL: "selector4" }],
+                            [{ LITERAL: "selector5" }],
+                          ],
+                        ],
+                      },
+                      {
+                        LIST: [[[{ LITERAL: "key4" }], [{ LITERAL: "key5" }]]],
+                      },
+                      { BLOCK: [[[{ LITERAL: "selector6" }]]] },
+                      { LIST: [[[{ LITERAL: "key6" }]]] },
                     ],
                   },
                 ],
@@ -625,7 +801,7 @@ describe("Parser", () => {
           });
           specify("nested selectors", () => {
             const tokens = tokenizer.tokenize(
-              '"$name1(key1 $name2{selector1})"'
+              '"$name1(key1 $name2{selector1} $[command1](key2)) $[command2]{selector2 $name3(key3)}"'
             );
             const script = parser.parse(tokens);
             expect(toTree(script)).to.eql([
@@ -643,6 +819,26 @@ describe("Parser", () => {
                               { SUBSTITUTE_NEXT: 1 },
                               { LITERAL: "name2" },
                               { BLOCK: [[[{ LITERAL: "selector1" }]]] },
+                            ],
+                            [
+                              { SUBSTITUTE_NEXT: 1 },
+                              { COMMAND: [[[{ LITERAL: "command1" }]]] },
+                              { LIST: [[[{ LITERAL: "key2" }]]] },
+                            ],
+                          ],
+                        ],
+                      },
+                      { LITERAL: " " },
+                      { SUBSTITUTE_NEXT: 1 },
+                      { COMMAND: [[[{ LITERAL: "command2" }]]] },
+                      {
+                        BLOCK: [
+                          [
+                            [{ LITERAL: "selector2" }],
+                            [
+                              { SUBSTITUTE_NEXT: 1 },
+                              { LITERAL: "name3" },
+                              { LIST: [[[{ LITERAL: "key3" }]]] },
                             ],
                           ],
                         ],
