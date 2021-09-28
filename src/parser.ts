@@ -295,6 +295,7 @@ export class Parser {
     switch (token.type) {
       case TokenType.CLOSE_COMMAND:
         this.closeCommand();
+        this.continueSubstitution();
         break;
 
       default:
