@@ -460,6 +460,38 @@ describe("Parser", () => {
             [[{ STRING: [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a\u1234" }] }]],
           ]);
         });
+        specify("list", () => {
+          const tokens = tokenizer.tokenize('"$(a)"');
+          const script = parser.parse(tokens);
+          expect(toTree(script)).to.eql([
+            [
+              [
+                {
+                  STRING: [
+                    { SUBSTITUTE_NEXT: 1 },
+                    { LIST: [[[{ LITERAL: "a" }]]] },
+                  ],
+                },
+              ],
+            ],
+          ]);
+        });
+        specify("block", () => {
+          const tokens = tokenizer.tokenize('"${a}"');
+          const script = parser.parse(tokens);
+          expect(toTree(script)).to.eql([
+            [
+              [
+                {
+                  STRING: [
+                    { SUBSTITUTE_NEXT: 1 },
+                    { BLOCK: [[[{ LITERAL: "a" }]]] },
+                  ],
+                },
+              ],
+            ],
+          ]);
+        });
         specify("command", () => {
           const tokens = tokenizer.tokenize('"$[a]"');
           const script = parser.parse(tokens);
@@ -1148,6 +1180,20 @@ int main(void) {
         const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([
           [[{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a\u1234" }]],
+        ]);
+      });
+      specify("list", () => {
+        const tokens = tokenizer.tokenize("$(a)");
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [[{ SUBSTITUTE_NEXT: 1 }, { LIST: [[[{ LITERAL: "a" }]]] }]],
+        ]);
+      });
+      specify("block", () => {
+        const tokens = tokenizer.tokenize("${a}");
+        const script = parser.parse(tokens);
+        expect(toTree(script)).to.eql([
+          [[{ SUBSTITUTE_NEXT: 1 }, { BLOCK: [[[{ LITERAL: "a" }]]] }]],
         ]);
       });
       specify("command", () => {

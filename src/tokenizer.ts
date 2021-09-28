@@ -1,3 +1,6 @@
+/**
+ * Helena token type for each special character or sequence
+ */
 export enum TokenType {
   WHITESPACE,
   NEWLINE,
@@ -17,9 +20,17 @@ export enum TokenType {
   ASTERISK,
 }
 
+/**
+ * Position in character stream
+ */
 export class Position {
+  /** Character index (zero-indexed) */
   index: number = 0;
+
+  /** Line number (zero-indexed) */
   line: number = 0;
+
+  /** Column number (zero-indexed) */
   column: number = 0;
 
   copy() {
@@ -29,6 +40,14 @@ export class Position {
     copy.column = this.column;
     return copy;
   }
+
+  /**
+   * Advance to next character
+   *
+   * @param newline Whether to increment line number
+   *
+   * @returns Previous index
+   */
   next(newline: boolean) {
     if (newline) {
       this.line++;
@@ -40,71 +59,73 @@ export class Position {
   }
 }
 
+/**
+ * Helena token
+ */
 export interface Token {
+  /** Token type */
   type: TokenType;
+
+  /** Position in source stream */
   position: Position;
+
+  /** Raw sequence of characters from stream */
   sequence: string;
+
+  /** String literal */
   literal: string;
 }
 
+/**
+ * Helena tokenizer
+ */
 export class Tokenizer {
+  private stream: StringStream;
+  private tokens: Token[];
+
+  /**
+   * Tokenize a Helena source string
+   *
+   * @param source Source string
+   *
+   * @returns Array of tokens
+   */
   tokenize(source: string): Token[] {
-    let stream = new StringStream(source);
-    let tokens: Token[] = [];
+    this.stream = new StringStream(source);
+    this.tokens = [];
 
-    function addToken(type: TokenType, position: Position, literal?: string) {
-      const sequence = stream.range(position.index, stream.position.index);
-      tokens.push({
-        type,
-        position,
-        sequence,
-        literal: literal ?? sequence,
-      });
-    }
-
-    function addText(position: Position) {
-      const last = tokens[tokens.length - 1];
-      const literal = stream.range(position.index, stream.position.index);
-      if (last?.type != TokenType.TEXT) {
-        addToken(TokenType.TEXT, position, literal);
-      } else {
-        last.literal += literal;
-        last.sequence = stream.range(
-          last.position.index,
-          stream.position.index
-        );
-      }
-    }
-
-    while (!stream.end()) {
-      const position = stream.position.copy();
-      const c = stream.next();
+    while (!this.stream.end()) {
+      const position = this.stream.position.copy();
+      const c = this.stream.next();
       switch (c) {
         // Whitespaces
         case " ":
         case "\t":
         case "\r":
         case "\f":
-          while (!stream.end() && this.isWhitespace(stream.current())) {
-            stream.next();
+          while (
+            !this.stream.end() &&
+            this.isWhitespace(this.stream.current())
+          ) {
+            this.stream.next();
           }
-          addToken(TokenType.WHITESPACE, position);
+          this.addToken(TokenType.WHITESPACE, position);
           break;
 
         // Newline
         case "\n":
-          addToken(TokenType.NEWLINE, position);
+          this.addToken(TokenType.NEWLINE, position);
           break;
 
         // Escape sequence
         case "\\":
-          if (stream.end()) {
-            addToken(TokenType.TEXT, position);
+          if (this.stream.end()) {
+            this.addToken(TokenType.TEXT, position);
             break;
           }
-          const e = stream.next();
+          const e = this.stream.next();
           if (e == "\n") {
-            addToken(TokenType.CONTINUATION, position, " ");
+            this.addToken(TokenType.CONTINUATION, position, " ");
             break;
           }
           let escape = e; // Default value for unrecognized sequences
@@ -113,10 +134,14 @@ export class Tokenizer {
           } else if (this.isOctal(e)) {
             let codepoint = Number.parseInt(e);
             let i = 1;
-            while (!stream.end() && this.isOctal(stream.current()) && i < 3) {
+            while (
+              !this.stream.end() &&
+              this.isOctal(this.stream.current()) &&
+              i < 3
+            ) {
               codepoint *= 8;
-              codepoint += Number.parseInt(stream.current());
-              stream.next();
+              codepoint += Number.parseInt(this.stream.current());
+              this.stream.next();
               i++;
             }
             escape = String.fromCharCode(codepoint);
@@ -124,13 +149,13 @@ export class Tokenizer {
             let codepoint = 0;
             let i = 0;
             while (
-              !stream.end() &&
-              this.isHexadecimal(stream.current()) &&
+              !this.stream.end() &&
+              this.isHexadecimal(this.stream.current()) &&
               i < 2
             ) {
               codepoint *= 16;
-              codepoint += Number.parseInt("0x" + stream.current());
-              stream.next();
+              codepoint += Number.parseInt("0x" + this.stream.current());
+              this.stream.next();
               i++;
             }
             if (i > 0) {
@@ -140,13 +165,13 @@ export class Tokenizer {
             let codepoint = 0;
             let i = 0;
             while (
-              !stream.end() &&
-              this.isHexadecimal(stream.current()) &&
+              !this.stream.end() &&
+              this.isHexadecimal(this.stream.current()) &&
               i < 4
             ) {
               codepoint *= 16;
-              codepoint += Number.parseInt("0x" + stream.current());
-              stream.next();
+              codepoint += Number.parseInt("0x" + this.stream.current());
+              this.stream.next();
               i++;
             }
             if (i > 0) {
@@ -156,92 +181,160 @@ export class Tokenizer {
             let codepoint = 0;
             let i = 0;
             while (
-              !stream.end() &&
-              this.isHexadecimal(stream.current()) &&
+              !this.stream.end() &&
+              this.isHexadecimal(this.stream.current()) &&
               i < 8
             ) {
               codepoint *= 16;
-              codepoint += Number.parseInt("0x" + stream.current());
-              stream.next();
+              codepoint += Number.parseInt("0x" + this.stream.current());
+              this.stream.next();
               i++;
             }
             if (i > 0) {
               escape = String.fromCharCode(codepoint);
             }
           }
-          addToken(TokenType.ESCAPE, position, escape);
+          this.addToken(TokenType.ESCAPE, position, escape);
           break;
 
         // Comment
         case "#":
-          while (!stream.end() && stream.current() == "#") {
-            stream.next();
+          while (!this.stream.end() && this.stream.current() == "#") {
+            this.stream.next();
           }
-          addToken(TokenType.COMMENT, position);
+          this.addToken(TokenType.COMMENT, position);
           break;
 
         // List delimiters
         case "(":
-          addToken(TokenType.OPEN_LIST, position);
+          this.addToken(TokenType.OPEN_LIST, position);
           break;
         case ")":
-          addToken(TokenType.CLOSE_LIST, position);
+          this.addToken(TokenType.CLOSE_LIST, position);
           break;
 
         // Block delimiters
         case "{":
-          addToken(TokenType.OPEN_BLOCK, position);
+          this.addToken(TokenType.OPEN_BLOCK, position);
           break;
         case "}":
-          addToken(TokenType.CLOSE_BLOCK, position);
+          this.addToken(TokenType.CLOSE_BLOCK, position);
           break;
 
         // Command delimiters
         case "[":
-          addToken(TokenType.OPEN_COMMAND, position);
+          this.addToken(TokenType.OPEN_COMMAND, position);
           break;
         case "]":
-          addToken(TokenType.CLOSE_COMMAND, position);
+          this.addToken(TokenType.CLOSE_COMMAND, position);
           break;
 
         // String delimiter
         case '"':
-          while (!stream.end() && stream.current() == '"') {
-            stream.next();
+          while (!this.stream.end() && this.stream.current() == '"') {
+            this.stream.next();
           }
-          addToken(TokenType.STRING_DELIMITER, position);
+          this.addToken(TokenType.STRING_DELIMITER, position);
           break;
 
         // Dollar
         case "$":
-          addToken(TokenType.DOLLAR, position);
+          this.addToken(TokenType.DOLLAR, position);
           break;
 
         // Semicolon
         case ";":
-          addToken(TokenType.SEMICOLON, position);
+          this.addToken(TokenType.SEMICOLON, position);
           break;
 
         // Asterisk
         case "*":
-          addToken(TokenType.ASTERISK, position);
+          this.addToken(TokenType.ASTERISK, position);
           break;
 
         default:
-          addText(position);
+          this.addText(position);
       }
     }
 
-    return tokens;
+    return this.tokens;
   }
 
-  isWhitespace(c: string) {
+  /**
+   * Add token to result
+   *
+   * @param type Token type
+   * @param position Position of first character
+   * @param literal Literal value
+   */
+  private addToken(type: TokenType, position: Position, literal?: string) {
+    const sequence = this.stream.range(
+      position.index,
+      this.stream.position.index
+    );
+    this.tokens.push({
+      type,
+      position,
+      sequence,
+      literal: literal ?? sequence,
+    });
+  }
+
+  /**
+   * Add character sequence to new or existing text token
+   *
+   * Added character sequence is between given position and current stream
+   * position
+   *
+   * @param position Position of first character to add
+   */
+  private addText(position: Position) {
+    const last = this.tokens[this.tokens.length - 1];
+    const literal = this.stream.range(
+      position.index,
+      this.stream.position.index
+    );
+    if (last?.type != TokenType.TEXT) {
+      this.addToken(TokenType.TEXT, position, literal);
+    } else {
+      last.literal += literal;
+      last.sequence = this.stream.range(
+        last.position.index,
+        this.stream.position.index
+      );
+    }
+  }
+
+  /**
+   * Predicate for whitespace characters (excluding newlines)
+   *
+   * @param c Character to test
+   *
+   * @returns Whether character is a whitespace
+   */
+  private isWhitespace(c: string) {
     return c.match(/[ \t\r\f]/);
   }
-  isEscape(c: string) {
+
+  /**
+   * Predicate for escape characters
+   *
+   * @param c Character to test
+   *
+   * @returns Whether character is a known escape
+   */
+  private isEscape(c: string) {
     return c.match(/[abfnrtv\\]/);
   }
-  getEscape(c: string) {
+
+  /**
+   * Get escaped character
+   *
+   * @param c Character to escape
+   *
+   * @returns Escaped character
+   */
+  private getEscape(c: string) {
     return {
       a: "\x07",
       b: "\b",
@@ -253,33 +346,84 @@ export class Tokenizer {
       "\\": "\\",
     }[c];
   }
-  isOctal(c: string) {
+
+  /**
+   * Predicate for octal characters
+   *
+   * @param c Character to test
+   *
+   * @returns Whether character is octal
+   */
+  private isOctal(c: string) {
     return c.match(/[0-7]/);
   }
-  isHexadecimal(c: string) {
+
+  /**
+   * Predicate for hexadecimal characters
+   *
+   * @param c Character to test
+   *
+   * @returns Whether character is hexadecimal
+   */
+  private isHexadecimal(c: string) {
     return c.match(/[0-9a-fA-F]/);
   }
 }
 
+/**
+ * String-based character stream
+ */
 class StringStream {
+  /** Source string */
   source: string;
+
+  /** Current position in stream */
   position: Position = new Position();
+
+  /**
+   * Create a new stream from a string
+   *
+   * @param source Source string
+   */
   constructor(source: string) {
     this.source = source;
   }
 
+  /**
+   * At end predicate
+   *
+   * @returns Whether stream is at end
+   */
   end() {
     return this.position.index >= this.source.length;
   }
+
+  /**
+   * Advance to next character
+   *
+   * @returns Character at previous position
+   */
   next() {
     return this.source[this.position.next(this.current() === "\n")];
   }
+
+  /**
+   * Get current character
+   *
+   * @returns Character at current position
+   */
   current() {
     return this.source[this.position.index];
   }
-  peek() {
-    return this.source[this.position.index + 1];
-  }
+
+  /**
+   * Get range of characters
+   *
+   * @param start First character index (inclusive)
+   * @param end Last character index (exclusive)
+   *
+   * @returns Range of characters
+   */
   range(start: number, end: number) {
     return this.source.substring(start, end);
   }

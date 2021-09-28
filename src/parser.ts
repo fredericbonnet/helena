@@ -246,6 +246,7 @@ export class Parser {
     switch (token.type) {
       case TokenType.CLOSE_LIST:
         this.closeList();
+        if (this.expectSource()) this.continueSubstitution();
         break;
 
       default:
@@ -271,6 +272,7 @@ export class Parser {
     switch (token.type) {
       case TokenType.CLOSE_BLOCK:
         this.closeBlock();
+        if (this.expectSource()) this.continueSubstitution();
         break;
 
       default:
@@ -450,6 +452,8 @@ export class Parser {
       switch (token.type) {
         case TokenType.TEXT:
         case TokenType.DOLLAR:
+        case TokenType.OPEN_LIST:
+        case TokenType.OPEN_BLOCK:
         case TokenType.OPEN_COMMAND:
           break;
 
@@ -477,7 +481,7 @@ export class Parser {
         break;
 
       case TokenType.OPEN_LIST:
-        if (this.expectSelector()) {
+        if (this.withinSubstitution()) {
           this.openList();
         } else {
           this.addLiteral(token.literal);
@@ -485,7 +489,7 @@ export class Parser {
         break;
 
       case TokenType.OPEN_BLOCK:
-        if (this.expectSelector()) {
+        if (this.withinSubstitution()) {
           this.openBlock();
         } else {
           this.addLiteral(token.literal);
