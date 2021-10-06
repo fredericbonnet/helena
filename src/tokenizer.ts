@@ -8,8 +8,8 @@ export enum TokenType {
   TEXT,
   ESCAPE,
   COMMENT,
-  OPEN_LIST,
-  CLOSE_LIST,
+  OPEN_TUPLE,
+  CLOSE_TUPLE,
   OPEN_BLOCK,
   CLOSE_BLOCK,
   OPEN_COMMAND,
@@ -205,12 +205,12 @@ export class Tokenizer {
           this.addToken(TokenType.COMMENT, position);
           break;
 
-        // List delimiters
+        // Tuple delimiters
         case "(":
-          this.addToken(TokenType.OPEN_LIST, position);
+          this.addToken(TokenType.OPEN_TUPLE, position);
           break;
         case ")":
-          this.addToken(TokenType.CLOSE_LIST, position);
+          this.addToken(TokenType.CLOSE_TUPLE, position);
           break;
 
         // Block delimiters

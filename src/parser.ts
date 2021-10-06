@@ -2,7 +2,7 @@ import { Token, TokenType } from "./tokenizer";
 
 export enum SyllableType {
   LITERAL,
-  LIST,
+  TUPLE,
   BLOCK,
   COMMAND,
   STRING,
@@ -17,8 +17,8 @@ export class LiteralSyllable {
   type: SyllableType = SyllableType.LITERAL;
   value: string;
 }
-export class ListSyllable {
-  type: SyllableType = SyllableType.LIST;
+export class TupleSyllable {
+  type: SyllableType = SyllableType.TUPLE;
   subscript: Script = new Script();
   parentContext?: Context;
 }
@@ -86,7 +86,7 @@ export class SubstituteNextSyllable {
 }
 
 type ContextualSyllable =
-  | ListSyllable
+  | TupleSyllable
   | BlockSyllable
   | CommandSyllable
   | StringSyllable
@@ -143,8 +143,8 @@ export class Parser {
     while (!this.stream.end()) {
       const token = this.stream.next();
       switch (this.context.parent?.type) {
-        case SyllableType.LIST:
-          this.parseList(token);
+        case SyllableType.TUPLE:
+          this.parseTuple(token);
           break;
 
         case SyllableType.BLOCK:
@@ -182,7 +182,7 @@ export class Parser {
 
     if (this.context.parent) {
       switch (this.context.parent.type) {
-        case SyllableType.LIST:
+        case SyllableType.TUPLE:
           throw new Error("unmatched left parenthesis");
         case SyllableType.BLOCK:
           throw new Error("unmatched left brace");
@@ -224,7 +224,7 @@ export class Parser {
 
   private parseScript(token: Token) {
     switch (token.type) {
-      case TokenType.CLOSE_LIST:
+      case TokenType.CLOSE_TUPLE:
         throw new Error("unmatched right parenthesis");
 
       case TokenType.CLOSE_BLOCK:
@@ -239,13 +239,13 @@ export class Parser {
   }
 
   /*
-   * Lists
+   * Tuples
    */
 
-  private parseList(token: Token) {
+  private parseTuple(token: Token) {
     switch (token.type) {
-      case TokenType.CLOSE_LIST:
-        this.closeList();
+      case TokenType.CLOSE_TUPLE:
+        this.closeTuple();
         if (this.expectSource()) this.continueSubstitution();
         break;
 
@@ -253,14 +253,14 @@ export class Parser {
         this.parseWord(token);
     }
   }
-  private openList() {
-    const syllable = new ListSyllable();
+  private openTuple() {
+    const syllable = new TupleSyllable();
     this.context.syllables.push(syllable);
     this.pushContext(syllable, {
       script: syllable.subscript,
     });
   }
-  private closeList() {
+  private closeTuple() {
     this.popContext();
   }
 
@@ -360,9 +360,9 @@ export class Parser {
         }
         break;
 
-      case TokenType.OPEN_LIST:
+      case TokenType.OPEN_TUPLE:
         this.ensureWord();
-        this.openList();
+        this.openTuple();
         break;
 
       case TokenType.OPEN_BLOCK:
@@ -395,7 +395,7 @@ export class Parser {
         this.addLiteral(token.literal);
         break;
 
-      case TokenType.CLOSE_LIST:
+      case TokenType.CLOSE_TUPLE:
         throw new Error("mismatched right parenthesis");
 
       case TokenType.CLOSE_BLOCK:
@@ -452,7 +452,7 @@ export class Parser {
       switch (token.type) {
         case TokenType.TEXT:
         case TokenType.DOLLAR:
-        case TokenType.OPEN_LIST:
+        case TokenType.OPEN_TUPLE:
         case TokenType.OPEN_BLOCK:
         case TokenType.OPEN_COMMAND:
           break;
@@ -480,9 +480,9 @@ export class Parser {
         }
         break;
 
-      case TokenType.OPEN_LIST:
+      case TokenType.OPEN_TUPLE:
         if (this.withinSubstitution()) {
-          this.openList();
+          this.openTuple();
         } else {
           this.addLiteral(token.literal);
         }

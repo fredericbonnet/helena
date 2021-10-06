@@ -4,7 +4,7 @@ import {
   BlockSyllable,
   CommandSyllable,
   HereStringSyllable,
-  ListSyllable,
+  TupleSyllable,
   LiteralSyllable,
   Parser,
   Script,
@@ -21,8 +21,8 @@ const mapSyllable = (syllable: Syllable) => {
   if (syllable instanceof LiteralSyllable) {
     return { LITERAL: syllable.value };
   }
-  if (syllable instanceof ListSyllable) {
-    return { LIST: toTree(syllable.subscript) };
+  if (syllable instanceof TupleSyllable) {
+    return { TUPLE: toTree(syllable.subscript) };
   }
   if (syllable instanceof BlockSyllable) {
     return { BLOCK: toTree(syllable.subscript) };
@@ -136,32 +136,32 @@ describe("Parser", () => {
         ]);
       });
     });
-    describe("lists", () => {
-      specify("empty list", () => {
+    describe("tuples", () => {
+      specify("empty tuple", () => {
         const tokens = tokenizer.tokenize("()");
         const script = parser.parse(tokens);
-        expect(toTree(script)).to.eql([[[{ LIST: [] }]]]);
+        expect(toTree(script)).to.eql([[[{ TUPLE: [] }]]]);
       });
-      specify("list with one word", () => {
+      specify("tuple with one word", () => {
         const tokens = tokenizer.tokenize("(word)");
         const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([
-          [[{ LIST: [[[{ LITERAL: "word" }]]] }]],
+          [[{ TUPLE: [[[{ LITERAL: "word" }]]] }]],
         ]);
       });
-      specify("list with two levels", () => {
+      specify("tuple with two levels", () => {
         const tokens = tokenizer.tokenize("(word1 (subword1 subword2) word2)");
         const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([
           [
             [
               {
-                LIST: [
+                TUPLE: [
                   [
                     [{ LITERAL: "word1" }],
                     [
                       {
-                        LIST: [
+                        TUPLE: [
                           [
                             [{ LITERAL: "subword1" }],
                             [{ LITERAL: "subword2" }],
@@ -178,7 +178,7 @@ describe("Parser", () => {
         ]);
       });
       describe("exceptions", () => {
-        specify("unterminated list", () => {
+        specify("unterminated tuple", () => {
           const tokens = tokenizer.tokenize("(");
           expect(() => parser.parse(tokens)).to.throws(
             "unmatched left parenthesis"
@@ -460,7 +460,7 @@ describe("Parser", () => {
             [[{ STRING: [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a\u1234" }] }]],
           ]);
         });
-        specify("list", () => {
+        specify("tuple", () => {
           const tokens = tokenizer.tokenize('"$(a)"');
           const script = parser.parse(tokens);
           expect(toTree(script)).to.eql([
@@ -469,7 +469,7 @@ describe("Parser", () => {
                 {
                   STRING: [
                     { SUBSTITUTE_NEXT: 1 },
-                    { LIST: [[[{ LITERAL: "a" }]]] },
+                    { TUPLE: [[[{ LITERAL: "a" }]]] },
                   ],
                 },
               ],
@@ -702,11 +702,11 @@ describe("Parser", () => {
                       STRING: [
                         { SUBSTITUTE_NEXT: 1 },
                         { LITERAL: "name" },
-                        { LIST: [[[{ LITERAL: "key1" }]]] },
+                        { TUPLE: [[[{ LITERAL: "key1" }]]] },
                         { LITERAL: " " },
                         { SUBSTITUTE_NEXT: 1 },
                         { COMMAND: [[[{ LITERAL: "command" }]]] },
-                        { LIST: [[[{ LITERAL: "key2" }]]] },
+                        { TUPLE: [[[{ LITERAL: "key2" }]]] },
                       ],
                     },
                   ],
@@ -726,7 +726,7 @@ describe("Parser", () => {
                         { SUBSTITUTE_NEXT: 1 },
                         { LITERAL: "name" },
                         {
-                          LIST: [
+                          TUPLE: [
                             [[{ LITERAL: "key1" }], [{ LITERAL: "key2" }]],
                           ],
                         },
@@ -734,7 +734,7 @@ describe("Parser", () => {
                         { SUBSTITUTE_NEXT: 1 },
                         { COMMAND: [[[{ LITERAL: "command" }]]] },
                         {
-                          LIST: [
+                          TUPLE: [
                             [[{ LITERAL: "key3" }], [{ LITERAL: "key4" }]],
                           ],
                         },
@@ -756,24 +756,24 @@ describe("Parser", () => {
                       STRING: [
                         { SUBSTITUTE_NEXT: 1 },
                         { LITERAL: "name" },
-                        { LIST: [[[{ LITERAL: "key1" }]]] },
+                        { TUPLE: [[[{ LITERAL: "key1" }]]] },
                         {
-                          LIST: [
+                          TUPLE: [
                             [[{ LITERAL: "key2" }], [{ LITERAL: "key3" }]],
                           ],
                         },
-                        { LIST: [[[{ LITERAL: "key4" }]]] },
+                        { TUPLE: [[[{ LITERAL: "key4" }]]] },
                         { LITERAL: " " },
                         { SUBSTITUTE_NEXT: 1 },
                         { COMMAND: [[[{ LITERAL: "command" }]]] },
                         {
-                          LIST: [
+                          TUPLE: [
                             [[{ LITERAL: "key5" }], [{ LITERAL: "key6" }]],
                           ],
                         },
-                        { LIST: [[[{ LITERAL: "key7" }]]] },
+                        { TUPLE: [[[{ LITERAL: "key7" }]]] },
                         {
-                          LIST: [
+                          TUPLE: [
                             [[{ LITERAL: "key8" }], [{ LITERAL: "key9" }]],
                           ],
                         },
@@ -797,10 +797,10 @@ describe("Parser", () => {
                       { SUBSTITUTE_NEXT: 1 },
                       { LITERAL: "name" },
                       {
-                        LIST: [[[{ LITERAL: "key1" }], [{ LITERAL: "key2" }]]],
+                        TUPLE: [[[{ LITERAL: "key1" }], [{ LITERAL: "key2" }]]],
                       },
                       { BLOCK: [[[{ LITERAL: "selector1" }]]] },
-                      { LIST: [[[{ LITERAL: "key3" }]]] },
+                      { TUPLE: [[[{ LITERAL: "key3" }]]] },
                       {
                         BLOCK: [
                           [
@@ -821,10 +821,10 @@ describe("Parser", () => {
                         ],
                       },
                       {
-                        LIST: [[[{ LITERAL: "key4" }], [{ LITERAL: "key5" }]]],
+                        TUPLE: [[[{ LITERAL: "key4" }], [{ LITERAL: "key5" }]]],
                       },
                       { BLOCK: [[[{ LITERAL: "selector6" }]]] },
-                      { LIST: [[[{ LITERAL: "key6" }]]] },
+                      { TUPLE: [[[{ LITERAL: "key6" }]]] },
                     ],
                   },
                 ],
@@ -844,7 +844,7 @@ describe("Parser", () => {
                       { SUBSTITUTE_NEXT: 1 },
                       { LITERAL: "name1" },
                       {
-                        LIST: [
+                        TUPLE: [
                           [
                             [{ LITERAL: "key1" }],
                             [
@@ -855,7 +855,7 @@ describe("Parser", () => {
                             [
                               { SUBSTITUTE_NEXT: 1 },
                               { COMMAND: [[[{ LITERAL: "command1" }]]] },
-                              { LIST: [[[{ LITERAL: "key2" }]]] },
+                              { TUPLE: [[[{ LITERAL: "key2" }]]] },
                             ],
                           ],
                         ],
@@ -870,7 +870,7 @@ describe("Parser", () => {
                             [
                               { SUBSTITUTE_NEXT: 1 },
                               { LITERAL: "name3" },
-                              { LIST: [[[{ LITERAL: "key3" }]]] },
+                              { TUPLE: [[[{ LITERAL: "key3" }]]] },
                             ],
                           ],
                         ],
@@ -1182,11 +1182,11 @@ int main(void) {
           [[{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a\u1234" }]],
         ]);
       });
-      specify("list", () => {
+      specify("tuple", () => {
         const tokens = tokenizer.tokenize("$(a)");
         const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([
-          [[{ SUBSTITUTE_NEXT: 1 }, { LIST: [[[{ LITERAL: "a" }]]] }]],
+          [[{ SUBSTITUTE_NEXT: 1 }, { TUPLE: [[[{ LITERAL: "a" }]]] }]],
         ]);
       });
       specify("block", () => {
@@ -1353,12 +1353,12 @@ int main(void) {
                 [
                   { SUBSTITUTE_NEXT: 1 },
                   { LITERAL: "name" },
-                  { LIST: [[[{ LITERAL: "key1" }]]] },
+                  { TUPLE: [[[{ LITERAL: "key1" }]]] },
                 ],
                 [
                   { SUBSTITUTE_NEXT: 1 },
                   { COMMAND: [[[{ LITERAL: "command" }]]] },
-                  { LIST: [[[{ LITERAL: "key2" }]]] },
+                  { TUPLE: [[[{ LITERAL: "key2" }]]] },
                 ],
               ],
             ]);
@@ -1373,12 +1373,12 @@ int main(void) {
                 [
                   { SUBSTITUTE_NEXT: 1 },
                   { LITERAL: "name" },
-                  { LIST: [[[{ LITERAL: "key1" }], [{ LITERAL: "key2" }]]] },
+                  { TUPLE: [[[{ LITERAL: "key1" }], [{ LITERAL: "key2" }]]] },
                 ],
                 [
                   { SUBSTITUTE_NEXT: 1 },
                   { COMMAND: [[[{ LITERAL: "command" }]]] },
-                  { LIST: [[[{ LITERAL: "key3" }], [{ LITERAL: "key4" }]]] },
+                  { TUPLE: [[[{ LITERAL: "key3" }], [{ LITERAL: "key4" }]]] },
                 ],
               ],
             ]);
@@ -1393,16 +1393,16 @@ int main(void) {
                 [
                   { SUBSTITUTE_NEXT: 1 },
                   { LITERAL: "name" },
-                  { LIST: [[[{ LITERAL: "key1" }]]] },
-                  { LIST: [[[{ LITERAL: "key2" }], [{ LITERAL: "key3" }]]] },
-                  { LIST: [[[{ LITERAL: "key4" }]]] },
+                  { TUPLE: [[[{ LITERAL: "key1" }]]] },
+                  { TUPLE: [[[{ LITERAL: "key2" }], [{ LITERAL: "key3" }]]] },
+                  { TUPLE: [[[{ LITERAL: "key4" }]]] },
                 ],
                 [
                   { SUBSTITUTE_NEXT: 1 },
                   { COMMAND: [[[{ LITERAL: "command" }]]] },
-                  { LIST: [[[{ LITERAL: "key5" }], [{ LITERAL: "key6" }]]] },
-                  { LIST: [[[{ LITERAL: "key7" }]]] },
-                  { LIST: [[[{ LITERAL: "key8" }], [{ LITERAL: "key9" }]]] },
+                  { TUPLE: [[[{ LITERAL: "key5" }], [{ LITERAL: "key6" }]]] },
+                  { TUPLE: [[[{ LITERAL: "key7" }]]] },
+                  { TUPLE: [[[{ LITERAL: "key8" }], [{ LITERAL: "key9" }]]] },
                 ],
               ],
             ]);
@@ -1418,9 +1418,9 @@ int main(void) {
               [
                 { SUBSTITUTE_NEXT: 1 },
                 { LITERAL: "name" },
-                { LIST: [[[{ LITERAL: "key1" }], [{ LITERAL: "key2" }]]] },
+                { TUPLE: [[[{ LITERAL: "key1" }], [{ LITERAL: "key2" }]]] },
                 { BLOCK: [[[{ LITERAL: "selector1" }]]] },
-                { LIST: [[[{ LITERAL: "key3" }]]] },
+                { TUPLE: [[[{ LITERAL: "key3" }]]] },
                 {
                   BLOCK: [
                     [[{ LITERAL: "selector2" }], [{ LITERAL: "selector3" }]],
@@ -1435,9 +1435,9 @@ int main(void) {
                     [[{ LITERAL: "selector4" }], [{ LITERAL: "selector5" }]],
                   ],
                 },
-                { LIST: [[[{ LITERAL: "key4" }], [{ LITERAL: "key5" }]]] },
+                { TUPLE: [[[{ LITERAL: "key4" }], [{ LITERAL: "key5" }]]] },
                 { BLOCK: [[[{ LITERAL: "selector6" }]]] },
-                { LIST: [[[{ LITERAL: "key6" }]]] },
+                { TUPLE: [[[{ LITERAL: "key6" }]]] },
               ],
             ],
           ]);
@@ -1453,7 +1453,7 @@ int main(void) {
                 { SUBSTITUTE_NEXT: 1 },
                 { LITERAL: "name1" },
                 {
-                  LIST: [
+                  TUPLE: [
                     [
                       [{ LITERAL: "key1" }],
                       [
@@ -1464,7 +1464,7 @@ int main(void) {
                       [
                         { SUBSTITUTE_NEXT: 1 },
                         { COMMAND: [[[{ LITERAL: "command1" }]]] },
-                        { LIST: [[[{ LITERAL: "key2" }]]] },
+                        { TUPLE: [[[{ LITERAL: "key2" }]]] },
                       ],
                     ],
                   ],
@@ -1480,7 +1480,7 @@ int main(void) {
                       [
                         { SUBSTITUTE_NEXT: 1 },
                         { LITERAL: "name3" },
-                        { LIST: [[[{ LITERAL: "key3" }]]] },
+                        { TUPLE: [[[{ LITERAL: "key3" }]]] },
                       ],
                     ],
                   ],
@@ -1543,7 +1543,7 @@ int main(void) {
             const tokens = tokenizer.tokenize("name(key)");
             const script = parser.parse(tokens);
             expect(toTree(script)).to.eql([
-              [[{ LITERAL: "name" }, { LIST: [[[{ LITERAL: "key" }]]] }]],
+              [[{ LITERAL: "name" }, { TUPLE: [[[{ LITERAL: "key" }]]] }]],
             ]);
           });
           specify("multiple", () => {
@@ -1553,7 +1553,7 @@ int main(void) {
               [
                 [
                   { LITERAL: "name" },
-                  { LIST: [[[{ LITERAL: "key1" }], [{ LITERAL: "key2" }]]] },
+                  { TUPLE: [[[{ LITERAL: "key1" }], [{ LITERAL: "key2" }]]] },
                 ],
               ],
             ]);
@@ -1565,9 +1565,9 @@ int main(void) {
               [
                 [
                   { LITERAL: "name" },
-                  { LIST: [[[{ LITERAL: "key1" }]]] },
-                  { LIST: [[[{ LITERAL: "key2" }], [{ LITERAL: "key3" }]]] },
-                  { LIST: [[[{ LITERAL: "key4" }]]] },
+                  { TUPLE: [[[{ LITERAL: "key1" }]]] },
+                  { TUPLE: [[[{ LITERAL: "key2" }], [{ LITERAL: "key3" }]]] },
+                  { TUPLE: [[[{ LITERAL: "key4" }]]] },
                 ],
               ],
             ]);
@@ -1582,9 +1582,9 @@ int main(void) {
             [
               [
                 { LITERAL: "name" },
-                { LIST: [[[{ LITERAL: "key1" }], [{ LITERAL: "key2" }]]] },
+                { TUPLE: [[[{ LITERAL: "key1" }], [{ LITERAL: "key2" }]]] },
                 { BLOCK: [[[{ LITERAL: "selector1" }]]] },
-                { LIST: [[[{ LITERAL: "key3" }]]] },
+                { TUPLE: [[[{ LITERAL: "key3" }]]] },
                 {
                   BLOCK: [
                     [[{ LITERAL: "selector2" }], [{ LITERAL: "selector3" }]],
@@ -1602,7 +1602,7 @@ int main(void) {
               [
                 { LITERAL: "name1" },
                 {
-                  LIST: [
+                  TUPLE: [
                     [
                       [{ LITERAL: "key1" }],
                       [

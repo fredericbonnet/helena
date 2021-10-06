@@ -226,10 +226,12 @@ describe("Tokenizer", () => {
       expect(tokenizer.tokenize("\\#").map(toType)).to.eql([TokenType.ESCAPE]);
     });
 
-    specify("lists", () => {
-      expect(tokenizer.tokenize("(").map(toType)).to.eql([TokenType.OPEN_LIST]);
+    specify("tuples", () => {
+      expect(tokenizer.tokenize("(").map(toType)).to.eql([
+        TokenType.OPEN_TUPLE,
+      ]);
       expect(tokenizer.tokenize(")").map(toType)).to.eql([
-        TokenType.CLOSE_LIST,
+        TokenType.CLOSE_TUPLE,
       ]);
 
       expect(tokenizer.tokenize("\\(").map(toType)).to.eql([TokenType.ESCAPE]);
