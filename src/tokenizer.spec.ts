@@ -250,12 +250,12 @@ describe("Tokenizer", () => {
       expect(tokenizer.tokenize("\\}").map(toType)).to.eql([TokenType.ESCAPE]);
     });
 
-    specify("commands", () => {
+    specify("expressions", () => {
       expect(tokenizer.tokenize("[").map(toType)).to.eql([
-        TokenType.OPEN_COMMAND,
+        TokenType.OPEN_EXPRESSION,
       ]);
       expect(tokenizer.tokenize("]").map(toType)).to.eql([
-        TokenType.CLOSE_COMMAND,
+        TokenType.CLOSE_EXPRESSION,
       ]);
 
       expect(tokenizer.tokenize("\\[").map(toType)).to.eql([TokenType.ESCAPE]);

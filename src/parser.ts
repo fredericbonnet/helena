@@ -4,7 +4,7 @@ export enum SyllableType {
   LITERAL,
   TUPLE,
   BLOCK,
-  COMMAND,
+  EXPRESSION,
   STRING,
   HERE_STRING,
   TAGGED_STRING,
@@ -27,8 +27,8 @@ export class BlockSyllable {
   subscript: Script = new Script();
   parentContext?: Context;
 }
-export class CommandSyllable {
-  type: SyllableType = SyllableType.COMMAND;
+export class ExpressionSyllable {
+  type: SyllableType = SyllableType.EXPRESSION;
   subscript: Script = new Script();
   parentContext?: Context;
 }
@@ -88,7 +88,7 @@ export class SubstituteNextSyllable {
 type ContextualSyllable =
   | TupleSyllable
   | BlockSyllable
-  | CommandSyllable
+  | ExpressionSyllable
   | StringSyllable
   | HereStringSyllable
   | TaggedStringSyllable
@@ -151,8 +151,8 @@ export class Parser {
           this.parseBlock(token);
           break;
 
-        case SyllableType.COMMAND:
-          this.parseCommand(token);
+        case SyllableType.EXPRESSION:
+          this.parseExpression(token);
           break;
 
         case SyllableType.STRING:
@@ -186,7 +186,7 @@ export class Parser {
           throw new Error("unmatched left parenthesis");
         case SyllableType.BLOCK:
           throw new Error("unmatched left brace");
-        case SyllableType.COMMAND:
+        case SyllableType.EXPRESSION:
           throw new Error("unmatched left bracket");
         case SyllableType.STRING:
           throw new Error("unmatched string delimiter");
@@ -230,7 +230,7 @@ export class Parser {
       case TokenType.CLOSE_BLOCK:
         throw new Error("unmatched right brace");
 
-      case TokenType.CLOSE_COMMAND:
+      case TokenType.CLOSE_EXPRESSION:
         throw new Error("unmatched right bracket");
 
       default:
@@ -291,12 +291,12 @@ export class Parser {
   }
 
   /*
-   * Commands
+   * Expressions
    */
-  private parseCommand(token: Token) {
+  private parseExpression(token: Token) {
     switch (token.type) {
-      case TokenType.CLOSE_COMMAND:
-        this.closeCommand();
+      case TokenType.CLOSE_EXPRESSION:
+        this.closeExpression();
         this.continueSubstitution();
         break;
 
@@ -304,14 +304,14 @@ export class Parser {
         this.parseWord(token);
     }
   }
-  private openCommand() {
-    const syllable = new CommandSyllable();
+  private openExpression() {
+    const syllable = new ExpressionSyllable();
     this.context.syllables.push(syllable);
     this.pushContext(syllable, {
       script: syllable.subscript,
     });
   }
-  private closeCommand() {
+  private closeExpression() {
     this.popContext();
   }
 
@@ -370,9 +370,9 @@ export class Parser {
         this.openBlock();
         break;
 
-      case TokenType.OPEN_COMMAND:
+      case TokenType.OPEN_EXPRESSION:
         this.ensureWord();
-        this.openCommand();
+        this.openExpression();
         break;
 
       case TokenType.COMMENT:
@@ -401,7 +401,7 @@ export class Parser {
       case TokenType.CLOSE_BLOCK:
         throw new Error("mismatched right brace");
 
-      case TokenType.CLOSE_COMMAND:
+      case TokenType.CLOSE_EXPRESSION:
         throw new Error("mismatched right bracket");
 
       default:
@@ -454,7 +454,7 @@ export class Parser {
         case TokenType.DOLLAR:
         case TokenType.OPEN_TUPLE:
         case TokenType.OPEN_BLOCK:
-        case TokenType.OPEN_COMMAND:
+        case TokenType.OPEN_EXPRESSION:
           break;
 
         default:
@@ -496,8 +496,8 @@ export class Parser {
         }
         break;
 
-      case TokenType.OPEN_COMMAND:
-        this.openCommand();
+      case TokenType.OPEN_EXPRESSION:
+        this.openExpression();
         break;
 
       default:

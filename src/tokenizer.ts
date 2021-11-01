@@ -12,8 +12,8 @@ export enum TokenType {
   CLOSE_TUPLE,
   OPEN_BLOCK,
   CLOSE_BLOCK,
-  OPEN_COMMAND,
-  CLOSE_COMMAND,
+  OPEN_EXPRESSION,
+  CLOSE_EXPRESSION,
   STRING_DELIMITER,
   DOLLAR,
   SEMICOLON,
@@ -221,12 +221,12 @@ export class Tokenizer {
           this.addToken(TokenType.CLOSE_BLOCK, position);
           break;
 
-        // Command delimiters
+        // Expression delimiters
         case "[":
-          this.addToken(TokenType.OPEN_COMMAND, position);
+          this.addToken(TokenType.OPEN_EXPRESSION, position);
           break;
         case "]":
-          this.addToken(TokenType.CLOSE_COMMAND, position);
+          this.addToken(TokenType.CLOSE_EXPRESSION, position);
           break;
 
         // String delimiter
