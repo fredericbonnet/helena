@@ -1,5 +1,4 @@
 import { expect } from "chai";
-import { describe } from "mocha";
 import {
   BlockSyllable,
   ExpressionSyllable,
@@ -97,6 +96,16 @@ describe("Parser", () => {
     });
     specify("two sentences separated by semicolon", () => {
       const tokens = tokenizer.tokenize("sentence1;sentence2");
+      const script = parser.parse(tokens);
+      expect(toTree(script)).to.eql([
+        [[{ LITERAL: "sentence1" }]],
+        [[{ LITERAL: "sentence2" }]],
+      ]);
+    });
+    specify("blank sentences are ignored", () => {
+      const tokens = tokenizer.tokenize(
+        "\nsentence1;; \t  ;\n\n \t   \nsentence2\n"
+      );
       const script = parser.parse(tokens);
       expect(toTree(script)).to.eql([
         [[{ LITERAL: "sentence1" }]],
@@ -1346,7 +1355,9 @@ int main(void) {
         });
         describe("keyed selectors", () => {
           specify("single", () => {
-            const tokens = tokenizer.tokenize("$name(key1) $[expression](key2)");
+            const tokens = tokenizer.tokenize(
+              "$name(key1) $[expression](key2)"
+            );
             const script = parser.parse(tokens);
             expect(toTree(script)).to.eql([
               [
