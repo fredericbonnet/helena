@@ -1,6 +1,6 @@
 import { Value } from "./values";
 
 export interface Reference {
-  value(): Value;
+  getValue(): Value;
   selectKey(key: Value): Reference;
 }

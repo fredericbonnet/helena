@@ -47,7 +47,7 @@ export class Evaluator {
     if (word.syllables[0].type == SyllableType.SUBSTITUTE_NEXT) {
       const [value, last] = this.evaluateSubstitution(word.syllables, 0);
       if (last < word.syllables.length - 1) {
-        throw new Error("extra characters after variable selectors");
+        throw new Error("extra characters after selectors");
       }
 
       return value;
@@ -136,43 +136,75 @@ export class Evaluator {
   evaluateSubstitution(syllables: Syllable[], first: number): [Value, number] {
     if (!this.variableResolver) throw new Error("no variable resolver");
     const nesting = (syllables[first] as SubstituteNextSyllable).nesting;
-    switch (syllables[first + 1].type) {
+    const source = syllables[first + 1];
+    const [selectors, last] = this.getSelectors(syllables, first + 1);
+    switch (source.type) {
       case SyllableType.LITERAL: {
-        const varname = (syllables[first + 1] as LiteralSyllable).value;
-        const [selectors, last] = this.getSelectors(syllables, first + 1);
-        const value = this.evaluateVariable(varname, selectors, nesting);
+        const varname = (source as LiteralSyllable).value;
+        const value = this.substituteLiteral(
+          varname,
+          selectors,
+          nesting
+        );
         return [value, last];
       }
 
       case SyllableType.TUPLE: {
-        const varnames = this.evaluateTuple(
-          syllables[first + 1] as TupleSyllable
-        ).values;
-        const [selectors, last] = this.getSelectors(syllables, first + 1);
-        const values = this.evaluateVariables(varnames, selectors, nesting);
+        const sources = this.evaluateTuple(source as TupleSyllable).values;
+        const values = this.substituteTuple(
+          sources,
+          selectors,
+          nesting
+        );
         return [values, last];
       }
+
+      case SyllableType.EXPRESSION: {
+        const result = this.evaluateExpression(source as ExpressionSyllable);
+        if (nesting > 1) {
+          switch (result.type) {
+            case ValueType.LITERAL: {
+              const varname = (result as LiteralValue).value;
+              const value = this.substituteLiteral(varname, []/*TODO*/, nesting - 1);
+              return [value, last];
+            }
+
+            case ValueType.TUPLE: {
+              const sources = (result as TupleValue).values;
+              const values = this.substituteTuple(sources, []/*TODO*/, nesting - 1);
+              return [values, last];
+            }
+          }
+        } else {
+          return [result, last];
+        }
+      }
     }
+    throw new Error("TODO");
   }
-  evaluateVariable(varname: string, selectors, nesting) {
+  substituteLiteral(varname: string, selectors, nesting) {
     let variable = this.getVariableReference(varname);
     const reference = this.applySelectors(variable, selectors);
-    return this.resolveNestedReference(reference, nesting).value();
+    return this.resolveNestedReference(reference, nesting).getValue();
   }
-  evaluateVariables(varnames: Value[], selectors, nesting: number): TupleValue {
+  substituteTuple(
+    sources: Value[],
+    selectors,
+    nesting: number
+  ): TupleValue {
     return new TupleValue(
-      varnames.map((varname) => {
-        switch (varname.type) {
+      sources.map((source) => {
+        switch (source.type) {
           case ValueType.LITERAL:
-            return this.evaluateVariable(
-              (varname as LiteralValue).value,
+            return this.substituteLiteral(
+              (source as LiteralValue).value,
               selectors,
               nesting
             );
 
           case ValueType.TUPLE:
-            return this.evaluateVariables(
-              (varname as TupleValue).values,
+            return this.substituteTuple(
+              (source as TupleValue).values,
               selectors,
               nesting
             );
@@ -189,7 +221,7 @@ export class Evaluator {
   resolveNestedReference(reference: Reference, nesting: number): Reference {
     for (let level = 1; level < nesting; level++) {
       reference = this.getVariableReference(
-        (reference.value() as LiteralValue).value
+        (reference.getValue() as LiteralValue).value
       );
     }
     return reference;

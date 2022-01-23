@@ -5,7 +5,7 @@ import { LiteralValue, Value } from "./values";
 
 class MockReference implements Reference {
   selectedKeys: Value[] = [];
-  value(): Value {
+  getValue(): Value {
     throw new Error("Method not implemented.");
   }
   selectKey(key: Value): Reference {
