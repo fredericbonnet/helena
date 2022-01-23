@@ -1,18 +1,16 @@
 import { expect } from "chai";
+import { Evaluator, VariableResolver, CommandResolver } from "./evaluator";
+import { Parser } from "./parser";
+import { Reference } from "./reference";
+import { Tokenizer } from "./tokenizer";
 import {
-  Evaluator,
-  VariableResolver,
-  Reference,
-  CommandResolver,
-  Command,
   Value,
+  NilValue,
   LiteralValue,
   TupleValue,
   ScriptValue,
-  NilValue,
-} from "./evaluator";
-import { Parser } from "./parser";
-import { Tokenizer } from "./tokenizer";
+} from "./values";
+import { Command } from "./command";
 
 const mapValue = (value: Value) => {
   if (value instanceof NilValue) {

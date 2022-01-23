@@ -1,63 +1,29 @@
 import {
+  BlockSyllable,
   ExpressionSyllable,
-  Script,
+  LiteralSyllable,
   Sentence,
+  StringSyllable,
+  SubstituteNextSyllable,
+  Syllable,
   SyllableType,
+  TupleSyllable,
   Word,
 } from "./parser";
+import { Reference } from "./reference";
+import { KeyedSelector, Selector } from "./selectors";
 import {
-  BlockSyllable,
-  TupleSyllable,
-  LiteralSyllable,
-  StringSyllable,
-  Syllable,
-  SubstituteNextSyllable,
-} from "./parser";
-
-export enum ValueType {
+  LiteralValue,
   NIL,
-  LITERAL,
-  TUPLE,
-  SCRIPT,
-}
+  ScriptValue,
+  TupleValue,
+  Value,
+  ValueType,
+} from "./values";
+import { Command } from "./command";
 
-export class NilValue {
-  type: ValueType.NIL;
-}
-export const NIL = new NilValue();
-export class LiteralValue {
-  type: ValueType = ValueType.LITERAL;
-  value: string;
-  constructor(value: string) {
-    this.value = value;
-  }
-}
-export class TupleValue {
-  type: ValueType = ValueType.TUPLE;
-  values: Value[];
-  constructor(values: Value[]) {
-    this.values = [...values];
-  }
-}
-export class ScriptValue {
-  type: ValueType = ValueType.SCRIPT;
-  script: Script;
-  constructor(script: Script) {
-    this.script = script;
-  }
-}
-export type Value = NilValue | LiteralValue | TupleValue | ScriptValue;
-
-export interface Reference {
-  value(): Value;
-  selectKey(key: Value): Reference;
-}
 export interface VariableResolver {
   resolve(name: string): Reference;
-}
-
-export interface Command {
-  evaluate(args: Value[]): Value;
 }
 export interface CommandResolver {
   resolve(name: string): Command;
@@ -99,6 +65,8 @@ export class Evaluator {
         return this.evaluateExpression(syllable as ExpressionSyllable);
       case SyllableType.STRING:
         return this.evaluateString(syllable as StringSyllable);
+      default:
+        throw new Error("TODO");
     }
   }
 
@@ -232,24 +200,6 @@ export class Evaluator {
   applySelectors(reference: Reference, selectors: Selector[]): Reference {
     for (let selector of selectors) {
       reference = selector.apply(reference);
-    }
-    return reference;
-  }
-}
-
-interface Selector {
-  apply(reference: Reference): Reference;
-}
-
-class KeyedSelector implements Selector {
-  keys: Value[];
-  constructor(keys: Value[]) {
-    if (keys.length == 0) throw new Error("empty selector");
-    this.keys = keys;
-  }
-  apply(reference: Reference): Reference {
-    for (let key of this.keys) {
-      reference = reference.selectKey(key);
     }
     return reference;
   }
