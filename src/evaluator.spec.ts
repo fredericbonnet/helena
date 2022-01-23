@@ -386,6 +386,24 @@ describe("Evaluator", () => {
         expect(mapValue(value)).to.eql("this is a string with substitutions");
       });
     });
+
+    describe("here strings", () => {
+      it("evaluate to their content", () => {
+        const script = parse('"""this is a "\'\\ $ \nhere string"""');
+        const syllable = script.sentences[0].words[0].syllables[0];
+        const value = evaluator.evaluateSyllable(syllable);
+        expect(mapValue(value)).to.eql("this is a \"'\\ $ \nhere string");
+      });
+    });
+
+    describe("tagged strings", () => {
+      it("evaluate to their content", () => {
+        const script = parse('""SOME_TAG\nthis is \n a \n "\'\\ $ tagged string\nSOME_TAG""');
+        const syllable = script.sentences[0].words[0].syllables[0];
+        const value = evaluator.evaluateSyllable(syllable);
+        expect(mapValue(value)).to.eql("this is \n a \n \"'\\ $ tagged string\n");
+      });
+    });
   });
 
   describe("words", () => {

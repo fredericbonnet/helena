@@ -1,12 +1,14 @@
 import {
   BlockSyllable,
   ExpressionSyllable,
+  HereStringSyllable,
   LiteralSyllable,
   Sentence,
   StringSyllable,
   SubstituteNextSyllable,
   Syllable,
   SyllableType,
+  TaggedStringSyllable,
   TupleSyllable,
   Word,
 } from "./parser";
@@ -65,6 +67,13 @@ export class Evaluator {
         return this.evaluateExpression(syllable as ExpressionSyllable);
       case SyllableType.STRING:
         return this.evaluateString(syllable as StringSyllable);
+      case SyllableType.HERE_STRING:
+        return this.evaluateHereString(syllable as HereStringSyllable);
+      case SyllableType.TAGGED_STRING:
+        return this.evaluateTaggedString(syllable as TaggedStringSyllable);
+      case SyllableType.LINE_COMMENT:
+      case SyllableType.BLOCK_COMMENT:
+      case SyllableType.SUBSTITUTE_NEXT:
       default:
         throw new Error("TODO");
     }
@@ -116,6 +125,12 @@ export class Evaluator {
     return new LiteralValue(
       values.map((value) => (value as LiteralSyllable).value).join("")
     );
+  }
+  evaluateHereString(hereString: HereStringSyllable): LiteralValue {
+    return new LiteralValue(hereString.value);
+  }
+  evaluateTaggedString(taggedString: TaggedStringSyllable): LiteralValue {
+    return new LiteralValue(taggedString.value);
   }
 
   evaluateSubstitution(syllables: Syllable[], first: number): [Value, number] {
