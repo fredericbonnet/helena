@@ -46,6 +46,24 @@ class StringReference implements Reference {
   getValue(): Value {
     return this.literal;
   }
+  selectIndex(index: Value): Reference {
+    throw new Error("TODO");
+  }
+  selectKey(key: Value): Reference {
+    throw new Error("TODO");
+  }
+}
+class ListReference implements Reference {
+  list: Reference[];
+  constructor(value: Reference[]) {
+    this.list = [...value];
+  }
+  getValue(): Value {
+    throw new Error("TODO");
+  }
+  selectIndex(index: Value): Reference {
+    return this.list[parseInt((index as LiteralValue).value)];
+  }
   selectKey(key: Value): Reference {
     throw new Error("TODO");
   }
@@ -58,13 +76,23 @@ class MapReference implements Reference {
   getValue(): Value {
     throw new Error("TODO");
   }
+  selectIndex(index: Value): Reference {
+    throw new Error("TODO");
+  }
   selectKey(key: Value): Reference {
     return this.map.get((key as LiteralValue).value);
   }
 }
 
+class IntCommand implements Command {
+  evaluate(args: Value[]): Value {
+    return args[0];
+  }
+}
+const INT_CMD = new IntCommand();
 class MockCommandResolver implements CommandResolver {
   resolve(name: string): Command {
+    if (!isNaN(parseInt(name))) return INT_CMD;
     return this.commands.get(name);
   }
 
@@ -309,6 +337,64 @@ describe("Evaluator", () => {
             const syllable = script.sentences[0].words[0].syllables[0];
             const value = evaluator.evaluateSyllable(syllable);
             expect(mapValue(value)).to.eql("value");
+          });
+        });
+
+        describe("indexed selectors", () => {
+          specify("simple substitution", () => {
+            variableResolver.register(
+              "var",
+              new ListReference([
+                new StringReference("value1"),
+                new StringReference("value2"),
+              ])
+            );
+            const script = parse('"$var[1]"');
+            const syllable = script.sentences[0].words[0].syllables[0];
+            const value = evaluator.evaluateSyllable(syllable);
+            expect(mapValue(value)).to.eql("value2");
+          });
+          specify("double substitution", () => {
+            variableResolver.register(
+              "var1",
+              new ListReference([new StringReference("var2")])
+            );
+            variableResolver.register("var2", new StringReference("value"));
+            const script = parse('"$$var1[0]"');
+            const syllable = script.sentences[0].words[0].syllables[0];
+            const value = evaluator.evaluateSyllable(syllable);
+            expect(mapValue(value)).to.eql("value");
+          });
+          specify("successive indexes", () => {
+            variableResolver.register(
+              "var",
+              new ListReference([
+                new StringReference("value1"),
+                new ListReference([
+                  new StringReference("value2_1"),
+                  new StringReference("value2_2"),
+                ]),
+              ])
+            );
+            const script = parse('"$var[1][0]"');
+            const syllable = script.sentences[0].words[0].syllables[0];
+            const value = evaluator.evaluateSyllable(syllable);
+            expect(mapValue(value)).to.eql("value2_1");
+          });
+          specify("indirect index", () => {
+            variableResolver.register(
+              "var1",
+              new ListReference([
+                new StringReference("value1"),
+                new StringReference("value2"),
+                new StringReference("value3"),
+              ])
+            );
+            variableResolver.register("var2", new StringReference("1"));
+            const script = parse('"$var1[$var2]"');
+            const syllable = script.sentences[0].words[0].syllables[0];
+            const value = evaluator.evaluateSyllable(syllable);
+            expect(mapValue(value)).to.eql("value2");
           });
         });
 
@@ -589,6 +675,64 @@ describe("Evaluator", () => {
           const word = script.sentences[0].words[0];
           const value = evaluator.evaluateWord(word);
           expect(mapValue(value)).to.eql(["value1", "value2"]);
+        });
+      });
+
+      describe("indexed selectors", () => {
+        specify("simple substitution", () => {
+          variableResolver.register(
+            "var",
+            new ListReference([
+              new StringReference("value1"),
+              new StringReference("value2"),
+            ])
+          );
+          const script = parse("$var[1]");
+          const word = script.sentences[0].words[0];
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql("value2");
+        });
+        specify("double substitution", () => {
+          variableResolver.register(
+            "var1",
+            new ListReference([new StringReference("var2")])
+          );
+          variableResolver.register("var2", new StringReference("value"));
+          const script = parse("$$var1[0]");
+          const word = script.sentences[0].words[0];
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql("value");
+        });
+        specify("successive indexes", () => {
+          variableResolver.register(
+            "var",
+            new ListReference([
+              new StringReference("value1"),
+              new ListReference([
+                new StringReference("value2_1"),
+                new StringReference("value2_2"),
+              ]),
+            ])
+          );
+          const script = parse("$var[1][0]");
+          const word = script.sentences[0].words[0];
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql("value2_1");
+        });
+        specify("indirect index", () => {
+          variableResolver.register(
+            "var1",
+            new ListReference([
+              new StringReference("value1"),
+              new StringReference("value2"),
+              new StringReference("value3"),
+            ])
+          );
+          variableResolver.register("var2", new StringReference("1"));
+          const script = parse("$var1[$var2]");
+          const word = script.sentences[0].words[0];
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql("value2");
         });
       });
 

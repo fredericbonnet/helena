@@ -13,7 +13,7 @@ import {
   Word,
 } from "./parser";
 import { Reference } from "./reference";
-import { KeyedSelector, Selector } from "./selectors";
+import { IndexedSelector, KeyedSelector, Selector } from "./selectors";
 import {
   LiteralValue,
   NIL,
@@ -106,7 +106,7 @@ export class Evaluator {
     const args = sentence.words.map((word) => this.evaluateWord(word));
     const cmdname = (args[0] as LiteralValue).value;
     const command = this.commandResolver.resolve(cmdname);
-    if (!command) throw new Error(`cannot resolve command ${command}`);
+    if (!command) throw new Error(`cannot resolve command ${cmdname}`);
     return command.evaluate(args);
   }
 
@@ -141,21 +141,13 @@ export class Evaluator {
     switch (source.type) {
       case SyllableType.LITERAL: {
         const varname = (source as LiteralSyllable).value;
-        const value = this.substituteLiteral(
-          varname,
-          selectors,
-          nesting
-        );
+        const value = this.substituteLiteral(varname, selectors, nesting);
         return [value, last];
       }
 
       case SyllableType.TUPLE: {
         const sources = this.evaluateTuple(source as TupleSyllable).values;
-        const values = this.substituteTuple(
-          sources,
-          selectors,
-          nesting
-        );
+        const values = this.substituteTuple(sources, selectors, nesting);
         return [values, last];
       }
 
@@ -165,13 +157,21 @@ export class Evaluator {
           switch (result.type) {
             case ValueType.LITERAL: {
               const varname = (result as LiteralValue).value;
-              const value = this.substituteLiteral(varname, []/*TODO*/, nesting - 1);
+              const value = this.substituteLiteral(
+                varname,
+                [] /*TODO*/,
+                nesting - 1
+              );
               return [value, last];
             }
 
             case ValueType.TUPLE: {
               const sources = (result as TupleValue).values;
-              const values = this.substituteTuple(sources, []/*TODO*/, nesting - 1);
+              const values = this.substituteTuple(
+                sources,
+                [] /*TODO*/,
+                nesting - 1
+              );
               return [values, last];
             }
           }
@@ -187,11 +187,7 @@ export class Evaluator {
     const reference = this.applySelectors(variable, selectors);
     return this.resolveNestedReference(reference, nesting).getValue();
   }
-  substituteTuple(
-    sources: Value[],
-    selectors,
-    nesting: number
-  ): TupleValue {
+  substituteTuple(sources: Value[], selectors, nesting: number): TupleValue {
     return new TupleValue(
       sources.map((source) => {
         switch (source.type) {
@@ -238,9 +234,16 @@ export class Evaluator {
     return [selectors, last];
   }
   getSelector(syllable: Syllable): Selector {
-    if (syllable.type == SyllableType.TUPLE) {
-      const keys = this.evaluateTuple(syllable as TupleSyllable).values;
-      return new KeyedSelector(keys);
+    switch (syllable.type) {
+      case SyllableType.TUPLE: {
+        const keys = this.evaluateTuple(syllable as TupleSyllable).values;
+        return new KeyedSelector(keys);
+      }
+
+      case SyllableType.EXPRESSION: {
+        const index = this.evaluateExpression(syllable as ExpressionSyllable);
+        return new IndexedSelector(index);
+      }
     }
     return null;
   }
