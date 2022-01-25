@@ -734,6 +734,9 @@ describe("Evaluator", () => {
           const value = evaluator.evaluateWord(word);
           expect(mapValue(value)).to.eql("value2");
         });
+        specify.skip("expression", () => {
+          const script = parse("$[cmd][index]");
+        });
       });
 
       describe("keyed selectors", () => {

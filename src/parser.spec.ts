@@ -46,8 +46,7 @@ const mapSyllable = (syllable: Syllable) => {
   }
   if (syllable instanceof SubstituteNextSyllable) {
     return {
-      [syllable.expansion ? "EXPAND_NEXT" : "SUBSTITUTE_NEXT"]:
-        syllable.nesting,
+      [syllable.expansion ? "EXPAND_NEXT" : "SUBSTITUTE_NEXT"]: syllable.levels,
     };
   }
   throw new Error("TODO");

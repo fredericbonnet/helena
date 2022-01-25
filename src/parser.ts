@@ -81,7 +81,7 @@ export class BlockCommentSyllable {
 export class SubstituteNextSyllable {
   type: SyllableType = SyllableType.SUBSTITUTE_NEXT;
   expansion: boolean = false;
-  nesting: number = 1;
+  levels: number = 1;
   value: string = "";
 }
 
@@ -698,7 +698,7 @@ export class Parser {
     if (this.context.currentSyllable()?.type == SyllableType.SUBSTITUTE_NEXT) {
       const syllable = this.context.currentSyllable() as SubstituteNextSyllable;
       syllable.value += value;
-      syllable.nesting++;
+      syllable.levels++;
       if (this.stream.current()?.type == TokenType.ASTERISK) {
         // Ignore expansion on inner substitutions
         syllable.value += this.stream.next().literal;
