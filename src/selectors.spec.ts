@@ -1,19 +1,16 @@
 import { expect } from "chai";
-import { Reference } from "./reference";
 import { IndexedSelector, KeyedSelector } from "./selectors";
-import { LiteralValue, NIL, TupleValue, Value } from "./values";
+import { StringValue, NIL, Value, ValueType } from "./values";
 
-class MockReference implements Reference {
+class MockValue implements Value {
+  type = ValueType.CUSTOM;
   selectedIndex: Value;
   selectedKeys: Value[] = [];
-  getValue(): Value {
-    throw new Error("Method not implemented.");
-  }
-  selectIndex(index: Value): Reference {
+  selectIndex(index: Value): Value {
     this.selectedIndex = index;
     return this;
   }
-  selectKey(key: Value): Reference {
+  selectKey(key: Value): Value {
     this.selectedKeys.push(key);
     return this;
   }
@@ -21,11 +18,11 @@ class MockReference implements Reference {
 
 describe("IndexedSelector", () => {
   specify("literal index", () => {
-    const index = new LiteralValue("index");
+    const index = new StringValue("index");
     const selector = new IndexedSelector(index);
-    const reference = new MockReference();
-    expect(selector.apply(reference)).to.eql(reference);
-    expect(reference.selectedIndex).to.eql(index);
+    const value = new MockValue();
+    expect(selector.apply(value)).to.eql(value);
+    expect(value.selectedIndex).to.eql(index);
   });
   describe("exceptions", () => {
     specify("invalid index", () => {
@@ -36,18 +33,18 @@ describe("IndexedSelector", () => {
 
 describe("KeyedSelector", () => {
   specify("one key", () => {
-    const keys = [new LiteralValue("key")];
+    const keys = [new StringValue("key")];
     const selector = new KeyedSelector(keys);
-    const reference = new MockReference();
-    expect(selector.apply(reference)).to.eql(reference);
-    expect(reference.selectedKeys).to.eql(keys);
+    const value = new MockValue();
+    expect(selector.apply(value)).to.eql(value);
+    expect(value.selectedKeys).to.eql(keys);
   });
   specify("multiple keys", () => {
-    const keys = [new LiteralValue("key1"), new LiteralValue("key2")];
+    const keys = [new StringValue("key1"), new StringValue("key2")];
     const selector = new KeyedSelector(keys);
-    const reference = new MockReference();
-    expect(selector.apply(reference)).to.eql(reference);
-    expect(reference.selectedKeys).to.eql(keys);
+    const value = new MockValue();
+    expect(selector.apply(value)).to.eql(value);
+    expect(value.selectedKeys).to.eql(keys);
   });
   describe("exceptions", () => {
     specify("empty key list", () => {

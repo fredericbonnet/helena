@@ -1,18 +1,17 @@
-import { Reference } from "./reference";
 import { Value, ValueType } from "./values";
 
 export interface Selector {
-  apply(reference: Reference): Reference;
+  apply(value: Value): Value;
 }
 
 export class IndexedSelector implements Selector {
   index: Value;
   constructor(index: Value) {
-    if (index.type != ValueType.LITERAL) throw new Error("invalid index");
+    if (index.type != ValueType.STRING) throw new Error("invalid index");
     this.index = index;
   }
-  apply(reference: Reference): Reference {
-    return reference.selectIndex(this.index);
+  apply(value: Value): Value {
+    return value.selectIndex(this.index);
   }
 }
 
@@ -22,10 +21,10 @@ export class KeyedSelector implements Selector {
     if (keys.length == 0) throw new Error("empty selector");
     this.keys = keys;
   }
-  apply(reference: Reference): Reference {
+  apply(value: Value): Value {
     for (let key of this.keys) {
-      reference = reference.selectKey(key);
+      value = value.selectKey(key);
     }
-    return reference;
+    return value;
   }
 }

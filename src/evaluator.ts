@@ -12,10 +12,9 @@ import {
   TupleSyllable,
   Word,
 } from "./parser";
-import { Reference } from "./reference";
 import { IndexedSelector, KeyedSelector, Selector } from "./selectors";
 import {
-  LiteralValue,
+  StringValue,
   NIL,
   ScriptValue,
   TupleValue,
@@ -25,7 +24,7 @@ import {
 import { Command } from "./command";
 
 export interface VariableResolver {
-  resolve(name: string): Reference;
+  resolve(name: string): Value;
 }
 export interface CommandResolver {
   resolve(name: string): Command;
@@ -79,8 +78,8 @@ export class Evaluator {
     }
   }
 
-  evaluateLiteral(literal: LiteralSyllable): LiteralValue {
-    return new LiteralValue(literal.value);
+  evaluateLiteral(literal: LiteralSyllable): StringValue {
+    return new StringValue(literal.value);
   }
   evaluateTuple(tuple: TupleSyllable): TupleValue {
     const value: Value[] = [];
@@ -104,13 +103,13 @@ export class Evaluator {
   evaluateSentence(sentence: Sentence): Value {
     if (sentence.words.length == 0) return NIL;
     const args = sentence.words.map((word) => this.evaluateWord(word));
-    const cmdname = (args[0] as LiteralValue).value;
+    const cmdname = (args[0] as StringValue).value;
     const command = this.commandResolver.resolve(cmdname);
     if (!command) throw new Error(`cannot resolve command ${cmdname}`);
     return command.evaluate(args);
   }
 
-  evaluateString(string: StringSyllable): LiteralValue {
+  evaluateString(string: StringSyllable): StringValue {
     const values: Value[] = [];
     for (let i = 0; i < string.syllables.length; i++) {
       const syllable = string.syllables[i];
@@ -122,15 +121,15 @@ export class Evaluator {
         values.push(this.evaluateSyllable(syllable));
       }
     }
-    return new LiteralValue(
-      values.map((value) => (value as LiteralValue).value).join("")
+    return new StringValue(
+      values.map((value) => (value as StringValue).value).join("")
     );
   }
-  evaluateHereString(hereString: HereStringSyllable): LiteralValue {
-    return new LiteralValue(hereString.value);
+  evaluateHereString(hereString: HereStringSyllable): StringValue {
+    return new StringValue(hereString.value);
   }
-  evaluateTaggedString(taggedString: TaggedStringSyllable): LiteralValue {
-    return new LiteralValue(taggedString.value);
+  evaluateTaggedString(taggedString: TaggedStringSyllable): StringValue {
+    return new StringValue(taggedString.value);
   }
 
   evaluateSubstitution(syllables: Syllable[], first: number): [Value, number] {
@@ -155,8 +154,8 @@ export class Evaluator {
         const result = this.evaluateExpression(source as ExpressionSyllable);
         if (levels > 1) {
           switch (result.type) {
-            case ValueType.LITERAL: {
-              const varname = (result as LiteralValue).value;
+            case ValueType.STRING: {
+              const varname = (result as StringValue).value;
               const value = this.substituteLiteral(
                 varname,
                 [] /*TODO*/,
@@ -183,9 +182,9 @@ export class Evaluator {
     throw new Error("TODO");
   }
   substituteLiteral(varname: string, selectors: Selector[], levels: number) {
-    let variable = this.getVariableReference(varname);
-    const reference = this.applySelectors(variable, selectors);
-    return this.resolveReferenceLevels(reference, levels).getValue();
+    const variable = this.resolveVariable(varname);
+    const value = this.applySelectors(variable, selectors);
+    return this.resolveLevels(value, levels);
   }
   substituteTuple(
     sources: TupleValue,
@@ -194,9 +193,9 @@ export class Evaluator {
   ): TupleValue {
     return this.mapTuple(sources, (source) => {
       switch (source.type) {
-        case ValueType.LITERAL:
+        case ValueType.STRING:
           return this.substituteLiteral(
-            (source as LiteralValue).value,
+            (source as StringValue).value,
             selectors,
             levels
           );
@@ -216,18 +215,16 @@ export class Evaluator {
     );
   }
 
-  getVariableReference(varname: string): Reference {
-    let reference = this.variableResolver.resolve(varname);
-    if (!reference) throw new Error(`cannot resolve variable ${varname}`);
-    return reference;
+  resolveVariable(varname: string): Value {
+    let value = this.variableResolver.resolve(varname);
+    if (!value) throw new Error(`cannot resolve variable ${varname}`);
+    return value;
   }
-  resolveReferenceLevels(reference: Reference, levels: number): Reference {
+  resolveLevels(value: Value, levels: number): Value {
     for (let level = 1; level < levels; level++) {
-      reference = this.getVariableReference(
-        (reference.getValue() as LiteralValue).value
-      );
+      value = this.resolveVariable((value as StringValue).value);
     }
-    return reference;
+    return value;
   }
 
   getSelectors(syllables: Syllable[], first: number): [Selector[], number] {
@@ -254,10 +251,10 @@ export class Evaluator {
     }
     return null;
   }
-  applySelectors(reference: Reference, selectors: Selector[]): Reference {
+  applySelectors(value: Value, selectors: Selector[]): Value {
     for (let selector of selectors) {
-      reference = selector.apply(reference);
+      value = selector.apply(value);
     }
-    return reference;
+    return value;
   }
 }

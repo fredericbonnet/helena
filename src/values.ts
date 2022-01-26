@@ -2,34 +2,64 @@ import { Script } from "./parser";
 
 export enum ValueType {
   NIL,
-  LITERAL,
+  STRING,
   TUPLE,
   SCRIPT,
+  CUSTOM,
 }
 
-export class NilValue {
-  type: ValueType.NIL;
+export interface Value {
+  type: ValueType;
+  selectIndex(index: Value): Value;
+  selectKey(key: Value): Value;
+}
+
+export class NilValue implements Value {
+  selectIndex(index: Value): Value {
+    throw new Error("Method not implemented.");
+  }
+  selectKey(key: Value): Value {
+    throw new Error("Method not implemented.");
+  }
+  type = ValueType.NIL;
 }
 export const NIL = new NilValue();
-export class LiteralValue {
-  type: ValueType = ValueType.LITERAL;
+export class StringValue implements Value {
+  type = ValueType.STRING;
   value: string;
   constructor(value: string) {
     this.value = value;
   }
+  selectIndex(index: Value): Value {
+    throw new Error("Method not implemented.");
+  }
+  selectKey(key: Value): Value {
+    throw new Error("Method not implemented.");
+  }
 }
-export class TupleValue {
-  type: ValueType = ValueType.TUPLE;
+export class TupleValue implements Value {
+  type = ValueType.TUPLE;
   values: Value[];
   constructor(values: Value[]) {
     this.values = [...values];
   }
+  selectIndex(index: Value): Value {
+    throw new Error("Method not implemented.");
+  }
+  selectKey(key: Value): Value {
+    throw new Error("Method not implemented.");
+  }
 }
-export class ScriptValue {
-  type: ValueType = ValueType.SCRIPT;
+export class ScriptValue implements Value {
+  type = ValueType.SCRIPT;
   script: Script;
   constructor(script: Script) {
     this.script = script;
   }
+  selectIndex(index: Value): Value {
+    throw new Error("Method not implemented.");
+  }
+  selectKey(key: Value): Value {
+    throw new Error("Method not implemented.");
+  }
 }
-export type Value = NilValue | LiteralValue | TupleValue | ScriptValue;
