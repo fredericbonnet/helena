@@ -138,59 +138,55 @@ export class Evaluator {
     switch (source.type) {
       case SyllableType.LITERAL: {
         const varname = (source as LiteralSyllable).value;
-        const value = this.substituteLiteral(varname, selectors, levels);
+        const variable = this.resolveVariable(varname);
+        const value = this.substituteValue(variable, selectors, levels);
         return [value, last];
       }
 
       case SyllableType.TUPLE: {
-        const sources = this.evaluateTuple(source as TupleSyllable);
-        const values = this.substituteTuple(sources, selectors, levels);
+        const tuple = this.evaluateTuple(source as TupleSyllable);
+        const variables = this.resolveVariables(tuple);
+        const values = this.substituteTuple(variables, selectors, levels);
         return [values, last];
       }
 
       case SyllableType.EXPRESSION: {
         const result = this.evaluateExpression(source as ExpressionSyllable);
-        if (levels > 1) {
-          switch (result.type) {
-            case ValueType.STRING: {
-              const varname = result.asString();
-              const value = this.substituteLiteral(
-                varname,
-                [] /*TODO*/,
-                levels - 1
-              );
-              return [value, last];
-            }
-
-            case ValueType.TUPLE: {
-              const sources = result as TupleValue;
-              const values = this.substituteTuple(
-                sources,
-                [] /*TODO*/,
-                levels - 1
-              );
-              return [values, last];
-            }
+        switch (result.type) {
+          case ValueType.TUPLE: {
+            const tuple = result as TupleValue;
+            const values = this.substituteTuple(
+              levels > 1 ? this.resolveVariables(tuple) : tuple,
+              selectors,
+              levels - 1
+            );
+            return [values, last];
           }
-        } else {
-          return [result, last];
+
+          default: {
+            const value = this.substituteValue(
+              levels > 1 ? this.resolveVariable(result.asString()) : result,
+              selectors,
+              levels - 1
+            );
+            return [value, last];
+          }
         }
       }
     }
     throw new Error("TODO");
   }
-  substituteLiteral(varname: string, selectors: Selector[], levels: number) {
-    const variable = this.resolveVariable(varname);
-    const value = this.applySelectors(variable, selectors);
+  substituteValue(value: Value, selectors: Selector[], levels: number) {
+    value = this.applySelectors(value, selectors);
     return this.resolveLevels(value, levels);
   }
   substituteTuple(
-    tuple: TupleValue,
+    variables: TupleValue,
     selectors: Selector[],
     levels: number
   ): TupleValue {
-    return this.mapTuple(tuple, (value) =>
-      this.substituteLiteral(value.asString(), selectors, levels)
+    return this.mapTuple(variables, (variable) =>
+      this.substituteValue(variable, selectors, levels)
     );
   }
   mapTuple(tuple: TupleValue, mapFn: (value: Value) => Value) {
@@ -211,6 +207,12 @@ export class Evaluator {
     if (!value) throw new Error(`cannot resolve variable ${varname}`);
     return value;
   }
+  resolveVariables(tuple: TupleValue): TupleValue {
+    return this.mapTuple(tuple, (varname) =>
+      this.resolveVariable(varname.asString())
+    );
+  }
+
   resolveLevels(value: Value, levels: number): Value {
     for (let level = 1; level < levels; level++) {
       value = this.resolveVariable(value.asString());

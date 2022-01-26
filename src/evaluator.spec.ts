@@ -381,6 +381,18 @@ describe("Evaluator", () => {
             const value = evaluator.evaluateSyllable(syllable);
             expect(mapValue(value)).to.eql("value2");
           });
+          specify("expression", () => {
+            commandResolver.register(
+              "cmd",
+              new FunctionCommand(
+                () => new ListValue([new StringValue("value")])
+              )
+            );
+            const script = parse('"$[cmd][0]"');
+            const syllable = script.sentences[0].words[0].syllables[0];
+            const value = evaluator.evaluateSyllable(syllable);
+            expect(mapValue(value)).to.eql("value");
+          });
         });
 
         describe("keyed selectors", () => {
@@ -450,6 +462,18 @@ describe("Evaluator", () => {
               })
             );
             const script = parse('"$var("arbitrary key")"');
+            const syllable = script.sentences[0].words[0].syllables[0];
+            const value = evaluator.evaluateSyllable(syllable);
+            expect(mapValue(value)).to.eql("value");
+          });
+          specify("expression", () => {
+            commandResolver.register(
+              "cmd",
+              new FunctionCommand(
+                () => new MapValue({ key: new StringValue("value") })
+              )
+            );
+            const script = parse('"$[cmd](key)"');
             const syllable = script.sentences[0].words[0].syllables[0];
             const value = evaluator.evaluateSyllable(syllable);
             expect(mapValue(value)).to.eql("value");
@@ -719,8 +743,31 @@ describe("Evaluator", () => {
           const value = evaluator.evaluateWord(word);
           expect(mapValue(value)).to.eql("value2");
         });
-        specify.skip("expression", () => {
-          const script = parse("$[cmd][index]");
+        specify("scalar expression", () => {
+          commandResolver.register(
+            "cmd",
+            new FunctionCommand(() => new ListValue([new StringValue("value")]))
+          );
+          const script = parse("$[cmd][0]");
+          const word = script.sentences[0].words[0];
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql("value");
+        });
+        specify("tuple expression", () => {
+          commandResolver.register(
+            "cmd",
+            new FunctionCommand(
+              () =>
+                new TupleValue([
+                  new ListValue([new StringValue("value1")]),
+                  new ListValue([new StringValue("value2")]),
+                ])
+            )
+          );
+          const script = parse("$[cmd][0]");
+          const word = script.sentences[0].words[0];
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql(["value1", "value2"]);
         });
       });
 
@@ -839,16 +886,33 @@ describe("Evaluator", () => {
           const value = evaluator.evaluateWord(word);
           expect(mapValue(value)).to.eql(["value3", "value4"]);
         });
-        specify.skip("expression", () => {
-          // commandResolver.register(
-          //   "cmd",
-          //   new FunctionCommand(
-          //     () => new MapValue({ key: new StringValue("value") })
-          //   )
-          // );
-          // const script = parse("$[cmd](key)");
-          // const word = script.sentences[0].words[0];
-          // const value = evaluator.evaluateWord(word);
+        specify("scalar expression", () => {
+          commandResolver.register(
+            "cmd",
+            new FunctionCommand(
+              () => new MapValue({ key: new StringValue("value") })
+            )
+          );
+          const script = parse("$[cmd](key)");
+          const word = script.sentences[0].words[0];
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql("value");
+        });
+        specify("tuple expression", () => {
+          commandResolver.register(
+            "cmd",
+            new FunctionCommand(
+              () =>
+                new TupleValue([
+                  new MapValue({ key: new StringValue("value1") }),
+                  new MapValue({ key: new StringValue("value2") }),
+                ])
+            )
+          );
+          const script = parse("$[cmd](key)");
+          const word = script.sentences[0].words[0];
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql(["value1", "value2"]);
         });
         describe("exceptions", () => {
           specify("empty selector", () => {
