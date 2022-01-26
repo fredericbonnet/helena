@@ -2,6 +2,7 @@ import { Script } from "./parser";
 
 export enum ValueType {
   NIL,
+  INTEGER,
   STRING,
   TUPLE,
   SCRIPT,
@@ -29,6 +30,29 @@ class NilValue implements Value {
 }
 export const NIL = new NilValue();
 
+export class IntegerValue implements Value {
+  value: number;
+  constructor(value: number) {
+    this.value = value;
+  }
+  static fromValue(value: Value): IntegerValue {
+    if (value.type == ValueType.INTEGER) return value as IntegerValue;
+    const integer = parseInt(value.asString());
+    if (isNaN(integer)) throw new Error(`invalid integer ${value}`);
+    return new IntegerValue(integer);
+  }
+  asString(): string {
+    return this.value.toString();
+  }
+  selectIndex(index: Value): Value {
+    throw new Error("value is not index-selectable");
+  }
+  selectKey(key: Value): Value {
+    throw new Error("value is not key-selectable");
+  }
+  type = ValueType.INTEGER;
+}
+
 export class StringValue implements Value {
   type = ValueType.STRING;
   value: string;
@@ -39,7 +63,9 @@ export class StringValue implements Value {
     return this.value;
   }
   selectIndex(index: Value): Value {
-    throw new Error("Method not implemented.");
+    const i = IntegerValue.fromValue(index).value;
+    if (i < 0 || i >= this.value.length) throw new Error("index out of range");
+    return new StringValue(this.value[i]);
   }
   selectKey(key: Value): Value {
     throw new Error("value is not key-selectable");
@@ -52,13 +78,15 @@ export class TupleValue implements Value {
     this.values = [...values];
   }
   asString(): string {
-    throw new Error("Method not implemented.");
+    throw new Error("value has no string representation");
   }
   selectIndex(index: Value): Value {
-    throw new Error("Method not implemented.");
+    const i = IntegerValue.fromValue(index).value;
+    if (i < 0 || i >= this.values.length) throw new Error("index out of range");
+    return this.values[i];
   }
   selectKey(key: Value): Value {
-    throw new Error("Method not implemented.");
+    throw new Error("value is not key-selectable");
   }
 }
 
