@@ -6,6 +6,9 @@ class MockValue implements Value {
   type = ValueType.CUSTOM;
   selectedIndex: Value;
   selectedKeys: Value[] = [];
+  asString(): string {
+    throw new Error("Method not implemented.");
+  }
   selectIndex(index: Value): Value {
     this.selectedIndex = index;
     return this;

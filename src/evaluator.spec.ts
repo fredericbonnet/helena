@@ -4,16 +4,16 @@ import { Parser } from "./parser";
 import { Tokenizer } from "./tokenizer";
 import {
   Value,
-  NilValue,
   StringValue,
   TupleValue,
   ScriptValue,
   ValueType,
+  NIL,
 } from "./values";
 import { Command } from "./command";
 
 const mapValue = (value: Value) => {
-  if (value instanceof NilValue) {
+  if (value == NIL) {
     return null;
   }
   if (value instanceof StringValue) {
@@ -44,8 +44,11 @@ class ListValue implements Value {
   constructor(value: Value[]) {
     this.list = [...value];
   }
+  asString(): string {
+    throw new Error("TODO");
+  }
   selectIndex(index: Value): Value {
-    return this.list[parseInt((index as StringValue).value)];
+    return this.list[parseInt(index.asString())];
   }
   selectKey(key: Value): Value {
     throw new Error("TODO");
@@ -57,11 +60,14 @@ class MapValue implements Value {
   constructor(value: { [key: string]: Value }) {
     this.map = new Map(Object.entries(value));
   }
+  asString(): string {
+    throw new Error("TODO");
+  }
   selectIndex(index: Value): Value {
     throw new Error("TODO");
   }
   selectKey(key: Value): Value {
-    return this.map.get((key as StringValue).value);
+    return this.map.get(key.asString());
   }
 }
 
@@ -186,9 +192,7 @@ describe("Evaluator", () => {
           "cmd",
           new FunctionCommand(
             (args) =>
-              new StringValue(
-                args.map((value) => (value as StringValue).value).join("")
-              )
+              new StringValue(args.map((value) => value.asString()).join(""))
           )
         );
         const script = parse(`[cmd foo bar baz]`);

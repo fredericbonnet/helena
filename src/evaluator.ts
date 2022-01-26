@@ -103,7 +103,7 @@ export class Evaluator {
   evaluateSentence(sentence: Sentence): Value {
     if (sentence.words.length == 0) return NIL;
     const args = sentence.words.map((word) => this.evaluateWord(word));
-    const cmdname = (args[0] as StringValue).value;
+    const cmdname = args[0].asString();
     const command = this.commandResolver.resolve(cmdname);
     if (!command) throw new Error(`cannot resolve command ${cmdname}`);
     return command.evaluate(args);
@@ -121,9 +121,7 @@ export class Evaluator {
         values.push(this.evaluateSyllable(syllable));
       }
     }
-    return new StringValue(
-      values.map((value) => (value as StringValue).value).join("")
-    );
+    return new StringValue(values.map((value) => value.asString()).join(""));
   }
   evaluateHereString(hereString: HereStringSyllable): StringValue {
     return new StringValue(hereString.value);
@@ -155,7 +153,7 @@ export class Evaluator {
         if (levels > 1) {
           switch (result.type) {
             case ValueType.STRING: {
-              const varname = (result as StringValue).value;
+              const varname = result.asString();
               const value = this.substituteLiteral(
                 varname,
                 [] /*TODO*/,
@@ -187,20 +185,13 @@ export class Evaluator {
     return this.resolveLevels(value, levels);
   }
   substituteTuple(
-    sources: TupleValue,
+    tuple: TupleValue,
     selectors: Selector[],
     levels: number
   ): TupleValue {
-    return this.mapTuple(sources, (source) => {
-      switch (source.type) {
-        case ValueType.STRING:
-          return this.substituteLiteral(
-            (source as StringValue).value,
-            selectors,
-            levels
-          );
-      }
-    });
+    return this.mapTuple(tuple, (value) =>
+      this.substituteLiteral(value.asString(), selectors, levels)
+    );
   }
   mapTuple(tuple: TupleValue, mapFn: (value: Value) => Value) {
     return new TupleValue(
@@ -222,7 +213,7 @@ export class Evaluator {
   }
   resolveLevels(value: Value, levels: number): Value {
     for (let level = 1; level < levels; level++) {
-      value = this.resolveVariable((value as StringValue).value);
+      value = this.resolveVariable(value.asString());
     }
     return value;
   }
