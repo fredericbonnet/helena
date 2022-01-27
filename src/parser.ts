@@ -25,6 +25,8 @@ export class TupleSyllable {
 export class BlockSyllable {
   type: SyllableType = SyllableType.BLOCK;
   subscript: Script = new Script();
+  start: number;
+  value: string;
   parentContext?: Context;
 }
 export class ExpressionSyllable {
@@ -281,12 +283,16 @@ export class Parser {
   }
   private openBlock() {
     const syllable = new BlockSyllable();
+    syllable.start = this.stream.index;
     this.context.syllables.push(syllable);
     this.pushContext(syllable, {
       script: syllable.subscript,
     });
   }
   private closeBlock() {
+    const syllable = this.context.parent as BlockSyllable;
+    const range = this.stream.range(syllable.start, this.stream.index - 1);
+    syllable.value = range.map((token) => token.literal).join("");
     this.popContext();
   }
 
@@ -732,23 +738,61 @@ export class Parser {
   }
 }
 
+/**
+ * Array-based token stream
+ */
 class TokenStream {
+  /** Source tokens */
   tokens: Token[];
+
+  /** Current position in stream */
   index: number = 0;
+
+  /**
+   * Create a new stream from an array of tokens
+   *
+   * @param tokens Source array
+   */
   constructor(tokens: Token[]) {
     this.tokens = tokens;
   }
 
+  /**
+   * At end predicate
+   *
+   * @returns Whether stream is at end
+   */
   end() {
     return this.index >= this.tokens.length;
   }
+
+  /**
+   * Advance to next token
+   *
+   * @returns Token at previous position
+   */
   next() {
     return this.tokens[this.index++];
   }
+
+  /**
+   * Get current token
+   *
+   * @returns Token at current position
+   */
   current() {
     return this.tokens[this.index];
   }
-  peek() {
-    return this.tokens[this.index + 1];
+
+  /**
+   * Get range of tokens
+   *
+   * @param start First token index (inclusive)
+   * @param end Last token index (exclusive)
+   *
+   * @returns Range of tokens
+   */
+  range(start: number, end: number) {
+    return this.tokens.slice(start, end);
   }
 }

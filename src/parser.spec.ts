@@ -253,6 +253,42 @@ describe("Parser", () => {
           ],
         ]);
       });
+      describe("string value", () => {
+        const getBlock = (script: Script, wordIndex: number) =>
+          script.sentences[0].words[wordIndex].syllables[0] as BlockSyllable;
+        specify("empty", () => {
+          const tokens = tokenizer.tokenize("{}");
+          const script = parser.parse(tokens);
+          const block = getBlock(script, 0);
+          expect(block.value).to.eql("");
+        });
+        specify("one word", () => {
+          const tokens = tokenizer.tokenize("{word}");
+          const script = parser.parse(tokens);
+          const block = getBlock(script, 0);
+          expect(block.value).to.eql("word");
+        });
+        specify("two levels", () => {
+          const tokens = tokenizer.tokenize("{word1 {word2 word3} word4}");
+          const script = parser.parse(tokens);
+          const block = getBlock(script, 0);
+          expect(block.value).to.eql("word1 {word2 word3} word4");
+          const subblock = getBlock(block.subscript, 1);
+          expect(subblock.value).to.eql("word2 word3");
+        });
+        specify("space preservation", () => {
+          const tokens = tokenizer.tokenize("{ word1  \nword2\t}");
+          const script = parser.parse(tokens);
+          const block = getBlock(script, 0);
+          expect(block.value).to.eql(" word1  \nword2\t");
+        });
+        specify("continuations", () => {
+          const tokens = tokenizer.tokenize("{word1 \\\n \t  word2}");
+          const script = parser.parse(tokens);
+          const block = getBlock(script, 0);
+          expect(block.value).to.eql("word1  word2");
+        });
+      });
       describe("exceptions", () => {
         specify("unterminated block", () => {
           const tokens = tokenizer.tokenize("{");
