@@ -150,6 +150,13 @@ export class Evaluator {
         return [values, last];
       }
 
+      case SyllableType.BLOCK: {
+        const varname = (source as BlockSyllable).value;
+        const variable = this.resolveVariable(varname);
+        const value = this.substituteValue(variable, selectors, levels);
+        return [value, last];
+      }
+
       case SyllableType.EXPRESSION: {
         const result = this.evaluateExpression(source as ExpressionSyllable);
         switch (result.type) {

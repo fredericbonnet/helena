@@ -301,6 +301,39 @@ describe("Evaluator", () => {
           });
         });
 
+        describe("blocks", () => {
+          specify("varname with spaces", () => {
+            variableResolver.register(
+              "variable name",
+              new StringValue("value")
+            );
+            const script = parse('"${variable name}"');
+            const syllable = script.sentences[0].words[0].syllables[0];
+            const value = evaluator.evaluateSyllable(syllable);
+            expect(mapValue(value)).to.eql("value");
+          });
+          specify("varname with special characters", () => {
+            variableResolver.register(
+              'variable " " name',
+              new StringValue("value")
+            );
+            const script = parse('"${variable " " name}"');
+            const syllable = script.sentences[0].words[0].syllables[0];
+            const value = evaluator.evaluateSyllable(syllable);
+            expect(mapValue(value)).to.eql("value");
+          });
+          specify("varname with continuations", () => {
+            variableResolver.register(
+              "variable name",
+              new StringValue("value")
+            );
+            const script = parse('"${variable\\\n \t\r     name}"');
+            const syllable = script.sentences[0].words[0].syllables[0];
+            const value = evaluator.evaluateSyllable(syllable);
+            expect(mapValue(value)).to.eql("value");
+          });
+        });
+
         describe("expressions", () => {
           specify("simple substitution", () => {
             commandResolver.register(
@@ -525,8 +558,16 @@ describe("Evaluator", () => {
         });
       });
 
-      specify.skip("string with multiple substitutions", () => {
-        const script = parse('"this $var1 ${var2} [cmd] with substitutions "');
+      specify("string with multiple substitutions", () => {
+        variableResolver.register("var1", new StringValue("is"));
+        variableResolver.register("variable 2", new StringValue("a"));
+        commandResolver.register(
+          "cmd",
+          new FunctionCommand(() => new StringValue("string"))
+        );
+        const script = parse(
+          '"this $var1 ${variable 2} [cmd] with substitutions"'
+        );
         const syllable = script.sentences[0].words[0].syllables[0];
         const value = evaluator.evaluateSyllable(syllable);
         expect(mapValue(value)).to.eql("this is a string with substitutions");
@@ -642,6 +683,33 @@ describe("Evaluator", () => {
           const word = script.sentences[0].words[0];
           const value = evaluator.evaluateWord(word);
           expect(mapValue(value)).to.eql([["value"]]);
+        });
+      });
+
+      describe("blocks", () => {
+        specify("varname with spaces", () => {
+          variableResolver.register("variable name", new StringValue("value"));
+          const script = parse("${variable name}");
+          const word = script.sentences[0].words[0];
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql("value");
+        });
+        specify("varname with special characters", () => {
+          variableResolver.register(
+            'variable " " name',
+            new StringValue("value")
+          );
+          const script = parse('${variable " " name}');
+          const word = script.sentences[0].words[0];
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql("value");
+        });
+        specify("varname with continuations", () => {
+          variableResolver.register("variable name", new StringValue("value"));
+          const script = parse("${variable\\\n \t\r     name}");
+          const word = script.sentences[0].words[0];
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql("value");
         });
       });
 
