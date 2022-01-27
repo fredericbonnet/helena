@@ -462,14 +462,6 @@ export class Parser {
       }
     }
     switch (token.type) {
-      case TokenType.CONTINUATION:
-        this.addLiteral(token.literal);
-        // Eat up all subsequent whitespaces
-        while (this.stream.current()?.type == TokenType.WHITESPACE) {
-          this.stream.next();
-        }
-        break;
-
       case TokenType.DOLLAR:
         this.beginSubstitution(token.literal);
         break;

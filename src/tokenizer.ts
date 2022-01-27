@@ -125,6 +125,13 @@ export class Tokenizer {
           }
           const e = this.stream.next();
           if (e == "\n") {
+            // Continuation, eat up all subsequent whitespaces
+            while (
+              !this.stream.end() &&
+              this.isWhitespace(this.stream.current())
+            ) {
+              this.stream.next();
+            }
             this.addToken(TokenType.CONTINUATION, position, " ");
             break;
           }
