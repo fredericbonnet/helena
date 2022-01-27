@@ -9,8 +9,11 @@ import {
   ScriptValue,
   ValueType,
   NIL,
+  IntegerValue,
+  ReferenceValue,
 } from "./values";
 import { Command } from "./command";
+import { IndexedSelector, KeyedSelector, Selector } from "./selectors";
 
 const mapValue = (value: Value) => {
   if (value == NIL) {
@@ -19,12 +22,31 @@ const mapValue = (value: Value) => {
   if (value instanceof StringValue) {
     return value.value;
   }
+  if (value instanceof IntegerValue) {
+    return value.value;
+  }
   if (value instanceof TupleValue) {
     return value.values.map(mapValue);
   }
   if (value instanceof ScriptValue) {
     return value.script;
   }
+  if (value instanceof ReferenceValue) {
+    return {
+      source: mapValue(value.source),
+      selectors: value.selectors.map(mapSelector),
+    };
+  }
+  throw new Error("TODO");
+};
+const mapSelector = (selector: Selector) => {
+  if (selector instanceof IndexedSelector) {
+    return { index: mapValue(selector.index) };
+  }
+  if (selector instanceof KeyedSelector) {
+    return { keys: selector.keys.map(mapValue) };
+  }
+  throw new Error("TODO");
 };
 
 class MockVariableResolver implements VariableResolver {
@@ -607,12 +629,92 @@ describe("Evaluator", () => {
       });
     });
 
-    describe("variable names", () => {
-      it.skip("TODO", () => {
-        const script = parse("var(key)");
-        const word = script.sentences[0].words[0];
-        const value = evaluator.evaluateWord(word);
-        expect(mapValue(value)).to.eql("var(key)");
+    describe("references", () => {
+      describe("scalars", () => {
+        specify("indexed selector", () => {
+          const script = parse("var[123]");
+          const word = script.sentences[0].words[0];
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql({
+            source: "var",
+            selectors: [{ index: "123" }],
+          });
+        });
+        specify("keyed selector", () => {
+          const script = parse("var(key)");
+          const word = script.sentences[0].words[0];
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql({
+            source: "var",
+            selectors: [{ keys: ["key"] }],
+          });
+        });
+        specify("multiple selectors", () => {
+          const script = parse("var(key1 key2 key3)[1][2](key4)");
+          const word = script.sentences[0].words[0];
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql({
+            source: "var",
+            selectors: [
+              { keys: ["key1", "key2", "key3"] },
+              { index: "1" },
+              { index: "2" },
+              { keys: ["key4"] },
+            ],
+          });
+        });
+        describe("exceptions", () => {
+          specify("invalid trailing syllables", () => {
+            const script = parse("var(key1)2");
+            const word = script.sentences[0].words[0];
+            expect(() => evaluator.evaluateWord(word)).to.throws(
+              "extra characters after selectors"
+            );
+          });
+        });
+      });
+      describe("tuples", () => {
+        specify("indexed selector", () => {
+          const script = parse("(var1 var2 (var3 var4))[123]");
+          const word = script.sentences[0].words[0];
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql({
+            source: ["var1", "var2", ["var3", "var4"]],
+            selectors: [{ index: "123" }],
+          });
+        });
+        specify("keyed selector", () => {
+          const script = parse("(var1 (var2) var3)(key)");
+          const word = script.sentences[0].words[0];
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql({
+            source: ["var1", ["var2"], "var3"],
+            selectors: [{ keys: ["key"] }],
+          });
+        });
+        specify("multiple selectors", () => {
+          const script = parse("((var))(key1 key2 key3)[1][2](key4)");
+          const word = script.sentences[0].words[0];
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql({
+            source: [["var"]],
+            selectors: [
+              { keys: ["key1", "key2", "key3"] },
+              { index: "1" },
+              { index: "2" },
+              { keys: ["key4"] },
+            ],
+          });
+        });
+        describe("exceptions", () => {
+          specify("invalid trailing syllables", () => {
+            const script = parse("(var1 var2)(key1)2");
+            const word = script.sentences[0].words[0];
+            expect(() => evaluator.evaluateWord(word)).to.throws(
+              "extra characters after selectors"
+            );
+          });
+        });
       });
     });
 

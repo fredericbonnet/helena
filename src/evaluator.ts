@@ -20,6 +20,7 @@ import {
   TupleValue,
   Value,
   ValueType,
+  ReferenceValue,
 } from "./values";
 import { Command } from "./command";
 
@@ -42,16 +43,32 @@ export class Evaluator {
   }
 
   evaluateWord(word: Word): Value {
-    // TODO
-    if (word.syllables[0].type == SyllableType.SUBSTITUTE_NEXT) {
-      const [value, last] = this.evaluateSubstitution(word.syllables, 0);
-      if (last < word.syllables.length - 1) {
-        throw new Error("extra characters after selectors");
+    if (word.syllables.length == 1) {
+      return this.evaluateSyllable(word.syllables[0]);
+    }
+    switch (word.syllables[0].type) {
+      case SyllableType.LITERAL:
+      case SyllableType.TUPLE: {
+        const [value, last] = this.evaluateReference(word.syllables, 0);
+        if (last < word.syllables.length - 1) {
+          throw new Error("extra characters after selectors");
+        }
+
+        return value;
       }
 
-      return value;
+      case SyllableType.SUBSTITUTE_NEXT: {
+        const [value, last] = this.evaluateSubstitution(word.syllables, 0);
+        if (last < word.syllables.length - 1) {
+          throw new Error("extra characters after selectors");
+        }
+
+        return value;
+      }
+
+      default:
+        throw new Error("TODO");
     }
-    return this.evaluateSyllable(word.syllables[0]);
   }
 
   evaluateSyllable(syllable: Syllable): Value {
@@ -128,6 +145,25 @@ export class Evaluator {
   }
   evaluateTaggedString(taggedString: TaggedStringSyllable): StringValue {
     return new StringValue(taggedString.value);
+  }
+
+  evaluateReference(syllables: Syllable[], first: number): [Value, number] {
+    const source = syllables[first];
+    const [selectors, last] = this.getSelectors(syllables, first);
+    switch (source.type) {
+      case SyllableType.LITERAL: {
+        const varname = (source as LiteralSyllable).value;
+        const value = new ReferenceValue(new StringValue(varname), selectors);
+        return [value, last];
+      }
+
+      case SyllableType.TUPLE: {
+        const tuple = this.evaluateTuple(source as TupleSyllable);
+        const values = new ReferenceValue(tuple, selectors);
+        return [values, last];
+      }
+    }
+    throw new Error("TODO");
   }
 
   evaluateSubstitution(syllables: Syllable[], first: number): [Value, number] {

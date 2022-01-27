@@ -1,5 +1,11 @@
 import { expect } from "chai";
-import { IntegerValue, NIL, StringValue, TupleValue } from "./values";
+import {
+  IntegerValue,
+  NIL,
+  ReferenceValue,
+  StringValue,
+  TupleValue,
+} from "./values";
 
 describe("values", () => {
   describe("NIL", () => {
@@ -135,6 +141,27 @@ describe("values", () => {
     });
     it("should not be key-selectable", () => {
       const value = new TupleValue([]);
+      expect(() => value.selectKey(new StringValue("key"))).to.throw(
+        "value is not key-selectable"
+      );
+    });
+  });
+
+  describe("ReferenceValue", () => {
+    it("should have no string representation", () => {
+      const value = new ReferenceValue(new StringValue("name"), []);
+      expect(() => value.asString()).to.throw(
+        "value has no string representation"
+      );
+    });
+    it("should not be index-selectable", () => {
+      const value = new ReferenceValue(new StringValue("name"), []);
+      expect(() => value.selectIndex(new StringValue("index"))).to.throw(
+        "value is not index-selectable"
+      );
+    });
+    it("should not be key-selectable", () => {
+      const value = new ReferenceValue(new StringValue("name"), []);
       expect(() => value.selectKey(new StringValue("key"))).to.throw(
         "value is not key-selectable"
       );

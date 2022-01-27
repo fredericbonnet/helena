@@ -1,4 +1,5 @@
 import { Script } from "./parser";
+import { Selector } from "./selectors";
 
 export enum ValueType {
   NIL,
@@ -6,6 +7,7 @@ export enum ValueType {
   STRING,
   TUPLE,
   SCRIPT,
+  REFERENCE,
   CUSTOM,
 }
 
@@ -105,4 +107,23 @@ export class ScriptValue implements Value {
   selectKey(key: Value): Value {
     throw new Error("Method not implemented.");
   }
+}
+
+export class ReferenceValue implements Value {
+  source: Value;
+  selectors: Selector[];
+  constructor(name: Value, selectors: Selector[]) {
+    this.source = name;
+    this.selectors = selectors;
+  }
+  asString(): string {
+    throw new Error("value has no string representation");
+  }
+  selectIndex(index: Value): Value {
+    throw new Error("value is not index-selectable");
+  }
+  selectKey(key: Value): Value {
+    throw new Error("value is not key-selectable");
+  }
+  type = ValueType.REFERENCE;
 }
