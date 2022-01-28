@@ -382,6 +382,9 @@ export class Parser {
         break;
 
       case TokenType.COMMENT:
+        if (this.withinSubstitution() && this.expectSource()) {
+          throw new Error("unexpected comment delimiter");
+        }
         if (!this.ensureWord()) {
           this.addLiteral(token.literal);
           break;

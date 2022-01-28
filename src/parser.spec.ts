@@ -1300,6 +1300,20 @@ int main(void) {
             ],
           ]);
         });
+        describe("exceptions", () => {
+          specify("leading hash", () => {
+            const tokens = tokenizer.tokenize("$#");
+            expect(() => parser.parse(tokens)).to.throws(
+              "unexpected comment delimiter"
+            );
+          });
+          specify("leading quote", () => {
+            const tokens = tokenizer.tokenize('$"');
+            expect(() => parser.parse(tokens)).to.throws(
+              "unexpected string delimiter"
+            );
+          });
+        });
       });
       describe("selectors", () => {
         describe("generic selectors", () => {
