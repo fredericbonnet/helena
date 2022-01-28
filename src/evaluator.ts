@@ -1,15 +1,15 @@
 import {
-  BlockSyllable,
-  ExpressionSyllable,
-  HereStringSyllable,
-  LiteralSyllable,
+  BlockMorpheme,
+  ExpressionMorpheme,
+  HereStringMorpheme,
+  LiteralMorpheme,
   Sentence,
-  StringSyllable,
-  SubstituteNextSyllable,
-  Syllable,
-  SyllableType,
-  TaggedStringSyllable,
-  TupleSyllable,
+  StringMorpheme,
+  SubstituteNextMorpheme,
+  Morpheme,
+  MorphemeType,
+  TaggedStringMorpheme,
+  TupleMorpheme,
   Word,
 } from "./parser";
 import { IndexedSelector, KeyedSelector, Selector } from "./selectors";
@@ -43,23 +43,23 @@ export class Evaluator {
   }
 
   evaluateWord(word: Word): Value {
-    if (word.syllables.length == 1) {
-      return this.evaluateSyllable(word.syllables[0]);
+    if (word.morphemes.length == 1) {
+      return this.evaluateMorpheme(word.morphemes[0]);
     }
-    switch (word.syllables[0].type) {
-      case SyllableType.LITERAL:
-      case SyllableType.TUPLE: {
-        const [value, last] = this.evaluateReference(word.syllables, 0);
-        if (last < word.syllables.length - 1) {
+    switch (word.morphemes[0].type) {
+      case MorphemeType.LITERAL:
+      case MorphemeType.TUPLE: {
+        const [value, last] = this.evaluateReference(word.morphemes, 0);
+        if (last < word.morphemes.length - 1) {
           throw new Error("extra characters after selectors");
         }
 
         return value;
       }
 
-      case SyllableType.SUBSTITUTE_NEXT: {
-        const [value, last] = this.evaluateSubstitution(word.syllables, 0);
-        if (last < word.syllables.length - 1) {
+      case MorphemeType.SUBSTITUTE_NEXT: {
+        const [value, last] = this.evaluateSubstitution(word.morphemes, 0);
+        if (last < word.morphemes.length - 1) {
           throw new Error("extra characters after selectors");
         }
 
@@ -71,46 +71,46 @@ export class Evaluator {
     }
   }
 
-  evaluateSyllable(syllable: Syllable): Value {
-    switch (syllable.type) {
-      case SyllableType.LITERAL:
-        return this.evaluateLiteral(syllable as LiteralSyllable);
-      case SyllableType.TUPLE:
-        return this.evaluateTuple(syllable as TupleSyllable);
-      case SyllableType.BLOCK:
-        return this.evaluateBlock(syllable as BlockSyllable);
-      case SyllableType.EXPRESSION:
-        return this.evaluateExpression(syllable as ExpressionSyllable);
-      case SyllableType.STRING:
-        return this.evaluateString(syllable as StringSyllable);
-      case SyllableType.HERE_STRING:
-        return this.evaluateHereString(syllable as HereStringSyllable);
-      case SyllableType.TAGGED_STRING:
-        return this.evaluateTaggedString(syllable as TaggedStringSyllable);
-      case SyllableType.LINE_COMMENT:
-      case SyllableType.BLOCK_COMMENT:
-      case SyllableType.SUBSTITUTE_NEXT:
+  evaluateMorpheme(morpheme: Morpheme): Value {
+    switch (morpheme.type) {
+      case MorphemeType.LITERAL:
+        return this.evaluateLiteral(morpheme as LiteralMorpheme);
+      case MorphemeType.TUPLE:
+        return this.evaluateTuple(morpheme as TupleMorpheme);
+      case MorphemeType.BLOCK:
+        return this.evaluateBlock(morpheme as BlockMorpheme);
+      case MorphemeType.EXPRESSION:
+        return this.evaluateExpression(morpheme as ExpressionMorpheme);
+      case MorphemeType.STRING:
+        return this.evaluateString(morpheme as StringMorpheme);
+      case MorphemeType.HERE_STRING:
+        return this.evaluateHereString(morpheme as HereStringMorpheme);
+      case MorphemeType.TAGGED_STRING:
+        return this.evaluateTaggedString(morpheme as TaggedStringMorpheme);
+      case MorphemeType.LINE_COMMENT:
+      case MorphemeType.BLOCK_COMMENT:
+      case MorphemeType.SUBSTITUTE_NEXT:
       default:
         throw new Error("TODO");
     }
   }
 
-  evaluateLiteral(literal: LiteralSyllable): StringValue {
+  evaluateLiteral(literal: LiteralMorpheme): StringValue {
     return new StringValue(literal.value);
   }
-  evaluateTuple(tuple: TupleSyllable): TupleValue {
+  evaluateTuple(tuple: TupleMorpheme): TupleValue {
     const value: Value[] = [];
     for (let sentence of tuple.subscript.sentences) {
       value.push(...sentence.words.map((word) => this.evaluateWord(word)));
     }
     return new TupleValue(value);
   }
-  evaluateBlock(block: BlockSyllable): ScriptValue {
+  evaluateBlock(block: BlockMorpheme): ScriptValue {
     return new ScriptValue(block.subscript);
   }
-  evaluateExpression(expression: ExpressionSyllable): Value {
+  evaluateExpression(expression: ExpressionMorpheme): Value {
     if (!this.commandResolver) throw new Error("no command resolver");
-    const script = (expression as ExpressionSyllable).subscript;
+    const script = (expression as ExpressionMorpheme).subscript;
     let value: Value = NIL;
     for (let sentence of script.sentences) {
       value = this.evaluateSentence(sentence);
@@ -126,39 +126,39 @@ export class Evaluator {
     return command.evaluate(args);
   }
 
-  evaluateString(string: StringSyllable): StringValue {
+  evaluateString(string: StringMorpheme): StringValue {
     const values: Value[] = [];
-    for (let i = 0; i < string.syllables.length; i++) {
-      const syllable = string.syllables[i];
-      if (syllable.type == SyllableType.SUBSTITUTE_NEXT) {
-        const [value, last] = this.evaluateSubstitution(string.syllables, i);
+    for (let i = 0; i < string.morphemes.length; i++) {
+      const morpheme = string.morphemes[i];
+      if (morpheme.type == MorphemeType.SUBSTITUTE_NEXT) {
+        const [value, last] = this.evaluateSubstitution(string.morphemes, i);
         i = last;
         values.push(value);
       } else {
-        values.push(this.evaluateSyllable(syllable));
+        values.push(this.evaluateMorpheme(morpheme));
       }
     }
     return new StringValue(values.map((value) => value.asString()).join(""));
   }
-  evaluateHereString(hereString: HereStringSyllable): StringValue {
+  evaluateHereString(hereString: HereStringMorpheme): StringValue {
     return new StringValue(hereString.value);
   }
-  evaluateTaggedString(taggedString: TaggedStringSyllable): StringValue {
+  evaluateTaggedString(taggedString: TaggedStringMorpheme): StringValue {
     return new StringValue(taggedString.value);
   }
 
-  evaluateReference(syllables: Syllable[], first: number): [Value, number] {
-    const source = syllables[first];
-    const [selectors, last] = this.getSelectors(syllables, first);
+  evaluateReference(morphemes: Morpheme[], first: number): [Value, number] {
+    const source = morphemes[first];
+    const [selectors, last] = this.getSelectors(morphemes, first);
     switch (source.type) {
-      case SyllableType.LITERAL: {
-        const varname = (source as LiteralSyllable).value;
+      case MorphemeType.LITERAL: {
+        const varname = (source as LiteralMorpheme).value;
         const value = new ReferenceValue(new StringValue(varname), selectors);
         return [value, last];
       }
 
-      case SyllableType.TUPLE: {
-        const tuple = this.evaluateTuple(source as TupleSyllable);
+      case MorphemeType.TUPLE: {
+        const tuple = this.evaluateTuple(source as TupleMorpheme);
         const values = new ReferenceValue(tuple, selectors);
         return [values, last];
       }
@@ -166,35 +166,35 @@ export class Evaluator {
     throw new Error("TODO");
   }
 
-  evaluateSubstitution(syllables: Syllable[], first: number): [Value, number] {
+  evaluateSubstitution(morphemes: Morpheme[], first: number): [Value, number] {
     if (!this.variableResolver) throw new Error("no variable resolver");
-    const levels = (syllables[first] as SubstituteNextSyllable).levels;
-    const source = syllables[first + 1];
-    const [selectors, last] = this.getSelectors(syllables, first + 1);
+    const levels = (morphemes[first] as SubstituteNextMorpheme).levels;
+    const source = morphemes[first + 1];
+    const [selectors, last] = this.getSelectors(morphemes, first + 1);
     switch (source.type) {
-      case SyllableType.LITERAL: {
-        const varname = (source as LiteralSyllable).value;
+      case MorphemeType.LITERAL: {
+        const varname = (source as LiteralMorpheme).value;
         const variable = this.resolveVariable(varname);
         const value = this.substituteValue(variable, selectors, levels);
         return [value, last];
       }
 
-      case SyllableType.TUPLE: {
-        const tuple = this.evaluateTuple(source as TupleSyllable);
+      case MorphemeType.TUPLE: {
+        const tuple = this.evaluateTuple(source as TupleMorpheme);
         const variables = this.resolveVariables(tuple);
         const values = this.substituteTuple(variables, selectors, levels);
         return [values, last];
       }
 
-      case SyllableType.BLOCK: {
-        const varname = (source as BlockSyllable).value;
+      case MorphemeType.BLOCK: {
+        const varname = (source as BlockMorpheme).value;
         const variable = this.resolveVariable(varname);
         const value = this.substituteValue(variable, selectors, levels);
         return [value, last];
       }
 
-      case SyllableType.EXPRESSION: {
-        const result = this.evaluateExpression(source as ExpressionSyllable);
+      case MorphemeType.EXPRESSION: {
+        const result = this.evaluateExpression(source as ExpressionMorpheme);
         switch (result.type) {
           case ValueType.TUPLE: {
             const tuple = result as TupleValue;
@@ -263,25 +263,25 @@ export class Evaluator {
     return value;
   }
 
-  getSelectors(syllables: Syllable[], first: number): [Selector[], number] {
+  getSelectors(morphemes: Morpheme[], first: number): [Selector[], number] {
     let last = first;
     const selectors: Selector[] = [];
-    for (let i = last + 1; i < syllables.length; i++, last++) {
-      const selector = this.getSelector(syllables[i]);
+    for (let i = last + 1; i < morphemes.length; i++, last++) {
+      const selector = this.getSelector(morphemes[i]);
       if (!selector) break;
       selectors.push(selector);
     }
     return [selectors, last];
   }
-  getSelector(syllable: Syllable): Selector {
-    switch (syllable.type) {
-      case SyllableType.TUPLE: {
-        const keys = this.evaluateTuple(syllable as TupleSyllable).values;
+  getSelector(morpheme: Morpheme): Selector {
+    switch (morpheme.type) {
+      case MorphemeType.TUPLE: {
+        const keys = this.evaluateTuple(morpheme as TupleMorpheme).values;
         return new KeyedSelector(keys);
       }
 
-      case SyllableType.EXPRESSION: {
-        const index = this.evaluateExpression(syllable as ExpressionSyllable);
+      case MorphemeType.EXPRESSION: {
+        const index = this.evaluateExpression(morpheme as ExpressionMorpheme);
         return new IndexedSelector(index);
       }
     }

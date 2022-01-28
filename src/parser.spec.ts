@@ -1,59 +1,59 @@
 import { expect } from "chai";
 import {
-  BlockSyllable,
-  ExpressionSyllable,
-  HereStringSyllable,
-  TupleSyllable,
-  LiteralSyllable,
+  BlockMorpheme,
+  ExpressionMorpheme,
+  HereStringMorpheme,
+  TupleMorpheme,
+  LiteralMorpheme,
   Parser,
   Script,
-  StringSyllable,
-  Syllable,
-  TaggedStringSyllable,
-  LineCommentSyllable,
-  BlockCommentSyllable,
-  SubstituteNextSyllable,
+  StringMorpheme,
+  Morpheme,
+  TaggedStringMorpheme,
+  LineCommentMorpheme,
+  BlockCommentMorpheme,
+  SubstituteNextMorpheme,
 } from "./parser";
 import { Tokenizer } from "./tokenizer";
 
-const mapSyllable = (syllable: Syllable) => {
-  if (syllable instanceof LiteralSyllable) {
-    return { LITERAL: syllable.value };
+const mapMorpheme = (morpheme: Morpheme) => {
+  if (morpheme instanceof LiteralMorpheme) {
+    return { LITERAL: morpheme.value };
   }
-  if (syllable instanceof TupleSyllable) {
-    return { TUPLE: toTree(syllable.subscript) };
+  if (morpheme instanceof TupleMorpheme) {
+    return { TUPLE: toTree(morpheme.subscript) };
   }
-  if (syllable instanceof BlockSyllable) {
-    return { BLOCK: toTree(syllable.subscript) };
+  if (morpheme instanceof BlockMorpheme) {
+    return { BLOCK: toTree(morpheme.subscript) };
   }
-  if (syllable instanceof ExpressionSyllable) {
-    return { EXPRESSION: toTree(syllable.subscript) };
+  if (morpheme instanceof ExpressionMorpheme) {
+    return { EXPRESSION: toTree(morpheme.subscript) };
   }
-  if (syllable instanceof StringSyllable) {
-    return { STRING: syllable.syllables.map(mapSyllable) };
+  if (morpheme instanceof StringMorpheme) {
+    return { STRING: morpheme.morphemes.map(mapMorpheme) };
   }
-  if (syllable instanceof HereStringSyllable) {
-    return { HERE_STRING: syllable.value };
+  if (morpheme instanceof HereStringMorpheme) {
+    return { HERE_STRING: morpheme.value };
   }
-  if (syllable instanceof TaggedStringSyllable) {
-    return { TAGGED_STRING: syllable.value };
+  if (morpheme instanceof TaggedStringMorpheme) {
+    return { TAGGED_STRING: morpheme.value };
   }
-  if (syllable instanceof LineCommentSyllable) {
-    return { LINE_COMMENT: syllable.value };
+  if (morpheme instanceof LineCommentMorpheme) {
+    return { LINE_COMMENT: morpheme.value };
   }
-  if (syllable instanceof BlockCommentSyllable) {
-    return { BLOCK_COMMENT: syllable.value };
+  if (morpheme instanceof BlockCommentMorpheme) {
+    return { BLOCK_COMMENT: morpheme.value };
   }
-  if (syllable instanceof SubstituteNextSyllable) {
+  if (morpheme instanceof SubstituteNextMorpheme) {
     return {
-      [syllable.expansion ? "EXPAND_NEXT" : "SUBSTITUTE_NEXT"]: syllable.levels,
+      [morpheme.expansion ? "EXPAND_NEXT" : "SUBSTITUTE_NEXT"]: morpheme.levels,
     };
   }
   throw new Error("TODO");
 };
 const toTree = (script: Script) =>
   script.sentences.map((sentence) =>
-    sentence.words.map((word) => word.syllables.map(mapSyllable))
+    sentence.words.map((word) => word.morphemes.map(mapMorpheme))
   );
 
 describe("Parser", () => {
@@ -255,7 +255,7 @@ describe("Parser", () => {
       });
       describe("string value", () => {
         const getBlock = (script: Script, wordIndex: number) =>
-          script.sentences[0].words[wordIndex].syllables[0] as BlockSyllable;
+          script.sentences[0].words[wordIndex].morphemes[0] as BlockMorpheme;
         specify("empty", () => {
           const tokens = tokenizer.tokenize("{}");
           const script = parser.parse(tokens);

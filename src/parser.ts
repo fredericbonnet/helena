@@ -1,6 +1,6 @@
 import { Token, TokenType } from "./tokenizer";
 
-export enum SyllableType {
+export enum MorphemeType {
   LITERAL,
   TUPLE,
   BLOCK,
@@ -13,34 +13,34 @@ export enum SyllableType {
   SUBSTITUTE_NEXT,
 }
 
-export class LiteralSyllable {
-  type: SyllableType = SyllableType.LITERAL;
+export class LiteralMorpheme {
+  type: MorphemeType = MorphemeType.LITERAL;
   value: string;
 }
-export class TupleSyllable {
-  type: SyllableType = SyllableType.TUPLE;
+export class TupleMorpheme {
+  type: MorphemeType = MorphemeType.TUPLE;
   subscript: Script = new Script();
   parentContext?: Context;
 }
-export class BlockSyllable {
-  type: SyllableType = SyllableType.BLOCK;
+export class BlockMorpheme {
+  type: MorphemeType = MorphemeType.BLOCK;
   subscript: Script = new Script();
   start: number;
   value: string;
   parentContext?: Context;
 }
-export class ExpressionSyllable {
-  type: SyllableType = SyllableType.EXPRESSION;
+export class ExpressionMorpheme {
+  type: MorphemeType = MorphemeType.EXPRESSION;
   subscript: Script = new Script();
   parentContext?: Context;
 }
-export class StringSyllable {
-  type: SyllableType = SyllableType.STRING;
-  syllables: Syllable[] = [];
+export class StringMorpheme {
+  type: MorphemeType = MorphemeType.STRING;
+  morphemes: Morpheme[] = [];
   parentContext?: Context;
 }
-export class HereStringSyllable {
-  type: SyllableType = SyllableType.HERE_STRING;
+export class HereStringMorpheme {
+  type: MorphemeType = MorphemeType.HERE_STRING;
   value: string = "";
   delimiterLength: number;
   parentContext?: Context;
@@ -49,8 +49,8 @@ export class HereStringSyllable {
     this.delimiterLength = delimiter.length;
   }
 }
-export class TaggedStringSyllable {
-  type: SyllableType = SyllableType.TAGGED_STRING;
+export class TaggedStringMorpheme {
+  type: MorphemeType = MorphemeType.TAGGED_STRING;
   value: string = "";
   tag: string;
   parentContext?: Context;
@@ -59,8 +59,8 @@ export class TaggedStringSyllable {
     this.tag = tag;
   }
 }
-export class LineCommentSyllable {
-  type: SyllableType = SyllableType.LINE_COMMENT;
+export class LineCommentMorpheme {
+  type: MorphemeType = MorphemeType.LINE_COMMENT;
   value: string = "";
   delimiterLength: number;
   parentContext?: Context;
@@ -69,8 +69,8 @@ export class LineCommentSyllable {
     this.delimiterLength = delimiter.length;
   }
 }
-export class BlockCommentSyllable {
-  type: SyllableType = SyllableType.BLOCK_COMMENT;
+export class BlockCommentMorpheme {
+  type: MorphemeType = MorphemeType.BLOCK_COMMENT;
   value: string = "";
   delimiterLength: number;
   nesting: number = 1;
@@ -80,29 +80,29 @@ export class BlockCommentSyllable {
     this.delimiterLength = delimiter.length;
   }
 }
-export class SubstituteNextSyllable {
-  type: SyllableType = SyllableType.SUBSTITUTE_NEXT;
+export class SubstituteNextMorpheme {
+  type: MorphemeType = MorphemeType.SUBSTITUTE_NEXT;
   expansion: boolean = false;
   levels: number = 1;
   value: string = "";
 }
 
-type ContextualSyllable =
-  | TupleSyllable
-  | BlockSyllable
-  | ExpressionSyllable
-  | StringSyllable
-  | HereStringSyllable
-  | TaggedStringSyllable
-  | LineCommentSyllable
-  | BlockCommentSyllable;
-export type Syllable =
-  | LiteralSyllable
-  | ContextualSyllable
-  | SubstituteNextSyllable;
+type ContextualMorpheme =
+  | TupleMorpheme
+  | BlockMorpheme
+  | ExpressionMorpheme
+  | StringMorpheme
+  | HereStringMorpheme
+  | TaggedStringMorpheme
+  | LineCommentMorpheme
+  | BlockCommentMorpheme;
+export type Morpheme =
+  | LiteralMorpheme
+  | ContextualMorpheme
+  | SubstituteNextMorpheme;
 
 export class Word {
-  syllables: Syllable[] = [];
+  morphemes: Morpheme[] = [];
 }
 export class Sentence {
   words: Word[] = [];
@@ -112,11 +112,11 @@ export class Script {
 }
 
 class Context {
-  parent: ContextualSyllable;
+  parent: ContextualMorpheme;
   script: Script;
   sentence: Sentence;
   word: Word;
-  syllables: Syllable[];
+  morphemes: Morpheme[];
   substitutionMode: "" | "expect-source" | "expect-selector";
 
   constructor(ctx: Partial<Context>) {
@@ -124,11 +124,11 @@ class Context {
     this.script = ctx.script;
     this.sentence = ctx.sentence;
     this.word = ctx.word;
-    this.syllables = ctx.syllables;
+    this.morphemes = ctx.morphemes;
   }
-  currentSyllable() {
-    return this.syllables
-      ? this.syllables[this.syllables.length - 1]
+  currentMorpheme() {
+    return this.morphemes
+      ? this.morphemes[this.morphemes.length - 1]
       : undefined;
   }
 }
@@ -145,35 +145,35 @@ export class Parser {
     while (!this.stream.end()) {
       const token = this.stream.next();
       switch (this.context.parent?.type) {
-        case SyllableType.TUPLE:
+        case MorphemeType.TUPLE:
           this.parseTuple(token);
           break;
 
-        case SyllableType.BLOCK:
+        case MorphemeType.BLOCK:
           this.parseBlock(token);
           break;
 
-        case SyllableType.EXPRESSION:
+        case MorphemeType.EXPRESSION:
           this.parseExpression(token);
           break;
 
-        case SyllableType.STRING:
+        case MorphemeType.STRING:
           this.parseString(token);
           break;
 
-        case SyllableType.HERE_STRING:
+        case MorphemeType.HERE_STRING:
           this.parseHereString(token);
           break;
 
-        case SyllableType.TAGGED_STRING:
+        case MorphemeType.TAGGED_STRING:
           this.parseTaggedString(token);
           break;
 
-        case SyllableType.LINE_COMMENT:
+        case MorphemeType.LINE_COMMENT:
           this.parseLineComment(token);
           break;
 
-        case SyllableType.BLOCK_COMMENT:
+        case MorphemeType.BLOCK_COMMENT:
           this.parseBlockComment(token);
           break;
 
@@ -184,22 +184,22 @@ export class Parser {
 
     if (this.context.parent) {
       switch (this.context.parent.type) {
-        case SyllableType.TUPLE:
+        case MorphemeType.TUPLE:
           throw new Error("unmatched left parenthesis");
-        case SyllableType.BLOCK:
+        case MorphemeType.BLOCK:
           throw new Error("unmatched left brace");
-        case SyllableType.EXPRESSION:
+        case MorphemeType.EXPRESSION:
           throw new Error("unmatched left bracket");
-        case SyllableType.STRING:
+        case MorphemeType.STRING:
           throw new Error("unmatched string delimiter");
-        case SyllableType.HERE_STRING:
+        case MorphemeType.HERE_STRING:
           throw new Error("unmatched here-string delimiter");
-        case SyllableType.TAGGED_STRING:
+        case MorphemeType.TAGGED_STRING:
           throw new Error("unmatched tagged string delimiter");
-        case SyllableType.LINE_COMMENT:
+        case MorphemeType.LINE_COMMENT:
           this.closeLineComment();
           break;
-        case SyllableType.BLOCK_COMMENT:
+        case MorphemeType.BLOCK_COMMENT:
           throw new Error("unmatched block comment delimiter");
         default:
           throw new Error("unterminated script");
@@ -210,14 +210,14 @@ export class Parser {
     return this.context.script;
   }
 
-  private pushContext(syllable: ContextualSyllable, ctx: Partial<Context>) {
-    syllable.parentContext = this.context;
-    this.context = new Context({ ...ctx, parent: syllable });
+  private pushContext(morpheme: ContextualMorpheme, ctx: Partial<Context>) {
+    morpheme.parentContext = this.context;
+    this.context = new Context({ ...ctx, parent: morpheme });
   }
   private popContext() {
-    let syllable = this.context.parent;
-    this.context = syllable.parentContext;
-    syllable.parentContext = undefined;
+    const morpheme = this.context.parent;
+    this.context = morpheme.parentContext;
+    morpheme.parentContext = undefined;
   }
 
   /*
@@ -256,10 +256,10 @@ export class Parser {
     }
   }
   private openTuple() {
-    const syllable = new TupleSyllable();
-    this.context.syllables.push(syllable);
-    this.pushContext(syllable, {
-      script: syllable.subscript,
+    const morpheme = new TupleMorpheme();
+    this.context.morphemes.push(morpheme);
+    this.pushContext(morpheme, {
+      script: morpheme.subscript,
     });
   }
   private closeTuple() {
@@ -282,17 +282,17 @@ export class Parser {
     }
   }
   private openBlock() {
-    const syllable = new BlockSyllable();
-    syllable.start = this.stream.index;
-    this.context.syllables.push(syllable);
-    this.pushContext(syllable, {
-      script: syllable.subscript,
+    const morpheme = new BlockMorpheme();
+    morpheme.start = this.stream.index;
+    this.context.morphemes.push(morpheme);
+    this.pushContext(morpheme, {
+      script: morpheme.subscript,
     });
   }
   private closeBlock() {
-    const syllable = this.context.parent as BlockSyllable;
-    const range = this.stream.range(syllable.start, this.stream.index - 1);
-    syllable.value = range.map((token) => token.literal).join("");
+    const morpheme = this.context.parent as BlockMorpheme;
+    const range = this.stream.range(morpheme.start, this.stream.index - 1);
+    morpheme.value = range.map((token) => token.literal).join("");
     this.popContext();
   }
 
@@ -311,10 +311,10 @@ export class Parser {
     }
   }
   private openExpression() {
-    const syllable = new ExpressionSyllable();
-    this.context.syllables.push(syllable);
-    this.pushContext(syllable, {
-      script: syllable.subscript,
+    const morpheme = new ExpressionMorpheme();
+    this.context.morphemes.push(morpheme);
+    this.pushContext(morpheme, {
+      script: morpheme.subscript,
     });
   }
   private closeExpression() {
@@ -423,21 +423,21 @@ export class Parser {
     }
     this.context.word = new Word();
     this.context.sentence.words.push(this.context.word);
-    this.context.syllables = this.context.word.syllables;
+    this.context.morphemes = this.context.word.morphemes;
     return true;
   }
   private addLiteral(value: string) {
     // Attempt to merge consecutive, non substituted literals
-    if (this.context.currentSyllable()?.type == SyllableType.LITERAL) {
-      const syllable = this.context.currentSyllable() as LiteralSyllable;
+    if (this.context.currentMorpheme()?.type == MorphemeType.LITERAL) {
+      const morpheme = this.context.currentMorpheme() as LiteralMorpheme;
       if (!this.withinSubstitution()) {
-        syllable.value += value;
+        morpheme.value += value;
         return;
       }
     }
-    const syllable = new LiteralSyllable();
-    syllable.value = value;
-    this.context.syllables.push(syllable);
+    const morpheme = new LiteralMorpheme();
+    morpheme.value = value;
+    this.context.morphemes.push(morpheme);
     this.continueSubstitution();
   }
   private closeWord() {
@@ -503,13 +503,13 @@ export class Parser {
     }
   }
   private openString() {
-    const syllable = new StringSyllable();
-    this.context.word.syllables.push(syllable);
-    this.pushContext(syllable, {
+    const morpheme = new StringMorpheme();
+    this.context.word.morphemes.push(morpheme);
+    this.pushContext(morpheme, {
       script: this.context.script,
       sentence: this.context.sentence,
       word: this.context.word,
-      syllables: syllable.syllables,
+      morphemes: morpheme.morphemes,
     });
   }
   private closeString(delimiter: string) {
@@ -534,22 +534,22 @@ export class Parser {
     }
   }
   private openHereString(delimiter: string) {
-    const syllable = new HereStringSyllable(delimiter);
-    this.context.word.syllables.push(syllable);
-    this.pushContext(syllable, {
+    const morpheme = new HereStringMorpheme(delimiter);
+    this.context.word.morphemes.push(morpheme);
+    this.pushContext(morpheme, {
       script: this.context.script,
       sentence: this.context.sentence,
       word: this.context.word,
     });
   }
   private closeHereString(delimiter: string) {
-    const parent = this.context.parent as HereStringSyllable;
+    const parent = this.context.parent as HereStringMorpheme;
     if (delimiter.length != parent.delimiterLength) return false;
     this.popContext();
     return true;
   }
   private addHereStringSequence(value: string) {
-    const parent = this.context.parent as HereStringSyllable;
+    const parent = this.context.parent as HereStringMorpheme;
     parent.value += value;
   }
 
@@ -568,9 +568,9 @@ export class Parser {
     }
   }
   private openTaggedString(tag: string) {
-    const syllable = new TaggedStringSyllable(tag);
-    this.context.word.syllables.push(syllable);
-    this.pushContext(syllable, {
+    const morpheme = new TaggedStringMorpheme(tag);
+    this.context.word.morphemes.push(morpheme);
+    this.pushContext(morpheme, {
       script: this.context.script,
       sentence: this.context.sentence,
       word: this.context.word,
@@ -580,7 +580,7 @@ export class Parser {
     while (this.stream.next()?.type != TokenType.NEWLINE);
   }
   private closeTaggedString(literal: string) {
-    const parent = this.context.parent as TaggedStringSyllable;
+    const parent = this.context.parent as TaggedStringMorpheme;
     if (literal != parent.tag) return false;
     const next = this.stream.current();
     if (next?.type != TokenType.STRING_DELIMITER) return false;
@@ -596,7 +596,7 @@ export class Parser {
     return true;
   }
   private addTaggedStringSequence(value: string) {
-    const parent = this.context.parent as TaggedStringSyllable;
+    const parent = this.context.parent as TaggedStringMorpheme;
     parent.value += value;
   }
 
@@ -616,9 +616,9 @@ export class Parser {
     }
   }
   private openLineComment(delimiter: string) {
-    const syllable = new LineCommentSyllable(delimiter);
-    this.context.word.syllables.push(syllable);
-    this.pushContext(syllable, {
+    const morpheme = new LineCommentMorpheme(delimiter);
+    this.context.word.morphemes.push(morpheme);
+    this.pushContext(morpheme, {
       script: this.context.script,
       sentence: this.context.sentence,
       word: this.context.word,
@@ -628,7 +628,7 @@ export class Parser {
     this.popContext();
   }
   private addLineCommentSequence(value: string) {
-    const parent = this.context.parent as LineCommentSyllable;
+    const parent = this.context.parent as LineCommentMorpheme;
     parent.value += value;
   }
 
@@ -657,16 +657,16 @@ export class Parser {
   private openBlockComment(delimiter: string, nested = false) {
     if (this.stream.current()?.type != TokenType.OPEN_BLOCK) return false;
     if (nested) {
-      const parent = this.context.parent as BlockCommentSyllable;
+      const parent = this.context.parent as BlockCommentMorpheme;
       if (parent.delimiterLength == delimiter.length) {
         parent.nesting++;
       }
       return false;
     }
     this.stream.next();
-    const syllable = new BlockCommentSyllable(delimiter);
-    this.context.word.syllables.push(syllable);
-    this.pushContext(syllable, {
+    const morpheme = new BlockCommentMorpheme(delimiter);
+    this.context.word.morphemes.push(morpheme);
+    this.pushContext(morpheme, {
       script: this.context.script,
       sentence: this.context.sentence,
       word: this.context.word,
@@ -674,7 +674,7 @@ export class Parser {
     return true;
   }
   private closeBlockComment() {
-    const parent = this.context.parent as BlockCommentSyllable;
+    const parent = this.context.parent as BlockCommentMorpheme;
     const token = this.stream.current();
     if (token?.type != TokenType.COMMENT) return false;
     if (token.literal.length != parent.delimiterLength) return false;
@@ -684,7 +684,7 @@ export class Parser {
     return true;
   }
   private addBlockCommentSequence(value: string) {
-    const parent = this.context.parent as BlockCommentSyllable;
+    const parent = this.context.parent as BlockCommentMorpheme;
     parent.value += value;
   }
 
@@ -693,23 +693,23 @@ export class Parser {
    */
 
   private beginSubstitution(value: string) {
-    if (this.context.currentSyllable()?.type == SyllableType.SUBSTITUTE_NEXT) {
-      const syllable = this.context.currentSyllable() as SubstituteNextSyllable;
-      syllable.value += value;
-      syllable.levels++;
+    if (this.context.currentMorpheme()?.type == MorphemeType.SUBSTITUTE_NEXT) {
+      const morpheme = this.context.currentMorpheme() as SubstituteNextMorpheme;
+      morpheme.value += value;
+      morpheme.levels++;
       if (this.stream.current()?.type == TokenType.ASTERISK) {
         // Ignore expansion on inner substitutions
-        syllable.value += this.stream.next().literal;
+        morpheme.value += this.stream.next().literal;
       }
       return;
     }
-    const syllable = new SubstituteNextSyllable();
-    syllable.value = value;
+    const morpheme = new SubstituteNextMorpheme();
+    morpheme.value = value;
     if (this.stream.current()?.type == TokenType.ASTERISK) {
-      syllable.expansion = true;
-      syllable.value += this.stream.next().literal;
+      morpheme.expansion = true;
+      morpheme.value += this.stream.next().literal;
     }
-    this.context.syllables.push(syllable);
+    this.context.morphemes.push(morpheme);
     this.context.substitutionMode = "expect-source";
   }
   private continueSubstitution() {
@@ -722,9 +722,9 @@ export class Parser {
 
     // Convert stale substitutions to literals
     this.context.substitutionMode = "";
-    const value = (this.context.currentSyllable() as SubstituteNextSyllable)
+    const value = (this.context.currentMorpheme() as SubstituteNextMorpheme)
       .value;
-    this.context.syllables.pop();
+    this.context.morphemes.pop();
     this.addLiteral(value);
   }
   private withinSubstitution() {

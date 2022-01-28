@@ -138,12 +138,12 @@ describe("Evaluator", () => {
     evaluator = new Evaluator(variableResolver, commandResolver);
   });
 
-  describe("syllables", () => {
+  describe("morphemes", () => {
     describe("literals", () => {
       it("evaluate to themselves", () => {
         const script = parse("word");
-        const syllable = script.sentences[0].words[0].syllables[0];
-        const value = evaluator.evaluateSyllable(syllable);
+        const morpheme = script.sentences[0].words[0].morphemes[0];
+        const value = evaluator.evaluateMorpheme(morpheme);
         expect(mapValue(value)).to.eql("word");
       });
     });
@@ -151,26 +151,26 @@ describe("Evaluator", () => {
     describe("tuples", () => {
       specify("empty tuple", () => {
         const script = parse("()");
-        const syllable = script.sentences[0].words[0].syllables[0];
-        const value = evaluator.evaluateSyllable(syllable);
+        const morpheme = script.sentences[0].words[0].morphemes[0];
+        const value = evaluator.evaluateMorpheme(morpheme);
         expect(mapValue(value)).to.eql([]);
       });
       specify("tuple with one literal", () => {
         const script = parse("( literal )");
-        const syllable = script.sentences[0].words[0].syllables[0];
-        const value = evaluator.evaluateSyllable(syllable);
+        const morpheme = script.sentences[0].words[0].morphemes[0];
+        const value = evaluator.evaluateMorpheme(morpheme);
         expect(mapValue(value)).to.eql(["literal"]);
       });
       specify("tuple with two literals", () => {
         const script = parse("( lit1 lit2 )");
-        const syllable = script.sentences[0].words[0].syllables[0];
-        const value = evaluator.evaluateSyllable(syllable);
+        const morpheme = script.sentences[0].words[0].morphemes[0];
+        const value = evaluator.evaluateMorpheme(morpheme);
         expect(mapValue(value)).to.eql(["lit1", "lit2"]);
       });
       specify("2-level tuple", () => {
         const script = parse("( (lit1 lit2) lit3 (lit4) )");
-        const syllable = script.sentences[0].words[0].syllables[0];
-        const value = evaluator.evaluateSyllable(syllable);
+        const morpheme = script.sentences[0].words[0].morphemes[0];
+        const value = evaluator.evaluateMorpheme(morpheme);
         expect(mapValue(value)).to.eql([["lit1", "lit2"], "lit3", ["lit4"]]);
       });
     });
@@ -179,8 +179,8 @@ describe("Evaluator", () => {
       it("evaluate to their body parse tree", () => {
         const body = 'a b (c) "d"';
         const script = parse(`{${body}}`);
-        const syllable = script.sentences[0].words[0].syllables[0];
-        const value = evaluator.evaluateSyllable(syllable);
+        const morpheme = script.sentences[0].words[0].morphemes[0];
+        const value = evaluator.evaluateMorpheme(morpheme);
         expect(mapValue(value)).to.eql(parse(body));
       });
     });
@@ -188,8 +188,8 @@ describe("Evaluator", () => {
     describe("expressions", () => {
       specify("empty expression", () => {
         const script = parse(`[]`);
-        const syllable = script.sentences[0].words[0].syllables[0];
-        const value = evaluator.evaluateSyllable(syllable);
+        const morpheme = script.sentences[0].words[0].morphemes[0];
+        const value = evaluator.evaluateMorpheme(morpheme);
         expect(mapValue(value)).to.eql(null);
       });
       specify("simple command", () => {
@@ -198,15 +198,15 @@ describe("Evaluator", () => {
           new FunctionCommand(() => new StringValue("result"))
         );
         const script = parse(`[cmd]`);
-        const syllable = script.sentences[0].words[0].syllables[0];
-        const value = evaluator.evaluateSyllable(syllable);
+        const morpheme = script.sentences[0].words[0].morphemes[0];
+        const value = evaluator.evaluateMorpheme(morpheme);
         expect(mapValue(value)).to.eql("result");
       });
       specify("single argument", () => {
         commandResolver.register("cmd", new FunctionCommand((args) => args[1]));
         const script = parse(`[cmd arg]`);
-        const syllable = script.sentences[0].words[0].syllables[0];
-        const value = evaluator.evaluateSyllable(syllable);
+        const morpheme = script.sentences[0].words[0].morphemes[0];
+        const value = evaluator.evaluateMorpheme(morpheme);
         expect(mapValue(value)).to.eql("arg");
       });
       specify("multiple arguments", () => {
@@ -218,8 +218,8 @@ describe("Evaluator", () => {
           )
         );
         const script = parse(`[cmd foo bar baz]`);
-        const syllable = script.sentences[0].words[0].syllables[0];
-        const value = evaluator.evaluateSyllable(syllable);
+        const morpheme = script.sentences[0].words[0].morphemes[0];
+        const value = evaluator.evaluateMorpheme(morpheme);
         expect(mapValue(value)).to.eql("cmdfoobarbaz");
       });
       specify("multiple sentences", () => {
@@ -231,8 +231,8 @@ describe("Evaluator", () => {
         const script = parse(`[cmd a b; ;
           
           ; cmd c d]`);
-        const syllable = script.sentences[0].words[0].syllables[0];
-        const value = evaluator.evaluateSyllable(syllable);
+        const morpheme = script.sentences[0].words[0].morphemes[0];
+        const value = evaluator.evaluateMorpheme(morpheme);
         expect(mapValue(value)).to.eql(["cmd", "c", "d"]);
       });
       specify("complex case", () => {
@@ -242,8 +242,8 @@ describe("Evaluator", () => {
           new FunctionCommand((args) => new TupleValue(args))
         );
         const script = parse(`[cmd a [cmd b (c d)] "e" $var]`);
-        const syllable = script.sentences[0].words[0].syllables[0];
-        const value = evaluator.evaluateSyllable(syllable);
+        const morpheme = script.sentences[0].words[0].morphemes[0];
+        const value = evaluator.evaluateMorpheme(morpheme);
         expect(mapValue(value)).to.eql([
           "cmd",
           "a",
@@ -257,14 +257,14 @@ describe("Evaluator", () => {
     describe("strings", () => {
       specify("empty string", () => {
         const script = parse('""');
-        const syllable = script.sentences[0].words[0].syllables[0];
-        const value = evaluator.evaluateSyllable(syllable);
+        const morpheme = script.sentences[0].words[0].morphemes[0];
+        const value = evaluator.evaluateMorpheme(morpheme);
         expect(mapValue(value)).to.eql("");
       });
       specify("simple string", () => {
         const script = parse('"this is a string"');
-        const syllable = script.sentences[0].words[0].syllables[0];
-        const value = evaluator.evaluateSyllable(syllable);
+        const morpheme = script.sentences[0].words[0].morphemes[0];
+        const value = evaluator.evaluateMorpheme(morpheme);
         expect(mapValue(value)).to.eql("this is a string");
       });
 
@@ -275,8 +275,8 @@ describe("Evaluator", () => {
             new FunctionCommand(() => new StringValue("is"))
           );
           const script = parse('"this [cmd] a string"');
-          const syllable = script.sentences[0].words[0].syllables[0];
-          const value = evaluator.evaluateSyllable(syllable);
+          const morpheme = script.sentences[0].words[0].morphemes[0];
+          const value = evaluator.evaluateMorpheme(morpheme);
           expect(mapValue(value)).to.eql("this is a string");
         });
         specify("multiple commands", () => {
@@ -289,8 +289,8 @@ describe("Evaluator", () => {
             new FunctionCommand(() => new StringValue("s"))
           );
           const script = parse('"this [cmd1][cmd2] a string"');
-          const syllable = script.sentences[0].words[0].syllables[0];
-          const value = evaluator.evaluateSyllable(syllable);
+          const morpheme = script.sentences[0].words[0].morphemes[0];
+          const value = evaluator.evaluateMorpheme(morpheme);
           expect(mapValue(value)).to.eql("this is a string");
         });
       });
@@ -300,16 +300,16 @@ describe("Evaluator", () => {
           specify("simple substitution", () => {
             variableResolver.register("var", new StringValue("value"));
             const script = parse('"$var"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value");
           });
           specify("double substitution", () => {
             variableResolver.register("var1", new StringValue("var2"));
             variableResolver.register("var2", new StringValue("value"));
             const script = parse('"$$var1"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value");
           });
           specify("triple substitution", () => {
@@ -317,8 +317,8 @@ describe("Evaluator", () => {
             variableResolver.register("var2", new StringValue("var3"));
             variableResolver.register("var3", new StringValue("value"));
             const script = parse('"$$$var1"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value");
           });
         });
@@ -330,8 +330,8 @@ describe("Evaluator", () => {
               new StringValue("value")
             );
             const script = parse('"${variable name}"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value");
           });
           specify("varname with special characters", () => {
@@ -340,8 +340,8 @@ describe("Evaluator", () => {
               new StringValue("value")
             );
             const script = parse('"${variable " " name}"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value");
           });
           specify("varname with continuations", () => {
@@ -350,8 +350,8 @@ describe("Evaluator", () => {
               new StringValue("value")
             );
             const script = parse('"${variable\\\n \t\r     name}"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value");
           });
         });
@@ -363,8 +363,8 @@ describe("Evaluator", () => {
               new FunctionCommand(() => new StringValue("value"))
             );
             const script = parse('"$[cmd]"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value");
           });
           specify("double substitution", () => {
@@ -374,8 +374,8 @@ describe("Evaluator", () => {
             );
             variableResolver.register("var", new StringValue("value"));
             const script = parse('"$$[cmd]"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value");
           });
         });
@@ -390,8 +390,8 @@ describe("Evaluator", () => {
               ])
             );
             const script = parse('"$var[1]"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value2");
           });
           specify("double substitution", () => {
@@ -401,8 +401,8 @@ describe("Evaluator", () => {
             );
             variableResolver.register("var2", new StringValue("value"));
             const script = parse('"$$var1[0]"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value");
           });
           specify("successive indexes", () => {
@@ -417,8 +417,8 @@ describe("Evaluator", () => {
               ])
             );
             const script = parse('"$var[1][0]"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value2_1");
           });
           specify("indirect index", () => {
@@ -432,8 +432,8 @@ describe("Evaluator", () => {
             );
             variableResolver.register("var2", new StringValue("1"));
             const script = parse('"$var1[$var2]"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value2");
           });
           specify("expression", () => {
@@ -444,8 +444,8 @@ describe("Evaluator", () => {
               )
             );
             const script = parse('"$[cmd][0]"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value");
           });
         });
@@ -457,8 +457,8 @@ describe("Evaluator", () => {
               new MapValue({ key: new StringValue("value") })
             );
             const script = parse('"$var(key)"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value");
           });
           specify("double substitution", () => {
@@ -468,8 +468,8 @@ describe("Evaluator", () => {
             );
             variableResolver.register("var2", new StringValue("value"));
             const script = parse('"$$var1(key)"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value");
           });
           specify("recursive keys", () => {
@@ -480,8 +480,8 @@ describe("Evaluator", () => {
               })
             );
             const script = parse('"$var(key1 key2)"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value");
           });
           specify("successive keys", () => {
@@ -492,8 +492,8 @@ describe("Evaluator", () => {
               })
             );
             const script = parse('"$var(key1)(key2)"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value");
           });
           specify("indirect key", () => {
@@ -505,8 +505,8 @@ describe("Evaluator", () => {
             );
             variableResolver.register("var2", new StringValue("key"));
             const script = parse('"$var1($var2)"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value");
           });
           specify("string key", () => {
@@ -517,8 +517,8 @@ describe("Evaluator", () => {
               })
             );
             const script = parse('"$var("arbitrary key")"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value");
           });
           specify("expression", () => {
@@ -529,8 +529,8 @@ describe("Evaluator", () => {
               )
             );
             const script = parse('"$[cmd](key)"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("value");
           });
         });
@@ -542,8 +542,8 @@ describe("Evaluator", () => {
               new MapValue({ key: new StringValue("value") })
             );
             const script = parse('"$var(key)foo"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("valuefoo");
           });
           specify("middle", () => {
@@ -552,15 +552,15 @@ describe("Evaluator", () => {
               new MapValue({ key: new StringValue("value") })
             );
             const script = parse('"foo$var(key)bar"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("foovaluebar");
           });
           specify("end", () => {
             variableResolver.register("var", new StringValue("value"));
             const script = parse('"foo$var"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("foovalue");
           });
           specify("multiple", () => {
@@ -573,8 +573,8 @@ describe("Evaluator", () => {
               new MapValue({ key2: new StringValue("value2") })
             );
             const script = parse('"foo$var1(key1)bar$var2(key2)baz"');
-            const syllable = script.sentences[0].words[0].syllables[0];
-            const value = evaluator.evaluateSyllable(syllable);
+            const morpheme = script.sentences[0].words[0].morphemes[0];
+            const value = evaluator.evaluateMorpheme(morpheme);
             expect(mapValue(value)).to.eql("foovalue1barvalue2baz");
           });
         });
@@ -590,8 +590,8 @@ describe("Evaluator", () => {
         const script = parse(
           '"this $var1 ${variable 2} [cmd] with substitutions"'
         );
-        const syllable = script.sentences[0].words[0].syllables[0];
-        const value = evaluator.evaluateSyllable(syllable);
+        const morpheme = script.sentences[0].words[0].morphemes[0];
+        const value = evaluator.evaluateMorpheme(morpheme);
         expect(mapValue(value)).to.eql("this is a string with substitutions");
       });
     });
@@ -599,8 +599,8 @@ describe("Evaluator", () => {
     describe("here strings", () => {
       it("evaluate to their content", () => {
         const script = parse('"""this is a "\'\\ $ \nhere string"""');
-        const syllable = script.sentences[0].words[0].syllables[0];
-        const value = evaluator.evaluateSyllable(syllable);
+        const morpheme = script.sentences[0].words[0].morphemes[0];
+        const value = evaluator.evaluateMorpheme(morpheme);
         expect(mapValue(value)).to.eql("this is a \"'\\ $ \nhere string");
       });
     });
@@ -610,8 +610,8 @@ describe("Evaluator", () => {
         const script = parse(
           '""SOME_TAG\nthis is \n a \n "\'\\ $ tagged string\nSOME_TAG""'
         );
-        const syllable = script.sentences[0].words[0].syllables[0];
-        const value = evaluator.evaluateSyllable(syllable);
+        const morpheme = script.sentences[0].words[0].morphemes[0];
+        const value = evaluator.evaluateMorpheme(morpheme);
         expect(mapValue(value)).to.eql(
           "this is \n a \n \"'\\ $ tagged string\n"
         );
@@ -664,7 +664,7 @@ describe("Evaluator", () => {
           });
         });
         describe("exceptions", () => {
-          specify("invalid trailing syllables", () => {
+          specify("invalid trailing morphemes", () => {
             const script = parse("var(key1)2");
             const word = script.sentences[0].words[0];
             expect(() => evaluator.evaluateWord(word)).to.throws(
@@ -707,7 +707,7 @@ describe("Evaluator", () => {
           });
         });
         describe("exceptions", () => {
-          specify("invalid trailing syllables", () => {
+          specify("invalid trailing morphemes", () => {
             const script = parse("(var1 var2)(key1)2");
             const word = script.sentences[0].words[0];
             expect(() => evaluator.evaluateWord(word)).to.throws(
@@ -1107,7 +1107,7 @@ describe("Evaluator", () => {
             "cannot resolve variable"
           );
         });
-        specify("invalid trailing syllables", () => {
+        specify("invalid trailing morphemes", () => {
           variableResolver.register(
             "var",
             new MapValue({ key: new StringValue("value") })
