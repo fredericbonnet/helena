@@ -11,6 +11,7 @@ import {
   TaggedStringMorpheme,
   TupleMorpheme,
   Word,
+  Script,
 } from "./parser";
 import { IndexedSelector, KeyedSelector, Selector } from "./selectors";
 import {
@@ -111,6 +112,9 @@ export class Evaluator {
   evaluateExpression(expression: ExpressionMorpheme): Value {
     if (!this.commandResolver) throw new Error("no command resolver");
     const script = (expression as ExpressionMorpheme).subscript;
+    return this.evaluateScript(script);
+  }
+  evaluateScript(script: Script) {
     let value: Value = NIL;
     for (let sentence of script.sentences) {
       value = this.evaluateSentence(sentence);

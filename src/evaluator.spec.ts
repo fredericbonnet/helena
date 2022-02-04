@@ -1045,4 +1045,62 @@ describe("Evaluator", () => {
       });
     });
   });
+
+  describe("scripts", () => {
+    specify("conditional evaluation", () => {
+      commandResolver.register(
+        "if",
+        new FunctionCommand((args) => {
+          const condition = args[1];
+          const block = condition.asString() == "true" ? args[2] : args[4];
+          return evaluator.evaluateScript((block as ScriptValue).script);
+        })
+      );
+      let called = {};
+      let fn = new FunctionCommand((args) => {
+        const cmd = args[0].asString();
+        called[cmd] = called[cmd] ?? 0 + 1;
+        return args[1];
+      });
+      commandResolver.register("cmd1", fn);
+      commandResolver.register("cmd2", fn);
+      const script1 = parse("if true {cmd1 a} else {cmd2 b}");
+      const value1 = evaluator.evaluateScript(script1);
+      expect(mapValue(value1)).to.eql("a");
+      expect(called).to.eql({ cmd1: 1 });
+      const script2 = parse("if false {cmd1 a} else {cmd2 b}");
+      const value2 = evaluator.evaluateScript(script2);
+      expect(mapValue(value2)).to.eql("b");
+      expect(called).to.eql({ cmd1: 1, cmd2: 1 });
+    });
+    specify("loop", () => {
+      commandResolver.register(
+        "repeat",
+        new FunctionCommand((args) => {
+          const nb = IntegerValue.fromValue(args[1]).value;
+          const block = args[2];
+          let value = NIL;
+          for (let i = 0; i < nb; i++) {
+            value = evaluator.evaluateScript((block as ScriptValue).script);
+          }
+          return value;
+        })
+      );
+      let counter = 0;
+      let acc = "";
+      commandResolver.register(
+        "cmd",
+        new FunctionCommand((args) => {
+          const value = args[1].asString();
+          acc += value;
+          return new IntegerValue(counter++);
+        })
+      );
+      const script = parse("repeat 10 {cmd foo}");
+      const value = evaluator.evaluateScript(script);
+      expect(mapValue(value)).to.eql(9);
+      expect(counter).to.eql(10);
+      expect(acc).to.eql("foo".repeat(10));
+    });
+  });
 });
