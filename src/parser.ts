@@ -1,118 +1,27 @@
 import { Token, TokenType } from "./tokenizer";
+import {
+  Script,
+  Sentence,
+  Word,
+  MorphemeType,
+  Morpheme,
+  LiteralMorpheme,
+  TupleMorpheme,
+  BlockMorpheme,
+  ExpressionMorpheme,
+  StringMorpheme,
+  HereStringMorpheme,
+  TaggedStringMorpheme,
+  LineCommentMorpheme,
+  BlockCommentMorpheme,
+  SubstituteNextMorpheme,
+} from "./syntax";
 
-export enum MorphemeType {
-  LITERAL,
-  TUPLE,
-  BLOCK,
-  EXPRESSION,
-  STRING,
-  HERE_STRING,
-  TAGGED_STRING,
-  LINE_COMMENT,
-  BLOCK_COMMENT,
-  SUBSTITUTE_NEXT,
-}
-
-export class LiteralMorpheme {
-  type: MorphemeType = MorphemeType.LITERAL;
-  value: string;
-}
-export class TupleMorpheme {
-  type: MorphemeType = MorphemeType.TUPLE;
-  subscript: Script = new Script();
+interface ContextualNode extends Morpheme {
   parentContext?: Context;
 }
-export class BlockMorpheme {
-  type: MorphemeType = MorphemeType.BLOCK;
-  subscript: Script = new Script();
-  start: number;
-  value: string;
-  parentContext?: Context;
-}
-export class ExpressionMorpheme {
-  type: MorphemeType = MorphemeType.EXPRESSION;
-  subscript: Script = new Script();
-  parentContext?: Context;
-}
-export class StringMorpheme {
-  type: MorphemeType = MorphemeType.STRING;
-  morphemes: Morpheme[] = [];
-  parentContext?: Context;
-}
-export class HereStringMorpheme {
-  type: MorphemeType = MorphemeType.HERE_STRING;
-  value: string = "";
-  delimiterLength: number;
-  parentContext?: Context;
-
-  constructor(delimiter: string) {
-    this.delimiterLength = delimiter.length;
-  }
-}
-export class TaggedStringMorpheme {
-  type: MorphemeType = MorphemeType.TAGGED_STRING;
-  value: string = "";
-  tag: string;
-  parentContext?: Context;
-
-  constructor(tag: string) {
-    this.tag = tag;
-  }
-}
-export class LineCommentMorpheme {
-  type: MorphemeType = MorphemeType.LINE_COMMENT;
-  value: string = "";
-  delimiterLength: number;
-  parentContext?: Context;
-
-  constructor(delimiter: string) {
-    this.delimiterLength = delimiter.length;
-  }
-}
-export class BlockCommentMorpheme {
-  type: MorphemeType = MorphemeType.BLOCK_COMMENT;
-  value: string = "";
-  delimiterLength: number;
-  nesting: number = 1;
-  parentContext?: Context;
-
-  constructor(delimiter: string) {
-    this.delimiterLength = delimiter.length;
-  }
-}
-export class SubstituteNextMorpheme {
-  type: MorphemeType = MorphemeType.SUBSTITUTE_NEXT;
-  expansion: boolean = false;
-  levels: number = 1;
-  value: string = "";
-}
-
-type ContextualMorpheme =
-  | TupleMorpheme
-  | BlockMorpheme
-  | ExpressionMorpheme
-  | StringMorpheme
-  | HereStringMorpheme
-  | TaggedStringMorpheme
-  | LineCommentMorpheme
-  | BlockCommentMorpheme;
-export type Morpheme =
-  | LiteralMorpheme
-  | ContextualMorpheme
-  | SubstituteNextMorpheme;
-
-export class Word {
-  morphemes: Morpheme[] = [];
-}
-export class Sentence {
-  words: Word[] = [];
-}
-export class Script {
-  sentences: Sentence[] = [];
-}
-
 class Context {
-  parent: ContextualMorpheme;
+  parent: ContextualNode;
   script: Script;
   sentence: Sentence;
   word: Word;
@@ -127,11 +36,96 @@ class Context {
     this.morphemes = ctx.morphemes;
   }
   currentMorpheme() {
-    return this.morphemes
-      ? this.morphemes[this.morphemes.length - 1]
-      : undefined;
+    return this.morphemes?.[this.morphemes.length - 1];
   }
 }
+
+class LiteralNode implements LiteralMorpheme {
+  type = MorphemeType.LITERAL;
+  value: string;
+
+  constructor(value: string) {
+    this.value = value;
+  }
+}
+class TupleNode implements TupleMorpheme, ContextualNode {
+  type = MorphemeType.TUPLE;
+  subscript: Script = new Script();
+  parentContext?: Context;
+}
+class BlockNode implements BlockMorpheme, ContextualNode {
+  type = MorphemeType.BLOCK;
+  subscript: Script = new Script();
+  start: number;
+  value: string;
+  parentContext?: Context;
+
+  constructor(start: number) {
+    this.start = start;
+  }
+}
+class ExpressionNode implements ExpressionMorpheme, ContextualNode {
+  type = MorphemeType.EXPRESSION;
+  subscript: Script = new Script();
+  parentContext?: Context;
+}
+class StringNode implements StringMorpheme, ContextualNode {
+  type = MorphemeType.STRING;
+  morphemes: Morpheme[] = [];
+  parentContext?: Context;
+}
+class HereStringNode implements HereStringMorpheme, ContextualNode {
+  type = MorphemeType.HERE_STRING;
+  value: string = "";
+  delimiterLength: number;
+  parentContext?: Context;
+
+  constructor(delimiter: string) {
+    this.delimiterLength = delimiter.length;
+  }
+}
+class TaggedStringNode implements TaggedStringMorpheme, ContextualNode {
+  type = MorphemeType.TAGGED_STRING;
+  value: string = "";
+  tag: string;
+  parentContext?: Context;
+
+  constructor(tag: string) {
+    this.tag = tag;
+  }
+}
+class LineCommentNode implements LineCommentMorpheme, ContextualNode {
+  type = MorphemeType.LINE_COMMENT;
+  value: string = "";
+  delimiterLength: number;
+  parentContext?: Context;
+
+  constructor(delimiter: string) {
+    this.delimiterLength = delimiter.length;
+  }
+}
+class BlockCommentNode implements BlockCommentMorpheme, ContextualNode {
+  type = MorphemeType.BLOCK_COMMENT;
+  value: string = "";
+  delimiterLength: number;
+  nesting: number = 1;
+  parentContext?: Context;
+
+  constructor(delimiter: string) {
+    this.delimiterLength = delimiter.length;
+  }
+}
+class SubstituteNextNode implements SubstituteNextMorpheme {
+  type = MorphemeType.SUBSTITUTE_NEXT;
+  expansion: boolean = false;
+  levels: number = 1;
+  value: string;
+
+  constructor(value: string) {
+    this.value = value;
+  }
+}
+
 export class Parser {
   private stream: TokenStream;
   private context: Context;
@@ -210,14 +204,14 @@ export class Parser {
     return this.context.script;
   }
 
-  private pushContext(morpheme: ContextualMorpheme, ctx: Partial<Context>) {
-    morpheme.parentContext = this.context;
-    this.context = new Context({ ...ctx, parent: morpheme });
+  private pushContext(node: ContextualNode, ctx: Partial<Context>) {
+    node.parentContext = this.context;
+    this.context = new Context({ ...ctx, parent: node });
   }
   private popContext() {
-    const morpheme = this.context.parent;
-    this.context = morpheme.parentContext;
-    morpheme.parentContext = undefined;
+    const node = this.context.parent;
+    this.context = node.parentContext;
+    node.parentContext = undefined;
   }
 
   /*
@@ -256,10 +250,10 @@ export class Parser {
     }
   }
   private openTuple() {
-    const morpheme = new TupleMorpheme();
-    this.context.morphemes.push(morpheme);
-    this.pushContext(morpheme, {
-      script: morpheme.subscript,
+    const node = new TupleNode();
+    this.context.morphemes.push(node);
+    this.pushContext(node, {
+      script: node.subscript,
     });
   }
   private closeTuple() {
@@ -282,17 +276,16 @@ export class Parser {
     }
   }
   private openBlock() {
-    const morpheme = new BlockMorpheme();
-    morpheme.start = this.stream.index;
-    this.context.morphemes.push(morpheme);
-    this.pushContext(morpheme, {
-      script: morpheme.subscript,
+    const node = new BlockNode(this.stream.index);
+    this.context.morphemes.push(node);
+    this.pushContext(node, {
+      script: node.subscript,
     });
   }
   private closeBlock() {
-    const morpheme = this.context.parent as BlockMorpheme;
-    const range = this.stream.range(morpheme.start, this.stream.index - 1);
-    morpheme.value = range.map((token) => token.literal).join("");
+    const node = this.context.parent as BlockNode;
+    const range = this.stream.range(node.start, this.stream.index - 1);
+    node.value = range.map((token) => token.literal).join("");
     this.popContext();
   }
 
@@ -311,10 +304,10 @@ export class Parser {
     }
   }
   private openExpression() {
-    const morpheme = new ExpressionMorpheme();
-    this.context.morphemes.push(morpheme);
-    this.pushContext(morpheme, {
-      script: morpheme.subscript,
+    const node = new ExpressionNode();
+    this.context.morphemes.push(node);
+    this.pushContext(node, {
+      script: node.subscript,
     });
   }
   private closeExpression() {
@@ -438,8 +431,7 @@ export class Parser {
         return;
       }
     }
-    const morpheme = new LiteralMorpheme();
-    morpheme.value = value;
+    const morpheme = new LiteralNode(value);
     this.context.morphemes.push(morpheme);
     this.continueSubstitution();
   }
@@ -506,13 +498,13 @@ export class Parser {
     }
   }
   private openString() {
-    const morpheme = new StringMorpheme();
-    this.context.word.morphemes.push(morpheme);
-    this.pushContext(morpheme, {
+    const node = new StringNode();
+    this.context.morphemes.push(node);
+    this.pushContext(node, {
       script: this.context.script,
       sentence: this.context.sentence,
       word: this.context.word,
-      morphemes: morpheme.morphemes,
+      morphemes: node.morphemes,
     });
   }
   private closeString(delimiter: string) {
@@ -537,23 +529,23 @@ export class Parser {
     }
   }
   private openHereString(delimiter: string) {
-    const morpheme = new HereStringMorpheme(delimiter);
-    this.context.word.morphemes.push(morpheme);
-    this.pushContext(morpheme, {
+    const node = new HereStringNode(delimiter);
+    this.context.morphemes.push(node);
+    this.pushContext(node, {
       script: this.context.script,
       sentence: this.context.sentence,
       word: this.context.word,
     });
   }
   private closeHereString(delimiter: string) {
-    const parent = this.context.parent as HereStringMorpheme;
-    if (delimiter.length != parent.delimiterLength) return false;
+    const node = this.context.parent as HereStringNode;
+    if (delimiter.length != node.delimiterLength) return false;
     this.popContext();
     return true;
   }
   private addHereStringSequence(value: string) {
-    const parent = this.context.parent as HereStringMorpheme;
-    parent.value += value;
+    const node = this.context.parent as HereStringNode;
+    node.value += value;
   }
 
   /*
@@ -571,9 +563,9 @@ export class Parser {
     }
   }
   private openTaggedString(tag: string) {
-    const morpheme = new TaggedStringMorpheme(tag);
-    this.context.word.morphemes.push(morpheme);
-    this.pushContext(morpheme, {
+    const node = new TaggedStringNode(tag);
+    this.context.morphemes.push(node);
+    this.pushContext(node, {
       script: this.context.script,
       sentence: this.context.sentence,
       word: this.context.word,
@@ -583,24 +575,24 @@ export class Parser {
     while (this.stream.next()?.type != TokenType.NEWLINE);
   }
   private closeTaggedString(literal: string) {
-    const parent = this.context.parent as TaggedStringMorpheme;
-    if (literal != parent.tag) return false;
+    const node = this.context.parent as TaggedStringNode;
+    if (literal != node.tag) return false;
     const next = this.stream.current();
     if (next?.type != TokenType.STRING_DELIMITER) return false;
     if (next.literal.length != 2) return false;
     this.stream.next();
 
     // Shift lines by prefix length
-    const lines = parent.value.split("\n");
+    const lines = node.value.split("\n");
     const prefix = lines[lines.length - 1];
-    parent.value = lines.map((line) => line.substr(prefix.length)).join("\n");
+    node.value = lines.map((line) => line.substr(prefix.length)).join("\n");
 
     this.popContext();
     return true;
   }
   private addTaggedStringSequence(value: string) {
-    const parent = this.context.parent as TaggedStringMorpheme;
-    parent.value += value;
+    const node = this.context.parent as TaggedStringNode;
+    node.value += value;
   }
 
   /*
@@ -619,9 +611,9 @@ export class Parser {
     }
   }
   private openLineComment(delimiter: string) {
-    const morpheme = new LineCommentMorpheme(delimiter);
-    this.context.word.morphemes.push(morpheme);
-    this.pushContext(morpheme, {
+    const node = new LineCommentNode(delimiter);
+    this.context.morphemes.push(node);
+    this.pushContext(node, {
       script: this.context.script,
       sentence: this.context.sentence,
       word: this.context.word,
@@ -631,8 +623,8 @@ export class Parser {
     this.popContext();
   }
   private addLineCommentSequence(value: string) {
-    const parent = this.context.parent as LineCommentMorpheme;
-    parent.value += value;
+    const node = this.context.parent as LineCommentNode;
+    node.value += value;
   }
 
   /*
@@ -660,16 +652,16 @@ export class Parser {
   private openBlockComment(delimiter: string, nested = false) {
     if (this.stream.current()?.type != TokenType.OPEN_BLOCK) return false;
     if (nested) {
-      const parent = this.context.parent as BlockCommentMorpheme;
-      if (parent.delimiterLength == delimiter.length) {
-        parent.nesting++;
+      const node = this.context.parent as BlockCommentNode;
+      if (node.delimiterLength == delimiter.length) {
+        node.nesting++;
       }
       return false;
     }
     this.stream.next();
-    const morpheme = new BlockCommentMorpheme(delimiter);
-    this.context.word.morphemes.push(morpheme);
-    this.pushContext(morpheme, {
+    const node = new BlockCommentNode(delimiter);
+    this.context.morphemes.push(node);
+    this.pushContext(node, {
       script: this.context.script,
       sentence: this.context.sentence,
       word: this.context.word,
@@ -677,18 +669,18 @@ export class Parser {
     return true;
   }
   private closeBlockComment() {
-    const parent = this.context.parent as BlockCommentMorpheme;
+    const node = this.context.parent as BlockCommentNode;
     const token = this.stream.current();
     if (token?.type != TokenType.COMMENT) return false;
-    if (token.literal.length != parent.delimiterLength) return false;
-    if (--parent.nesting > 0) return false;
+    if (token.literal.length != node.delimiterLength) return false;
+    if (--node.nesting > 0) return false;
     this.stream.next();
     this.popContext();
     return true;
   }
   private addBlockCommentSequence(value: string) {
-    const parent = this.context.parent as BlockCommentMorpheme;
-    parent.value += value;
+    const node = this.context.parent as BlockCommentNode;
+    node.value += value;
   }
 
   /*
@@ -697,7 +689,7 @@ export class Parser {
 
   private beginSubstitution(value: string) {
     if (this.context.currentMorpheme()?.type == MorphemeType.SUBSTITUTE_NEXT) {
-      const morpheme = this.context.currentMorpheme() as SubstituteNextMorpheme;
+      const morpheme = this.context.currentMorpheme() as SubstituteNextNode;
       morpheme.value += value;
       morpheme.levels++;
       if (this.stream.current()?.type == TokenType.ASTERISK) {
@@ -706,8 +698,7 @@ export class Parser {
       }
       return;
     }
-    const morpheme = new SubstituteNextMorpheme();
-    morpheme.value = value;
+    const morpheme = new SubstituteNextNode(value);
     if (this.stream.current()?.type == TokenType.ASTERISK) {
       morpheme.expansion = true;
       morpheme.value += this.stream.next().literal;
@@ -725,8 +716,7 @@ export class Parser {
 
     // Convert stale substitutions to literals
     this.context.substitutionMode = "";
-    const value = (this.context.currentMorpheme() as SubstituteNextMorpheme)
-      .value;
+    const value = (this.context.currentMorpheme() as SubstituteNextNode).value;
     this.context.morphemes.pop();
     this.addLiteral(value);
   }

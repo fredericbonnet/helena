@@ -1,52 +1,55 @@
 import { expect } from "chai";
+import { Parser } from "./parser";
 import {
+  Script,
+  MorphemeType,
+  Morpheme,
+  LiteralMorpheme,
+  TupleMorpheme,
   BlockMorpheme,
   ExpressionMorpheme,
-  HereStringMorpheme,
-  TupleMorpheme,
-  LiteralMorpheme,
-  Parser,
-  Script,
   StringMorpheme,
-  Morpheme,
+  HereStringMorpheme,
   TaggedStringMorpheme,
   LineCommentMorpheme,
   BlockCommentMorpheme,
   SubstituteNextMorpheme,
-} from "./parser";
+} from "./syntax";
 import { Tokenizer } from "./tokenizer";
 
 const mapMorpheme = (morpheme: Morpheme) => {
-  if (morpheme instanceof LiteralMorpheme) {
-    return { LITERAL: morpheme.value };
+  if (morpheme.type == MorphemeType.LITERAL) {
+    return { LITERAL: (morpheme as LiteralMorpheme).value };
   }
-  if (morpheme instanceof TupleMorpheme) {
-    return { TUPLE: toTree(morpheme.subscript) };
+  if (morpheme.type == MorphemeType.TUPLE) {
+    return { TUPLE: toTree((morpheme as TupleMorpheme).subscript) };
   }
-  if (morpheme instanceof BlockMorpheme) {
-    return { BLOCK: toTree(morpheme.subscript) };
+  if (morpheme.type == MorphemeType.BLOCK) {
+    return { BLOCK: toTree((morpheme as BlockMorpheme).subscript) };
   }
-  if (morpheme instanceof ExpressionMorpheme) {
-    return { EXPRESSION: toTree(morpheme.subscript) };
+  if (morpheme.type == MorphemeType.EXPRESSION) {
+    return { EXPRESSION: toTree((morpheme as ExpressionMorpheme).subscript) };
   }
-  if (morpheme instanceof StringMorpheme) {
-    return { STRING: morpheme.morphemes.map(mapMorpheme) };
+  if (morpheme.type == MorphemeType.STRING) {
+    return { STRING: (morpheme as StringMorpheme).morphemes.map(mapMorpheme) };
   }
-  if (morpheme instanceof HereStringMorpheme) {
-    return { HERE_STRING: morpheme.value };
+  if (morpheme.type == MorphemeType.HERE_STRING) {
+    return { HERE_STRING: (morpheme as HereStringMorpheme).value };
   }
-  if (morpheme instanceof TaggedStringMorpheme) {
-    return { TAGGED_STRING: morpheme.value };
+  if (morpheme.type == MorphemeType.TAGGED_STRING) {
+    return { TAGGED_STRING: (morpheme as TaggedStringMorpheme).value };
   }
-  if (morpheme instanceof LineCommentMorpheme) {
-    return { LINE_COMMENT: morpheme.value };
+  if (morpheme.type == MorphemeType.LINE_COMMENT) {
+    return { LINE_COMMENT: (morpheme as LineCommentMorpheme).value };
   }
-  if (morpheme instanceof BlockCommentMorpheme) {
-    return { BLOCK_COMMENT: morpheme.value };
+  if (morpheme.type == MorphemeType.BLOCK_COMMENT) {
+    return { BLOCK_COMMENT: (morpheme as BlockCommentMorpheme).value };
   }
-  if (morpheme instanceof SubstituteNextMorpheme) {
+  if (morpheme.type == MorphemeType.SUBSTITUTE_NEXT) {
     return {
-      [morpheme.expansion ? "EXPAND_NEXT" : "SUBSTITUTE_NEXT"]: morpheme.levels,
+      [(morpheme as SubstituteNextMorpheme).expansion
+        ? "EXPAND_NEXT"
+        : "SUBSTITUTE_NEXT"]: (morpheme as SubstituteNextMorpheme).levels,
     };
   }
   throw new Error("TODO");

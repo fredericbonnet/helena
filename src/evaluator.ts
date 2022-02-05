@@ -1,18 +1,18 @@
 import {
-  BlockMorpheme,
-  ExpressionMorpheme,
-  HereStringMorpheme,
-  LiteralMorpheme,
   Sentence,
-  StringMorpheme,
-  SubstituteNextMorpheme,
-  Morpheme,
-  MorphemeType,
-  TaggedStringMorpheme,
-  TupleMorpheme,
   Word,
   Script,
-} from "./parser";
+  MorphemeType,
+  Morpheme,
+  LiteralMorpheme,
+  TupleMorpheme,
+  BlockMorpheme,
+  ExpressionMorpheme,
+  StringMorpheme,
+  HereStringMorpheme,
+  TaggedStringMorpheme,
+  SubstituteNextMorpheme,
+} from "./syntax";
 import { IndexedSelector, KeyedSelector, Selector } from "./selectors";
 import {
   StringValue,

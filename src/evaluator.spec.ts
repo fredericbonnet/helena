@@ -1,7 +1,8 @@
 import { expect } from "chai";
 import { Evaluator, VariableResolver, CommandResolver } from "./evaluator";
-import { Parser, Script } from "./parser";
+import { Parser } from "./parser";
 import { Tokenizer } from "./tokenizer";
+import { Script } from "./syntax";
 import {
   Value,
   StringValue,

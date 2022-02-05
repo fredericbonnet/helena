@@ -1,4 +1,4 @@
-import { Script } from "./parser";
+import { Script } from "./syntax";
 import { Selector } from "./selectors";
 
 export enum ValueType {
