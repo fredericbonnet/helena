@@ -628,7 +628,7 @@ export class Parser {
   }
 
   /*
-   * Block comment
+   * Block comments
    */
 
   private parseBlockComment(token: Token) {

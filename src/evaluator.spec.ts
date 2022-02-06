@@ -564,13 +564,13 @@ describe("Evaluator", () => {
       });
     });
 
-    describe("here strings", () => {
+    describe("here-strings", () => {
       it("evaluate to their content", () => {
         const morpheme = firstMorpheme(
-          parse('"""this is a "\'\\ $ \nhere string"""')
+          parse('"""this is a "\'\\ $ \nhere-string"""')
         );
         const value = evaluator.evaluateMorpheme(morpheme);
-        expect(mapValue(value)).to.eql("this is a \"'\\ $ \nhere string");
+        expect(mapValue(value)).to.eql("this is a \"'\\ $ \nhere-string");
       });
     });
 

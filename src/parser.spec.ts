@@ -18,41 +18,45 @@ import {
 import { Tokenizer } from "./tokenizer";
 
 const mapMorpheme = (morpheme: Morpheme) => {
-  if (morpheme.type == MorphemeType.LITERAL) {
-    return { LITERAL: (morpheme as LiteralMorpheme).value };
+  switch (morpheme.type) {
+    case MorphemeType.LITERAL:
+      return { LITERAL: (morpheme as LiteralMorpheme).value };
+
+    case MorphemeType.TUPLE:
+      return { TUPLE: toTree((morpheme as TupleMorpheme).subscript) };
+
+    case MorphemeType.BLOCK:
+      return { BLOCK: toTree((morpheme as BlockMorpheme).subscript) };
+
+    case MorphemeType.EXPRESSION:
+      return { EXPRESSION: toTree((morpheme as ExpressionMorpheme).subscript) };
+
+    case MorphemeType.STRING:
+      return {
+        STRING: (morpheme as StringMorpheme).morphemes.map(mapMorpheme),
+      };
+
+    case MorphemeType.HERE_STRING:
+      return { HERE_STRING: (morpheme as HereStringMorpheme).value };
+
+    case MorphemeType.TAGGED_STRING:
+      return { TAGGED_STRING: (morpheme as TaggedStringMorpheme).value };
+
+    case MorphemeType.LINE_COMMENT:
+      return { LINE_COMMENT: (morpheme as LineCommentMorpheme).value };
+
+    case MorphemeType.BLOCK_COMMENT:
+      return { BLOCK_COMMENT: (morpheme as BlockCommentMorpheme).value };
+
+    case MorphemeType.SUBSTITUTE_NEXT:
+      return {
+        [(morpheme as SubstituteNextMorpheme).expansion
+          ? "EXPAND_NEXT"
+          : "SUBSTITUTE_NEXT"]: (morpheme as SubstituteNextMorpheme).levels,
+      };
+    default:
+      throw new Error("TODO");
   }
-  if (morpheme.type == MorphemeType.TUPLE) {
-    return { TUPLE: toTree((morpheme as TupleMorpheme).subscript) };
-  }
-  if (morpheme.type == MorphemeType.BLOCK) {
-    return { BLOCK: toTree((morpheme as BlockMorpheme).subscript) };
-  }
-  if (morpheme.type == MorphemeType.EXPRESSION) {
-    return { EXPRESSION: toTree((morpheme as ExpressionMorpheme).subscript) };
-  }
-  if (morpheme.type == MorphemeType.STRING) {
-    return { STRING: (morpheme as StringMorpheme).morphemes.map(mapMorpheme) };
-  }
-  if (morpheme.type == MorphemeType.HERE_STRING) {
-    return { HERE_STRING: (morpheme as HereStringMorpheme).value };
-  }
-  if (morpheme.type == MorphemeType.TAGGED_STRING) {
-    return { TAGGED_STRING: (morpheme as TaggedStringMorpheme).value };
-  }
-  if (morpheme.type == MorphemeType.LINE_COMMENT) {
-    return { LINE_COMMENT: (morpheme as LineCommentMorpheme).value };
-  }
-  if (morpheme.type == MorphemeType.BLOCK_COMMENT) {
-    return { BLOCK_COMMENT: (morpheme as BlockCommentMorpheme).value };
-  }
-  if (morpheme.type == MorphemeType.SUBSTITUTE_NEXT) {
-    return {
-      [(morpheme as SubstituteNextMorpheme).expansion
-        ? "EXPAND_NEXT"
-        : "SUBSTITUTE_NEXT"]: (morpheme as SubstituteNextMorpheme).levels,
-    };
-  }
-  throw new Error("TODO");
 };
 const toTree = (script: Script) =>
   script.sentences.map((sentence) =>

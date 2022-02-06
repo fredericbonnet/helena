@@ -43,6 +43,36 @@ export class Evaluator {
     this.commandResolver = commandResolver;
   }
 
+  /*
+   * Scripts
+   */
+
+  evaluateScript(script: Script) {
+    let value: Value = NIL;
+    for (let sentence of script.sentences) {
+      value = this.evaluateSentence(sentence);
+    }
+    return value;
+  }
+
+  /*
+   * Sentences
+   */
+
+  evaluateSentence(sentence: Sentence): Value {
+    if (!this.commandResolver) throw new Error("no command resolver");
+    if (sentence.words.length == 0) return NIL;
+    const args = sentence.words.map((word) => this.evaluateWord(word));
+    const cmdname = args[0].asString();
+    const command = this.commandResolver.resolve(cmdname);
+    if (!command) throw new Error(`cannot resolve command ${cmdname}`);
+    return command.evaluate(args);
+  }
+
+  /*
+   * Words
+   */
+
   evaluateWord(word: Word): Value {
     if (word.morphemes.length == 1) {
       return this.evaluateMorpheme(word.morphemes[0]);
@@ -72,6 +102,10 @@ export class Evaluator {
     }
   }
 
+  /*
+   * Morphemes
+   */
+
   evaluateMorpheme(morpheme: Morpheme): Value {
     switch (morpheme.type) {
       case MorphemeType.LITERAL:
@@ -96,9 +130,18 @@ export class Evaluator {
     }
   }
 
+  /*
+   * Literals
+   */
+
   evaluateLiteral(literal: LiteralMorpheme): StringValue {
     return new StringValue(literal.value);
   }
+
+  /*
+   * Tuples
+   */
+
   evaluateTuple(tuple: TupleMorpheme): TupleValue {
     const value: Value[] = [];
     for (let sentence of tuple.subscript.sentences) {
@@ -106,29 +149,39 @@ export class Evaluator {
     }
     return new TupleValue(value);
   }
+  private mapTuple(tuple: TupleValue, mapFn: (value: Value) => Value) {
+    return new TupleValue(
+      tuple.values.map((value) => {
+        switch (value.type) {
+          case ValueType.TUPLE:
+            return this.mapTuple(value as TupleValue, mapFn);
+          default:
+            return mapFn(value);
+        }
+      })
+    );
+  }
+
+  /*
+   * Blocks
+   */
+
   evaluateBlock(block: BlockMorpheme): ScriptValue {
     return new ScriptValue(block.subscript);
   }
+
+  /*
+   * Expressions
+   */
+
   evaluateExpression(expression: ExpressionMorpheme): Value {
-    if (!this.commandResolver) throw new Error("no command resolver");
     const script = (expression as ExpressionMorpheme).subscript;
     return this.evaluateScript(script);
   }
-  evaluateScript(script: Script) {
-    let value: Value = NIL;
-    for (let sentence of script.sentences) {
-      value = this.evaluateSentence(sentence);
-    }
-    return value;
-  }
-  evaluateSentence(sentence: Sentence): Value {
-    if (sentence.words.length == 0) return NIL;
-    const args = sentence.words.map((word) => this.evaluateWord(word));
-    const cmdname = args[0].asString();
-    const command = this.commandResolver.resolve(cmdname);
-    if (!command) throw new Error(`cannot resolve command ${cmdname}`);
-    return command.evaluate(args);
-  }
+
+  /*
+   * Strings
+   */
 
   evaluateString(string: StringMorpheme): StringValue {
     const values: Value[] = [];
@@ -144,14 +197,31 @@ export class Evaluator {
     }
     return new StringValue(values.map((value) => value.asString()).join(""));
   }
+
+  /*
+   * Here-strings
+   */
+
   evaluateHereString(hereString: HereStringMorpheme): StringValue {
     return new StringValue(hereString.value);
   }
+
+  /*
+   * Tagged strings
+   */
+
   evaluateTaggedString(taggedString: TaggedStringMorpheme): StringValue {
     return new StringValue(taggedString.value);
   }
 
-  evaluateReference(morphemes: Morpheme[], first: number): [Value, number] {
+  /*
+   * References
+   */
+
+  private evaluateReference(
+    morphemes: Morpheme[],
+    first: number
+  ): [Value, number] {
     const source = morphemes[first];
     const [selectors, last] = this.getSelectors(morphemes, first);
     switch (source.type) {
@@ -170,7 +240,14 @@ export class Evaluator {
     throw new Error("TODO");
   }
 
-  evaluateSubstitution(morphemes: Morpheme[], first: number): [Value, number] {
+  /*
+   * Substitutions
+   */
+
+  private evaluateSubstitution(
+    morphemes: Morpheme[],
+    first: number
+  ): [Value, number] {
     if (!this.variableResolver) throw new Error("no variable resolver");
     const levels = (morphemes[first] as SubstituteNextMorpheme).levels;
     const source = morphemes[first + 1];
@@ -223,11 +300,11 @@ export class Evaluator {
     }
     throw new Error("TODO");
   }
-  substituteValue(value: Value, selectors: Selector[], levels: number) {
+  private substituteValue(value: Value, selectors: Selector[], levels: number) {
     value = this.applySelectors(value, selectors);
     return this.resolveLevels(value, levels);
   }
-  substituteTuple(
+  private substituteTuple(
     variables: TupleValue,
     selectors: Selector[],
     levels: number
@@ -236,38 +313,36 @@ export class Evaluator {
       this.substituteValue(variable, selectors, levels)
     );
   }
-  mapTuple(tuple: TupleValue, mapFn: (value: Value) => Value) {
-    return new TupleValue(
-      tuple.values.map((value) => {
-        switch (value.type) {
-          case ValueType.TUPLE:
-            return this.mapTuple(value as TupleValue, mapFn);
-          default:
-            return mapFn(value);
-        }
-      })
-    );
-  }
 
-  resolveVariable(varname: string): Value {
+  /*
+   * Variables
+   */
+
+  private resolveVariable(varname: string): Value {
     let value = this.variableResolver.resolve(varname);
     if (!value) throw new Error(`cannot resolve variable ${varname}`);
     return value;
   }
-  resolveVariables(tuple: TupleValue): TupleValue {
+  private resolveVariables(tuple: TupleValue): TupleValue {
     return this.mapTuple(tuple, (varname) =>
       this.resolveVariable(varname.asString())
     );
   }
-
-  resolveLevels(value: Value, levels: number): Value {
+  private resolveLevels(value: Value, levels: number): Value {
     for (let level = 1; level < levels; level++) {
       value = this.resolveVariable(value.asString());
     }
     return value;
   }
 
-  getSelectors(morphemes: Morpheme[], first: number): [Selector[], number] {
+  /*
+   * Selectors
+   */
+
+  private getSelectors(
+    morphemes: Morpheme[],
+    first: number
+  ): [Selector[], number] {
     let last = first;
     const selectors: Selector[] = [];
     for (let i = last + 1; i < morphemes.length; i++, last++) {
@@ -277,7 +352,7 @@ export class Evaluator {
     }
     return [selectors, last];
   }
-  getSelector(morpheme: Morpheme): Selector {
+  private getSelector(morpheme: Morpheme): Selector {
     switch (morpheme.type) {
       case MorphemeType.TUPLE: {
         const keys = this.evaluateTuple(morpheme as TupleMorpheme).values;
@@ -291,7 +366,7 @@ export class Evaluator {
     }
     return null;
   }
-  applySelectors(value: Value, selectors: Selector[]): Value {
+  private applySelectors(value: Value, selectors: Selector[]): Value {
     for (let selector of selectors) {
       value = selector.apply(value);
     }
