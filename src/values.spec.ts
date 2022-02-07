@@ -201,17 +201,80 @@ describe("values", () => {
         "value has no string representation"
       );
     });
-    it("should not be index-selectable", () => {
-      const value = new TupleValue([]);
-      expect(() => value.selectIndex(new StringValue("index"))).to.throw(
-        "value is not index-selectable"
-      );
+    describe("indexed selectors", () => {
+      it("should apply to elements", () => {
+        const values = [
+          new ListValue([new StringValue("value1"), new StringValue("value2")]),
+          new StringValue("12345"),
+        ];
+        const value = new TupleValue(values);
+        const index = new IntegerValue(1);
+        expect(value.selectIndex(index)).to.eql(
+          new TupleValue([new StringValue("value2"), new StringValue("2")])
+        );
+      });
+      it("should recurse into tuples", () => {
+        const values = [
+          new ListValue([new StringValue("value1"), new StringValue("value2")]),
+          new TupleValue([new StringValue("12345"), new StringValue("678")]),
+        ];
+        const value = new TupleValue(values);
+        const index = new IntegerValue(1);
+        expect(value.selectIndex(index)).to.eql(
+          new TupleValue([
+            new StringValue("value2"),
+            new TupleValue([new StringValue("2"), new StringValue("7")]),
+          ])
+        );
+      });
     });
-    it("should not be key-selectable", () => {
-      const value = new TupleValue([]);
-      expect(() => value.selectKey(new StringValue("key"))).to.throw(
-        "value is not key-selectable"
-      );
+    describe("keyed selectors", () => {
+      it("should apply to elements", () => {
+        const values = [
+          new MapValue({
+            key1: new StringValue("value1"),
+            key2: new StringValue("value2"),
+          }),
+          new MapValue({
+            key2: new StringValue("value3"),
+            key3: new StringValue("value4"),
+          }),
+        ];
+        const value = new TupleValue(values);
+        const key = new StringValue("key2");
+        expect(value.selectKey(key)).to.eql(
+          new TupleValue([new StringValue("value2"), new StringValue("value3")])
+        );
+      });
+      it("should recurse into tuples", () => {
+        const values = [
+          new MapValue({
+            key1: new StringValue("value1"),
+            key2: new StringValue("value2"),
+          }),
+          new TupleValue([
+            new MapValue({
+              key2: new StringValue("value3"),
+              key3: new StringValue("value4"),
+            }),
+            new MapValue({
+              key2: new StringValue("value5"),
+              key4: new StringValue("value6"),
+            }),
+          ]),
+        ];
+        const value = new TupleValue(values);
+        const key = new StringValue("key2");
+        expect(value.selectKey(key)).to.eql(
+          new TupleValue([
+            new StringValue("value2"),
+            new TupleValue([
+              new StringValue("value3"),
+              new StringValue("value5"),
+            ]),
+          ])
+        );
+      });
     });
   });
 

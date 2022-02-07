@@ -124,10 +124,10 @@ export class TupleValue implements Value {
     throw new Error("value has no string representation");
   }
   selectIndex(index: Value): Value {
-    throw new Error("value is not index-selectable");
+    return new TupleValue(this.values.map((value) => value.selectIndex(index)));
   }
   selectKey(key: Value): Value {
-    throw new Error("value is not key-selectable");
+    return new TupleValue(this.values.map((value) => value.selectKey(key)));
   }
 }
 

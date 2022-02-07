@@ -252,66 +252,36 @@ export class Evaluator {
     const levels = (morphemes[first] as SubstituteNextMorpheme).levels;
     const source = morphemes[first + 1];
     const [selectors, last] = this.getSelectors(morphemes, first + 1);
+    let value;
     switch (source.type) {
       case MorphemeType.LITERAL: {
         const varname = (source as LiteralMorpheme).value;
-        const variable = this.resolveVariable(varname);
-        const value = this.substituteValue(variable, selectors, levels);
-        return [value, last];
+        value = this.resolveVariable(varname);
+        break;
       }
 
       case MorphemeType.TUPLE: {
         const tuple = this.evaluateTuple(source as TupleMorpheme);
-        const variables = this.resolveVariables(tuple);
-        const values = this.substituteTuple(variables, selectors, levels);
-        return [values, last];
+        value = this.resolveVariables(tuple);
+        break;
       }
 
       case MorphemeType.BLOCK: {
         const varname = (source as BlockMorpheme).value;
-        const variable = this.resolveVariable(varname);
-        const value = this.substituteValue(variable, selectors, levels);
-        return [value, last];
+        value = this.resolveVariable(varname);
+        break;
       }
 
-      case MorphemeType.EXPRESSION: {
-        const result = this.evaluateExpression(source as ExpressionMorpheme);
-        switch (result.type) {
-          case ValueType.TUPLE: {
-            const tuple = result as TupleValue;
-            const values = this.substituteTuple(
-              levels > 1 ? this.resolveVariables(tuple) : tuple,
-              selectors,
-              levels - 1
-            );
-            return [values, last];
-          }
+      case MorphemeType.EXPRESSION:
+        value = this.evaluateExpression(source as ExpressionMorpheme);
+        break;
 
-          default: {
-            const value = this.substituteValue(
-              levels > 1 ? this.resolveVariable(result.asString()) : result,
-              selectors,
-              levels - 1
-            );
-            return [value, last];
-          }
-        }
-      }
+      default:
+        throw new Error("TODO");
     }
-    throw new Error("TODO");
-  }
-  private substituteValue(value: Value, selectors: Selector[], levels: number) {
     value = this.applySelectors(value, selectors);
-    return this.resolveLevels(value, levels);
-  }
-  private substituteTuple(
-    variables: TupleValue,
-    selectors: Selector[],
-    levels: number
-  ): TupleValue {
-    return this.mapTuple(variables, (variable) =>
-      this.substituteValue(variable, selectors, levels)
-    );
+    value = this.resolveLevels(value, levels);
+    return [value, last];
   }
 
   /*
@@ -328,9 +298,16 @@ export class Evaluator {
       this.resolveVariable(varname.asString())
     );
   }
+  private resolveValue(source: Value) {
+    if (source.type == ValueType.TUPLE) {
+      return this.resolveVariables(source as TupleValue);
+    } else {
+      return this.resolveVariable(source.asString());
+    }
+  }
   private resolveLevels(value: Value, levels: number): Value {
     for (let level = 1; level < levels; level++) {
-      value = this.resolveVariable(value.asString());
+      value = this.resolveValue(value);
     }
     return value;
   }
