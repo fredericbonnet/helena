@@ -5,6 +5,8 @@ export enum ValueType {
   NIL,
   INTEGER,
   STRING,
+  LIST,
+  MAP,
   TUPLE,
   SCRIPT,
   REFERENCE,
@@ -73,6 +75,45 @@ export class StringValue implements Value {
     throw new Error("value is not key-selectable");
   }
 }
+
+export class ListValue implements Value {
+  type = ValueType.LIST;
+  values: Value[];
+  constructor(value: Value[]) {
+    this.values = [...value];
+  }
+  asString(): string {
+    throw new Error("value has no string representation");
+  }
+  selectIndex(index: Value): Value {
+    const i = IntegerValue.fromValue(index).value;
+    if (i < 0 || i >= this.values.length) throw new Error("index out of range");
+    return this.values[i];
+  }
+  selectKey(key: Value): Value {
+    throw new Error("value is not key-selectable");
+  }
+}
+
+export class MapValue implements Value {
+  type = ValueType.MAP;
+  map: Map<string, Value>;
+  constructor(value: { [key: string]: Value }) {
+    this.map = new Map(Object.entries(value));
+  }
+  asString(): string {
+    throw new Error("value has no string representation");
+  }
+  selectIndex(index: Value): Value {
+    throw new Error("value is not index-selectable");
+  }
+  selectKey(key: Value): Value {
+    const k = key.asString();
+    if (!this.map.has(k)) throw new Error("unknown key");
+    return this.map.get(k);
+  }
+}
+
 export class TupleValue implements Value {
   type = ValueType.TUPLE;
   values: Value[];
@@ -83,9 +124,7 @@ export class TupleValue implements Value {
     throw new Error("value has no string representation");
   }
   selectIndex(index: Value): Value {
-    const i = IntegerValue.fromValue(index).value;
-    if (i < 0 || i >= this.values.length) throw new Error("index out of range");
-    return this.values[i];
+    throw new Error("value is not index-selectable");
   }
   selectKey(key: Value): Value {
     throw new Error("value is not key-selectable");

@@ -6,6 +6,8 @@ import { Script } from "./syntax";
 import {
   Value,
   StringValue,
+  ListValue,
+  MapValue,
   TupleValue,
   ScriptValue,
   ValueType,
@@ -25,6 +27,16 @@ const mapValue = (value: Value) => {
   }
   if (value instanceof IntegerValue) {
     return value.value;
+  }
+  if (value instanceof ListValue) {
+    return value.values.map(mapValue);
+  }
+  if (value instanceof MapValue) {
+    const result = {};
+    value.map.forEach((v, k) => {
+      result[k] = mapValue(v);
+    });
+    return result;
   }
   if (value instanceof TupleValue) {
     return value.values.map(mapValue);
@@ -58,39 +70,6 @@ class MockVariableResolver implements VariableResolver {
   variables: Map<string, Value> = new Map();
   register(name: string, value: Value) {
     this.variables.set(name, value);
-  }
-}
-
-class ListValue implements Value {
-  type = ValueType.CUSTOM;
-  list: Value[];
-  constructor(value: Value[]) {
-    this.list = [...value];
-  }
-  asString(): string {
-    throw new Error("TODO");
-  }
-  selectIndex(index: Value): Value {
-    return this.list[parseInt(index.asString())];
-  }
-  selectKey(key: Value): Value {
-    throw new Error("TODO");
-  }
-}
-class MapValue implements Value {
-  type = ValueType.CUSTOM;
-  map: Map<string, Value>;
-  constructor(value: { [key: string]: Value }) {
-    this.map = new Map(Object.entries(value));
-  }
-  asString(): string {
-    throw new Error("TODO");
-  }
-  selectIndex(index: Value): Value {
-    throw new Error("TODO");
-  }
-  selectKey(key: Value): Value {
-    return this.map.get(key.asString());
   }
 }
 
