@@ -134,11 +134,13 @@ export class TupleValue implements Value {
 export class ScriptValue implements Value {
   type = ValueType.SCRIPT;
   script: Script;
-  constructor(script: Script) {
+  value: string;
+  constructor(script: Script, value: string) {
     this.script = script;
+    this.value = value;
   }
   asString(): string {
-    throw new Error("Method not implemented.");
+    return this.value;
   }
   selectIndex(index: Value): Value {
     throw new Error("Method not implemented.");

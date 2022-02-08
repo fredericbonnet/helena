@@ -833,6 +833,23 @@ describe("Evaluator", () => {
           const value = evaluator.evaluateWord(word);
           expect(mapValue(value)).to.eql("value2");
         });
+        specify("command index", () => {
+          commandResolver.register(
+            "cmd",
+            new FunctionCommand(() => new StringValue("1"))
+          );
+          variableResolver.register(
+            "var",
+            new ListValue([
+              new StringValue("value1"),
+              new StringValue("value2"),
+              new StringValue("value3"),
+            ])
+          );
+          const word = firstWord(parse("$var[cmd]"));
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql("value2");
+        });
         specify("scalar expression", () => {
           commandResolver.register(
             "cmd",
@@ -921,6 +938,17 @@ describe("Evaluator", () => {
             })
           );
           const word = firstWord(parse('$var("arbitrary key")'));
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql("value");
+        });
+        specify("block key", () => {
+          variableResolver.register(
+            "var",
+            new MapValue({
+              "arbitrary key": new StringValue("value"),
+            })
+          );
+          const word = firstWord(parse("$var({arbitrary key})"));
           const value = evaluator.evaluateWord(word);
           expect(mapValue(value)).to.eql("value");
         });

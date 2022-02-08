@@ -167,7 +167,7 @@ export class Evaluator {
    */
 
   evaluateBlock(block: BlockMorpheme): ScriptValue {
-    return new ScriptValue(block.subscript);
+    return new ScriptValue(block.subscript, block.value);
   }
 
   /*
