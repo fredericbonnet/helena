@@ -12,6 +12,8 @@ import {
   HereStringMorpheme,
   TaggedStringMorpheme,
   SubstituteNextMorpheme,
+  SyntaxChecker,
+  WordType,
 } from "./syntax";
 import { IndexedSelector, KeyedSelector, Selector } from "./selectors";
 import {
@@ -35,6 +37,7 @@ export interface CommandResolver {
 export class Evaluator {
   private variableResolver: VariableResolver;
   private commandResolver: CommandResolver;
+  private syntaxChecker: SyntaxChecker = new SyntaxChecker();
   constructor(
     variableResolver: VariableResolver,
     commandResolver: CommandResolver
@@ -74,31 +77,40 @@ export class Evaluator {
    */
 
   evaluateWord(word: Word): Value {
-    if (word.morphemes.length == 1) {
-      return this.evaluateMorpheme(word.morphemes[0]);
-    }
-    switch (word.morphemes[0].type) {
-      case MorphemeType.LITERAL:
-      case MorphemeType.TUPLE: {
-        const [value, last] = this.evaluateQualified(word.morphemes, 0);
-        if (last < word.morphemes.length - 1) {
-          throw new Error("extra characters after selectors");
-        }
+    switch (this.syntaxChecker.checkWord(word)) {
+      case WordType.ROOT:
+        return this.evaluateMorpheme(word.morphemes[0]);
 
+      case WordType.COMPOUND: {
+        const values: Value[] = [];
+        for (let i = 0; i < word.morphemes.length; i++) {
+          const morpheme = word.morphemes[i];
+          if (morpheme.type == MorphemeType.SUBSTITUTE_NEXT) {
+            const [value, last] = this.evaluateSubstitution(word.morphemes, i);
+            i = last;
+            values.push(value);
+          } else {
+            values.push(this.evaluateMorpheme(morpheme));
+          }
+        }
+        return new StringValue(
+          values.map((value) => value.asString()).join("")
+        );
+      }
+
+      case WordType.SUBSTITUTION: {
+        const [value] = this.evaluateSubstitution(word.morphemes, 0);
         return value;
       }
 
-      case MorphemeType.SUBSTITUTE_NEXT: {
-        const [value, last] = this.evaluateSubstitution(word.morphemes, 0);
-        if (last < word.morphemes.length - 1) {
-          throw new Error("extra characters after selectors");
-        }
+      case WordType.QUALIFIED:
+        return this.evaluateQualified(word.morphemes);
 
-        return value;
-      }
+      case WordType.IGNORED:
+        throw "TODO";
 
       default:
-        throw new Error("TODO");
+        throw new Error("unknown word type");
     }
   }
 
@@ -218,26 +230,23 @@ export class Evaluator {
    * Qualified words
    */
 
-  private evaluateQualified(
-    morphemes: Morpheme[],
-    first: number
-  ): [Value, number] {
-    const source = morphemes[first];
-    const [selectors, last] = this.getSelectors(morphemes, first);
+  private evaluateQualified(morphemes: Morpheme[]): Value {
+    const source = morphemes[0];
+    const [selectors] = this.getSelectors(morphemes, 0);
     switch (source.type) {
       case MorphemeType.LITERAL: {
         const varname = (source as LiteralMorpheme).value;
         const value = new QualifiedValue(new StringValue(varname), selectors);
-        return [value, last];
+        return value;
       }
 
       case MorphemeType.TUPLE: {
         const tuple = this.evaluateTuple(source as TupleMorpheme);
         const values = new QualifiedValue(tuple, selectors);
-        return [values, last];
+        return values;
       }
     }
-    throw new Error("TODO");
+    throw new Error("CANTHAPPEN");
   }
 
   /*

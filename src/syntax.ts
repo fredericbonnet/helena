@@ -77,6 +77,11 @@ export class SyntaxChecker {
     if (word.morphemes.length == 0) throw new Error("empty word");
     switch (word.morphemes[0].type) {
       case MorphemeType.LITERAL:
+        try {
+          return this.checkQualifiedWord(word);
+        } catch {
+          return this.checkCompoundWord(word);
+        }
       case MorphemeType.EXPRESSION:
         return this.checkCompoundWord(word);
       case MorphemeType.TUPLE:
@@ -101,9 +106,6 @@ export class SyntaxChecker {
 
   private checkCompoundWord(word: Word): WordType {
     if (word.morphemes.length == 1) return WordType.ROOT;
-    const selectors = this.skipSelectors(word.morphemes, 1);
-    if (selectors == word.morphemes.length) return WordType.QUALIFIED;
-    if (selectors != 1) throw new Error("invalid word structure");
     this.checkStems(word.morphemes);
     return WordType.COMPOUND;
   }

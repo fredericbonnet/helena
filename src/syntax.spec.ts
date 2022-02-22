@@ -77,12 +77,71 @@ describe("SyntaxChecker", () => {
       expect(word.morphemes).to.have.length(4);
       expect(checker.checkWord(word)).to.eq(WordType.COMPOUND);
     });
+    specify("complex case", () => {
+      const script = parse(LITERAL + "$" + BLOCK + EXPRESSION + "$" + LITERAL);
+      const word = firstWord(script);
+      expect(word.morphemes).to.have.length(6);
+      expect(checker.checkWord(word)).to.eq(WordType.COMPOUND);
+    });
+    describe("exceptions", () => {
+      for (let [type, value] of [
+        ["tuple", TUPLE],
+        ["block", BLOCK],
+      ]) {
+        specify(type + "/literal", () => {
+          const script = parse(value + LITERAL);
+          const word = firstWord(script);
+          expect(word.morphemes).to.have.length(2);
+          expect(() => checker.checkWord(word)).to.throw(
+            "invalid word structure"
+          );
+        });
+        specify(type + "/substitution", () => {
+          const script = parse(value + "$" + LITERAL);
+          const word = firstWord(script);
+          expect(word.morphemes).to.have.length(3);
+          expect(() => checker.checkWord(word)).to.throw(
+            "invalid word structure"
+          );
+        });
+        specify("expression/" + type, () => {
+          const script = parse(EXPRESSION + value);
+          const word = firstWord(script);
+          expect(word.morphemes).to.have.length(2);
+          expect(() => checker.checkWord(word)).to.throw(
+            "invalid word structure"
+          );
+        });
+        specify("literal/" + type + "/literal", () => {
+          const script = parse(LITERAL + value + LITERAL);
+          const word = firstWord(script);
+          expect(word.morphemes).to.have.length(3);
+          expect(() => checker.checkWord(word)).to.throw(
+            "invalid word structure"
+          );
+        });
+        specify("literal/" + type + "/substitution", () => {
+          const script = parse(LITERAL + value + "$" + LITERAL);
+          const word = firstWord(script);
+          expect(word.morphemes).to.have.length(4);
+          expect(() => checker.checkWord(word)).to.throw(
+            "invalid word structure"
+          );
+        });
+      }
+    });
   });
   describe("substitutions", () => {
     for (let [type, value] of roots) {
       describe(type + " source", () => {
         specify("simple", () => {
           const script = parse("$" + value);
+          const word = firstWord(script);
+          expect(word.morphemes).to.have.length(2);
+          expect(checker.checkWord(word)).to.eq(WordType.SUBSTITUTION);
+        });
+        specify("double", () => {
+          const script = parse("$$" + value);
           const word = firstWord(script);
           expect(word.morphemes).to.have.length(2);
           expect(checker.checkWord(word)).to.eq(WordType.SUBSTITUTION);

@@ -609,7 +609,7 @@ describe("Evaluator", () => {
           specify("invalid trailing morphemes", () => {
             const word = firstWord(parse("var(key1)2"));
             expect(() => evaluator.evaluateWord(word)).to.throws(
-              "extra characters after selectors"
+              "invalid word structure"
             );
           });
         });
@@ -648,7 +648,7 @@ describe("Evaluator", () => {
           specify("invalid trailing morphemes", () => {
             const word = firstWord(parse("(var1 var2)(key1)2"));
             expect(() => evaluator.evaluateWord(word)).to.throws(
-              "extra characters after selectors"
+              "invalid word structure"
             );
           });
         });
@@ -1039,17 +1039,25 @@ describe("Evaluator", () => {
             "cannot resolve variable"
           );
         });
-        specify("invalid trailing morphemes", () => {
-          variableResolver.register(
-            "var",
-            new MapValue({ key: new StringValue("value") })
-          );
-          const word = firstWord(parse("$var(key)foo"));
-          expect(() => evaluator.evaluateWord(word)).to.throws(
-            "extra characters after selectors"
-          );
-        });
       });
+    });
+
+    specify("complex case", () => {
+      variableResolver.register(
+        "var",
+        new MapValue({ key: new StringValue("value") })
+      );
+      commandResolver.register(
+        "cmd",
+        new FunctionCommand(
+          (args) => new StringValue(args[1].asString() + args[2].asString())
+        )
+      );
+      const word = firstWord(
+        parse("prefix_${var}(key)_infix_[cmd a b]_suffix")
+      );
+      const value = evaluator.evaluateWord(word);
+      expect(mapValue(value)).to.eql("prefix_value_infix_ab_suffix");
     });
   });
 
