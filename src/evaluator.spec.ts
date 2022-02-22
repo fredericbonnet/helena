@@ -10,10 +10,9 @@ import {
   MapValue,
   TupleValue,
   ScriptValue,
-  ValueType,
   NIL,
   IntegerValue,
-  ReferenceValue,
+  QualifiedValue,
 } from "./values";
 import { Command } from "./command";
 import { IndexedSelector, KeyedSelector, Selector } from "./selectors";
@@ -44,7 +43,7 @@ const mapValue = (value: Value) => {
   if (value instanceof ScriptValue) {
     return value.script;
   }
-  if (value instanceof ReferenceValue) {
+  if (value instanceof QualifiedValue) {
     return {
       source: mapValue(value.source),
       selectors: value.selectors.map(mapSelector),
@@ -575,7 +574,7 @@ describe("Evaluator", () => {
       });
     });
 
-    describe("references", () => {
+    describe("qualified words", () => {
       describe("scalars", () => {
         specify("indexed selector", () => {
           const word = firstWord(parse("var[123]"));

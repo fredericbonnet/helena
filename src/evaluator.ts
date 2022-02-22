@@ -21,7 +21,7 @@ import {
   TupleValue,
   Value,
   ValueType,
-  ReferenceValue,
+  QualifiedValue,
 } from "./values";
 import { Command } from "./command";
 
@@ -80,7 +80,7 @@ export class Evaluator {
     switch (word.morphemes[0].type) {
       case MorphemeType.LITERAL:
       case MorphemeType.TUPLE: {
-        const [value, last] = this.evaluateReference(word.morphemes, 0);
+        const [value, last] = this.evaluateQualified(word.morphemes, 0);
         if (last < word.morphemes.length - 1) {
           throw new Error("extra characters after selectors");
         }
@@ -215,10 +215,10 @@ export class Evaluator {
   }
 
   /*
-   * References
+   * Qualified words
    */
 
-  private evaluateReference(
+  private evaluateQualified(
     morphemes: Morpheme[],
     first: number
   ): [Value, number] {
@@ -227,13 +227,13 @@ export class Evaluator {
     switch (source.type) {
       case MorphemeType.LITERAL: {
         const varname = (source as LiteralMorpheme).value;
-        const value = new ReferenceValue(new StringValue(varname), selectors);
+        const value = new QualifiedValue(new StringValue(varname), selectors);
         return [value, last];
       }
 
       case MorphemeType.TUPLE: {
         const tuple = this.evaluateTuple(source as TupleMorpheme);
-        const values = new ReferenceValue(tuple, selectors);
+        const values = new QualifiedValue(tuple, selectors);
         return [values, last];
       }
     }

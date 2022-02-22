@@ -9,7 +9,7 @@ export enum ValueType {
   MAP,
   TUPLE,
   SCRIPT,
-  REFERENCE,
+  QUALIFIED,
   CUSTOM,
 }
 
@@ -150,7 +150,7 @@ export class ScriptValue implements Value {
   }
 }
 
-export class ReferenceValue implements Value {
+export class QualifiedValue implements Value {
   source: Value;
   selectors: Selector[];
   constructor(name: Value, selectors: Selector[]) {
@@ -166,5 +166,5 @@ export class ReferenceValue implements Value {
   selectKey(key: Value): Value {
     throw new Error("value is not key-selectable");
   }
-  type = ValueType.REFERENCE;
+  type = ValueType.QUALIFIED;
 }

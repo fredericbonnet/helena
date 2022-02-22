@@ -2,7 +2,7 @@ import { expect } from "chai";
 import {
   IntegerValue,
   NIL,
-  ReferenceValue,
+  QualifiedValue,
   StringValue,
   ListValue,
   TupleValue,
@@ -278,21 +278,21 @@ describe("values", () => {
     });
   });
 
-  describe("ReferenceValue", () => {
+  describe("QualifiedValue", () => {
     it("should have no string representation", () => {
-      const value = new ReferenceValue(new StringValue("name"), []);
+      const value = new QualifiedValue(new StringValue("name"), []);
       expect(() => value.asString()).to.throw(
         "value has no string representation"
       );
     });
     it("should not be index-selectable", () => {
-      const value = new ReferenceValue(new StringValue("name"), []);
+      const value = new QualifiedValue(new StringValue("name"), []);
       expect(() => value.selectIndex(new StringValue("index"))).to.throw(
         "value is not index-selectable"
       );
     });
     it("should not be key-selectable", () => {
-      const value = new ReferenceValue(new StringValue("name"), []);
+      const value = new QualifiedValue(new StringValue("name"), []);
       expect(() => value.selectKey(new StringValue("key"))).to.throw(
         "value is not key-selectable"
       );
