@@ -7,6 +7,7 @@ import {
   PushLiteral,
   PushTuple,
   ResolveValue,
+  SetSource,
   SelectIndex,
   SelectKeys,
   EvaluateSentence,
@@ -15,13 +16,15 @@ import {
 } from "./compiler";
 import { VariableResolver, CommandResolver } from "./evaluator";
 import { Parser } from "./parser";
-import { Script } from "./syntax";
+import { IndexedSelector, KeyedSelector } from "./selectors";
+import { BlockMorpheme, Script } from "./syntax";
 import { Tokenizer } from "./tokenizer";
 import {
   IntegerValue,
   ListValue,
   MapValue,
   NIL,
+  QualifiedValue,
   ScriptValue,
   StringValue,
   TupleValue,
@@ -67,8 +70,8 @@ describe("Compiler", () => {
   let context: Context;
 
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
-  const compileFirstSentence = (script: Script) =>
-    compiler.compileSentence(script.sentences[0]);
+  const compileFirstWord = (script: Script) =>
+    compiler.compileWord(script.sentences[0].words[0]);
 
   beforeEach(() => {
     tokenizer = new Tokenizer();
@@ -79,883 +82,1466 @@ describe("Compiler", () => {
     context = new Context(variableResolver, commandResolver);
   });
 
-  specify("literal", () => {
-    const script = parse("word");
-    const program = compileFirstSentence(script);
-    expect(program).to.eql([new PushLiteral(new StringValue("word"))]);
+  describe("words", () => {
+    describe("roots", () => {
+      specify("literal", () => {
+        const script = parse("word");
+        const program = compileFirstWord(script);
+        expect(program).to.eql([new PushLiteral(new StringValue("word"))]);
 
-    expect(context.execute(program)).to.eql(new StringValue("word"));
-  });
+        expect(context.execute(program)).to.eql(new StringValue("word"));
+      });
 
-  describe("strings", () => {
-    specify("empty string", () => {
-      const script = parse('""');
-      const program = compileFirstSentence(script);
-      expect(program).to.eql([new PushTuple([]), new JoinStrings()]);
+      describe("tuples", () => {
+        specify("empty tuple", () => {
+          const script = parse("()");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([new PushTuple([])]);
 
-      expect(context.execute(program)).to.eql(new StringValue(""));
+          expect(context.execute(program)).to.eql(new TupleValue([]));
+        });
+        specify("tuple with literals", () => {
+          const script = parse("( lit1 lit2 )");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([
+              new PushLiteral(new StringValue("lit1")),
+              new PushLiteral(new StringValue("lit2")),
+            ]),
+          ]);
+
+          expect(context.execute(program)).to.eql(
+            new TupleValue([new StringValue("lit1"), new StringValue("lit2")])
+          );
+        });
+        specify("complex case", () => {
+          const script = parse('( this [cmd] $var1 "complex" ${var2}(key) )');
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([
+              new PushLiteral(new StringValue("this")),
+              new PushTuple([new PushLiteral(new StringValue("cmd"))]),
+              new EvaluateSentence(),
+              new SubstituteResult(),
+              new PushLiteral(new StringValue("var1")),
+              new ResolveValue(),
+              new PushTuple([new PushLiteral(new StringValue("complex"))]),
+              new JoinStrings(),
+              new PushLiteral(new StringValue("var2")),
+              new ResolveValue(),
+              new PushTuple([new PushLiteral(new StringValue("key"))]),
+              new SelectKeys(),
+            ]),
+          ]);
+
+          commandResolver.register("cmd", {
+            evaluate: () => new StringValue("is"),
+          });
+          variableResolver.register("var1", new StringValue("a"));
+          variableResolver.register(
+            "var2",
+            new MapValue({ key: new StringValue("tuple") })
+          );
+          expect(context.execute(program)).to.eql(
+            new TupleValue([
+              new StringValue("this"),
+              new StringValue("is"),
+              new StringValue("a"),
+              new StringValue("complex"),
+              new StringValue("tuple"),
+            ])
+          );
+        });
+      });
+
+      describe("blocks", () => {
+        specify("empty block", () => {
+          const source = "";
+          const script = parse(`{${source}}`);
+          const value = new ScriptValue(parse(source), source);
+          const program = compileFirstWord(script);
+          expect(program).to.eql([new PushLiteral(value)]);
+
+          expect(context.execute(program)).to.eql(value);
+        });
+        specify("block with literals", () => {
+          const source = " lit1 lit2 ";
+          const script = parse(`{${source}}`);
+          const value = new ScriptValue(parse(source), source);
+          const program = compileFirstWord(script);
+          expect(program).to.eql([new PushLiteral(value)]);
+
+          expect(context.execute(program)).to.eql(value);
+        });
+        specify("complex case", () => {
+          const source = ' this [cmd] $var1 "complex" ${var2}(key) ';
+          const script = parse(`{${source}}`);
+          const block = script.sentences[0].words[0]
+            .morphemes[0] as BlockMorpheme;
+          const value = new ScriptValue(block.subscript, source);
+          const program = compileFirstWord(script);
+          expect(program).to.eql([new PushLiteral(value)]);
+
+          expect(context.execute(program)).to.eql(value);
+        });
+      });
+
+      describe("expressions", () => {
+        specify("empty expression", () => {
+          const script = parse("[]");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([new SubstituteResult()]);
+
+          expect(context.execute(program)).to.eql(NIL);
+        });
+        specify("expression with literals", () => {
+          const script = parse("[ cmd arg ]");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([
+              new PushLiteral(new StringValue("cmd")),
+              new PushLiteral(new StringValue("arg")),
+            ]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+          ]);
+
+          commandResolver.register("cmd", {
+            evaluate: (args) =>
+              new TupleValue([...args, new StringValue("foo")]),
+          });
+          expect(context.execute(program)).to.eql(
+            new TupleValue([
+              new StringValue("cmd"),
+              new StringValue("arg"),
+              new StringValue("foo"),
+            ])
+          );
+        });
+        specify("complex case", () => {
+          const script = parse('[ this [cmd] $var1 "complex" ${var2}(key) ]');
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([
+              new PushLiteral(new StringValue("this")),
+              new PushTuple([new PushLiteral(new StringValue("cmd"))]),
+              new EvaluateSentence(),
+              new SubstituteResult(),
+              new PushLiteral(new StringValue("var1")),
+              new ResolveValue(),
+              new PushTuple([new PushLiteral(new StringValue("complex"))]),
+              new JoinStrings(),
+              new PushLiteral(new StringValue("var2")),
+              new ResolveValue(),
+              new PushTuple([new PushLiteral(new StringValue("key"))]),
+              new SelectKeys(),
+            ]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+          ]);
+
+          commandResolver.register("cmd", {
+            evaluate: () => new StringValue("is"),
+          });
+          variableResolver.register("var1", new StringValue("a"));
+          variableResolver.register(
+            "var2",
+            new MapValue({ key: new StringValue("expression") })
+          );
+          commandResolver.register("this", {
+            evaluate: (args) => new TupleValue(args),
+          });
+          expect(context.execute(program)).to.eql(
+            new TupleValue([
+              new StringValue("this"),
+              new StringValue("is"),
+              new StringValue("a"),
+              new StringValue("complex"),
+              new StringValue("expression"),
+            ])
+          );
+        });
+      });
+
+      describe("strings", () => {
+        specify("empty string", () => {
+          const script = parse('""');
+          const program = compileFirstWord(script);
+          expect(program).to.eql([new PushTuple([]), new JoinStrings()]);
+
+          expect(context.execute(program)).to.eql(new StringValue(""));
+        });
+        specify("simple string", () => {
+          const script = parse('"this is a string"');
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([
+              new PushLiteral(new StringValue("this is a string")),
+            ]),
+            new JoinStrings(),
+          ]);
+
+          expect(context.execute(program)).to.eql(
+            new StringValue("this is a string")
+          );
+        });
+
+        describe("expressions", () => {
+          specify("simple command", () => {
+            const script = parse('"this [cmd] a string"');
+            const program = compileFirstWord(script);
+            expect(program).to.eql([
+              new PushTuple([
+                new PushLiteral(new StringValue("this ")),
+                new PushTuple([new PushLiteral(new StringValue("cmd"))]),
+                new EvaluateSentence(),
+                new SubstituteResult(),
+                new PushLiteral(new StringValue(" a string")),
+              ]),
+              new JoinStrings(),
+            ]);
+
+            commandResolver.register("cmd", {
+              evaluate: () => new StringValue("is"),
+            });
+            expect(context.execute(program)).to.eql(
+              new StringValue("this is a string")
+            );
+          });
+          specify("multiple commands", () => {
+            const script = parse('"this [cmd1][cmd2] a string"');
+            const program = compileFirstWord(script);
+            expect(program).to.eql([
+              new PushTuple([
+                new PushLiteral(new StringValue("this ")),
+                new PushTuple([new PushLiteral(new StringValue("cmd1"))]),
+                new EvaluateSentence(),
+                new SubstituteResult(),
+                new PushTuple([new PushLiteral(new StringValue("cmd2"))]),
+                new EvaluateSentence(),
+                new SubstituteResult(),
+                new PushLiteral(new StringValue(" a string")),
+              ]),
+              new JoinStrings(),
+            ]);
+
+            commandResolver.register("cmd1", {
+              evaluate: () => new StringValue("i"),
+            });
+            commandResolver.register("cmd2", {
+              evaluate: () => new StringValue("s"),
+            });
+            expect(context.execute(program)).to.eql(
+              new StringValue("this is a string")
+            );
+          });
+        });
+
+        specify("string with multiple substitutions", () => {
+          const script = parse(
+            '"this $var1 ${variable 2} [cmd1] with subst[cmd2]${var3}[cmd3]$var4"'
+          );
+          const program = compileFirstWord(script);
+
+          expect(program).to.eql([
+            new PushTuple([
+              new PushLiteral(new StringValue("this ")),
+              new PushLiteral(new StringValue("var1")),
+              new ResolveValue(),
+              new PushLiteral(new StringValue(" ")),
+              new PushLiteral(new StringValue("variable 2")),
+              new ResolveValue(),
+              new PushLiteral(new StringValue(" ")),
+              new PushTuple([new PushLiteral(new StringValue("cmd1"))]),
+              new EvaluateSentence(),
+              new SubstituteResult(),
+              new PushLiteral(new StringValue(" with subst")),
+              new PushTuple([new PushLiteral(new StringValue("cmd2"))]),
+              new EvaluateSentence(),
+              new SubstituteResult(),
+              new PushLiteral(new StringValue("var3")),
+              new ResolveValue(),
+              new PushTuple([new PushLiteral(new StringValue("cmd3"))]),
+              new EvaluateSentence(),
+              new SubstituteResult(),
+              new SelectIndex(),
+              new PushLiteral(new StringValue("var4")),
+              new ResolveValue(),
+            ]),
+            new JoinStrings(),
+          ]);
+
+          variableResolver.register("var1", new StringValue("is"));
+          variableResolver.register("variable 2", new StringValue("a"));
+          commandResolver.register("cmd1", {
+            evaluate: () => new StringValue("string"),
+          });
+          commandResolver.register("cmd2", {
+            evaluate: () => new StringValue("it"),
+          });
+          variableResolver.register(
+            "var3",
+            new ListValue([new StringValue("foo"), new StringValue("ut")])
+          );
+          commandResolver.register("cmd3", {
+            evaluate: () => new IntegerValue(1),
+          });
+          variableResolver.register("var4", new StringValue("ions"));
+          expect(context.execute(program)).to.eql(
+            new StringValue("this is a string with substitutions")
+          );
+        });
+      });
+
+      specify("here-strings", () => {
+        const script = parse('"""this is a "\'\\ $ \nhere-string"""');
+        const program = compileFirstWord(script);
+        expect(program).to.eql([
+          new PushLiteral(new StringValue("this is a \"'\\ $ \nhere-string")),
+        ]);
+
+        expect(context.execute(program)).to.eql(
+          new StringValue("this is a \"'\\ $ \nhere-string")
+        );
+      });
+
+      specify("tagged strings", () => {
+        const script = parse(
+          '""SOME_TAG\nthis is \n a \n "\'\\ $ tagged string\nSOME_TAG""'
+        );
+        const program = compileFirstWord(script);
+        expect(program).to.eql([
+          new PushLiteral(
+            new StringValue("this is \n a \n \"'\\ $ tagged string\n")
+          ),
+        ]);
+
+        expect(context.execute(program)).to.eql(
+          new StringValue("this is \n a \n \"'\\ $ tagged string\n")
+        );
+      });
     });
-    specify("simple string", () => {
-      const script = parse('"this is a string"');
-      const program = compileFirstSentence(script);
-      expect(program).to.eql([
-        new PushTuple([new PushLiteral(new StringValue("this is a string"))]),
-        new JoinStrings(),
-      ]);
 
-      expect(context.execute(program)).to.eql(
-        new StringValue("this is a string")
-      );
-    });
-
-    describe("expressions", () => {
-      specify("simple command", () => {
-        const script = parse('"this [cmd] a string"');
-        const program = compileFirstSentence(script);
+    describe("compounds", () => {
+      specify("literal prefix", () => {
+        const script = parse("this_${var}(key)_a_[cmd a b]_compound");
+        const program = compileFirstWord(script);
         expect(program).to.eql([
           new PushTuple([
-            new PushLiteral(new StringValue("this ")),
+            new PushLiteral(new StringValue("this_")),
+            new PushLiteral(new StringValue("var")),
+            new ResolveValue(),
+            new PushTuple([new PushLiteral(new StringValue("key"))]),
+            new SelectKeys(),
+            new PushLiteral(new StringValue("_a_")),
+            new PushTuple([
+              new PushLiteral(new StringValue("cmd")),
+              new PushLiteral(new StringValue("a")),
+              new PushLiteral(new StringValue("b")),
+            ]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new PushLiteral(new StringValue("_compound")),
+          ]),
+          new JoinStrings(),
+        ]);
+
+        variableResolver.register(
+          "var",
+          new MapValue({ key: new StringValue("is") })
+        );
+        commandResolver.register("cmd", {
+          evaluate: () => new StringValue("literal-prefixed"),
+        });
+        expect(context.execute(program)).to.eql(
+          new StringValue("this_is_a_literal-prefixed_compound")
+        );
+      });
+      specify("expression prefix", () => {
+        const script = parse("[cmd a b]_is_an_${var}(key)_compound");
+        const program = compileFirstWord(script);
+        expect(program).to.eql([
+          new PushTuple([
+            new PushTuple([
+              new PushLiteral(new StringValue("cmd")),
+              new PushLiteral(new StringValue("a")),
+              new PushLiteral(new StringValue("b")),
+            ]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new PushLiteral(new StringValue("_is_an_")),
+            new PushLiteral(new StringValue("var")),
+            new ResolveValue(),
+            new PushTuple([new PushLiteral(new StringValue("key"))]),
+            new SelectKeys(),
+            new PushLiteral(new StringValue("_compound")),
+          ]),
+          new JoinStrings(),
+        ]);
+
+        commandResolver.register("cmd", {
+          evaluate: () => new StringValue("this"),
+        });
+        variableResolver.register(
+          "var",
+          new MapValue({ key: new StringValue("expression-prefixed") })
+        );
+        expect(context.execute(program)).to.eql(
+          new StringValue("this_is_an_expression-prefixed_compound")
+        );
+      });
+      specify("substitution prefix", () => {
+        const script = parse("${var}(key)_is_a_[cmd a b]_compound");
+        const program = compileFirstWord(script);
+        expect(program).to.eql([
+          new PushTuple([
+            new PushLiteral(new StringValue("var")),
+            new ResolveValue(),
+            new PushTuple([new PushLiteral(new StringValue("key"))]),
+            new SelectKeys(),
+            new PushLiteral(new StringValue("_is_a_")),
+            new PushTuple([
+              new PushLiteral(new StringValue("cmd")),
+              new PushLiteral(new StringValue("a")),
+              new PushLiteral(new StringValue("b")),
+            ]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new PushLiteral(new StringValue("_compound")),
+          ]),
+          new JoinStrings(),
+        ]);
+
+        variableResolver.register(
+          "var",
+          new MapValue({ key: new StringValue("this") })
+        );
+        commandResolver.register("cmd", {
+          evaluate: () => new StringValue("substitution-prefixed"),
+        });
+        expect(context.execute(program)).to.eql(
+          new StringValue("this_is_a_substitution-prefixed_compound")
+        );
+      });
+    });
+
+    describe("substitutions", () => {
+      describe("scalars", () => {
+        specify("simple substitution", () => {
+          const script = parse("$varname");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("varname")),
+            new ResolveValue(),
+          ]);
+
+          variableResolver.register("varname", new StringValue("value"));
+          expect(context.execute(program)).to.eql(new StringValue("value"));
+        });
+        specify("double substitution", () => {
+          const script = parse("$$var1");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("var1")),
+            new ResolveValue(),
+            new ResolveValue(),
+          ]);
+
+          variableResolver.register("var1", new StringValue("var2"));
+          variableResolver.register("var2", new StringValue("value"));
+          expect(context.execute(program)).to.eql(new StringValue("value"));
+        });
+        specify("triple substitution", () => {
+          const script = parse("$$$var1");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("var1")),
+            new ResolveValue(),
+            new ResolveValue(),
+            new ResolveValue(),
+          ]);
+
+          variableResolver.register("var1", new StringValue("var2"));
+          variableResolver.register("var2", new StringValue("var3"));
+          variableResolver.register("var3", new StringValue("value"));
+          expect(context.execute(program)).to.eql(new StringValue("value"));
+        });
+      });
+
+      describe("tuples", () => {
+        specify("single variable", () => {
+          const script = parse("$(varname)");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([new PushLiteral(new StringValue("varname"))]),
+            new ResolveValue(),
+          ]);
+
+          variableResolver.register("varname", new StringValue("value"));
+          expect(context.execute(program)).to.eql(
+            new TupleValue([new StringValue("value")])
+          );
+        });
+        specify("multiple variables", () => {
+          const script = parse("$(var1 var2)");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([
+              new PushLiteral(new StringValue("var1")),
+              new PushLiteral(new StringValue("var2")),
+            ]),
+            new ResolveValue(),
+          ]);
+
+          variableResolver.register("var1", new StringValue("value1"));
+          variableResolver.register("var2", new StringValue("value2"));
+          expect(context.execute(program)).to.eql(
+            new TupleValue([
+              new StringValue("value1"),
+              new StringValue("value2"),
+            ])
+          );
+        });
+        specify("double substitution", () => {
+          const script = parse("$$(var1)");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([new PushLiteral(new StringValue("var1"))]),
+            new ResolveValue(),
+            new ResolveValue(),
+          ]);
+
+          variableResolver.register("var1", new StringValue("var2"));
+          variableResolver.register("var2", new StringValue("value"));
+          expect(context.execute(program)).to.eql(
+            new TupleValue([new StringValue("value")])
+          );
+        });
+        specify("nested tuples", () => {
+          const script = parse("$(var1 (var2))");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([
+              new PushLiteral(new StringValue("var1")),
+              new PushTuple([new PushLiteral(new StringValue("var2"))]),
+            ]),
+            new ResolveValue(),
+          ]);
+
+          variableResolver.register("var1", new StringValue("value1"));
+          variableResolver.register("var2", new StringValue("value2"));
+          expect(context.execute(program)).to.eql(
+            new TupleValue([
+              new StringValue("value1"),
+              new TupleValue([new StringValue("value2")]),
+            ])
+          );
+        });
+        specify("nested double substitution", () => {
+          const script = parse("$$((var1))");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([
+              new PushTuple([new PushLiteral(new StringValue("var1"))]),
+            ]),
+            new ResolveValue(),
+            new ResolveValue(),
+          ]);
+
+          variableResolver.register("var1", new StringValue("var2"));
+          variableResolver.register("var2", new StringValue("value"));
+          expect(context.execute(program)).to.eql(
+            new TupleValue([new TupleValue([new StringValue("value")])])
+          );
+        });
+      });
+
+      describe("blocks", () => {
+        specify("varname with spaces", () => {
+          const script = parse("${variable name}");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("variable name")),
+            new ResolveValue(),
+          ]);
+
+          variableResolver.register("variable name", new StringValue("value"));
+          expect(context.execute(program)).to.eql(new StringValue("value"));
+        });
+        specify("varname with special characters", () => {
+          const script = parse('${variable " " name}');
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue('variable " " name')),
+            new ResolveValue(),
+          ]);
+
+          variableResolver.register(
+            'variable " " name',
+            new StringValue("value")
+          );
+          expect(context.execute(program)).to.eql(new StringValue("value"));
+        });
+        specify("varname with continuations", () => {
+          const script = parse("${variable\\\n \t\r     name}");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("variable name")),
+            new ResolveValue(),
+          ]);
+
+          variableResolver.register("variable name", new StringValue("value"));
+          variableResolver.register(
+            'variable " " name',
+            new StringValue("value")
+          );
+          expect(context.execute(program)).to.eql(new StringValue("value"));
+        });
+      });
+
+      describe("expressions", () => {
+        specify("simple substitution", () => {
+          const script = parse("$[cmd]");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
             new PushTuple([new PushLiteral(new StringValue("cmd"))]),
             new EvaluateSentence(),
             new SubstituteResult(),
-            new PushLiteral(new StringValue(" a string")),
-          ]),
-          new JoinStrings(),
-        ]);
+          ]);
 
-        commandResolver.register("cmd", {
-          evaluate: () => new StringValue("is"),
-        });
-        expect(context.execute(program)).to.eql(
-          new StringValue("this is a string")
-        );
-      });
-      specify("multiple commands", () => {
-        const script = parse('"this [cmd1][cmd2] a string"');
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([
-            new PushLiteral(new StringValue("this ")),
-            new PushTuple([new PushLiteral(new StringValue("cmd1"))]),
-            new EvaluateSentence(),
-            new SubstituteResult(),
-            new PushTuple([new PushLiteral(new StringValue("cmd2"))]),
-            new EvaluateSentence(),
-            new SubstituteResult(),
-            new PushLiteral(new StringValue(" a string")),
-          ]),
-          new JoinStrings(),
-        ]);
-
-        commandResolver.register("cmd1", {
-          evaluate: () => new StringValue("i"),
-        });
-        commandResolver.register("cmd2", {
-          evaluate: () => new StringValue("s"),
-        });
-        expect(context.execute(program)).to.eql(
-          new StringValue("this is a string")
-        );
-      });
-    });
-
-    specify("string with multiple substitutions", () => {
-      const script = parse(
-        '"this $var1 ${variable 2} [cmd1] with subst[cmd2]${var3}[cmd3]$var4"'
-      );
-      const program = compileFirstSentence(script);
-
-      expect(program).to.eql([
-        new PushTuple([
-          new PushLiteral(new StringValue("this ")),
-          new PushLiteral(new StringValue("var1")),
-          new ResolveValue(),
-          new PushLiteral(new StringValue(" ")),
-          new PushLiteral(new StringValue("variable 2")),
-          new ResolveValue(),
-          new PushLiteral(new StringValue(" ")),
-          new PushTuple([new PushLiteral(new StringValue("cmd1"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new PushLiteral(new StringValue(" with subst")),
-          new PushTuple([new PushLiteral(new StringValue("cmd2"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new PushLiteral(new StringValue("var3")),
-          new ResolveValue(),
-          new PushTuple([new PushLiteral(new StringValue("cmd3"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new SelectIndex(),
-          new PushLiteral(new StringValue("var4")),
-          new ResolveValue(),
-        ]),
-        new JoinStrings(),
-      ]);
-
-      variableResolver.register("var1", new StringValue("is"));
-      variableResolver.register("variable 2", new StringValue("a"));
-      commandResolver.register("cmd1", {
-        evaluate: () => new StringValue("string"),
-      });
-      commandResolver.register("cmd2", {
-        evaluate: () => new StringValue("it"),
-      });
-      variableResolver.register(
-        "var3",
-        new ListValue([new StringValue("foo"), new StringValue("ut")])
-      );
-      commandResolver.register("cmd3", {
-        evaluate: () => new IntegerValue(1),
-      });
-      variableResolver.register("var4", new StringValue("ions"));
-      expect(context.execute(program)).to.eql(
-        new StringValue("this is a string with substitutions")
-      );
-    });
-  });
-
-  specify("here-strings", () => {
-    const script = parse('"""this is a "\'\\ $ \nhere-string"""');
-    const program = compileFirstSentence(script);
-    expect(program).to.eql([
-      new PushLiteral(new StringValue("this is a \"'\\ $ \nhere-string")),
-    ]);
-
-    expect(context.execute(program)).to.eql(
-      new StringValue("this is a \"'\\ $ \nhere-string")
-    );
-  });
-
-  specify("tagged strings", () => {
-    const script = parse(
-      '""SOME_TAG\nthis is \n a \n "\'\\ $ tagged string\nSOME_TAG""'
-    );
-    const program = compileFirstSentence(script);
-    expect(program).to.eql([
-      new PushLiteral(
-        new StringValue("this is \n a \n \"'\\ $ tagged string\n")
-      ),
-    ]);
-
-    expect(context.execute(program)).to.eql(
-      new StringValue("this is \n a \n \"'\\ $ tagged string\n")
-    );
-  });
-
-  specify("line comments", () => {
-    const script = parse("# this ; is$ (\\\na [comment{");
-    const program = compileFirstSentence(script);
-    expect(program).to.eql([]);
-  });
-
-  specify("block comments", () => {
-    const script = parse("##{ this \n ; is$ (a  \n#{comment{[( }##");
-    const program = compileFirstSentence(script);
-    expect(program).to.eql([]);
-  });
-
-  describe("substitutions", () => {
-    describe("scalars", () => {
-      specify("simple substitution", () => {
-        const script = parse("$varname");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue("varname")),
-          new ResolveValue(),
-        ]);
-
-        variableResolver.register("varname", new StringValue("value"));
-        expect(context.execute(program)).to.eql(new StringValue("value"));
-      });
-      specify("double substitution", () => {
-        const script = parse("$$var1");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue("var1")),
-          new ResolveValue(),
-          new ResolveValue(),
-        ]);
-
-        variableResolver.register("var1", new StringValue("var2"));
-        variableResolver.register("var2", new StringValue("value"));
-        expect(context.execute(program)).to.eql(new StringValue("value"));
-      });
-      specify("triple substitution", () => {
-        const script = parse("$$$var1");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue("var1")),
-          new ResolveValue(),
-          new ResolveValue(),
-          new ResolveValue(),
-        ]);
-
-        variableResolver.register("var1", new StringValue("var2"));
-        variableResolver.register("var2", new StringValue("var3"));
-        variableResolver.register("var3", new StringValue("value"));
-        expect(context.execute(program)).to.eql(new StringValue("value"));
-      });
-    });
-
-    describe("tuples", () => {
-      specify("single variable", () => {
-        const script = parse("$(varname)");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([new PushLiteral(new StringValue("varname"))]),
-          new ResolveValue(),
-        ]);
-
-        variableResolver.register("varname", new StringValue("value"));
-        expect(context.execute(program)).to.eql(
-          new TupleValue([new StringValue("value")])
-        );
-      });
-      specify("multiple variables", () => {
-        const script = parse("$(var1 var2)");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([
-            new PushLiteral(new StringValue("var1")),
-            new PushLiteral(new StringValue("var2")),
-          ]),
-          new ResolveValue(),
-        ]);
-
-        variableResolver.register("var1", new StringValue("value1"));
-        variableResolver.register("var2", new StringValue("value2"));
-        expect(context.execute(program)).to.eql(
-          new TupleValue([new StringValue("value1"), new StringValue("value2")])
-        );
-      });
-      specify("double substitution", () => {
-        const script = parse("$$(var1)");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([new PushLiteral(new StringValue("var1"))]),
-          new ResolveValue(),
-          new ResolveValue(),
-        ]);
-
-        variableResolver.register("var1", new StringValue("var2"));
-        variableResolver.register("var2", new StringValue("value"));
-        expect(context.execute(program)).to.eql(
-          new TupleValue([new StringValue("value")])
-        );
-      });
-      specify("nested tuples", () => {
-        const script = parse("$(var1 (var2))");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([
-            new PushLiteral(new StringValue("var1")),
-            new PushTuple([new PushLiteral(new StringValue("var2"))]),
-          ]),
-          new ResolveValue(),
-        ]);
-
-        variableResolver.register("var1", new StringValue("value1"));
-        variableResolver.register("var2", new StringValue("value2"));
-        expect(context.execute(program)).to.eql(
-          new TupleValue([
-            new StringValue("value1"),
-            new TupleValue([new StringValue("value2")]),
-          ])
-        );
-      });
-      specify("nested double substitution", () => {
-        const script = parse("$$((var1))");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([
-            new PushTuple([new PushLiteral(new StringValue("var1"))]),
-          ]),
-          new ResolveValue(),
-          new ResolveValue(),
-        ]);
-
-        variableResolver.register("var1", new StringValue("var2"));
-        variableResolver.register("var2", new StringValue("value"));
-        expect(context.execute(program)).to.eql(
-          new TupleValue([new TupleValue([new StringValue("value")])])
-        );
-      });
-    });
-
-    describe("blocks", () => {
-      specify("varname with spaces", () => {
-        const script = parse("${variable name}");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue("variable name")),
-          new ResolveValue(),
-        ]);
-
-        variableResolver.register("variable name", new StringValue("value"));
-        expect(context.execute(program)).to.eql(new StringValue("value"));
-      });
-      specify("varname with special characters", () => {
-        const script = parse('${variable " " name}');
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue('variable " " name')),
-          new ResolveValue(),
-        ]);
-
-        variableResolver.register(
-          'variable " " name',
-          new StringValue("value")
-        );
-        expect(context.execute(program)).to.eql(new StringValue("value"));
-      });
-      specify("varname with continuations", () => {
-        const script = parse("${variable\\\n \t\r     name}");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue("variable name")),
-          new ResolveValue(),
-        ]);
-
-        variableResolver.register("variable name", new StringValue("value"));
-        variableResolver.register(
-          'variable " " name',
-          new StringValue("value")
-        );
-        expect(context.execute(program)).to.eql(new StringValue("value"));
-      });
-    });
-
-    describe("expressions", () => {
-      specify("simple substitution", () => {
-        const script = parse("$[cmd]");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([new PushLiteral(new StringValue("cmd"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-        ]);
-
-        commandResolver.register("cmd", {
-          evaluate: () =>
+          commandResolver.register("cmd", {
+            evaluate: () =>
+              new ListValue([
+                new StringValue("value1"),
+                new StringValue("value2"),
+              ]),
+          });
+          expect(context.execute(program)).to.eql(
             new ListValue([
               new StringValue("value1"),
               new StringValue("value2"),
-            ]),
+            ])
+          );
         });
-        expect(context.execute(program)).to.eql(
-          new ListValue([new StringValue("value1"), new StringValue("value2")])
-        );
-      });
-      specify("double substitution, scalar", () => {
-        const script = parse("$$[cmd]");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([new PushLiteral(new StringValue("cmd"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new ResolveValue(),
-        ]);
-
-        commandResolver.register("cmd", {
-          evaluate: () => new StringValue("var"),
-        });
-        variableResolver.register("var", new StringValue("value"));
-        expect(context.execute(program)).to.eql(new StringValue("value"));
-      });
-      specify("double substitution, tuple", () => {
-        const script = parse("$$[cmd]");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([new PushLiteral(new StringValue("cmd"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new ResolveValue(),
-        ]);
-
-        commandResolver.register("cmd", {
-          evaluate: () =>
-            new TupleValue([new StringValue("var1"), new StringValue("var2")]),
-        });
-        variableResolver.register("var1", new StringValue("value1"));
-        variableResolver.register("var2", new StringValue("value2"));
-        expect(context.execute(program)).to.eql(
-          new TupleValue([new StringValue("value1"), new StringValue("value2")])
-        );
-      });
-      specify("two sentences", () => {
-        const script = parse("[cmd1 result1; cmd2 result2]");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([
-            new PushLiteral(new StringValue("cmd1")),
-            new PushLiteral(new StringValue("result1")),
-          ]),
-          new EvaluateSentence(),
-          new PushTuple([
-            new PushLiteral(new StringValue("cmd2")),
-            new PushLiteral(new StringValue("result2")),
-          ]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-        ]);
-
-        let called = {};
-        let fn: Command = {
-          evaluate: (args) => {
-            const cmd = args[0].asString();
-            called[cmd] = called[cmd] ?? 0 + 1;
-            return args[1];
-          },
-        };
-        commandResolver.register("cmd1", fn);
-        commandResolver.register("cmd2", fn);
-        expect(context.execute(program)).to.eql(new StringValue("result2"));
-        expect(called).to.eql({ cmd1: 1, cmd2: 1 });
-      });
-      specify("indirect command", () => {
-        const script = parse("[$cmdname]");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([
-            new PushLiteral(new StringValue("cmdname")),
+        specify("double substitution, scalar", () => {
+          const script = parse("$$[cmd]");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([new PushLiteral(new StringValue("cmd"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
             new ResolveValue(),
-          ]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-        ]);
+          ]);
 
-        variableResolver.register("cmdname", new StringValue("cmd"));
-        commandResolver.register("cmd", {
-          evaluate: () => new StringValue("value"),
+          commandResolver.register("cmd", {
+            evaluate: () => new StringValue("var"),
+          });
+          variableResolver.register("var", new StringValue("value"));
+          expect(context.execute(program)).to.eql(new StringValue("value"));
         });
-        expect(context.execute(program)).to.eql(new StringValue("value"));
+        specify("double substitution, tuple", () => {
+          const script = parse("$$[cmd]");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([new PushLiteral(new StringValue("cmd"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new ResolveValue(),
+          ]);
+
+          commandResolver.register("cmd", {
+            evaluate: () =>
+              new TupleValue([
+                new StringValue("var1"),
+                new StringValue("var2"),
+              ]),
+          });
+          variableResolver.register("var1", new StringValue("value1"));
+          variableResolver.register("var2", new StringValue("value2"));
+          expect(context.execute(program)).to.eql(
+            new TupleValue([
+              new StringValue("value1"),
+              new StringValue("value2"),
+            ])
+          );
+        });
+        specify("two sentences", () => {
+          const script = parse("[cmd1 result1; cmd2 result2]");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([
+              new PushLiteral(new StringValue("cmd1")),
+              new PushLiteral(new StringValue("result1")),
+            ]),
+            new EvaluateSentence(),
+            new PushTuple([
+              new PushLiteral(new StringValue("cmd2")),
+              new PushLiteral(new StringValue("result2")),
+            ]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+          ]);
+
+          let called = {};
+          let fn: Command = {
+            evaluate: (args) => {
+              const cmd = args[0].asString();
+              called[cmd] = called[cmd] ?? 0 + 1;
+              return args[1];
+            },
+          };
+          commandResolver.register("cmd1", fn);
+          commandResolver.register("cmd2", fn);
+          expect(context.execute(program)).to.eql(new StringValue("result2"));
+          expect(called).to.eql({ cmd1: 1, cmd2: 1 });
+        });
+        specify("indirect command", () => {
+          const script = parse("[$cmdname]");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([
+              new PushLiteral(new StringValue("cmdname")),
+              new ResolveValue(),
+            ]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+          ]);
+
+          variableResolver.register("cmdname", new StringValue("cmd"));
+          commandResolver.register("cmd", {
+            evaluate: () => new StringValue("value"),
+          });
+          expect(context.execute(program)).to.eql(new StringValue("value"));
+        });
       });
-    });
 
-    describe("indexed selectors", () => {
-      specify("simple substitution", () => {
-        const script = parse("$varname[1]");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue("varname")),
-          new ResolveValue(),
-          new PushTuple([new PushLiteral(new StringValue("1"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new SelectIndex(),
-        ]);
+      describe("indexed selectors", () => {
+        specify("simple substitution", () => {
+          const script = parse("$varname[1]");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("varname")),
+            new ResolveValue(),
+            new PushTuple([new PushLiteral(new StringValue("1"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new SelectIndex(),
+          ]);
 
-        variableResolver.register(
-          "varname",
-          new ListValue([new StringValue("value1"), new StringValue("value2")])
-        );
-        expect(context.execute(program)).to.eql(new StringValue("value2"));
-      });
-      specify("double substitution", () => {
-        const script = parse("$$var1[0]");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue("var1")),
-          new ResolveValue(),
-          new PushTuple([new PushLiteral(new StringValue("0"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new SelectIndex(),
-          new ResolveValue(),
-        ]);
-
-        variableResolver.register(
-          "var1",
-          new ListValue([new StringValue("var2")])
-        );
-        variableResolver.register("var2", new StringValue("value"));
-        expect(context.execute(program)).to.eql(new StringValue("value"));
-      });
-      specify("successive indexes", () => {
-        const script = parse("$varname[1][0]");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue("varname")),
-          new ResolveValue(),
-          new PushTuple([new PushLiteral(new StringValue("1"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new SelectIndex(),
-          new PushTuple([new PushLiteral(new StringValue("0"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new SelectIndex(),
-        ]);
-
-        variableResolver.register(
-          "varname",
-          new ListValue([
-            new StringValue("value1"),
+          variableResolver.register(
+            "varname",
             new ListValue([
-              new StringValue("value2_1"),
-              new StringValue("value2_2"),
-            ]),
-          ])
-        );
-        expect(context.execute(program)).to.eql(new StringValue("value2_1"));
-      });
-      specify("indirect index", () => {
-        const script = parse("$var1[$var2]");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue("var1")),
-          new ResolveValue(),
-          new PushTuple([
-            new PushLiteral(new StringValue("var2")),
+              new StringValue("value1"),
+              new StringValue("value2"),
+            ])
+          );
+          expect(context.execute(program)).to.eql(new StringValue("value2"));
+        });
+        specify("double substitution", () => {
+          const script = parse("$$var1[0]");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("var1")),
             new ResolveValue(),
-          ]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new SelectIndex(),
-        ]);
+            new PushTuple([new PushLiteral(new StringValue("0"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new SelectIndex(),
+            new ResolveValue(),
+          ]);
 
-        variableResolver.register(
-          "var1",
-          new ListValue([
-            new StringValue("value1"),
-            new StringValue("value2"),
-            new StringValue("value3"),
-          ])
-        );
-        variableResolver.register("var2", new StringValue("1"));
-        expect(context.execute(program)).to.eql(new StringValue("value2"));
-      });
-      specify("command index", () => {
-        const script = parse("$varname[cmd]");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue("varname")),
-          new ResolveValue(),
-          new PushTuple([new PushLiteral(new StringValue("cmd"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new SelectIndex(),
-        ]);
-
-        commandResolver.register("cmd", {
-          evaluate: () => new StringValue("1"),
+          variableResolver.register(
+            "var1",
+            new ListValue([new StringValue("var2")])
+          );
+          variableResolver.register("var2", new StringValue("value"));
+          expect(context.execute(program)).to.eql(new StringValue("value"));
         });
-        variableResolver.register(
-          "varname",
-          new ListValue([
-            new StringValue("value1"),
-            new StringValue("value2"),
-            new StringValue("value3"),
-          ])
-        );
-        expect(context.execute(program)).to.eql(new StringValue("value2"));
-      });
-      specify("scalar expression", () => {
-        const script = parse("$[cmd][0]");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([new PushLiteral(new StringValue("cmd"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new PushTuple([new PushLiteral(new StringValue("0"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new SelectIndex(),
-        ]);
+        specify("successive indexes", () => {
+          const script = parse("$varname[1][0]");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("varname")),
+            new ResolveValue(),
+            new PushTuple([new PushLiteral(new StringValue("1"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new SelectIndex(),
+            new PushTuple([new PushLiteral(new StringValue("0"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new SelectIndex(),
+          ]);
 
-        commandResolver.register("cmd", {
-          evaluate: () => new ListValue([new StringValue("value")]),
+          variableResolver.register(
+            "varname",
+            new ListValue([
+              new StringValue("value1"),
+              new ListValue([
+                new StringValue("value2_1"),
+                new StringValue("value2_2"),
+              ]),
+            ])
+          );
+          expect(context.execute(program)).to.eql(new StringValue("value2_1"));
         });
-        expect(context.execute(program)).to.eql(new StringValue("value"));
-      });
-      specify("tuple expression", () => {
-        const script = parse("$[cmd][0]");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([new PushLiteral(new StringValue("cmd"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new PushTuple([new PushLiteral(new StringValue("0"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new SelectIndex(),
-        ]);
-
-        commandResolver.register("cmd", {
-          evaluate: () =>
-            new TupleValue([
-              new ListValue([new StringValue("value1")]),
-              new ListValue([new StringValue("value2")]),
+        specify("indirect index", () => {
+          const script = parse("$var1[$var2]");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("var1")),
+            new ResolveValue(),
+            new PushTuple([
+              new PushLiteral(new StringValue("var2")),
+              new ResolveValue(),
             ]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new SelectIndex(),
+          ]);
+
+          variableResolver.register(
+            "var1",
+            new ListValue([
+              new StringValue("value1"),
+              new StringValue("value2"),
+              new StringValue("value3"),
+            ])
+          );
+          variableResolver.register("var2", new StringValue("1"));
+          expect(context.execute(program)).to.eql(new StringValue("value2"));
         });
-        expect(context.execute(program)).to.eql(
-          new TupleValue([new StringValue("value1"), new StringValue("value2")])
-        );
+        specify("command index", () => {
+          const script = parse("$varname[cmd]");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("varname")),
+            new ResolveValue(),
+            new PushTuple([new PushLiteral(new StringValue("cmd"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new SelectIndex(),
+          ]);
+
+          commandResolver.register("cmd", {
+            evaluate: () => new StringValue("1"),
+          });
+          variableResolver.register(
+            "varname",
+            new ListValue([
+              new StringValue("value1"),
+              new StringValue("value2"),
+              new StringValue("value3"),
+            ])
+          );
+          expect(context.execute(program)).to.eql(new StringValue("value2"));
+        });
+        specify("scalar expression", () => {
+          const script = parse("$[cmd][0]");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([new PushLiteral(new StringValue("cmd"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new PushTuple([new PushLiteral(new StringValue("0"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new SelectIndex(),
+          ]);
+
+          commandResolver.register("cmd", {
+            evaluate: () => new ListValue([new StringValue("value")]),
+          });
+          expect(context.execute(program)).to.eql(new StringValue("value"));
+        });
+        specify("tuple expression", () => {
+          const script = parse("$[cmd][0]");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([new PushLiteral(new StringValue("cmd"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new PushTuple([new PushLiteral(new StringValue("0"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new SelectIndex(),
+          ]);
+
+          commandResolver.register("cmd", {
+            evaluate: () =>
+              new TupleValue([
+                new ListValue([new StringValue("value1")]),
+                new ListValue([new StringValue("value2")]),
+              ]),
+          });
+          expect(context.execute(program)).to.eql(
+            new TupleValue([
+              new StringValue("value1"),
+              new StringValue("value2"),
+            ])
+          );
+        });
+      });
+
+      describe("keyed selectors", () => {
+        specify("simple substitution", () => {
+          const script = parse("$varname(key)");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("varname")),
+            new ResolveValue(),
+            new PushTuple([new PushLiteral(new StringValue("key"))]),
+            new SelectKeys(),
+          ]);
+
+          variableResolver.register(
+            "varname",
+            new MapValue({
+              key: new StringValue("value"),
+            })
+          );
+          expect(context.execute(program)).to.eql(new StringValue("value"));
+        });
+        specify("double substitution", () => {
+          const script = parse("$$var1(key)");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("var1")),
+            new ResolveValue(),
+            new PushTuple([new PushLiteral(new StringValue("key"))]),
+            new SelectKeys(),
+            new ResolveValue(),
+          ]);
+
+          variableResolver.register(
+            "var1",
+            new MapValue({ key: new StringValue("var2") })
+          );
+          variableResolver.register("var2", new StringValue("value"));
+          expect(context.execute(program)).to.eql(new StringValue("value"));
+        });
+        specify("recursive keys", () => {
+          const script = parse("$varname(key1 key2)");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("varname")),
+            new ResolveValue(),
+            new PushTuple([
+              new PushLiteral(new StringValue("key1")),
+              new PushLiteral(new StringValue("key2")),
+            ]),
+            new SelectKeys(),
+          ]);
+
+          variableResolver.register(
+            "varname",
+            new MapValue({
+              key1: new MapValue({ key2: new StringValue("value") }),
+            })
+          );
+          expect(context.execute(program)).to.eql(new StringValue("value"));
+        });
+        specify("successive keys", () => {
+          const script = parse("$varname(key1)(key2)");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("varname")),
+            new ResolveValue(),
+            new PushTuple([new PushLiteral(new StringValue("key1"))]),
+            new SelectKeys(),
+            new PushTuple([new PushLiteral(new StringValue("key2"))]),
+            new SelectKeys(),
+          ]);
+
+          variableResolver.register(
+            "varname",
+            new MapValue({
+              key1: new MapValue({ key2: new StringValue("value") }),
+            })
+          );
+          expect(context.execute(program)).to.eql(new StringValue("value"));
+        });
+        specify("indirect key", () => {
+          const script = parse("$var1($var2)");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("var1")),
+            new ResolveValue(),
+            new PushTuple([
+              new PushLiteral(new StringValue("var2")),
+              new ResolveValue(),
+            ]),
+            new SelectKeys(),
+          ]);
+
+          variableResolver.register(
+            "var1",
+            new MapValue({
+              key: new StringValue("value"),
+            })
+          );
+          variableResolver.register("var2", new StringValue("key"));
+          expect(context.execute(program)).to.eql(new StringValue("value"));
+        });
+        specify("string key", () => {
+          const script = parse('$varname("arbitrary key")');
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("varname")),
+            new ResolveValue(),
+            new PushTuple([
+              new PushTuple([
+                new PushLiteral(new StringValue("arbitrary key")),
+              ]),
+              new JoinStrings(),
+            ]),
+            new SelectKeys(),
+          ]);
+
+          variableResolver.register(
+            "varname",
+            new MapValue({
+              "arbitrary key": new StringValue("value"),
+            })
+          );
+          expect(context.execute(program)).to.eql(new StringValue("value"));
+        });
+        specify("block key", () => {
+          const script = parse("$varname({arbitrary key})");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("varname")),
+            new ResolveValue(),
+            new PushTuple([
+              new PushLiteral(
+                new ScriptValue(parse("arbitrary key"), "arbitrary key")
+              ),
+            ]),
+            new SelectKeys(),
+          ]);
+
+          variableResolver.register(
+            "varname",
+            new MapValue({
+              "arbitrary key": new StringValue("value"),
+            })
+          );
+          expect(context.execute(program)).to.eql(new StringValue("value"));
+        });
+        specify("tuple", () => {
+          const script = parse("$(var1 var2)(key)");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([
+              new PushLiteral(new StringValue("var1")),
+              new PushLiteral(new StringValue("var2")),
+            ]),
+            new ResolveValue(),
+            new PushTuple([new PushLiteral(new StringValue("key"))]),
+            new SelectKeys(),
+          ]);
+
+          variableResolver.register(
+            "var1",
+            new MapValue({ key: new StringValue("value1") })
+          );
+          variableResolver.register(
+            "var2",
+            new MapValue({ key: new StringValue("value2") })
+          );
+          expect(context.execute(program)).to.eql(
+            new TupleValue([
+              new StringValue("value1"),
+              new StringValue("value2"),
+            ])
+          );
+        });
+        specify("recursive tuple", () => {
+          const script = parse("$(var1 (var2))(key)");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([
+              new PushLiteral(new StringValue("var1")),
+              new PushTuple([new PushLiteral(new StringValue("var2"))]),
+            ]),
+            new ResolveValue(),
+            new PushTuple([new PushLiteral(new StringValue("key"))]),
+            new SelectKeys(),
+          ]);
+
+          variableResolver.register(
+            "var1",
+            new MapValue({ key: new StringValue("value1") })
+          );
+          variableResolver.register(
+            "var2",
+            new MapValue({ key: new StringValue("value2") })
+          );
+          expect(context.execute(program)).to.eql(
+            new TupleValue([
+              new StringValue("value1"),
+              new TupleValue([new StringValue("value2")]),
+            ])
+          );
+        });
+        specify("tuple with double substitution", () => {
+          const script = parse("$$(var1 var2)(key)");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([
+              new PushLiteral(new StringValue("var1")),
+              new PushLiteral(new StringValue("var2")),
+            ]),
+            new ResolveValue(),
+            new PushTuple([new PushLiteral(new StringValue("key"))]),
+            new SelectKeys(),
+            new ResolveValue(),
+          ]);
+
+          variableResolver.register(
+            "var1",
+            new MapValue({ key: new StringValue("var3") })
+          );
+          variableResolver.register(
+            "var2",
+            new MapValue({ key: new StringValue("var4") })
+          );
+          variableResolver.register("var3", new StringValue("value3"));
+          variableResolver.register("var4", new StringValue("value4"));
+          expect(context.execute(program)).to.eql(
+            new TupleValue([
+              new StringValue("value3"),
+              new StringValue("value4"),
+            ])
+          );
+        });
+        specify("scalar expression", () => {
+          const script = parse("$[cmd](key)");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([new PushLiteral(new StringValue("cmd"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new PushTuple([new PushLiteral(new StringValue("key"))]),
+            new SelectKeys(),
+          ]);
+
+          commandResolver.register("cmd", {
+            evaluate: () => new MapValue({ key: new StringValue("value") }),
+          });
+          expect(context.execute(program)).to.eql(new StringValue("value"));
+        });
+        specify("tuple expression", () => {
+          const script = parse("$[cmd](key)");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([new PushLiteral(new StringValue("cmd"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new PushTuple([new PushLiteral(new StringValue("key"))]),
+            new SelectKeys(),
+          ]);
+
+          commandResolver.register("cmd", {
+            evaluate: () =>
+              new TupleValue([
+                new MapValue({ key: new StringValue("value1") }),
+                new MapValue({ key: new StringValue("value2") }),
+              ]),
+          });
+          expect(context.execute(program)).to.eql(
+            new TupleValue([
+              new StringValue("value1"),
+              new StringValue("value2"),
+            ])
+          );
+        });
       });
     });
 
-    describe("keyed selectors", () => {
-      specify("simple substitution", () => {
-        const script = parse("$varname(key)");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue("varname")),
-          new ResolveValue(),
-          new PushTuple([new PushLiteral(new StringValue("key"))]),
-          new SelectKeys(),
-        ]);
+    describe("qualified words", () => {
+      describe("literal prefix", () => {
+        specify("indexed selector", () => {
+          const script = parse("varname[cmd]");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("varname")),
+            new SetSource(),
+            new PushTuple([new PushLiteral(new StringValue("cmd"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new SelectIndex(),
+          ]);
 
-        variableResolver.register(
-          "varname",
-          new MapValue({
-            key: new StringValue("value"),
-          })
-        );
-        expect(context.execute(program)).to.eql(new StringValue("value"));
-      });
-      specify("double substitution", () => {
-        const script = parse("$$var1(key)");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue("var1")),
-          new ResolveValue(),
-          new PushTuple([new PushLiteral(new StringValue("key"))]),
-          new SelectKeys(),
-          new ResolveValue(),
-        ]);
-
-        variableResolver.register(
-          "var1",
-          new MapValue({ key: new StringValue("var2") })
-        );
-        variableResolver.register("var2", new StringValue("value"));
-        expect(context.execute(program)).to.eql(new StringValue("value"));
-      });
-      specify("recursive keys", () => {
-        const script = parse("$varname(key1 key2)");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue("varname")),
-          new ResolveValue(),
-          new PushTuple([
-            new PushLiteral(new StringValue("key1")),
-            new PushLiteral(new StringValue("key2")),
-          ]),
-          new SelectKeys(),
-        ]);
-
-        variableResolver.register(
-          "varname",
-          new MapValue({
-            key1: new MapValue({ key2: new StringValue("value") }),
-          })
-        );
-        expect(context.execute(program)).to.eql(new StringValue("value"));
-      });
-      specify("successive keys", () => {
-        const script = parse("$varname(key1)(key2)");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue("varname")),
-          new ResolveValue(),
-          new PushTuple([new PushLiteral(new StringValue("key1"))]),
-          new SelectKeys(),
-          new PushTuple([new PushLiteral(new StringValue("key2"))]),
-          new SelectKeys(),
-        ]);
-
-        variableResolver.register(
-          "varname",
-          new MapValue({
-            key1: new MapValue({ key2: new StringValue("value") }),
-          })
-        );
-        expect(context.execute(program)).to.eql(new StringValue("value"));
-      });
-      specify("indirect key", () => {
-        const script = parse("$var1($var2)");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue("var1")),
-          new ResolveValue(),
-          new PushTuple([
-            new PushLiteral(new StringValue("var2")),
-            new ResolveValue(),
-          ]),
-          new SelectKeys(),
-        ]);
-
-        variableResolver.register(
-          "var1",
-          new MapValue({
-            key: new StringValue("value"),
-          })
-        );
-        variableResolver.register("var2", new StringValue("key"));
-        expect(context.execute(program)).to.eql(new StringValue("value"));
-      });
-      specify("string key", () => {
-        const script = parse('$varname("arbitrary key")');
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue("varname")),
-          new ResolveValue(),
-          new PushTuple([
-            new PushTuple([new PushLiteral(new StringValue("arbitrary key"))]),
-            new JoinStrings(),
-          ]),
-          new SelectKeys(),
-        ]);
-
-        variableResolver.register(
-          "varname",
-          new MapValue({
-            "arbitrary key": new StringValue("value"),
-          })
-        );
-        expect(context.execute(program)).to.eql(new StringValue("value"));
-      });
-      specify("block key", () => {
-        const script = parse("$varname({arbitrary key})");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushLiteral(new StringValue("varname")),
-          new ResolveValue(),
-          new PushTuple([
-            new PushLiteral(
-              new ScriptValue(parse("arbitrary key"), "arbitrary key")
-            ),
-          ]),
-          new SelectKeys(),
-        ]);
-
-        variableResolver.register(
-          "varname",
-          new MapValue({
-            "arbitrary key": new StringValue("value"),
-          })
-        );
-        expect(context.execute(program)).to.eql(new StringValue("value"));
-      });
-      specify("tuple", () => {
-        const script = parse("$(var1 var2)(key)");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([
-            new PushLiteral(new StringValue("var1")),
-            new PushLiteral(new StringValue("var2")),
-          ]),
-          new ResolveValue(),
-          new PushTuple([new PushLiteral(new StringValue("key"))]),
-          new SelectKeys(),
-        ]);
-
-        variableResolver.register(
-          "var1",
-          new MapValue({ key: new StringValue("value1") })
-        );
-        variableResolver.register(
-          "var2",
-          new MapValue({ key: new StringValue("value2") })
-        );
-        expect(context.execute(program)).to.eql(
-          new TupleValue([new StringValue("value1"), new StringValue("value2")])
-        );
-      });
-      specify("recursive tuple", () => {
-        const script = parse("$(var1 (var2))(key)");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([
-            new PushLiteral(new StringValue("var1")),
-            new PushTuple([new PushLiteral(new StringValue("var2"))]),
-          ]),
-          new ResolveValue(),
-          new PushTuple([new PushLiteral(new StringValue("key"))]),
-          new SelectKeys(),
-        ]);
-
-        variableResolver.register(
-          "var1",
-          new MapValue({ key: new StringValue("value1") })
-        );
-        variableResolver.register(
-          "var2",
-          new MapValue({ key: new StringValue("value2") })
-        );
-        expect(context.execute(program)).to.eql(
-          new TupleValue([
-            new StringValue("value1"),
-            new TupleValue([new StringValue("value2")]),
-          ])
-        );
-      });
-      specify("tuple with double substitution", () => {
-        const script = parse("$$(var1 var2)(key)");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([
-            new PushLiteral(new StringValue("var1")),
-            new PushLiteral(new StringValue("var2")),
-          ]),
-          new ResolveValue(),
-          new PushTuple([new PushLiteral(new StringValue("key"))]),
-          new SelectKeys(),
-          new ResolveValue(),
-        ]);
-
-        variableResolver.register(
-          "var1",
-          new MapValue({ key: new StringValue("var3") })
-        );
-        variableResolver.register(
-          "var2",
-          new MapValue({ key: new StringValue("var4") })
-        );
-        variableResolver.register("var3", new StringValue("value3"));
-        variableResolver.register("var4", new StringValue("value4"));
-        expect(context.execute(program)).to.eql(
-          new TupleValue([new StringValue("value3"), new StringValue("value4")])
-        );
-      });
-      specify("scalar expression", () => {
-        const script = parse("$[cmd](key)");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([new PushLiteral(new StringValue("cmd"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new PushTuple([new PushLiteral(new StringValue("key"))]),
-          new SelectKeys(),
-        ]);
-
-        commandResolver.register("cmd", {
-          evaluate: () => new MapValue({ key: new StringValue("value") }),
+          commandResolver.register("cmd", {
+            evaluate: () => new StringValue("index"),
+          });
+          expect(context.execute(program)).to.eql(
+            new QualifiedValue(new StringValue("varname"), [
+              new IndexedSelector(new StringValue("index")),
+            ])
+          );
         });
-        expect(context.execute(program)).to.eql(new StringValue("value"));
-      });
-      specify("tuple expression", () => {
-        const script = parse("$[cmd](key)");
-        const program = compileFirstSentence(script);
-        expect(program).to.eql([
-          new PushTuple([new PushLiteral(new StringValue("cmd"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new PushTuple([new PushLiteral(new StringValue("key"))]),
-          new SelectKeys(),
-        ]);
-
-        commandResolver.register("cmd", {
-          evaluate: () =>
-            new TupleValue([
-              new MapValue({ key: new StringValue("value1") }),
-              new MapValue({ key: new StringValue("value2") }),
+        specify("keyed selector", () => {
+          const script = parse("varname(key1 key2)");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("varname")),
+            new SetSource(),
+            new PushTuple([
+              new PushLiteral(new StringValue("key1")),
+              new PushLiteral(new StringValue("key2")),
             ]),
+            new SelectKeys(),
+          ]);
+
+          expect(context.execute(program)).to.eql(
+            new QualifiedValue(new StringValue("varname"), [
+              new KeyedSelector([
+                new StringValue("key1"),
+                new StringValue("key2"),
+              ]),
+            ])
+          );
         });
-        expect(context.execute(program)).to.eql(
-          new TupleValue([new StringValue("value1"), new StringValue("value2")])
-        );
+        specify("complex case", () => {
+          const script = parse("varname(key1 $var1)[cmd1]([$var2])(key4)");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("varname")),
+            new SetSource(),
+            new PushTuple([
+              new PushLiteral(new StringValue("key1")),
+              new PushLiteral(new StringValue("var1")),
+              new ResolveValue(),
+            ]),
+            new SelectKeys(),
+            new PushTuple([new PushLiteral(new StringValue("cmd1"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new SelectIndex(),
+            new PushTuple([
+              new PushTuple([
+                new PushLiteral(new StringValue("var2")),
+                new ResolveValue(),
+              ]),
+              new EvaluateSentence(),
+              new SubstituteResult(),
+            ]),
+            new SelectKeys(),
+            new PushTuple([new PushLiteral(new StringValue("key4"))]),
+            new SelectKeys(),
+          ]);
+
+          variableResolver.register("var1", new StringValue("key2"));
+          variableResolver.register("var2", new StringValue("cmd2"));
+          commandResolver.register("cmd1", {
+            evaluate: () => new StringValue("index1"),
+          });
+          commandResolver.register("cmd2", {
+            evaluate: () => new StringValue("key3"),
+          });
+          expect(context.execute(program)).to.eql(
+            new QualifiedValue(new StringValue("varname"), [
+              new KeyedSelector([
+                new StringValue("key1"),
+                new StringValue("key2"),
+              ]),
+              new IndexedSelector(new StringValue("index1")),
+              new KeyedSelector([
+                new StringValue("key3"),
+                new StringValue("key4"),
+              ]),
+            ])
+          );
+        });
+      });
+      describe("tuple prefix", () => {
+        specify("indexed selector", () => {
+          const script = parse("(varname1 varname2)[cmd]");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([
+              new PushLiteral(new StringValue("varname1")),
+              new PushLiteral(new StringValue("varname2")),
+            ]),
+            new SetSource(),
+            new PushTuple([new PushLiteral(new StringValue("cmd"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new SelectIndex(),
+          ]);
+
+          commandResolver.register("cmd", {
+            evaluate: () => new StringValue("index"),
+          });
+          expect(context.execute(program)).to.eql(
+            new QualifiedValue(
+              new TupleValue([
+                new StringValue("varname1"),
+                new StringValue("varname2"),
+              ]),
+              [new IndexedSelector(new StringValue("index"))]
+            )
+          );
+        });
+        specify("keyed selector", () => {
+          const script = parse("(varname1 varname2)(key1 key2)");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([
+              new PushLiteral(new StringValue("varname1")),
+              new PushLiteral(new StringValue("varname2")),
+            ]),
+            new SetSource(),
+            new PushTuple([
+              new PushLiteral(new StringValue("key1")),
+              new PushLiteral(new StringValue("key2")),
+            ]),
+            new SelectKeys(),
+          ]);
+
+          expect(context.execute(program)).to.eql(
+            new QualifiedValue(
+              new TupleValue([
+                new StringValue("varname1"),
+                new StringValue("varname2"),
+              ]),
+              [
+                new KeyedSelector([
+                  new StringValue("key1"),
+                  new StringValue("key2"),
+                ]),
+              ]
+            )
+          );
+        });
+        specify("complex case", () => {
+          const script = parse(
+            "(varname1 $var1)[cmd1](key1 $var2)([$var3])[cmd3]"
+          );
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushTuple([
+              new PushLiteral(new StringValue("varname1")),
+              new PushLiteral(new StringValue("var1")),
+              new ResolveValue(),
+            ]),
+            new SetSource(),
+            new PushTuple([new PushLiteral(new StringValue("cmd1"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new SelectIndex(),
+            new PushTuple([
+              new PushLiteral(new StringValue("key1")),
+              new PushLiteral(new StringValue("var2")),
+              new ResolveValue(),
+            ]),
+            new SelectKeys(),
+            new PushTuple([
+              new PushTuple([
+                new PushLiteral(new StringValue("var3")),
+                new ResolveValue(),
+              ]),
+              new EvaluateSentence(),
+              new SubstituteResult(),
+            ]),
+            new SelectKeys(),
+            new PushTuple([new PushLiteral(new StringValue("cmd3"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new SelectIndex(),
+          ]);
+
+          variableResolver.register("var1", new StringValue("varname2"));
+          variableResolver.register("var2", new StringValue("key2"));
+          variableResolver.register("var3", new StringValue("cmd2"));
+          commandResolver.register("cmd1", {
+            evaluate: () => new StringValue("index1"),
+          });
+          commandResolver.register("cmd2", {
+            evaluate: () => new StringValue("key3"),
+          });
+          commandResolver.register("cmd3", {
+            evaluate: () => new StringValue("index2"),
+          });
+          expect(context.execute(program)).to.eql(
+            new QualifiedValue(
+              new TupleValue([
+                new StringValue("varname1"),
+                new StringValue("varname2"),
+              ]),
+              [
+                new IndexedSelector(new StringValue("index1")),
+                new KeyedSelector([
+                  new StringValue("key1"),
+                  new StringValue("key2"),
+                  new StringValue("key3"),
+                ]),
+                new IndexedSelector(new StringValue("index2")),
+              ]
+            )
+          );
+        });
+      });
+      describe("block prefix", () => {
+        specify("indexed selector", () => {
+          const script = parse("{source name}[cmd]");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("source name")),
+            new SetSource(),
+            new PushTuple([new PushLiteral(new StringValue("cmd"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new SelectIndex(),
+          ]);
+
+          commandResolver.register("cmd", {
+            evaluate: () => new StringValue("index"),
+          });
+          expect(context.execute(program)).to.eql(
+            new QualifiedValue(new StringValue("source name"), [
+              new IndexedSelector(new StringValue("index")),
+            ])
+          );
+        });
+        specify("keyed selector", () => {
+          const script = parse("{source name}(key1 key2)");
+          const program = compileFirstWord(script);
+          expect(program).to.eql([
+            new PushLiteral(new StringValue("source name")),
+            new SetSource(),
+            new PushTuple([
+              new PushLiteral(new StringValue("key1")),
+              new PushLiteral(new StringValue("key2")),
+            ]),
+            new SelectKeys(),
+          ]);
+
+          expect(context.execute(program)).to.eql(
+            new QualifiedValue(new StringValue("source name"), [
+              new KeyedSelector([
+                new StringValue("key1"),
+                new StringValue("key2"),
+              ]),
+            ])
+          );
+        });
+      });
+    });
+
+    describe("ignored words", () => {
+      specify("line comments", () => {
+        const script = parse("# this ; is$ (\\\na [comment{");
+        const program = compileFirstWord(script);
+        expect(program).to.eql([]);
+      });
+
+      specify("block comments", () => {
+        const script = parse("##{ this \n ; is$ (a  \n#{comment{[( }##");
+        const program = compileFirstWord(script);
+        expect(program).to.eql([]);
       });
     });
   });
