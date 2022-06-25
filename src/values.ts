@@ -1,5 +1,5 @@
 import { Script } from "./syntax";
-import { Selector } from "./selectors";
+import { IndexedSelector, KeyedSelector, Selector } from "./selectors";
 
 export enum ValueType {
   NIL,
@@ -161,10 +161,26 @@ export class QualifiedValue implements Value {
     throw new Error("value has no string representation");
   }
   selectIndex(index: Value): Value {
-    throw new Error("value is not index-selectable");
+    return new QualifiedValue(this.source, [
+      ...this.selectors,
+      new IndexedSelector(index),
+    ]);
   }
   selectKey(key: Value): Value {
-    throw new Error("value is not key-selectable");
+    if (
+      this.selectors.length > 0 &&
+      this.selectors[this.selectors.length - 1] instanceof KeyedSelector
+    ) {
+      const last = this.selectors[this.selectors.length - 1] as KeyedSelector;
+      return new QualifiedValue(this.source, [
+        ...this.selectors.slice(0, -1),
+        new KeyedSelector([...last.keys, key]),
+      ]);
+    }
+    return new QualifiedValue(this.source, [
+      ...this.selectors,
+      new KeyedSelector([key]),
+    ]);
   }
   type = ValueType.QUALIFIED;
 }

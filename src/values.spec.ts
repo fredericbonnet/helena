@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { IndexedSelector, KeyedSelector } from "./selectors";
 import {
   IntegerValue,
   NIL,
@@ -285,17 +286,46 @@ describe("values", () => {
         "value has no string representation"
       );
     });
-    it("should not be index-selectable", () => {
-      const value = new QualifiedValue(new StringValue("name"), []);
-      expect(() => value.selectIndex(new StringValue("index"))).to.throw(
-        "value is not index-selectable"
-      );
+    describe("indexed selectors", () => {
+      it("should return a new qualified value", () => {
+        const value = new QualifiedValue(new StringValue("name"), []);
+        expect(value.selectIndex(new StringValue("index"))).to.eql(
+          new QualifiedValue(new StringValue("name"), [
+            new IndexedSelector(new StringValue("index")),
+          ])
+        );
+      });
     });
-    it("should not be key-selectable", () => {
-      const value = new QualifiedValue(new StringValue("name"), []);
-      expect(() => value.selectKey(new StringValue("key"))).to.throw(
-        "value is not key-selectable"
-      );
+    describe("keyed selectors", () => {
+      it("should return a new qualified value", () => {
+        const value = new QualifiedValue(new StringValue("name"), []);
+        expect(value.selectKey(new StringValue("key"))).to.eql(
+          new QualifiedValue(new StringValue("name"), [
+            new KeyedSelector([new StringValue("key")]),
+          ])
+        );
+      });
+      it("should aggregate keys", () => {
+        const value = new QualifiedValue(new StringValue("name"), [
+          new KeyedSelector([new StringValue("key1"), new StringValue("key2")]),
+          new IndexedSelector(new StringValue("index")),
+          new KeyedSelector([new StringValue("key3"), new StringValue("key4")]),
+        ]);
+        expect(value.selectKey(new StringValue("key5"))).to.eql(
+          new QualifiedValue(new StringValue("name"), [
+            new KeyedSelector([
+              new StringValue("key1"),
+              new StringValue("key2"),
+            ]),
+            new IndexedSelector(new StringValue("index")),
+            new KeyedSelector([
+              new StringValue("key3"),
+              new StringValue("key4"),
+              new StringValue("key5"),
+            ]),
+          ])
+        );
+      });
     });
   });
 });
