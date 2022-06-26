@@ -26,6 +26,7 @@ import {
   QualifiedValue,
 } from "./values";
 import { Command } from "./command";
+import { Compiler, Context, SubstituteResult } from "./compiler";
 
 export interface VariableResolver {
   resolve(name: string): Value;
@@ -34,10 +35,17 @@ export interface CommandResolver {
   resolve(name: string): Command;
 }
 
-export class Evaluator {
+export interface Evaluator {
+  evaluateScript(script: Script);
+  evaluateSentence(sentence: Sentence): Value;
+  evaluateWord(word: Word): Value;
+}
+
+export class InlineEvaluator implements Evaluator {
   private variableResolver: VariableResolver;
   private commandResolver: CommandResolver;
   private syntaxChecker: SyntaxChecker = new SyntaxChecker();
+
   constructor(
     variableResolver: VariableResolver,
     commandResolver: CommandResolver
@@ -357,5 +365,39 @@ export class Evaluator {
       value = selector.apply(value);
     }
     return value;
+  }
+}
+
+export class CompilingEvaluator implements Evaluator {
+  private variableResolver: VariableResolver;
+  private commandResolver: CommandResolver;
+  private compiler: Compiler;
+  private context: Context;
+
+  constructor(
+    variableResolver: VariableResolver,
+    commandResolver: CommandResolver
+  ) {
+    this.variableResolver = variableResolver;
+    this.commandResolver = commandResolver;
+    this.compiler = new Compiler();
+    this.context = new Context(this.variableResolver, this.commandResolver);
+  }
+
+  evaluateScript(script: Script) {
+    const program = this.compiler.compileScript(script);
+    return this.context.execute([...program, new SubstituteResult()]);
+  }
+
+  evaluateSentence(sentence: Sentence): Value {
+    const script = new Script();
+    script.sentences.push(sentence);
+    const program = this.compiler.compileScript(script);
+    return this.context.execute([...program, new SubstituteResult()]);
+  }
+
+  evaluateWord(word: Word): Value {
+    const program = this.compiler.compileWord(word);
+    return this.context.execute(program);
   }
 }
