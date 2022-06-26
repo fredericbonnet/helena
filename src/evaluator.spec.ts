@@ -5,6 +5,7 @@ import {
   CommandResolver,
   InlineEvaluator,
   CompilingEvaluator,
+  SelectorResolver,
 } from "./evaluator";
 import { Parser } from "./parser";
 import { Tokenizer } from "./tokenizer";
@@ -21,7 +22,12 @@ import {
   QualifiedValue,
 } from "./values";
 import { Command } from "./command";
-import { IndexedSelector, KeyedSelector, Selector } from "./selectors";
+import {
+  GenericSelector,
+  IndexedSelector,
+  KeyedSelector,
+  Selector,
+} from "./selectors";
 
 const mapValue = (value: Value) => {
   if (value == NIL) {
@@ -63,6 +69,9 @@ const mapSelector = (selector: Selector) => {
   }
   if (selector instanceof KeyedSelector) {
     return { keys: selector.keys.map(mapValue) };
+  }
+  if (selector instanceof GenericSelector) {
+    return { rules: selector.rules.map(mapValue) };
   }
   throw new Error("TODO");
 };
@@ -106,12 +115,23 @@ class FunctionCommand implements Command {
   }
 }
 
+class MockSelectorResolver implements SelectorResolver {
+  resolve(rules: Value[]): Selector {
+    return this.builder(rules);
+  }
+  builder: (rules) => Selector;
+  register(builder: (rules) => Selector) {
+    this.builder = builder;
+  }
+}
+
 for (let klass of [InlineEvaluator, CompilingEvaluator]) {
   describe(klass.name, () => {
     let tokenizer: Tokenizer;
     let parser: Parser;
     let variableResolver: MockVariableResolver;
     let commandResolver: MockCommandResolver;
+    let selectorResolver: MockSelectorResolver;
 
     let evaluator: Evaluator;
 
@@ -124,13 +144,22 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
       parser = new Parser();
       variableResolver = new MockVariableResolver();
       commandResolver = new MockCommandResolver();
-      evaluator = new klass(variableResolver, commandResolver);
+      selectorResolver = new MockSelectorResolver();
+      evaluator = new klass(
+        variableResolver,
+        commandResolver,
+        selectorResolver
+      );
     });
 
     if (klass == InlineEvaluator) {
       let evaluator: InlineEvaluator;
       beforeEach(() => {
-        evaluator = new InlineEvaluator(variableResolver, commandResolver);
+        evaluator = new InlineEvaluator(
+          variableResolver,
+          commandResolver,
+          selectorResolver
+        );
       });
 
       describe("morphemes", () => {
@@ -515,6 +544,88 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
               });
             });
 
+            describe("custom selectors", () => {
+              beforeEach(() => {
+                const lastSelector = {
+                  apply(value: Value): Value {
+                    const list = value as ListValue;
+                    return list.values[list.values.length - 1];
+                  },
+                };
+                selectorResolver.register((rules) => lastSelector);
+              });
+              specify("simple substitution", () => {
+                variableResolver.register(
+                  "var",
+                  new ListValue([
+                    new StringValue("value1"),
+                    new StringValue("value2"),
+                    new StringValue("value3"),
+                  ])
+                );
+                const morpheme = firstMorpheme(parse('"$var{last}"'));
+                const value = evaluator.evaluateMorpheme(morpheme);
+                expect(mapValue(value)).to.eql("value3");
+              });
+              specify("double substitution", () => {
+                variableResolver.register(
+                  "var1",
+                  new ListValue([
+                    new StringValue("var2"),
+                    new StringValue("var3"),
+                  ])
+                );
+                variableResolver.register("var3", new StringValue("value"));
+                const morpheme = firstMorpheme(parse('"$$var1{last}"'));
+                const value = evaluator.evaluateMorpheme(morpheme);
+                expect(mapValue(value)).to.eql("value");
+              });
+              specify("successive selectors", () => {
+                variableResolver.register(
+                  "var",
+                  new ListValue([
+                    new StringValue("value1"),
+                    new ListValue([
+                      new StringValue("value2_1"),
+                      new StringValue("value2_2"),
+                    ]),
+                  ])
+                );
+                const morpheme = firstMorpheme(parse('"$var{last}{last}"'));
+                const value = evaluator.evaluateMorpheme(morpheme);
+                expect(mapValue(value)).to.eql("value2_2");
+              });
+              specify("indirect selector", () => {
+                variableResolver.register(
+                  "var1",
+                  new ListValue([
+                    new StringValue("value1"),
+                    new StringValue("value2"),
+                    new StringValue("value3"),
+                  ])
+                );
+                variableResolver.register("var2", new StringValue("last"));
+                const morpheme = firstMorpheme(parse('"$var1{$var2}"'));
+                const value = evaluator.evaluateMorpheme(morpheme);
+                expect(mapValue(value)).to.eql("value3");
+              });
+              specify("expression", () => {
+                commandResolver.register(
+                  "cmd",
+                  new FunctionCommand(
+                    () =>
+                      new ListValue([
+                        new StringValue("value1"),
+                        new StringValue("value2"),
+                      ])
+                  )
+                );
+                const morpheme = firstMorpheme(parse('"$[cmd]{last}"'));
+                const value = evaluator.evaluateMorpheme(morpheme);
+                expect(mapValue(value)).to.eql("value2");
+              });
+            });
+
             describe("compound", () => {
               specify("beginning", () => {
                 variableResolver.register(
@@ -628,14 +739,68 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
               selectors: [{ keys: ["key"] }],
             });
           });
+          describe("generic selectors", () => {
+            beforeEach(() => {
+              selectorResolver.register((rules) => new GenericSelector(rules));
+            });
+            specify("simple rule", () => {
+              const word = firstWord(parse("var{rule}"));
+              const value = evaluator.evaluateWord(word);
+              expect(mapValue(value)).to.eql({
+                source: "var",
+                selectors: [{ rules: [["rule"]] }],
+              });
+            });
+            specify("rule with literal arguments", () => {
+              const word = firstWord(parse("var{rule arg1 arg2}"));
+              const value = evaluator.evaluateWord(word);
+              expect(mapValue(value)).to.eql({
+                source: "var",
+                selectors: [{ rules: [["rule", "arg1", "arg2"]] }],
+              });
+            });
+            specify("multiple rules", () => {
+              const word = firstWord(parse("var{rule1;rule2}"));
+              const value = evaluator.evaluateWord(word);
+              expect(mapValue(value)).to.eql({
+                source: "var",
+                selectors: [{ rules: [["rule1"], ["rule2"]] }],
+              });
+            });
+            specify("successive selectors", () => {
+              const word = firstWord(parse("var{rule1}{rule2}"));
+              const value = evaluator.evaluateWord(word);
+              expect(mapValue(value)).to.eql({
+                source: "var",
+                selectors: [{ rules: [["rule1"]] }, { rules: [["rule2"]] }],
+              });
+            });
+            specify("indirect selector", () => {
+              variableResolver.register("var2", new StringValue("rule"));
+              const word = firstWord(parse("var1{$var2}"));
+              const value = evaluator.evaluateWord(word);
+              expect(mapValue(value)).to.eql({
+                source: "var1",
+                selectors: [{ rules: [["rule"]] }],
+              });
+            });
+          });
           specify("multiple selectors", () => {
-            const word = firstWord(parse("var(key1 key2 key3)[1][2](key4)"));
+            selectorResolver.register((rules) => new GenericSelector(rules));
+            const word = firstWord(
+              parse(
+                "var(key1 key2 key3){rule1;rule2}[1]{rule3}{rule4}[2](key4)"
+              )
+            );
             const value = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql({
               source: "var",
               selectors: [
                 { keys: ["key1", "key2", "key3"] },
+                { rules: [["rule1"], ["rule2"]] },
                 { index: "1" },
+                { rules: [["rule3"]] },
+                { rules: [["rule4"]] },
                 { index: "2" },
                 { keys: ["key4"] },
               ],
@@ -667,16 +832,70 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
               selectors: [{ keys: ["key"] }],
             });
           });
+          describe("generic selectors", () => {
+            beforeEach(() => {
+              selectorResolver.register((rules) => new GenericSelector(rules));
+            });
+            specify("simple rule", () => {
+              const word = firstWord(parse("(var1 (var2) var3){rule}"));
+              const value = evaluator.evaluateWord(word);
+              expect(mapValue(value)).to.eql({
+                source: ["var1", ["var2"], "var3"],
+                selectors: [{ rules: [["rule"]] }],
+              });
+            });
+            specify("rule with literal arguments", () => {
+              const word = firstWord(
+                parse("(var1 (var2) var3){rule arg1 arg2}")
+              );
+              const value = evaluator.evaluateWord(word);
+              expect(mapValue(value)).to.eql({
+                source: ["var1", ["var2"], "var3"],
+                selectors: [{ rules: [["rule", "arg1", "arg2"]] }],
+              });
+            });
+            specify("multiple rules", () => {
+              const word = firstWord(parse("(var1 (var2) var3){rule1;rule2}"));
+              const value = evaluator.evaluateWord(word);
+              expect(mapValue(value)).to.eql({
+                source: ["var1", ["var2"], "var3"],
+                selectors: [{ rules: [["rule1"], ["rule2"]] }],
+              });
+            });
+            specify("successive selectors", () => {
+              const word = firstWord(parse("(var1 (var2) var3){rule1}{rule2}"));
+              const value = evaluator.evaluateWord(word);
+              expect(mapValue(value)).to.eql({
+                source: ["var1", ["var2"], "var3"],
+                selectors: [{ rules: [["rule1"]] }, { rules: [["rule2"]] }],
+              });
+            });
+            specify("indirect selector", () => {
+              variableResolver.register("var4", new StringValue("rule"));
+              const word = firstWord(parse("(var1 (var2) var3){$var4}"));
+              const value = evaluator.evaluateWord(word);
+              expect(mapValue(value)).to.eql({
+                source: ["var1", ["var2"], "var3"],
+                selectors: [{ rules: [["rule"]] }],
+              });
+            });
+          });
           specify("multiple selectors", () => {
+            selectorResolver.register((rules) => new GenericSelector(rules));
             const word = firstWord(
-              parse("((var))(key1 key2 key3)[1][2](key4)")
+              parse(
+                "((var))(key1 key2 key3){rule1;rule2}[1]{rule3}{rule4}[2](key4)"
+              )
             );
             const value = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql({
               source: [["var"]],
               selectors: [
                 { keys: ["key1", "key2", "key3"] },
+                { rules: [["rule1"], ["rule2"]] },
                 { index: "1" },
+                { rules: [["rule3"]] },
+                { rules: [["rule4"]] },
                 { index: "2" },
                 { keys: ["key4"] },
               ],
@@ -1075,6 +1294,85 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
                 "empty selector"
               );
             });
+          });
+        });
+
+        describe("custom selectors", () => {
+          beforeEach(() => {
+            const lastSelector = {
+              apply(value: Value): Value {
+                const list = value as ListValue;
+                return list.values[list.values.length - 1];
+              },
+            };
+            selectorResolver.register((rules) => lastSelector);
+          });
+          specify("simple substitution", () => {
+            variableResolver.register(
+              "var",
+              new ListValue([
+                new StringValue("value1"),
+                new StringValue("value2"),
+                new StringValue("value3"),
+              ])
+            );
+            const word = firstWord(parse("$var{last}"));
+            const value = evaluator.evaluateWord(word);
+            expect(mapValue(value)).to.eql("value3");
+          });
+          specify("double substitution", () => {
+            variableResolver.register(
+              "var1",
+              new ListValue([new StringValue("var2"), new StringValue("var3")])
+            );
+            variableResolver.register("var3", new StringValue("value"));
+            const word = firstWord(parse("$$var1{last}"));
+            const value = evaluator.evaluateWord(word);
+            expect(mapValue(value)).to.eql("value");
+          });
+          specify("successive selectors", () => {
+            variableResolver.register(
+              "var",
+              new ListValue([
+                new StringValue("value1"),
+                new ListValue([
+                  new StringValue("value2_1"),
+                  new StringValue("value2_2"),
+                ]),
+              ])
+            );
+            const word = firstWord(parse("$var{last}{last}"));
+            const value = evaluator.evaluateWord(word);
+            expect(mapValue(value)).to.eql("value2_2");
+          });
+          specify("indirect selector", () => {
+            variableResolver.register(
+              "var1",
+              new ListValue([
+                new StringValue("value1"),
+                new StringValue("value2"),
+                new StringValue("value3"),
+              ])
+            );
+            variableResolver.register("var2", new StringValue("last"));
+            const word = firstWord(parse("$var1{$var2}"));
+            const value = evaluator.evaluateWord(word);
+            expect(mapValue(value)).to.eql("value3");
+          });
+          specify("expression", () => {
+            commandResolver.register(
+              "cmd",
+              new FunctionCommand(
+                () =>
+                  new ListValue([
+                    new StringValue("value1"),
+                    new StringValue("value2"),
+                  ])
+              )
+            );
+            const word = firstWord(parse("$[cmd]{last}"));
+            const value = evaluator.evaluateWord(word);
+            expect(mapValue(value)).to.eql("value2");
           });
         });
 

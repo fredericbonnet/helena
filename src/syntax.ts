@@ -172,6 +172,7 @@ export class SyntaxChecker {
       const morpheme = morphemes[i];
       switch (morpheme.type) {
         case MorphemeType.TUPLE:
+        case MorphemeType.BLOCK:
         case MorphemeType.EXPRESSION:
           break;
 

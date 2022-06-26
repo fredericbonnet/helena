@@ -1,5 +1,10 @@
 import { Script } from "./syntax";
-import { IndexedSelector, KeyedSelector, Selector } from "./selectors";
+import {
+  GenericSelector,
+  IndexedSelector,
+  KeyedSelector,
+  Selector,
+} from "./selectors";
 
 export enum ValueType {
   NIL,
@@ -18,6 +23,7 @@ export interface Value {
   asString(): string;
   selectIndex(index: Value): Value;
   selectKey(key: Value): Value;
+  selectRules(rules: Value[]): Value;
 }
 
 class NilValue implements Value {
@@ -30,11 +36,15 @@ class NilValue implements Value {
   selectKey(key: Value): Value {
     throw new Error("nil is not key-selectable");
   }
+  selectRules(rules: Value[]): Value {
+    throw new Error("nil is not selectable");
+  }
   type = ValueType.NIL;
 }
 export const NIL = new NilValue();
 
 export class IntegerValue implements Value {
+  type = ValueType.INTEGER;
   value: number;
   constructor(value: number) {
     this.value = value;
@@ -54,7 +64,9 @@ export class IntegerValue implements Value {
   selectKey(key: Value): Value {
     throw new Error("value is not key-selectable");
   }
-  type = ValueType.INTEGER;
+  selectRules(rules: Value[]): Value {
+    throw new Error("value is not selectable");
+  }
 }
 
 export class StringValue implements Value {
@@ -73,6 +85,9 @@ export class StringValue implements Value {
   }
   selectKey(key: Value): Value {
     throw new Error("value is not key-selectable");
+  }
+  selectRules(rules: Value[]): Value {
+    throw new Error("value is not selectable");
   }
 }
 
@@ -93,6 +108,9 @@ export class ListValue implements Value {
   selectKey(key: Value): Value {
     throw new Error("value is not key-selectable");
   }
+  selectRules(rules: Value[]): Value {
+    throw new Error("value is not selectable");
+  }
 }
 
 export class MapValue implements Value {
@@ -112,6 +130,9 @@ export class MapValue implements Value {
     if (!this.map.has(k)) throw new Error("unknown key");
     return this.map.get(k);
   }
+  selectRules(rules: Value[]): Value {
+    throw new Error("value is not selectable");
+  }
 }
 
 export class TupleValue implements Value {
@@ -129,6 +150,9 @@ export class TupleValue implements Value {
   selectKey(key: Value): Value {
     return new TupleValue(this.values.map((value) => value.selectKey(key)));
   }
+  selectRules(rules: Value[]): Value {
+    throw new Error("value is not selectable");
+  }
 }
 
 export class ScriptValue implements Value {
@@ -143,14 +167,18 @@ export class ScriptValue implements Value {
     return this.value;
   }
   selectIndex(index: Value): Value {
-    throw new Error("Method not implemented.");
+    throw new Error("value is not index-selectable");
   }
   selectKey(key: Value): Value {
-    throw new Error("Method not implemented.");
+    throw new Error("value is not key-selectable");
+  }
+  selectRules(rules: Value[]): Value {
+    throw new Error("value is not selectable");
   }
 }
 
 export class QualifiedValue implements Value {
+  type = ValueType.QUALIFIED;
   source: Value;
   selectors: Selector[];
   constructor(name: Value, selectors: Selector[]) {
@@ -182,5 +210,10 @@ export class QualifiedValue implements Value {
       new KeyedSelector([key]),
     ]);
   }
-  type = ValueType.QUALIFIED;
+  selectRules(rules: Value[]): Value {
+    return new QualifiedValue(this.source, [
+      ...this.selectors,
+      new GenericSelector(rules),
+    ]);
+  }
 }

@@ -158,9 +158,15 @@ describe("SyntaxChecker", () => {
           expect(word.morphemes).to.have.length(3);
           expect(checker.checkWord(word)).to.eq(WordType.SUBSTITUTION);
         });
+        specify("generic selector", () => {
+          const script = parse("$" + value + BLOCK);
+          const word = firstWord(script);
+          expect(word.morphemes).to.have.length(3);
+          expect(checker.checkWord(word)).to.eq(WordType.SUBSTITUTION);
+        });
         specify("multiple selectors", () => {
           const script = parse(
-            "$" + value + TUPLE + TUPLE + EXPRESSION + TUPLE + EXPRESSION
+            "$" + value + TUPLE + BLOCK + EXPRESSION + TUPLE + EXPRESSION
           );
           const word = firstWord(script);
           expect(word.morphemes).to.have.length(7);
@@ -184,9 +190,15 @@ describe("SyntaxChecker", () => {
           expect(word.morphemes).to.have.length(2);
           expect(checker.checkWord(word)).to.eq(WordType.QUALIFIED);
         });
+        specify("generic selector", () => {
+          const script = parse(value + BLOCK);
+          const word = firstWord(script);
+          expect(word.morphemes).to.have.length(2);
+          expect(checker.checkWord(word)).to.eq(WordType.QUALIFIED);
+        });
         specify("multiple selectors", () => {
           const script = parse(
-            value + TUPLE + TUPLE + EXPRESSION + TUPLE + EXPRESSION
+            value + TUPLE + BLOCK + EXPRESSION + TUPLE + EXPRESSION
           );
           const word = firstWord(script);
           expect(word.morphemes).to.have.length(6);

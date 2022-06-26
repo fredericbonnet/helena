@@ -28,3 +28,14 @@ export class KeyedSelector implements Selector {
     return value;
   }
 }
+
+export class GenericSelector implements Selector {
+  rules: Value[];
+  constructor(rules: Value[]) {
+    if (rules.length == 0) throw new Error("empty selector");
+    this.rules = rules;
+  }
+  apply(value: Value): Value {
+    return value.selectRules(this.rules);
+  }
+}

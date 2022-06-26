@@ -1,4 +1,8 @@
-import { CommandResolver, VariableResolver } from "./evaluator";
+import {
+  CommandResolver,
+  SelectorResolver,
+  VariableResolver,
+} from "./evaluator";
 import { IndexedSelector, KeyedSelector } from "./selectors";
 import {
   BlockMorpheme,
@@ -162,6 +166,12 @@ export class Compiler {
           break;
         }
 
+        case MorphemeType.BLOCK: {
+          const block = morpheme as BlockMorpheme;
+          this.emitSelector(result, block);
+          break;
+        }
+
         case MorphemeType.EXPRESSION: {
           const expression = morpheme as ExpressionMorpheme;
           this.emitIndexedSelector(result, expression);
@@ -208,6 +218,12 @@ export class Compiler {
         case MorphemeType.TUPLE: {
           const tuple = morpheme as TupleMorpheme;
           this.emitKeyedSelector(result, tuple);
+          break;
+        }
+
+        case MorphemeType.BLOCK: {
+          const block = morpheme as BlockMorpheme;
+          this.emitSelector(result, block);
           break;
         }
 
@@ -387,6 +403,15 @@ export class Compiler {
     result.push(new SubstituteResult());
     result.push(new SelectIndex());
   }
+  private emitSelector(result: Operation[], block: BlockMorpheme) {
+    const rules = [];
+    for (let sentence of block.subscript.sentences) {
+      const rule = this.compileSentence(sentence);
+      rules.push(new PushTuple(rule));
+    }
+    result.push(new PushTuple(rules));
+    result.push(new SelectRules());
+  }
 }
 export interface Operation {
   execute(context: Context);
@@ -468,6 +493,14 @@ export class SelectKeys implements Operation {
     context.push(selector.apply(value));
   }
 }
+export class SelectRules implements Operation {
+  execute(context: Context) {
+    const rules = context.pop() as TupleValue;
+    const selector = context.selectorResolver.resolve(rules.values);
+    const value = context.pop();
+    context.push(selector.apply(value));
+  }
+}
 export class EvaluateSentence implements Operation {
   execute(context: Context) {
     const args = context.pop() as TupleValue;
@@ -493,12 +526,18 @@ export class JoinStrings implements Operation {
 export class Context {
   variableResolver: VariableResolver;
   commandResolver: CommandResolver;
+  selectorResolver: SelectorResolver;
   frames: Value[][] = [[]];
   result: Value = NIL;
 
-  constructor(variableResolver, commandResolver) {
+  constructor(
+    variableResolver: VariableResolver,
+    commandResolver: CommandResolver,
+    selectorResolver: SelectorResolver
+  ) {
     this.variableResolver = variableResolver;
     this.commandResolver = commandResolver;
+    this.selectorResolver = selectorResolver;
   }
 
   openFrame() {

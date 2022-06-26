@@ -1,13 +1,16 @@
 import { expect } from "chai";
-import { IndexedSelector, KeyedSelector } from "./selectors";
+import { GenericSelector, IndexedSelector, KeyedSelector } from "./selectors";
+import { Script } from "./syntax";
 import {
-  IntegerValue,
   NIL,
-  QualifiedValue,
+  Value,
+  IntegerValue,
   StringValue,
   ListValue,
-  TupleValue,
   MapValue,
+  TupleValue,
+  ScriptValue,
+  QualifiedValue,
 } from "./values";
 
 describe("values", () => {
@@ -25,14 +28,20 @@ describe("values", () => {
         "nil is not key-selectable"
       );
     });
+    it("should not be selectable", () => {
+      expect(() => NIL.selectRules([])).to.throw("nil is not selectable");
+    });
   });
 
   describe("IntegerValue", () => {
-    it("string representation should be the decimal representation of its value", () => {
-      const integer = 0x1234;
-      const value = new IntegerValue(integer);
-      expect(value.asString()).to.eql("4660");
-    });
+    specify(
+      "string representation should be the decimal representation of its value",
+      () => {
+        const integer = 0x1234;
+        const value = new IntegerValue(integer);
+        expect(value.asString()).to.eql("4660");
+      }
+    );
     it("should not be index-selectable", () => {
       const value = new IntegerValue(0);
       expect(() => value.selectIndex(new StringValue("index"))).to.throw(
@@ -45,10 +54,14 @@ describe("values", () => {
         "value is not key-selectable"
       );
     });
+    it("should not be selectable", () => {
+      const value = new IntegerValue(0);
+      expect(() => value.selectRules([])).to.throw("value is not selectable");
+    });
   });
 
   describe("StringValue", () => {
-    it("string representation should be its value", () => {
+    specify("string representation should be its value", () => {
       const string = "some string";
       const value = new StringValue(string);
       expect(value.asString()).to.eql(string);
@@ -95,6 +108,10 @@ describe("values", () => {
       expect(() => value.selectKey(new StringValue("key"))).to.throw(
         "value is not key-selectable"
       );
+    });
+    it("should not be selectable", () => {
+      const value = new StringValue("some string");
+      expect(() => value.selectRules([])).to.throw("value is not selectable");
     });
   });
 
@@ -148,6 +165,10 @@ describe("values", () => {
         "value is not key-selectable"
       );
     });
+    it("should not be selectable", () => {
+      const value = new ListValue([]);
+      expect(() => value.selectRules([])).to.throw("value is not selectable");
+    });
   });
 
   describe("MapValue", () => {
@@ -187,11 +208,9 @@ describe("values", () => {
         });
       });
     });
-    it("should not be key-selectable", () => {
-      const value = new ListValue([]);
-      expect(() => value.selectKey(new StringValue("key"))).to.throw(
-        "value is not key-selectable"
-      );
+    it("should not be selectable", () => {
+      const value = new MapValue({});
+      expect(() => value.selectRules([])).to.throw("value is not selectable");
     });
   });
 
@@ -277,6 +296,34 @@ describe("values", () => {
         );
       });
     });
+    it("should not be selectable", () => {
+      const value = new TupleValue([]);
+      expect(() => value.selectRules([])).to.throw("value is not selectable");
+    });
+  });
+
+  describe("ScriptValue", () => {
+    specify("script representation should be its value", () => {
+      const script = "cmd arg1 arg2";
+      const value = new ScriptValue(new Script(), script);
+      expect(value.asString()).to.eql(script);
+    });
+    it("should not be index-selectable", () => {
+      const value = new ScriptValue(new Script(), "");
+      expect(() => value.selectIndex(new StringValue("index"))).to.throw(
+        "value is not index-selectable"
+      );
+    });
+    it("should not be key-selectable", () => {
+      const value = new ScriptValue(new Script(), "");
+      expect(() => value.selectKey(new StringValue("key"))).to.throw(
+        "value is not key-selectable"
+      );
+    });
+    it("should not be selectable", () => {
+      const value = new ScriptValue(new Script(), "");
+      expect(() => value.selectRules([])).to.throw("value is not selectable");
+    });
   });
 
   describe("QualifiedValue", () => {
@@ -323,6 +370,16 @@ describe("values", () => {
               new StringValue("key4"),
               new StringValue("key5"),
             ]),
+          ])
+        );
+      });
+    });
+    describe("generic selectors", () => {
+      it("should return a new qualified value", () => {
+        const value = new QualifiedValue(new StringValue("name"), []);
+        expect(value.selectRules([new StringValue("rule")])).to.eql(
+          new QualifiedValue(new StringValue("name"), [
+            new GenericSelector([new StringValue("rule")]),
           ])
         );
       });

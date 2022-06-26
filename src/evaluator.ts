@@ -34,6 +34,9 @@ export interface VariableResolver {
 export interface CommandResolver {
   resolve(name: string): Command;
 }
+export interface SelectorResolver {
+  resolve(rules: Value[]): Selector;
+}
 
 export interface Evaluator {
   evaluateScript(script: Script);
@@ -44,14 +47,17 @@ export interface Evaluator {
 export class InlineEvaluator implements Evaluator {
   private variableResolver: VariableResolver;
   private commandResolver: CommandResolver;
+  private selectorResolver: SelectorResolver;
   private syntaxChecker: SyntaxChecker = new SyntaxChecker();
 
   constructor(
     variableResolver: VariableResolver,
-    commandResolver: CommandResolver
+    commandResolver: CommandResolver,
+    selectorResolver: SelectorResolver
   ) {
     this.variableResolver = variableResolver;
     this.commandResolver = commandResolver;
+    this.selectorResolver = selectorResolver;
   }
 
   /*
@@ -353,12 +359,30 @@ export class InlineEvaluator implements Evaluator {
         return new KeyedSelector(keys);
       }
 
+      case MorphemeType.BLOCK: {
+        const script = this.evaluateBlock(morpheme as BlockMorpheme);
+        const rules = this.evaluateSelectorRules(script.script);
+        return this.selectorResolver.resolve(rules);
+      }
+
       case MorphemeType.EXPRESSION: {
         const index = this.evaluateExpression(morpheme as ExpressionMorpheme);
         return new IndexedSelector(index);
       }
     }
     return null;
+  }
+  private evaluateSelectorRules(script: Script) {
+    if (script.sentences.length == 0) throw new Error("empty selector");
+    const rules = script.sentences.map((sentence) =>
+      this.evaluateSelectorRule(sentence)
+    );
+    return rules;
+  }
+  private evaluateSelectorRule(sentence: Sentence): Value {
+    if (sentence.words.length == 0) throw new Error("empty selector rule");
+    const words = sentence.words.map((word) => this.evaluateWord(word));
+    return new TupleValue(words);
   }
   private applySelectors(value: Value, selectors: Selector[]): Value {
     for (let selector of selectors) {
@@ -371,17 +395,24 @@ export class InlineEvaluator implements Evaluator {
 export class CompilingEvaluator implements Evaluator {
   private variableResolver: VariableResolver;
   private commandResolver: CommandResolver;
+  private selectorResolver: SelectorResolver;
   private compiler: Compiler;
   private context: Context;
 
   constructor(
     variableResolver: VariableResolver,
-    commandResolver: CommandResolver
+    commandResolver: CommandResolver,
+    selectorResolver: SelectorResolver
   ) {
     this.variableResolver = variableResolver;
     this.commandResolver = commandResolver;
+    this.selectorResolver = selectorResolver;
     this.compiler = new Compiler();
-    this.context = new Context(this.variableResolver, this.commandResolver);
+    this.context = new Context(
+      this.variableResolver,
+      this.commandResolver,
+      this.selectorResolver
+    );
   }
 
   evaluateScript(script: Script) {
