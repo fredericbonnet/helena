@@ -188,6 +188,9 @@ export class Compiler {
     for (let level = 1; level < substitute.levels; level++) {
       result.push(new ResolveValue());
     }
+    if (substitute.expansion) {
+      result.push(new ExpandValue());
+    }
     return result;
   }
   compileQualified(morphemes: Morpheme[]): Operation[] {
@@ -445,33 +448,12 @@ export class PushOperations implements Operation {
 export class ResolveValue implements Operation {
   execute(context: Context) {
     const source = context.pop();
-    context.push(this.resolveValue(context, source));
+    context.push(context.resolveValue(source));
   }
-  private resolveValue(context: Context, source: Value) {
-    if (source.type == ValueType.TUPLE) {
-      return this.mapTuple(source as TupleValue, (element) =>
-        this.resolveValue(context, element)
-      );
-    } else {
-      return this.resolveVariable(context, source.asString());
-    }
-  }
-  private resolveVariable(context, varname: string): Value {
-    let value = context.variableResolver.resolve(varname);
-    if (!value) throw new Error(`cannot resolve variable ${varname}`);
-    return value;
-  }
-  private mapTuple(tuple: TupleValue, mapFn: (value: Value) => Value) {
-    return new TupleValue(
-      tuple.values.map((value) => {
-        switch (value.type) {
-          case ValueType.TUPLE:
-            return this.mapTuple(value as TupleValue, mapFn);
-          default:
-            return mapFn(value);
-        }
-      })
-    );
+}
+export class ExpandValue implements Operation {
+  execute(context: Context) {
+    context.expand();
   }
 }
 export class SetSource implements Operation {
@@ -499,7 +481,7 @@ export class SelectKeys implements Operation {
 export class SelectRules implements Operation {
   execute(context: Context) {
     const rules = context.pop() as TupleValue;
-    const selector = context.selectorResolver.resolve(rules.values);
+    const selector = context.resolveSelector(rules.values);
     const value = context.pop();
     context.push(selector.apply(value));
   }
@@ -507,9 +489,7 @@ export class SelectRules implements Operation {
 export class EvaluateSentence implements Operation {
   execute(context: Context) {
     const args = context.pop() as TupleValue;
-    const cmdname = args.values[0].asString();
-    const command = context.commandResolver.resolve(cmdname);
-    if (!command) throw new Error(`cannot resolve command ${cmdname}`);
+    const command = context.resolveCommand(args.values);
     context.result = command.evaluate(args.values);
   }
 }
@@ -527,10 +507,10 @@ export class JoinStrings implements Operation {
 }
 
 export class Context {
-  variableResolver: VariableResolver;
-  commandResolver: CommandResolver;
-  selectorResolver: SelectorResolver;
-  frames: Value[][] = [[]];
+  private variableResolver: VariableResolver;
+  private commandResolver: CommandResolver;
+  private selectorResolver: SelectorResolver;
+  private frames: Value[][] = [[]];
   result: Value = NIL;
 
   constructor(
@@ -558,11 +538,56 @@ export class Context {
   pop() {
     return this.frame().pop();
   }
+  expand() {
+    const last = this.frame().slice(-1)[0];
+    if (last && last.type == ValueType.TUPLE) {
+      this.frame().pop();
+      this.frame().push(...(last as TupleValue).values);
+    }
+  }
+
   execute(operations: Operation[]): Value {
     for (let operation of operations) {
       operation.execute(this);
     }
     this.result = this.pop();
     return this.result;
+  }
+
+  resolveValue(source: Value) {
+    if (source.type == ValueType.TUPLE) {
+      return this.mapTuple(source as TupleValue, (element) =>
+        this.resolveValue(element)
+      );
+    } else {
+      return this.resolveVariable(source.asString());
+    }
+  }
+  private resolveVariable(varname: string): Value {
+    let value = this.variableResolver.resolve(varname);
+    if (!value) throw new Error(`cannot resolve variable ${varname}`);
+    return value;
+  }
+  private mapTuple(tuple: TupleValue, mapFn: (value: Value) => Value) {
+    return new TupleValue(
+      tuple.values.map((value) => {
+        switch (value.type) {
+          case ValueType.TUPLE:
+            return this.mapTuple(value as TupleValue, mapFn);
+          default:
+            return mapFn(value);
+        }
+      })
+    );
+  }
+
+  resolveCommand(args: Value[]) {
+    const cmdname = args[0].asString();
+    const command = this.commandResolver.resolve(cmdname);
+    if (!command) throw new Error(`cannot resolve command ${cmdname}`);
+    return command;
+  }
+  resolveSelector(rules: Value[]) {
+    return this.selectorResolver.resolve(rules);
   }
 }

@@ -14,6 +14,7 @@ import {
   SubstituteResult,
   JoinStrings,
   SelectRules,
+  ExpandValue,
 } from "./compiler";
 import {
   VariableResolver,
@@ -1932,6 +1933,158 @@ describe("Compiler", () => {
         const script = parse("##{ this \n ; is$ (a  \n#{comment{[( }##");
         const program = compileFirstWord(script);
         expect(program).to.eql([]);
+      });
+    });
+  });
+
+  describe("word expansion", () => {
+    specify("tuples", () => {
+      const script = parse("(prefix $*var suffix)");
+      const program = compileFirstWord(script);
+      expect(program).to.eql([
+        new PushOperations([
+          new PushValue(new StringValue("prefix")),
+          new PushValue(new StringValue("var")),
+          new ResolveValue(),
+          new ExpandValue(),
+          new PushValue(new StringValue("suffix")),
+        ]),
+      ]);
+
+      variableResolver.register(
+        "var",
+        new TupleValue([new StringValue("value1"), new StringValue("value2")])
+      );
+      expect(context.execute(program)).to.eql(
+        new TupleValue([
+          new StringValue("prefix"),
+          new StringValue("value1"),
+          new StringValue("value2"),
+          new StringValue("suffix"),
+        ])
+      );
+    });
+    specify("expressions", () => {
+      const script = parse("(prefix $*[cmd] suffix)");
+      const program = compileFirstWord(script);
+      expect(program).to.eql([
+        new PushOperations([
+          new PushValue(new StringValue("prefix")),
+          new PushOperations([new PushValue(new StringValue("cmd"))]),
+          new EvaluateSentence(),
+          new SubstituteResult(),
+          new ExpandValue(),
+          new PushValue(new StringValue("suffix")),
+        ]),
+      ]);
+
+      commandResolver.register("cmd", {
+        evaluate: (args) =>
+          new TupleValue([
+            new StringValue("value1"),
+            new StringValue("value2"),
+          ]),
+      });
+      expect(context.execute(program)).to.eql(
+        new TupleValue([
+          new StringValue("prefix"),
+          new StringValue("value1"),
+          new StringValue("value2"),
+          new StringValue("suffix"),
+        ])
+      );
+    });
+    describe("scripts", () => {
+      beforeEach(() => {
+        commandResolver.register("cmd", {
+          evaluate: (args) => new TupleValue(args),
+        });
+      });
+      specify("single variable", () => {
+        const script = parse("cmd $*var arg");
+        const program = compiler.compileScript(script);
+        expect(program).to.eql([
+          new PushOperations([
+            new PushValue(new StringValue("cmd")),
+            new PushValue(new StringValue("var")),
+            new ResolveValue(),
+            new ExpandValue(),
+            new PushValue(new StringValue("arg")),
+          ]),
+          new EvaluateSentence(),
+        ]);
+
+        variableResolver.register(
+          "var",
+          new TupleValue([new StringValue("value1"), new StringValue("value2")])
+        );
+        expect(context.execute([...program, new SubstituteResult()])).to.eql(
+          new TupleValue([
+            new StringValue("cmd"),
+            new StringValue("value1"),
+            new StringValue("value2"),
+            new StringValue("arg"),
+          ])
+        );
+      });
+      specify("multiple variables", () => {
+        const script = parse("cmd $*(var1 var2) arg");
+        const program = compiler.compileScript(script);
+        expect(program).to.eql([
+          new PushOperations([
+            new PushValue(new StringValue("cmd")),
+            new PushOperations([
+              new PushValue(new StringValue("var1")),
+              new PushValue(new StringValue("var2")),
+            ]),
+            new ResolveValue(),
+            new ExpandValue(),
+            new PushValue(new StringValue("arg")),
+          ]),
+          new EvaluateSentence(),
+        ]);
+
+        variableResolver.register("var1", new StringValue("value1"));
+        variableResolver.register("var2", new StringValue("value2"));
+        expect(context.execute([...program, new SubstituteResult()])).to.eql(
+          new TupleValue([
+            new StringValue("cmd"),
+            new StringValue("value1"),
+            new StringValue("value2"),
+            new StringValue("arg"),
+          ])
+        );
+      });
+      specify("expressions", () => {
+        const script = parse("cmd $*[cmd2] arg");
+        const program = compiler.compileScript(script);
+        expect(program).to.eql([
+          new PushOperations([
+            new PushValue(new StringValue("cmd")),
+            new PushOperations([new PushValue(new StringValue("cmd2"))]),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new ExpandValue(),
+            new PushValue(new StringValue("arg")),
+          ]),
+          new EvaluateSentence(),
+        ]);
+
+        commandResolver.register("cmd2", {
+          evaluate: (args) =>
+            new TupleValue([
+              new StringValue("value1"),
+              new StringValue("value2"),
+            ]),
+        });
+        expect(context.execute([...program, new SubstituteResult()])).to.eql(
+          new TupleValue([
+            new StringValue("cmd"),
+            new StringValue("value1"),
+            new StringValue("value2"),
+            new StringValue("arg"),
+          ])
+        );
       });
     });
   });

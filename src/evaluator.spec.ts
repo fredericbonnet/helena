@@ -136,7 +136,8 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
     let evaluator: Evaluator;
 
     const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
-    const firstWord = (script: Script) => script.sentences[0].words[0];
+    const firstSentence = (script: Script) => script.sentences[0];
+    const firstWord = (script: Script) => firstSentence(script).words[0];
     const firstMorpheme = (script: Script) => firstWord(script).morphemes[0];
 
     beforeEach(() => {
@@ -1402,6 +1403,144 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
         );
         const value = evaluator.evaluateWord(word);
         expect(mapValue(value)).to.eql("prefix_value_infix_ab_suffix");
+      });
+    });
+
+    describe("word expansion", () => {
+      describe("tuple words", () => {
+        specify("empty string", () => {
+          variableResolver.register("var", new StringValue(""));
+          const word = firstWord(parse("(prefix $*var suffix)"));
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql(["prefix", "", "suffix"]);
+        });
+        specify("scalar variable", () => {
+          variableResolver.register("var", new StringValue("value"));
+          const word = firstWord(parse("(prefix $*var suffix)"));
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql(["prefix", "value", "suffix"]);
+        });
+        specify("empty tuple variable", () => {
+          variableResolver.register("var", new TupleValue([]));
+          const word = firstWord(parse("(prefix $*var suffix)"));
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql(["prefix", "suffix"]);
+        });
+        specify("tuple variable", () => {
+          variableResolver.register(
+            "var",
+            new TupleValue([
+              new StringValue("value1"),
+              new StringValue("value2"),
+            ])
+          );
+          const word = firstWord(parse("(prefix $*var suffix)"));
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql([
+            "prefix",
+            "value1",
+            "value2",
+            "suffix",
+          ]);
+        });
+        specify("scalar expression", () => {
+          commandResolver.register(
+            "cmd",
+            new FunctionCommand((args) => new StringValue("value"))
+          );
+          const word = firstWord(parse("(prefix $*[cmd] suffix)"));
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql(["prefix", "value", "suffix"]);
+        });
+        specify("tuple expression", () => {
+          commandResolver.register(
+            "cmd",
+            new FunctionCommand(
+              (args) =>
+                new TupleValue([
+                  new StringValue("value1"),
+                  new StringValue("value2"),
+                ])
+            )
+          );
+          const word = firstWord(parse("(prefix $*[cmd] suffix)"));
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql([
+            "prefix",
+            "value1",
+            "value2",
+            "suffix",
+          ]);
+        });
+      });
+      describe("sentences", () => {
+        beforeEach(() => {
+          commandResolver.register(
+            "cmd",
+            new FunctionCommand((args) => new TupleValue(args))
+          );
+        });
+        specify("empty string", () => {
+          variableResolver.register("var", new StringValue(""));
+          const sentence = firstSentence(parse("cmd $*var arg"));
+          const value = evaluator.evaluateSentence(sentence);
+          expect(mapValue(value)).to.eql(["cmd", "", "arg"]);
+        });
+        specify("scalar variable", () => {
+          variableResolver.register("var", new StringValue("value"));
+          const sentence = firstSentence(parse("cmd $*var arg"));
+          const value = evaluator.evaluateSentence(sentence);
+          expect(mapValue(value)).to.eql(["cmd", "value", "arg"]);
+        });
+        specify("empty tuple variable", () => {
+          variableResolver.register("var", new TupleValue([]));
+          const sentence = firstSentence(parse("cmd $*var arg"));
+          const value = evaluator.evaluateSentence(sentence);
+          expect(mapValue(value)).to.eql(["cmd", "arg"]);
+        });
+        specify("tuple variable", () => {
+          variableResolver.register(
+            "var",
+            new TupleValue([
+              new StringValue("value1"),
+              new StringValue("value2"),
+            ])
+          );
+          const sentence = firstSentence(parse("cmd $*var arg"));
+          const value = evaluator.evaluateSentence(sentence);
+          expect(mapValue(value)).to.eql(["cmd", "value1", "value2", "arg"]);
+        });
+        specify("multiple variables", () => {
+          variableResolver.register("var1", new StringValue("value1"));
+          variableResolver.register("var2", new StringValue("value2"));
+          const sentence = firstSentence(parse("cmd $*(var1 var2) arg"));
+          const value = evaluator.evaluateSentence(sentence);
+          expect(mapValue(value)).to.eql(["cmd", "value1", "value2", "arg"]);
+        });
+        specify("scalar expression", () => {
+          commandResolver.register(
+            "cmd2",
+            new FunctionCommand((args) => new StringValue("value"))
+          );
+          const sentence = firstSentence(parse("cmd $*[cmd2] arg"));
+          const value = evaluator.evaluateSentence(sentence);
+          expect(mapValue(value)).to.eql(["cmd", "value", "arg"]);
+        });
+        specify("tuple expression", () => {
+          commandResolver.register(
+            "cmd2",
+            new FunctionCommand(
+              (args) =>
+                new TupleValue([
+                  new StringValue("value1"),
+                  new StringValue("value2"),
+                ])
+            )
+          );
+          const sentence = firstSentence(parse("cmd $*[cmd2] arg"));
+          const value = evaluator.evaluateSentence(sentence);
+          expect(mapValue(value)).to.eql(["cmd", "value1", "value2", "arg"]);
+        });
       });
     });
 

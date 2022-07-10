@@ -79,11 +79,11 @@ export class InlineEvaluator implements Evaluator {
   evaluateSentence(sentence: Sentence): Value {
     if (!this.commandResolver) throw new Error("no command resolver");
     if (sentence.words.length == 0) return NIL;
-    const args = sentence.words.map((word) => this.evaluateWord(word));
-    const cmdname = args[0].asString();
+    const values = this.getWordValues(sentence.words);
+    const cmdname = values[0].asString();
     const command = this.commandResolver.resolve(cmdname);
     if (!command) throw new Error(`cannot resolve command ${cmdname}`);
-    return command.evaluate(args);
+    return command.evaluate(values);
   }
 
   /*
@@ -91,7 +91,11 @@ export class InlineEvaluator implements Evaluator {
    */
 
   evaluateWord(word: Word): Value {
-    switch (this.syntaxChecker.checkWord(word)) {
+    const type = this.syntaxChecker.checkWord(word);
+    return this.getWordValue(word, type);
+  }
+  private getWordValue(word: Word, type: WordType): Value {
+    switch (type) {
       case WordType.ROOT:
         return this.evaluateMorpheme(word.morphemes[0]);
 
@@ -126,6 +130,23 @@ export class InlineEvaluator implements Evaluator {
       default:
         throw new Error("unknown word type");
     }
+  }
+  private getWordValues(words: Word[]): Value[] {
+    const values: Value[] = [];
+    for (let word of words) {
+      const type = this.syntaxChecker.checkWord(word);
+      const value = this.getWordValue(word, type);
+      if (
+        type == WordType.SUBSTITUTION &&
+        (word.morphemes[0] as SubstituteNextMorpheme).expansion &&
+        value.type == ValueType.TUPLE
+      ) {
+        values.push(...(value as TupleValue).values);
+      } else {
+        values.push(value);
+      }
+    }
+    return values;
   }
 
   /*
@@ -169,11 +190,11 @@ export class InlineEvaluator implements Evaluator {
    */
 
   evaluateTuple(tuple: TupleMorpheme): TupleValue {
-    const value: Value[] = [];
+    const values: Value[] = [];
     for (let sentence of tuple.subscript.sentences) {
-      value.push(...sentence.words.map((word) => this.evaluateWord(word)));
+      values.push(...this.getWordValues(sentence.words));
     }
-    return new TupleValue(value);
+    return new TupleValue(values);
   }
   private mapTuple(tuple: TupleValue, mapFn: (value: Value) => Value) {
     return new TupleValue(
