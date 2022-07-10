@@ -44,7 +44,7 @@ export class Compiler {
   compileScript(script: Script): Operation[] {
     const result: Operation[] = [];
     for (let sentence of script.sentences) {
-      result.push(new PushTuple(this.compileSentence(sentence)));
+      result.push(new PushOperations(this.compileSentence(sentence)));
       result.push(new EvaluateSentence());
     }
     return result;
@@ -123,7 +123,10 @@ export class Compiler {
     return result;
   }
   compileCompound(morphemes: Morpheme[]): Operation[] {
-    return [new PushTuple(this.compileStems(morphemes)), new JoinStrings()];
+    return [
+      new PushOperations(this.compileStems(morphemes)),
+      new JoinStrings(),
+    ];
   }
   compileSubstitution(morphemes: Morpheme[]): Operation[] {
     const result: Operation[] = [];
@@ -334,65 +337,65 @@ export class Compiler {
 
   private emitLiteral(result: Operation[], literal: LiteralMorpheme) {
     const value = new StringValue(literal.value);
-    result.push(new PushLiteral(value));
+    result.push(new PushValue(value));
   }
   private emitTuple(result: Operation[], tuple: TupleMorpheme) {
     const compiled = this.compile(tuple.subscript);
-    result.push(new PushTuple(compiled));
+    result.push(new PushOperations(compiled));
   }
   private emitBlock(result: Operation[], block: BlockMorpheme) {
     const value = new ScriptValue(block.subscript, block.value);
-    result.push(new PushLiteral(value));
+    result.push(new PushValue(value));
   }
   private emitExpression(result: Operation[], expression: ExpressionMorpheme) {
     result.push(...this.compileScript(expression.subscript));
     result.push(new SubstituteResult());
   }
   private emitString(result: Operation[], string: StringMorpheme) {
-    result.push(new PushTuple(this.compileStems(string.morphemes)));
+    result.push(new PushOperations(this.compileStems(string.morphemes)));
     result.push(new JoinStrings());
   }
   private emitHereString(result: Operation[], string: HereStringMorpheme) {
     const value = new StringValue(string.value);
-    result.push(new PushLiteral(value));
+    result.push(new PushValue(value));
   }
   private emitTaggedString(result: Operation[], string: TaggedStringMorpheme) {
     const value = new StringValue(string.value);
-    result.push(new PushLiteral(value));
+    result.push(new PushValue(value));
   }
   private emitLiteralVarname(result: Operation[], literal: LiteralMorpheme) {
     const value = new StringValue(literal.value);
-    result.push(new PushLiteral(value));
+    result.push(new PushValue(value));
     result.push(new ResolveValue());
   }
   private emitTupleVarnames(result: Operation[], tuple: TupleMorpheme) {
     const compiled = this.compile(tuple.subscript);
-    result.push(new PushTuple(compiled));
+    result.push(new PushOperations(compiled));
     result.push(new ResolveValue());
   }
   private emitBlockVarname(result: Operation[], block: BlockMorpheme) {
     const value = new StringValue(block.value);
-    result.push(new PushLiteral(value));
+    result.push(new PushValue(value));
     result.push(new ResolveValue());
   }
   private emitLiteralSource(result: Operation[], literal: LiteralMorpheme) {
     const value = new StringValue(literal.value);
-    result.push(new PushLiteral(value));
+    result.push(new PushValue(value));
     result.push(new SetSource());
   }
   private emitTupleSource(result: Operation[], tuple: TupleMorpheme) {
     const compiled = this.compile(tuple.subscript);
-    result.push(new PushTuple(compiled));
+    result.push(new PushOperations(compiled));
     result.push(new SetSource());
   }
   private emitBlockSource(result: Operation[], block: BlockMorpheme) {
     const value = new StringValue(block.value);
-    result.push(new PushLiteral(value));
+    result.push(new PushValue(value));
     result.push(new SetSource());
   }
   private emitKeyedSelector(result: Operation[], tuple: TupleMorpheme) {
     const compiled = this.compile(tuple.subscript);
-    result.push(new PushTuple(compiled));
+    result.push(new PushOperations(compiled));
     result.push(new SelectKeys());
   }
   private emitIndexedSelector(
@@ -407,16 +410,16 @@ export class Compiler {
     const rules = [];
     for (let sentence of block.subscript.sentences) {
       const rule = this.compileSentence(sentence);
-      rules.push(new PushTuple(rule));
+      rules.push(new PushOperations(rule));
     }
-    result.push(new PushTuple(rules));
+    result.push(new PushOperations(rules));
     result.push(new SelectRules());
   }
 }
 export interface Operation {
   execute(context: Context);
 }
-export class PushLiteral implements Operation {
+export class PushValue implements Operation {
   value: Value;
   constructor(value: Value) {
     this.value = value;
@@ -425,7 +428,7 @@ export class PushLiteral implements Operation {
     context.push(this.value);
   }
 }
-export class PushTuple implements Operation {
+export class PushOperations implements Operation {
   operations: Operation[];
   constructor(operations: Operation[]) {
     this.operations = operations;
