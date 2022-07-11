@@ -489,6 +489,7 @@ export class SelectRules implements Operation {
 export class EvaluateSentence implements Operation {
   execute(context: Context) {
     const args = context.pop() as TupleValue;
+    if (args.values.length == 0) return;
     const command = context.resolveCommand(args.values);
     context.result = command.evaluate(args.values);
   }
@@ -550,7 +551,7 @@ export class Context {
     for (let operation of operations) {
       operation.execute(this);
     }
-    this.result = this.pop();
+    if (this.frame().length) this.result = this.pop();
     return this.result;
   }
 

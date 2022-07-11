@@ -27,6 +27,7 @@ export interface Value {
 }
 
 class NilValue implements Value {
+  type = ValueType.NIL;
   asString(): string {
     throw new Error("nil has no string representation");
   }
@@ -39,7 +40,6 @@ class NilValue implements Value {
   selectRules(rules: Value[]): Value {
     throw new Error("nil is not selectable");
   }
-  type = ValueType.NIL;
 }
 export const NIL = new NilValue();
 

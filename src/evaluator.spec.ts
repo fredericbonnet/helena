@@ -1387,6 +1387,19 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
         });
       });
 
+      describe("ignored words", () => {
+        specify("line comments", () => {
+          const word = firstWord(parse("# this is a comment"));
+          const value = evaluator.evaluateWord(word);
+          expect(value).to.eql(NIL);
+        });
+        specify("block comments", () => {
+          const word = firstWord(parse("#{ this is\n a\nblock comment }#"));
+          const value = evaluator.evaluateWord(word);
+          expect(value).to.eql(NIL);
+        });
+      });
+
       specify("complex case", () => {
         variableResolver.register(
           "var",
@@ -1540,6 +1553,63 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
           const sentence = firstSentence(parse("cmd $*[cmd2] arg"));
           const value = evaluator.evaluateSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "value1", "value2", "arg"]);
+        });
+      });
+    });
+
+    describe("comments", () => {
+      describe("line comments", () => {
+        specify("empty sentence", () => {
+          const sentence = firstSentence(parse("# this is a comment"));
+          const value = evaluator.evaluateSentence(sentence);
+          expect(value).to.eql(NIL);
+        });
+        specify("command", () => {
+          commandResolver.register(
+            "cmd",
+            new FunctionCommand((args) => new TupleValue(args))
+          );
+          const sentence = firstSentence(parse("cmd arg # this is a comment"));
+          const value = evaluator.evaluateSentence(sentence);
+          expect(mapValue(value)).to.eql(["cmd", "arg"]);
+        });
+      });
+      describe("block comments", () => {
+        specify("empty sentence", () => {
+          const sentence = firstSentence(
+            parse("#{ this is\na\nblock comment }#")
+          );
+          const value = evaluator.evaluateSentence(sentence);
+          expect(value).to.eql(NIL);
+        });
+        specify("command", () => {
+          commandResolver.register(
+            "cmd",
+            new FunctionCommand((args) => new TupleValue(args))
+          );
+          const sentence = firstSentence(
+            parse("cmd #{ this is\na\nblock comment }# arg")
+          );
+          const value = evaluator.evaluateSentence(sentence);
+          expect(mapValue(value)).to.eql(["cmd", "arg"]);
+        });
+        specify("command", () => {
+          commandResolver.register(
+            "cmd",
+            new FunctionCommand((args) => new TupleValue(args))
+          );
+          const sentence = firstSentence(
+            parse("cmd #{ this is\na\nblock comment }# arg")
+          );
+          const value = evaluator.evaluateSentence(sentence);
+          expect(mapValue(value)).to.eql(["cmd", "arg"]);
+        });
+        specify("tuple", () => {
+          const word = firstWord(
+            parse("(prefix #{ this is\na\nblock comment }# suffix)")
+          );
+          const value = evaluator.evaluateWord(word);
+          expect(mapValue(value)).to.eql(["prefix", "suffix"]);
         });
       });
     });

@@ -78,8 +78,8 @@ export class InlineEvaluator implements Evaluator {
 
   evaluateSentence(sentence: Sentence): Value {
     if (!this.commandResolver) throw new Error("no command resolver");
-    if (sentence.words.length == 0) return NIL;
     const values = this.getWordValues(sentence.words);
+    if (values.length == 0) return NIL;
     const cmdname = values[0].asString();
     const command = this.commandResolver.resolve(cmdname);
     if (!command) throw new Error(`cannot resolve command ${cmdname}`);
@@ -125,7 +125,7 @@ export class InlineEvaluator implements Evaluator {
         return this.evaluateQualified(word.morphemes);
 
       case WordType.IGNORED:
-        throw "TODO";
+        return NIL;
 
       default:
         throw new Error("unknown word type");
@@ -136,6 +136,7 @@ export class InlineEvaluator implements Evaluator {
     for (let word of words) {
       const type = this.syntaxChecker.checkWord(word);
       const value = this.getWordValue(word, type);
+      if (value == NIL) continue;
       if (
         type == WordType.SUBSTITUTION &&
         (word.morphemes[0] as SubstituteNextMorpheme).expansion &&
@@ -169,11 +170,8 @@ export class InlineEvaluator implements Evaluator {
         return this.evaluateHereString(morpheme as HereStringMorpheme);
       case MorphemeType.TAGGED_STRING:
         return this.evaluateTaggedString(morpheme as TaggedStringMorpheme);
-      case MorphemeType.LINE_COMMENT:
-      case MorphemeType.BLOCK_COMMENT:
-      case MorphemeType.SUBSTITUTE_NEXT:
       default:
-        throw new Error("TODO");
+        throw new Error("unexpected morpheme");
     }
   }
 
@@ -321,7 +319,7 @@ export class InlineEvaluator implements Evaluator {
         break;
 
       default:
-        throw new Error("TODO");
+        throw new Error("unexpected morpheme");
     }
     value = this.applySelectors(value, selectors);
     value = this.resolveLevels(value, levels);

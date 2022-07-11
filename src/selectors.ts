@@ -1,4 +1,4 @@
-import { Value, ValueType } from "./values";
+import { NIL, Value } from "./values";
 
 export interface Selector {
   apply(value: Value): Value;
@@ -7,7 +7,7 @@ export interface Selector {
 export class IndexedSelector implements Selector {
   index: Value;
   constructor(index: Value) {
-    if (index.type == ValueType.NIL) throw new Error("invalid index");
+    if (index == NIL) throw new Error("invalid index");
     this.index = index;
   }
   apply(value: Value): Value {
