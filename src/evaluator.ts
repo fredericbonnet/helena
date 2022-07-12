@@ -26,7 +26,7 @@ import {
   QualifiedValue,
 } from "./values";
 import { Command } from "./command";
-import { Compiler, Context, SubstituteResult } from "./compiler";
+import { Compiler, Context } from "./compiler";
 
 export interface VariableResolver {
   resolve(name: string): Value;

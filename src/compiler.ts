@@ -31,6 +31,35 @@ import {
   ValueType,
 } from "./values";
 
+export enum OpCode {
+  PUSH_CONSTANT,
+  OPEN_FRAME,
+  CLOSE_FRAME,
+  RESOLVE_VALUE,
+  EXPAND_VALUE,
+  SET_SOURCE,
+  SELECT_INDEX,
+  SELECT_KEYS,
+  SELECT_RULES,
+  EVALUATE_SENTENCE,
+  SUBSTITUTE_RESULT,
+  JOIN_STRINGS,
+}
+
+export class Program {
+  opCodes: OpCode[] = [];
+  constants: Value[] = [];
+  pushOpCode(opCode: OpCode) {
+    this.opCodes.push(opCode);
+  }
+  pushConstant(value: Value) {
+    this.constants.push(value);
+  }
+  empty(): boolean {
+    return !this.opCodes.length;
+  }
+}
+
 export class Compiler {
   private syntaxChecker: SyntaxChecker = new SyntaxChecker();
 
@@ -41,15 +70,15 @@ export class Compiler {
   compileScript(script: Script): Program {
     const program: Program = new Program();
     this.emitScript(program, script);
-    if (!program.empty()) program.push(new SubstituteResult());
+    if (!program.empty()) program.pushOpCode(OpCode.SUBSTITUTE_RESULT);
     return program;
   }
   private emitScript(program: Program, script: Script) {
     for (let sentence of script.sentences) {
-      program.push(new OpenFrame());
+      program.pushOpCode(OpCode.OPEN_FRAME);
       this.emitSentence(program, sentence);
-      program.push(new CloseFrame());
-      program.push(new EvaluateSentence());
+      program.pushOpCode(OpCode.CLOSE_FRAME);
+      program.pushOpCode(OpCode.EVALUATE_SENTENCE);
     }
   }
 
@@ -147,10 +176,10 @@ export class Compiler {
     }
   }
   private emitCompound(program: Program, morphemes: Morpheme[]) {
-    program.push(new OpenFrame());
+    program.pushOpCode(OpCode.OPEN_FRAME);
     this.emitStems(program, morphemes);
-    program.push(new CloseFrame());
-    program.push(new JoinStrings());
+    program.pushOpCode(OpCode.CLOSE_FRAME);
+    program.pushOpCode(OpCode.JOIN_STRINGS);
   }
   private emitSubstitution(program: Program, morphemes: Morpheme[]) {
     const substitute = morphemes[0] as SubstituteNextMorpheme;
@@ -209,10 +238,10 @@ export class Compiler {
       }
     }
     for (let level = 1; level < substitute.levels; level++) {
-      program.push(new ResolveValue());
+      program.pushOpCode(OpCode.RESOLVE_VALUE);
     }
     if (substitute.expansion) {
-      program.push(new ExpandValue());
+      program.pushOpCode(OpCode.EXPAND_VALUE);
     }
   }
   private emitQualified(program: Program, morphemes: Morpheme[]) {
@@ -351,7 +380,7 @@ export class Compiler {
     }
     if (substitute) {
       for (let level = 1; level < substitute.levels; level++) {
-        program.push(new ResolveValue());
+        program.pushOpCode(OpCode.RESOLVE_VALUE);
       }
     }
   }
@@ -365,11 +394,11 @@ export class Compiler {
     this.emitConstant(program, value);
   }
   private emitTuple(program: Program, tuple: TupleMorpheme) {
-    program.push(new OpenFrame());
+    program.pushOpCode(OpCode.OPEN_FRAME);
     for (let sentence of tuple.subscript.sentences) {
       this.emitSentence(program, sentence);
     }
-    program.push(new CloseFrame());
+    program.pushOpCode(OpCode.CLOSE_FRAME);
   }
   private emitBlock(program: Program, block: BlockMorpheme) {
     const value = new ScriptValue(block.subscript, block.value);
@@ -377,13 +406,13 @@ export class Compiler {
   }
   private emitExpression(program: Program, expression: ExpressionMorpheme) {
     this.emitScript(program, expression.subscript);
-    program.push(new SubstituteResult());
+    program.pushOpCode(OpCode.SUBSTITUTE_RESULT);
   }
   private emitString(program: Program, string: StringMorpheme) {
-    program.push(new OpenFrame());
+    program.pushOpCode(OpCode.OPEN_FRAME);
     this.emitStems(program, string.morphemes);
-    program.push(new CloseFrame());
-    program.push(new JoinStrings());
+    program.pushOpCode(OpCode.CLOSE_FRAME);
+    program.pushOpCode(OpCode.JOIN_STRINGS);
   }
   private emitHereString(program: Program, string: HereStringMorpheme) {
     const value = new StringValue(string.value);
@@ -395,146 +424,56 @@ export class Compiler {
   }
   private emitLiteralVarname(program: Program, literal: LiteralMorpheme) {
     this.emitLiteral(program, literal);
-    program.push(new ResolveValue());
+    program.pushOpCode(OpCode.RESOLVE_VALUE);
   }
   private emitTupleVarnames(program: Program, tuple: TupleMorpheme) {
     this.emitTuple(program, tuple);
-    program.push(new ResolveValue());
+    program.pushOpCode(OpCode.RESOLVE_VALUE);
   }
   private emitBlockVarname(program: Program, block: BlockMorpheme) {
     const value = new StringValue(block.value);
     this.emitConstant(program, value);
-    program.push(new ResolveValue());
+    program.pushOpCode(OpCode.RESOLVE_VALUE);
   }
   private emitLiteralSource(program: Program, literal: LiteralMorpheme) {
     this.emitLiteral(program, literal);
-    program.push(new SetSource());
+    program.pushOpCode(OpCode.SET_SOURCE);
   }
   private emitTupleSource(program: Program, tuple: TupleMorpheme) {
     this.emitTuple(program, tuple);
-    program.push(new SetSource());
+    program.pushOpCode(OpCode.SET_SOURCE);
   }
   private emitBlockSource(program: Program, block: BlockMorpheme) {
     const value = new StringValue(block.value);
     this.emitConstant(program, value);
-    program.push(new SetSource());
+    program.pushOpCode(OpCode.SET_SOURCE);
   }
   private emitKeyedSelector(program: Program, tuple: TupleMorpheme) {
     this.emitTuple(program, tuple);
-    program.push(new SelectKeys());
+    program.pushOpCode(OpCode.SELECT_KEYS);
   }
   private emitIndexedSelector(
     program: Program,
     expression: ExpressionMorpheme
   ) {
     this.emitScript(program, expression.subscript);
-    program.push(new SubstituteResult());
-    program.push(new SelectIndex());
+    program.pushOpCode(OpCode.SUBSTITUTE_RESULT);
+    program.pushOpCode(OpCode.SELECT_INDEX);
   }
   private emitSelector(program: Program, block: BlockMorpheme) {
-    program.push(new OpenFrame());
+    program.pushOpCode(OpCode.OPEN_FRAME);
     for (let sentence of block.subscript.sentences) {
-      program.push(new OpenFrame());
+      program.pushOpCode(OpCode.OPEN_FRAME);
       this.emitSentence(program, sentence);
-      program.push(new CloseFrame());
+      program.pushOpCode(OpCode.CLOSE_FRAME);
     }
-    program.push(new CloseFrame());
-    program.push(new SelectRules());
+    program.pushOpCode(OpCode.CLOSE_FRAME);
+    program.pushOpCode(OpCode.SELECT_RULES);
   }
 
   private emitConstant(program: Program, value: Value) {
-    program.constants.push(value);
-    program.push(new PushValue());
-  }
-}
-
-export interface Operation {
-  execute(context: Context);
-}
-export class Program {
-  operations: Operation[] = [];
-  constants: Value[] = [];
-  push(operation: Operation) {
-    this.operations.push(operation);
-  }
-  empty(): boolean {
-    return !this.operations.length;
-  }
-}
-
-export class PushValue implements Operation {
-  execute(context: Context) {}
-}
-export class OpenFrame implements Operation {
-  execute(context: Context) {
-    context.openFrame();
-  }
-}
-export class CloseFrame implements Operation {
-  execute(context: Context) {
-    const values = context.closeFrame();
-    context.push(new TupleValue(values));
-  }
-}
-export class ResolveValue implements Operation {
-  execute(context: Context) {
-    const source = context.pop();
-    context.push(context.resolveValue(source));
-  }
-}
-export class ExpandValue implements Operation {
-  execute(context: Context) {
-    context.expand();
-  }
-}
-export class SetSource implements Operation {
-  execute(context: Context) {
-    const source = context.pop();
-    context.push(new QualifiedValue(source, []));
-  }
-}
-export class SelectIndex implements Operation {
-  execute(context: Context) {
-    const index = context.pop();
-    const selector = new IndexedSelector(index);
-    const value = context.pop();
-    context.push(selector.apply(value));
-  }
-}
-export class SelectKeys implements Operation {
-  execute(context: Context) {
-    const keys = context.pop() as TupleValue;
-    const selector = new KeyedSelector(keys.values);
-    const value = context.pop();
-    context.push(selector.apply(value));
-  }
-}
-export class SelectRules implements Operation {
-  execute(context: Context) {
-    const rules = context.pop() as TupleValue;
-    const selector = context.resolveSelector(rules.values);
-    const value = context.pop();
-    context.push(selector.apply(value));
-  }
-}
-export class EvaluateSentence implements Operation {
-  execute(context: Context) {
-    const args = context.pop() as TupleValue;
-    if (args.values.length == 0) return;
-    const command = context.resolveCommand(args.values);
-    context.result = command.evaluate(args.values);
-  }
-}
-export class SubstituteResult implements Operation {
-  execute(context: Context) {
-    context.push(context.result);
-  }
-}
-export class JoinStrings implements Operation {
-  execute(context: Context) {
-    const tuple = context.pop() as TupleValue;
-    const chunks = tuple.values.map((value) => value.asString());
-    context.push(new StringValue(chunks.join("")));
+    program.pushOpCode(OpCode.PUSH_CONSTANT);
+    program.pushConstant(value);
   }
 }
 
@@ -555,43 +494,123 @@ export class Context {
     this.selectorResolver = selectorResolver;
   }
 
-  openFrame() {
-    this.frames.push([]);
-  }
-  closeFrame() {
-    return this.frames.pop();
-  }
-  frame() {
-    return this.frames[this.frames.length - 1];
-  }
-  push(value: Value) {
-    this.frame().push(value);
-  }
-  pop() {
-    return this.frame().pop();
-  }
-  expand() {
-    const last = this.frame().slice(-1)[0];
-    if (last && last.type == ValueType.TUPLE) {
-      this.frame().pop();
-      this.frame().push(...(last as TupleValue).values);
-    }
-  }
-
   execute(program: Program): Value {
     let constant = 0;
-    for (let operation of program.operations) {
-      if (operation instanceof PushValue) {
-        this.push(program.constants[constant++]);
-      } else {
-        operation.execute(this);
+    for (let opcode of program.opCodes) {
+      switch (opcode) {
+        case OpCode.PUSH_CONSTANT:
+          this.push(program.constants[constant++]);
+          break;
+
+        case OpCode.OPEN_FRAME:
+          this.openFrame();
+          break;
+
+        case OpCode.CLOSE_FRAME:
+          {
+            const values = this.closeFrame();
+            this.push(new TupleValue(values));
+          }
+          break;
+
+        case OpCode.RESOLVE_VALUE:
+          {
+            const source = this.pop();
+            this.push(this.resolveValue(source));
+          }
+          break;
+
+        case OpCode.EXPAND_VALUE:
+          this.expand();
+          break;
+
+        case OpCode.SET_SOURCE:
+          {
+            const source = this.pop();
+            this.push(new QualifiedValue(source, []));
+          }
+          break;
+
+        case OpCode.SELECT_INDEX:
+          {
+            const index = this.pop();
+            const selector = new IndexedSelector(index);
+            const value = this.pop();
+            this.push(selector.apply(value));
+          }
+          break;
+
+        case OpCode.SELECT_KEYS:
+          {
+            const keys = this.pop() as TupleValue;
+            const selector = new KeyedSelector(keys.values);
+            const value = this.pop();
+            this.push(selector.apply(value));
+          }
+          break;
+
+        case OpCode.SELECT_RULES:
+          {
+            const rules = this.pop() as TupleValue;
+            const selector = this.resolveSelector(rules.values);
+            const value = this.pop();
+            this.push(selector.apply(value));
+          }
+          break;
+
+        case OpCode.EVALUATE_SENTENCE:
+          {
+            const args = this.pop() as TupleValue;
+            if (args.values.length) {
+              const command = this.resolveCommand(args.values);
+              this.result = command.evaluate(args.values);
+            }
+          }
+          break;
+
+        case OpCode.SUBSTITUTE_RESULT:
+          this.push(this.result);
+          break;
+
+        case OpCode.JOIN_STRINGS:
+          {
+            const tuple = this.pop() as TupleValue;
+            const chunks = tuple.values.map((value) => value.asString());
+            this.push(new StringValue(chunks.join("")));
+          }
+          break;
       }
     }
     if (this.frame().length) this.result = this.pop();
     return this.result;
   }
 
-  resolveValue(source: Value) {
+  private openFrame() {
+    this.frames.push([]);
+  }
+  private closeFrame() {
+    return this.frames.pop();
+  }
+  private frame() {
+    return this.frames[this.frames.length - 1];
+  }
+  private push(value: Value) {
+    this.frame().push(value);
+  }
+  private pop() {
+    return this.frame().pop();
+  }
+  private last() {
+    return this.frame()[this.frame().length - 1];
+  }
+  private expand() {
+    const last = this.last();
+    if (last && last.type == ValueType.TUPLE) {
+      this.frame().pop();
+      this.frame().push(...(last as TupleValue).values);
+    }
+  }
+  private resolveValue(source: Value) {
     if (source.type == ValueType.TUPLE) {
       return this.mapTuple(source as TupleValue, (element) =>
         this.resolveValue(element)
@@ -617,14 +636,13 @@ export class Context {
       })
     );
   }
-
-  resolveCommand(args: Value[]) {
+  private resolveCommand(args: Value[]) {
     const cmdname = args[0].asString();
     const command = this.commandResolver.resolve(cmdname);
     if (!command) throw new Error(`cannot resolve command ${cmdname}`);
     return command;
   }
-  resolveSelector(rules: Value[]) {
+  private resolveSelector(rules: Value[]) {
     return this.selectorResolver.resolve(rules);
   }
 }
