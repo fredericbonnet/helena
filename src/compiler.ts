@@ -34,130 +34,149 @@ import {
 export class Compiler {
   private syntaxChecker: SyntaxChecker = new SyntaxChecker();
 
-  compile(script: Script): Operation[] {
-    const result: Operation[] = [];
-    for (let sentence of script.sentences) {
-      result.push(...this.compileSentence(sentence));
-    }
-    return result;
+  /*
+   * Scripts
+   */
+
+  compileScript(script: Script): Program {
+    const program: Program = new Program();
+    this.emitScript(program, script);
+    if (!program.empty()) program.push(new SubstituteResult());
+    return program;
   }
-  compileScript(script: Script): Operation[] {
-    const result: Operation[] = [];
+  private emitScript(program: Program, script: Script) {
     for (let sentence of script.sentences) {
-      result.push(new OpenFrame());
-      result.push(...this.compileSentence(sentence));
-      result.push(new CloseFrame());
-      result.push(new EvaluateSentence());
+      program.push(new OpenFrame());
+      this.emitSentence(program, sentence);
+      program.push(new CloseFrame());
+      program.push(new EvaluateSentence());
     }
-    return result;
   }
-  compileSentence(sentence: Sentence) {
-    const result: Operation[] = [];
+
+  /*
+   * Sentences
+   */
+
+  compileSentence(sentence: Sentence): Program {
+    const program: Program = new Program();
+    this.emitSentence(program, sentence);
+    return program;
+  }
+  private emitSentence(program: Program, sentence: Sentence) {
     for (let word of sentence.words) {
-      result.push(...this.compileWord(word));
+      this.emitWord(program, word);
     }
-    return result;
   }
-  compileWord(word: Word): Operation[] {
+
+  /*
+   * Words
+   */
+
+  compileWord(word: Word): Program {
+    const program: Program = new Program();
+    this.emitWord(program, word);
+    return program;
+  }
+
+  private emitWord(program: Program, word: Word) {
     switch (this.syntaxChecker.checkWord(word)) {
       case WordType.ROOT:
-        return this.compileRoot(word.morphemes[0]);
+        this.emitRoot(program, word.morphemes[0]);
+        break;
       case WordType.COMPOUND:
-        return this.compileCompound(word.morphemes);
+        this.emitCompound(program, word.morphemes);
+        break;
       case WordType.SUBSTITUTION:
-        return this.compileSubstitution(word.morphemes);
+        this.emitSubstitution(program, word.morphemes);
+        break;
       case WordType.QUALIFIED:
-        return this.compileQualified(word.morphemes);
+        this.emitQualified(program, word.morphemes);
+        break;
       case WordType.IGNORED:
-        return [];
+        break;
       default:
         throw new Error("unknown word type");
     }
   }
-  compileRoot(root: Morpheme): Operation[] {
-    const result: Operation[] = [];
+  private emitRoot(program: Program, root: Morpheme) {
     switch (root.type) {
       case MorphemeType.LITERAL: {
         const literal = root as LiteralMorpheme;
-        this.emitLiteral(result, literal);
+        this.emitLiteral(program, literal);
         break;
       }
 
       case MorphemeType.TUPLE: {
         const tuple = root as TupleMorpheme;
-        this.emitTuple(result, tuple);
+        this.emitTuple(program, tuple);
         break;
       }
 
       case MorphemeType.BLOCK: {
         const block = root as BlockMorpheme;
-        this.emitBlock(result, block);
+        this.emitBlock(program, block);
         break;
       }
 
       case MorphemeType.EXPRESSION: {
         const expression = root as ExpressionMorpheme;
-        this.emitExpression(result, expression);
+        this.emitExpression(program, expression);
         break;
       }
 
       case MorphemeType.STRING: {
         const string = root as StringMorpheme;
-        this.emitString(result, string);
+        this.emitString(program, string);
         break;
       }
 
       case MorphemeType.HERE_STRING: {
         const string = root as HereStringMorpheme;
-        this.emitHereString(result, string);
+        this.emitHereString(program, string);
         break;
       }
 
       case MorphemeType.TAGGED_STRING: {
         const string = root as TaggedStringMorpheme;
-        this.emitTaggedString(result, string);
+        this.emitTaggedString(program, string);
         break;
       }
 
       default:
         throw new Error("unexpected morpheme");
     }
-    return result;
   }
-  compileCompound(morphemes: Morpheme[]): Operation[] {
-    return [
-      new OpenFrame(),
-      ...this.compileStems(morphemes),
-      new CloseFrame(),
-      new JoinStrings(),
-    ];
+  private emitCompound(program: Program, morphemes: Morpheme[]) {
+    program.push(new OpenFrame());
+    this.emitStems(program, morphemes);
+    program.push(new CloseFrame());
+    program.push(new JoinStrings());
   }
-  compileSubstitution(morphemes: Morpheme[]): Operation[] {
-    const result: Operation[] = [];
+  private emitSubstitution(program: Program, morphemes: Morpheme[]) {
     const substitute = morphemes[0] as SubstituteNextMorpheme;
     const selectable = morphemes[1];
     switch (selectable.type) {
       case MorphemeType.LITERAL: {
         const literal = selectable as LiteralMorpheme;
-        this.emitLiteralVarname(result, literal);
+        this.emitLiteralVarname(program, literal);
         break;
       }
 
       case MorphemeType.TUPLE: {
         const tuple = selectable as TupleMorpheme;
-        this.emitTupleVarnames(result, tuple);
+        this.emitTupleVarnames(program, tuple);
         break;
       }
 
       case MorphemeType.BLOCK: {
         const block = selectable as BlockMorpheme;
-        this.emitBlockVarname(result, block);
+        this.emitBlockVarname(program, block);
         break;
       }
 
       case MorphemeType.EXPRESSION: {
         const expression = selectable as ExpressionMorpheme;
-        this.emitExpression(result, expression);
+        this.emitExpression(program, expression);
         break;
       }
 
@@ -169,19 +188,19 @@ export class Compiler {
       switch (morpheme.type) {
         case MorphemeType.TUPLE: {
           const tuple = morpheme as TupleMorpheme;
-          this.emitKeyedSelector(result, tuple);
+          this.emitKeyedSelector(program, tuple);
           break;
         }
 
         case MorphemeType.BLOCK: {
           const block = morpheme as BlockMorpheme;
-          this.emitSelector(result, block);
+          this.emitSelector(program, block);
           break;
         }
 
         case MorphemeType.EXPRESSION: {
           const expression = morpheme as ExpressionMorpheme;
-          this.emitIndexedSelector(result, expression);
+          this.emitIndexedSelector(program, expression);
           break;
         }
 
@@ -190,32 +209,30 @@ export class Compiler {
       }
     }
     for (let level = 1; level < substitute.levels; level++) {
-      result.push(new ResolveValue());
+      program.push(new ResolveValue());
     }
     if (substitute.expansion) {
-      result.push(new ExpandValue());
+      program.push(new ExpandValue());
     }
-    return result;
   }
-  compileQualified(morphemes: Morpheme[]): Operation[] {
-    const result: Operation[] = [];
+  private emitQualified(program: Program, morphemes: Morpheme[]) {
     const selectable = morphemes[0];
     switch (selectable.type) {
       case MorphemeType.LITERAL: {
         const literal = selectable as LiteralMorpheme;
-        this.emitLiteralSource(result, literal);
+        this.emitLiteralSource(program, literal);
         break;
       }
 
       case MorphemeType.TUPLE: {
         const tuple = selectable as TupleMorpheme;
-        this.emitTupleSource(result, tuple);
+        this.emitTupleSource(program, tuple);
         break;
       }
 
       case MorphemeType.BLOCK: {
         const block = selectable as BlockMorpheme;
-        this.emitBlockSource(result, block);
+        this.emitBlockSource(program, block);
         break;
       }
 
@@ -227,19 +244,19 @@ export class Compiler {
       switch (morpheme.type) {
         case MorphemeType.TUPLE: {
           const tuple = morpheme as TupleMorpheme;
-          this.emitKeyedSelector(result, tuple);
+          this.emitKeyedSelector(program, tuple);
           break;
         }
 
         case MorphemeType.BLOCK: {
           const block = morpheme as BlockMorpheme;
-          this.emitSelector(result, block);
+          this.emitSelector(program, block);
           break;
         }
 
         case MorphemeType.EXPRESSION: {
           const expression = morpheme as ExpressionMorpheme;
-          this.emitIndexedSelector(result, expression);
+          this.emitIndexedSelector(program, expression);
           break;
         }
 
@@ -247,10 +264,8 @@ export class Compiler {
           throw new Error("unexpected morpheme");
       }
     }
-    return result;
   }
-  compileStems(morphemes: Morpheme[]): Operation[] {
-    const result: Operation[] = [];
+  private emitStems(program: Program, morphemes: Morpheme[]) {
     let mode: "" | "substitute" | "selectable" = "";
     let substitute: SubstituteNextMorpheme;
     for (let morpheme of morphemes) {
@@ -263,10 +278,10 @@ export class Compiler {
         case MorphemeType.LITERAL: {
           const literal = morpheme as LiteralMorpheme;
           if (mode == "substitute") {
-            this.emitLiteralVarname(result, literal);
+            this.emitLiteralVarname(program, literal);
             mode = "selectable";
           } else {
-            this.emitLiteral(result, literal);
+            this.emitLiteral(program, literal);
             mode = "";
           }
           break;
@@ -275,12 +290,12 @@ export class Compiler {
         case MorphemeType.TUPLE: {
           const tuple = morpheme as TupleMorpheme;
           if (mode == "selectable") {
-            this.emitKeyedSelector(result, tuple);
+            this.emitKeyedSelector(program, tuple);
           } else if (mode == "substitute") {
-            this.emitTupleVarnames(result, tuple);
+            this.emitTupleVarnames(program, tuple);
             mode = "selectable";
           } else {
-            this.emitTuple(result, tuple);
+            this.emitTuple(program, tuple);
             mode = "";
           }
           break;
@@ -289,10 +304,10 @@ export class Compiler {
         case MorphemeType.BLOCK: {
           const block = morpheme as BlockMorpheme;
           if (mode == "substitute") {
-            this.emitBlockVarname(result, block);
+            this.emitBlockVarname(program, block);
             mode = "selectable";
           } else {
-            this.emitBlock(result, block);
+            this.emitBlock(program, block);
             mode = "";
           }
           break;
@@ -301,12 +316,12 @@ export class Compiler {
         case MorphemeType.EXPRESSION: {
           const expression = morpheme as ExpressionMorpheme;
           if (mode == "selectable") {
-            this.emitIndexedSelector(result, expression);
+            this.emitIndexedSelector(program, expression);
           } else if (mode == "substitute") {
-            this.emitExpression(result, expression);
+            this.emitExpression(program, expression);
             mode = "selectable";
           } else {
-            this.emitExpression(result, expression);
+            this.emitExpression(program, expression);
             mode = "";
           }
           break;
@@ -314,19 +329,19 @@ export class Compiler {
 
         case MorphemeType.STRING: {
           const string = morpheme as StringMorpheme;
-          this.emitString(result, string);
+          this.emitString(program, string);
           break;
         }
 
         case MorphemeType.HERE_STRING: {
           const string = morpheme as HereStringMorpheme;
-          this.emitHereString(result, string);
+          this.emitHereString(program, string);
           break;
         }
 
         case MorphemeType.TAGGED_STRING: {
           const string = morpheme as TaggedStringMorpheme;
-          this.emitTaggedString(result, string);
+          this.emitTaggedString(program, string);
           break;
         }
 
@@ -336,103 +351,113 @@ export class Compiler {
     }
     if (substitute) {
       for (let level = 1; level < substitute.levels; level++) {
-        result.push(new ResolveValue());
+        program.push(new ResolveValue());
       }
     }
-    return result;
   }
 
-  private emitLiteral(result: Operation[], literal: LiteralMorpheme) {
+  /*
+   * Morphemes
+   */
+
+  private emitLiteral(program: Program, literal: LiteralMorpheme) {
     const value = new StringValue(literal.value);
-    result.push(new PushValue(value));
+    program.push(new PushValue(value));
   }
-  private emitTuple(result: Operation[], tuple: TupleMorpheme) {
-    result.push(new OpenFrame());
-    result.push(...this.compile(tuple.subscript));
-    result.push(new CloseFrame());
+  private emitTuple(program: Program, tuple: TupleMorpheme) {
+    program.push(new OpenFrame());
+    for (let sentence of tuple.subscript.sentences) {
+      this.emitSentence(program, sentence);
+    }
+    program.push(new CloseFrame());
   }
-  private emitBlock(result: Operation[], block: BlockMorpheme) {
+  private emitBlock(program: Program, block: BlockMorpheme) {
     const value = new ScriptValue(block.subscript, block.value);
-    result.push(new PushValue(value));
+    program.push(new PushValue(value));
   }
-  private emitExpression(result: Operation[], expression: ExpressionMorpheme) {
-    result.push(...this.compileScript(expression.subscript));
-    result.push(new SubstituteResult());
+  private emitExpression(program: Program, expression: ExpressionMorpheme) {
+    this.emitScript(program, expression.subscript);
+    program.push(new SubstituteResult());
   }
-  private emitString(result: Operation[], string: StringMorpheme) {
-    result.push(new OpenFrame());
-    result.push(...this.compileStems(string.morphemes));
-    result.push(new CloseFrame());
-    result.push(new JoinStrings());
+  private emitString(program: Program, string: StringMorpheme) {
+    program.push(new OpenFrame());
+    this.emitStems(program, string.morphemes);
+    program.push(new CloseFrame());
+    program.push(new JoinStrings());
   }
-  private emitHereString(result: Operation[], string: HereStringMorpheme) {
+  private emitHereString(program: Program, string: HereStringMorpheme) {
     const value = new StringValue(string.value);
-    result.push(new PushValue(value));
+    program.push(new PushValue(value));
   }
-  private emitTaggedString(result: Operation[], string: TaggedStringMorpheme) {
+  private emitTaggedString(program: Program, string: TaggedStringMorpheme) {
     const value = new StringValue(string.value);
-    result.push(new PushValue(value));
+    program.push(new PushValue(value));
   }
-  private emitLiteralVarname(result: Operation[], literal: LiteralMorpheme) {
+  private emitLiteralVarname(program: Program, literal: LiteralMorpheme) {
     const value = new StringValue(literal.value);
-    result.push(new PushValue(value));
-    result.push(new ResolveValue());
+    program.push(new PushValue(value));
+    program.push(new ResolveValue());
   }
-  private emitTupleVarnames(result: Operation[], tuple: TupleMorpheme) {
-    result.push(new OpenFrame());
-    result.push(...this.compile(tuple.subscript));
-    result.push(new CloseFrame());
-    result.push(new ResolveValue());
+  private emitTupleVarnames(program: Program, tuple: TupleMorpheme) {
+    this.emitTuple(program, tuple);
+    program.push(new ResolveValue());
   }
-  private emitBlockVarname(result: Operation[], block: BlockMorpheme) {
+  private emitBlockVarname(program: Program, block: BlockMorpheme) {
     const value = new StringValue(block.value);
-    result.push(new PushValue(value));
-    result.push(new ResolveValue());
+    program.push(new PushValue(value));
+    program.push(new ResolveValue());
   }
-  private emitLiteralSource(result: Operation[], literal: LiteralMorpheme) {
+  private emitLiteralSource(program: Program, literal: LiteralMorpheme) {
     const value = new StringValue(literal.value);
-    result.push(new PushValue(value));
-    result.push(new SetSource());
+    program.push(new PushValue(value));
+    program.push(new SetSource());
   }
-  private emitTupleSource(result: Operation[], tuple: TupleMorpheme) {
-    result.push(new OpenFrame());
-    result.push(...this.compile(tuple.subscript));
-    result.push(new CloseFrame());
-    result.push(new SetSource());
+  private emitTupleSource(program: Program, tuple: TupleMorpheme) {
+    this.emitTuple(program, tuple);
+    program.push(new SetSource());
   }
-  private emitBlockSource(result: Operation[], block: BlockMorpheme) {
+  private emitBlockSource(program: Program, block: BlockMorpheme) {
     const value = new StringValue(block.value);
-    result.push(new PushValue(value));
-    result.push(new SetSource());
+    program.push(new PushValue(value));
+    program.push(new SetSource());
   }
-  private emitKeyedSelector(result: Operation[], tuple: TupleMorpheme) {
-    result.push(new OpenFrame());
-    result.push(...this.compile(tuple.subscript));
-    result.push(new CloseFrame());
-    result.push(new SelectKeys());
+  private emitKeyedSelector(program: Program, tuple: TupleMorpheme) {
+    this.emitTuple(program, tuple);
+    program.push(new SelectKeys());
   }
   private emitIndexedSelector(
-    result: Operation[],
+    program: Program,
     expression: ExpressionMorpheme
   ) {
-    result.push(...this.compileScript(expression.subscript));
-    result.push(new SubstituteResult());
-    result.push(new SelectIndex());
+    this.emitScript(program, expression.subscript);
+    program.push(new SubstituteResult());
+    program.push(new SelectIndex());
   }
-  private emitSelector(result: Operation[], block: BlockMorpheme) {
-    result.push(new OpenFrame());
+  private emitSelector(program: Program, block: BlockMorpheme) {
+    program.push(new OpenFrame());
     for (let sentence of block.subscript.sentences) {
-      result.push(new OpenFrame());
-      result.push(...this.compileSentence(sentence));
-      result.push(new CloseFrame());
+      program.push(new OpenFrame());
+      this.emitSentence(program, sentence);
+      program.push(new CloseFrame());
     }
-    result.push(new CloseFrame());
-    result.push(new SelectRules());
+    program.push(new CloseFrame());
+    program.push(new SelectRules());
   }
 }
+
 export interface Operation {
   execute(context: Context);
 }
+export class Program {
+  operations: Operation[] = [];
+  push(operation: Operation) {
+    this.operations.push(operation);
+  }
+  empty(): boolean {
+    return !this.operations.length;
+  }
+}
+
 export class PushValue implements Operation {
   value: Value;
   constructor(value: Value) {
@@ -555,8 +580,8 @@ export class Context {
     }
   }
 
-  execute(operations: Operation[]): Value {
-    for (let operation of operations) {
+  execute(program: Program): Value {
+    for (let operation of program.operations) {
       operation.execute(this);
     }
     if (this.frame().length) this.result = this.pop();

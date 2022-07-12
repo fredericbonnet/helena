@@ -436,14 +436,14 @@ export class CompilingEvaluator implements Evaluator {
 
   evaluateScript(script: Script) {
     const program = this.compiler.compileScript(script);
-    return this.context.execute([...program, new SubstituteResult()]);
+    return this.context.execute(program);
   }
 
   evaluateSentence(sentence: Sentence): Value {
     const script = new Script();
     script.sentences.push(sentence);
     const program = this.compiler.compileScript(script);
-    return this.context.execute([...program, new SubstituteResult()]);
+    return this.context.execute(program);
   }
 
   evaluateWord(word: Word): Value {

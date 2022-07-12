@@ -1,5 +1,4 @@
 import { expect } from "chai";
-import { cpuUsage } from "process";
 import { Command } from "./command";
 import {
   Compiler,
@@ -111,7 +110,9 @@ describe("Compiler", () => {
       specify("literal", () => {
         const script = parse("word");
         const program = compileFirstWord(script);
-        expect(program).to.eql([new PushValue(new StringValue("word"))]);
+        expect(program.operations).to.eql([
+          new PushValue(new StringValue("word")),
+        ]);
 
         expect(context.execute(program)).to.eql(new StringValue("word"));
       });
@@ -120,14 +121,17 @@ describe("Compiler", () => {
         specify("empty tuple", () => {
           const script = parse("()");
           const program = compileFirstWord(script);
-          expect(program).to.eql([new OpenFrame(), new CloseFrame()]);
+          expect(program.operations).to.eql([
+            new OpenFrame(),
+            new CloseFrame(),
+          ]);
 
           expect(context.execute(program)).to.eql(new TupleValue([]));
         });
         specify("tuple with literals", () => {
           const script = parse("( lit1 lit2 )");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("lit1")),
             new PushValue(new StringValue("lit2")),
@@ -141,7 +145,7 @@ describe("Compiler", () => {
         specify("complex case", () => {
           const script = parse('( this [cmd] $var1 "complex" ${var2}(key) )');
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("this")),
             new OpenFrame(),
@@ -190,7 +194,7 @@ describe("Compiler", () => {
           const script = parse(`{${source}}`);
           const value = new ScriptValue(parse(source), source);
           const program = compileFirstWord(script);
-          expect(program).to.eql([new PushValue(value)]);
+          expect(program.operations).to.eql([new PushValue(value)]);
 
           expect(context.execute(program)).to.eql(value);
         });
@@ -199,7 +203,7 @@ describe("Compiler", () => {
           const script = parse(`{${source}}`);
           const value = new ScriptValue(parse(source), source);
           const program = compileFirstWord(script);
-          expect(program).to.eql([new PushValue(value)]);
+          expect(program.operations).to.eql([new PushValue(value)]);
 
           expect(context.execute(program)).to.eql(value);
         });
@@ -210,7 +214,7 @@ describe("Compiler", () => {
             .morphemes[0] as BlockMorpheme;
           const value = new ScriptValue(block.subscript, source);
           const program = compileFirstWord(script);
-          expect(program).to.eql([new PushValue(value)]);
+          expect(program.operations).to.eql([new PushValue(value)]);
 
           expect(context.execute(program)).to.eql(value);
         });
@@ -220,14 +224,14 @@ describe("Compiler", () => {
         specify("empty expression", () => {
           const script = parse("[]");
           const program = compileFirstWord(script);
-          expect(program).to.eql([new SubstituteResult()]);
+          expect(program.operations).to.eql([new SubstituteResult()]);
 
           expect(context.execute(program)).to.eql(NIL);
         });
         specify("expression with literals", () => {
           const script = parse("[ cmd arg ]");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("cmd")),
             new PushValue(new StringValue("arg")),
@@ -251,7 +255,7 @@ describe("Compiler", () => {
         specify("complex case", () => {
           const script = parse('[ this [cmd] $var1 "complex" ${var2}(key) ]');
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("this")),
             new OpenFrame(),
@@ -303,7 +307,7 @@ describe("Compiler", () => {
         specify("empty string", () => {
           const script = parse('""');
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new CloseFrame(),
             new JoinStrings(),
@@ -314,7 +318,7 @@ describe("Compiler", () => {
         specify("simple string", () => {
           const script = parse('"this is a string"');
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("this is a string")),
             new CloseFrame(),
@@ -330,7 +334,7 @@ describe("Compiler", () => {
           specify("simple command", () => {
             const script = parse('"this [cmd] a string"');
             const program = compileFirstWord(script);
-            expect(program).to.eql([
+            expect(program.operations).to.eql([
               new OpenFrame(),
               new PushValue(new StringValue("this ")),
               new OpenFrame(),
@@ -353,7 +357,7 @@ describe("Compiler", () => {
           specify("multiple commands", () => {
             const script = parse('"this [cmd1][cmd2] a string"');
             const program = compileFirstWord(script);
-            expect(program).to.eql([
+            expect(program.operations).to.eql([
               new OpenFrame(),
               new PushValue(new StringValue("this ")),
               new OpenFrame(),
@@ -389,7 +393,7 @@ describe("Compiler", () => {
           );
           const program = compileFirstWord(script);
 
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("this ")),
             new PushValue(new StringValue("var1")),
@@ -448,7 +452,7 @@ describe("Compiler", () => {
       specify("here-strings", () => {
         const script = parse('"""this is a "\'\\ $ \nhere-string"""');
         const program = compileFirstWord(script);
-        expect(program).to.eql([
+        expect(program.operations).to.eql([
           new PushValue(new StringValue("this is a \"'\\ $ \nhere-string")),
         ]);
 
@@ -462,7 +466,7 @@ describe("Compiler", () => {
           '""SOME_TAG\nthis is \n a \n "\'\\ $ tagged string\nSOME_TAG""'
         );
         const program = compileFirstWord(script);
-        expect(program).to.eql([
+        expect(program.operations).to.eql([
           new PushValue(
             new StringValue("this is \n a \n \"'\\ $ tagged string\n")
           ),
@@ -478,7 +482,7 @@ describe("Compiler", () => {
       specify("literal prefix", () => {
         const script = parse("this_${var}(key)_a_[cmd a b]_compound");
         const program = compileFirstWord(script);
-        expect(program).to.eql([
+        expect(program.operations).to.eql([
           new OpenFrame(),
           new PushValue(new StringValue("this_")),
           new PushValue(new StringValue("var")),
@@ -514,7 +518,7 @@ describe("Compiler", () => {
       specify("expression prefix", () => {
         const script = parse("[cmd a b]_is_an_${var}(key)_compound");
         const program = compileFirstWord(script);
-        expect(program).to.eql([
+        expect(program.operations).to.eql([
           new OpenFrame(),
           new OpenFrame(),
           new PushValue(new StringValue("cmd")),
@@ -549,7 +553,7 @@ describe("Compiler", () => {
       specify("substitution prefix", () => {
         const script = parse("${var}(key)_is_a_[cmd a b]_compound");
         const program = compileFirstWord(script);
-        expect(program).to.eql([
+        expect(program.operations).to.eql([
           new OpenFrame(),
           new PushValue(new StringValue("var")),
           new ResolveValue(),
@@ -588,7 +592,7 @@ describe("Compiler", () => {
         specify("simple substitution", () => {
           const script = parse("$varname");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
           ]);
@@ -599,7 +603,7 @@ describe("Compiler", () => {
         specify("double substitution", () => {
           const script = parse("$$var1");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("var1")),
             new ResolveValue(),
             new ResolveValue(),
@@ -612,7 +616,7 @@ describe("Compiler", () => {
         specify("triple substitution", () => {
           const script = parse("$$$var1");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("var1")),
             new ResolveValue(),
             new ResolveValue(),
@@ -630,7 +634,7 @@ describe("Compiler", () => {
         specify("single variable", () => {
           const script = parse("$(varname)");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("varname")),
             new CloseFrame(),
@@ -645,7 +649,7 @@ describe("Compiler", () => {
         specify("multiple variables", () => {
           const script = parse("$(var1 var2)");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("var1")),
             new PushValue(new StringValue("var2")),
@@ -665,7 +669,7 @@ describe("Compiler", () => {
         specify("double substitution", () => {
           const script = parse("$$(var1)");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("var1")),
             new CloseFrame(),
@@ -682,7 +686,7 @@ describe("Compiler", () => {
         specify("nested tuples", () => {
           const script = parse("$(var1 (var2))");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("var1")),
             new OpenFrame(),
@@ -704,7 +708,7 @@ describe("Compiler", () => {
         specify("nested double substitution", () => {
           const script = parse("$$((var1))");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new OpenFrame(),
             new PushValue(new StringValue("var1")),
@@ -726,7 +730,7 @@ describe("Compiler", () => {
         specify("varname with spaces", () => {
           const script = parse("${variable name}");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("variable name")),
             new ResolveValue(),
           ]);
@@ -737,7 +741,7 @@ describe("Compiler", () => {
         specify("varname with special characters", () => {
           const script = parse('${variable " " name}');
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue('variable " " name')),
             new ResolveValue(),
           ]);
@@ -751,7 +755,7 @@ describe("Compiler", () => {
         specify("varname with continuations", () => {
           const script = parse("${variable\\\n \t\r     name}");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("variable name")),
             new ResolveValue(),
           ]);
@@ -769,7 +773,7 @@ describe("Compiler", () => {
         specify("simple substitution", () => {
           const script = parse("$[cmd]");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("cmd")),
             new CloseFrame(),
@@ -794,7 +798,7 @@ describe("Compiler", () => {
         specify("double substitution, scalar", () => {
           const script = parse("$$[cmd]");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("cmd")),
             new CloseFrame(),
@@ -812,7 +816,7 @@ describe("Compiler", () => {
         specify("double substitution, tuple", () => {
           const script = parse("$$[cmd]");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("cmd")),
             new CloseFrame(),
@@ -840,7 +844,7 @@ describe("Compiler", () => {
         specify("two sentences", () => {
           const script = parse("[cmd1 result1; cmd2 result2]");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("cmd1")),
             new PushValue(new StringValue("result1")),
@@ -870,7 +874,7 @@ describe("Compiler", () => {
         specify("indirect command", () => {
           const script = parse("[$cmdname]");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("cmdname")),
             new ResolveValue(),
@@ -891,7 +895,7 @@ describe("Compiler", () => {
         specify("simple substitution", () => {
           const script = parse("$varname[1]");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
             new OpenFrame(),
@@ -914,7 +918,7 @@ describe("Compiler", () => {
         specify("double substitution", () => {
           const script = parse("$$var1[0]");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("var1")),
             new ResolveValue(),
             new OpenFrame(),
@@ -936,7 +940,7 @@ describe("Compiler", () => {
         specify("successive indexes", () => {
           const script = parse("$varname[1][0]");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
             new OpenFrame(),
@@ -968,7 +972,7 @@ describe("Compiler", () => {
         specify("indirect index", () => {
           const script = parse("$var1[$var2]");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("var1")),
             new ResolveValue(),
             new OpenFrame(),
@@ -994,7 +998,7 @@ describe("Compiler", () => {
         specify("command index", () => {
           const script = parse("$varname[cmd]");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
             new OpenFrame(),
@@ -1021,7 +1025,7 @@ describe("Compiler", () => {
         specify("scalar expression", () => {
           const script = parse("$[cmd][0]");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("cmd")),
             new CloseFrame(),
@@ -1043,7 +1047,7 @@ describe("Compiler", () => {
         specify("tuple expression", () => {
           const script = parse("$[cmd][0]");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("cmd")),
             new CloseFrame(),
@@ -1077,7 +1081,7 @@ describe("Compiler", () => {
         specify("simple substitution", () => {
           const script = parse("$varname(key)");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
             new OpenFrame(),
@@ -1097,7 +1101,7 @@ describe("Compiler", () => {
         specify("double substitution", () => {
           const script = parse("$$var1(key)");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("var1")),
             new ResolveValue(),
             new OpenFrame(),
@@ -1117,7 +1121,7 @@ describe("Compiler", () => {
         specify("recursive keys", () => {
           const script = parse("$varname(key1 key2)");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
             new OpenFrame(),
@@ -1138,7 +1142,7 @@ describe("Compiler", () => {
         specify("successive keys", () => {
           const script = parse("$varname(key1)(key2)");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
             new OpenFrame(),
@@ -1162,7 +1166,7 @@ describe("Compiler", () => {
         specify("indirect key", () => {
           const script = parse("$var1($var2)");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("var1")),
             new ResolveValue(),
             new OpenFrame(),
@@ -1184,7 +1188,7 @@ describe("Compiler", () => {
         specify("string key", () => {
           const script = parse('$varname("arbitrary key")');
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
             new OpenFrame(),
@@ -1207,7 +1211,7 @@ describe("Compiler", () => {
         specify("block key", () => {
           const script = parse("$varname({arbitrary key})");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
             new OpenFrame(),
@@ -1229,7 +1233,7 @@ describe("Compiler", () => {
         specify("tuple", () => {
           const script = parse("$(var1 var2)(key)");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("var1")),
             new PushValue(new StringValue("var2")),
@@ -1259,7 +1263,7 @@ describe("Compiler", () => {
         specify("recursive tuple", () => {
           const script = parse("$(var1 (var2))(key)");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("var1")),
             new OpenFrame(),
@@ -1291,7 +1295,7 @@ describe("Compiler", () => {
         specify("tuple with double substitution", () => {
           const script = parse("$$(var1 var2)(key)");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("var1")),
             new PushValue(new StringValue("var2")),
@@ -1324,7 +1328,7 @@ describe("Compiler", () => {
         specify("scalar expression", () => {
           const script = parse("$[cmd](key)");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("cmd")),
             new CloseFrame(),
@@ -1344,7 +1348,7 @@ describe("Compiler", () => {
         specify("tuple expression", () => {
           const script = parse("$[cmd](key)");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("cmd")),
             new CloseFrame(),
@@ -1385,7 +1389,7 @@ describe("Compiler", () => {
         specify("simple substitution", () => {
           const script = parse("$varname{last}");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
             new OpenFrame(),
@@ -1409,7 +1413,7 @@ describe("Compiler", () => {
         specify("double substitution", () => {
           const script = parse("$$var1{last}");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("var1")),
             new ResolveValue(),
             new OpenFrame(),
@@ -1431,7 +1435,7 @@ describe("Compiler", () => {
         specify("successive selectors", () => {
           const script = parse("$var{last}{last}");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("var")),
             new ResolveValue(),
             new OpenFrame(),
@@ -1463,7 +1467,7 @@ describe("Compiler", () => {
         specify("indirect selector", () => {
           const script = parse("$var1{$var2}");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("var1")),
             new ResolveValue(),
             new OpenFrame(),
@@ -1495,7 +1499,7 @@ describe("Compiler", () => {
         specify("expression", () => {
           const script = parse("$[cmd]{last}");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("cmd")),
             new CloseFrame(),
@@ -1526,7 +1530,7 @@ describe("Compiler", () => {
         specify("indexed selector", () => {
           const script = parse("varname[cmd]");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("varname")),
             new SetSource(),
             new OpenFrame(),
@@ -1549,7 +1553,7 @@ describe("Compiler", () => {
         specify("keyed selector", () => {
           const script = parse("varname(key1 key2)");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("varname")),
             new SetSource(),
             new OpenFrame(),
@@ -1571,7 +1575,7 @@ describe("Compiler", () => {
         specify("generic selector", () => {
           const script = parse("varname{rule1 arg1; rule2 arg2}");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("varname")),
             new SetSource(),
             new OpenFrame(),
@@ -1608,7 +1612,7 @@ describe("Compiler", () => {
             "varname(key1 $var1){$var2; [cmd1]}[cmd2]([$var3])(key4)"
           );
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("varname")),
             new SetSource(),
             new OpenFrame(),
@@ -1688,7 +1692,7 @@ describe("Compiler", () => {
         specify("indexed selector", () => {
           const script = parse("(varname1 varname2)[cmd]");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("varname1")),
             new PushValue(new StringValue("varname2")),
@@ -1718,7 +1722,7 @@ describe("Compiler", () => {
         specify("keyed selector", () => {
           const script = parse("(varname1 varname2)(key1 key2)");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("varname1")),
             new PushValue(new StringValue("varname2")),
@@ -1749,7 +1753,7 @@ describe("Compiler", () => {
         specify("generic selector", () => {
           const script = parse("(varname1 varname2){rule1 arg1; rule2 arg2}");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("varname1")),
             new PushValue(new StringValue("varname2")),
@@ -1795,7 +1799,7 @@ describe("Compiler", () => {
             "(varname1 $var1)[cmd1](key1 $var2)([$var3]){$var4; [cmd2]}[cmd4]"
           );
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new OpenFrame(),
             new PushValue(new StringValue("varname1")),
             new PushValue(new StringValue("var1")),
@@ -1889,7 +1893,7 @@ describe("Compiler", () => {
         specify("indexed selector", () => {
           const script = parse("{source name}[cmd]");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("source name")),
             new SetSource(),
             new OpenFrame(),
@@ -1912,7 +1916,7 @@ describe("Compiler", () => {
         specify("keyed selector", () => {
           const script = parse("{source name}(key1 key2)");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("source name")),
             new SetSource(),
             new OpenFrame(),
@@ -1934,7 +1938,7 @@ describe("Compiler", () => {
         specify("generic selector", () => {
           const script = parse("{source name}{rule1 arg1; rule2 arg2}");
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("source name")),
             new SetSource(),
             new OpenFrame(),
@@ -1971,7 +1975,7 @@ describe("Compiler", () => {
             "{source name}(key1 $var1){$var2; [cmd1]}[cmd2]([$var3])(key4)"
           );
           const program = compileFirstWord(script);
-          expect(program).to.eql([
+          expect(program.operations).to.eql([
             new PushValue(new StringValue("source name")),
             new SetSource(),
             new OpenFrame(),
@@ -2053,13 +2057,13 @@ describe("Compiler", () => {
       specify("line comments", () => {
         const script = parse("# this ; is$ (\\\na [comment{");
         const program = compileFirstWord(script);
-        expect(program).to.eql([]);
+        expect(program.operations).to.eql([]);
       });
 
       specify("block comments", () => {
         const script = parse("##{ this \n ; is$ (a  \n#{comment{[( }##");
         const program = compileFirstWord(script);
-        expect(program).to.eql([]);
+        expect(program.operations).to.eql([]);
       });
     });
   });
@@ -2068,7 +2072,7 @@ describe("Compiler", () => {
     specify("tuples", () => {
       const script = parse("(prefix $*var suffix)");
       const program = compileFirstWord(script);
-      expect(program).to.eql([
+      expect(program.operations).to.eql([
         new OpenFrame(),
         new PushValue(new StringValue("prefix")),
         new PushValue(new StringValue("var")),
@@ -2094,7 +2098,7 @@ describe("Compiler", () => {
     specify("expressions", () => {
       const script = parse("(prefix $*[cmd] suffix)");
       const program = compileFirstWord(script);
-      expect(program).to.eql([
+      expect(program.operations).to.eql([
         new OpenFrame(),
         new PushValue(new StringValue("prefix")),
         new OpenFrame(),
@@ -2132,7 +2136,7 @@ describe("Compiler", () => {
       specify("single variable", () => {
         const script = parse("cmd $*var arg");
         const program = compiler.compileScript(script);
-        expect(program).to.eql([
+        expect(program.operations).to.eql([
           new OpenFrame(),
           new PushValue(new StringValue("cmd")),
           new PushValue(new StringValue("var")),
@@ -2141,13 +2145,14 @@ describe("Compiler", () => {
           new PushValue(new StringValue("arg")),
           new CloseFrame(),
           new EvaluateSentence(),
+          new SubstituteResult(),
         ]);
 
         variableResolver.register(
           "var",
           new TupleValue([new StringValue("value1"), new StringValue("value2")])
         );
-        expect(context.execute([...program, new SubstituteResult()])).to.eql(
+        expect(context.execute(program)).to.eql(
           new TupleValue([
             new StringValue("cmd"),
             new StringValue("value1"),
@@ -2159,7 +2164,7 @@ describe("Compiler", () => {
       specify("multiple variables", () => {
         const script = parse("cmd $*(var1 var2) arg");
         const program = compiler.compileScript(script);
-        expect(program).to.eql([
+        expect(program.operations).to.eql([
           new OpenFrame(),
           new PushValue(new StringValue("cmd")),
           new OpenFrame(),
@@ -2171,11 +2176,12 @@ describe("Compiler", () => {
           new PushValue(new StringValue("arg")),
           new CloseFrame(),
           new EvaluateSentence(),
+          new SubstituteResult(),
         ]);
 
         variableResolver.register("var1", new StringValue("value1"));
         variableResolver.register("var2", new StringValue("value2"));
-        expect(context.execute([...program, new SubstituteResult()])).to.eql(
+        expect(context.execute(program)).to.eql(
           new TupleValue([
             new StringValue("cmd"),
             new StringValue("value1"),
@@ -2187,7 +2193,7 @@ describe("Compiler", () => {
       specify("expressions", () => {
         const script = parse("cmd $*[cmd2] arg");
         const program = compiler.compileScript(script);
-        expect(program).to.eql([
+        expect(program.operations).to.eql([
           new OpenFrame(),
           new PushValue(new StringValue("cmd")),
           new OpenFrame(),
@@ -2199,6 +2205,7 @@ describe("Compiler", () => {
           new PushValue(new StringValue("arg")),
           new CloseFrame(),
           new EvaluateSentence(),
+          new SubstituteResult(),
         ]);
 
         commandResolver.register("cmd2", {
@@ -2208,7 +2215,7 @@ describe("Compiler", () => {
               new StringValue("value2"),
             ]),
         });
-        expect(context.execute([...program, new SubstituteResult()])).to.eql(
+        expect(context.execute(program)).to.eql(
           new TupleValue([
             new StringValue("cmd"),
             new StringValue("value1"),
@@ -2224,12 +2231,13 @@ describe("Compiler", () => {
     specify("empty", () => {
       const script = parse("");
       const program = compiler.compileScript(script);
-      expect(program).to.eql([]);
+      expect(program.operations).to.eql([]);
+      expect(context.execute(program)).to.eql(NIL);
     });
     specify("conditional evaluation", () => {
       const script1 = parse("if true {cmd1 a} else {cmd2 b}");
       const program1 = compiler.compileScript(script1);
-      expect(program1).to.eql([
+      expect(program1.operations).to.eql([
         new OpenFrame(),
         new PushValue(new StringValue("if")),
         new PushValue(new StringValue("true")),
@@ -2238,11 +2246,12 @@ describe("Compiler", () => {
         new PushValue(new ScriptValue(parse("cmd2 b"), "cmd2 b")),
         new CloseFrame(),
         new EvaluateSentence(),
+        new SubstituteResult(),
       ]);
 
       const script2 = parse("if false {cmd1 a} else {cmd2 b}");
       const program2 = compiler.compileScript(script2);
-      expect(program2).to.eql([
+      expect(program2.operations).to.eql([
         new OpenFrame(),
         new PushValue(new StringValue("if")),
         new PushValue(new StringValue("false")),
@@ -2251,6 +2260,7 @@ describe("Compiler", () => {
         new PushValue(new ScriptValue(parse("cmd2 b"), "cmd2 b")),
         new CloseFrame(),
         new EvaluateSentence(),
+        new SubstituteResult(),
       ]);
 
       commandResolver.register("if", {
@@ -2262,7 +2272,7 @@ describe("Compiler", () => {
               ? (block as ScriptValue).script
               : parse(block.asString());
           const program = compiler.compileScript(script);
-          return context.execute([...program, new SubstituteResult()]);
+          return context.execute(program);
         },
       });
       commandResolver.register("cmd1", {
@@ -2272,24 +2282,21 @@ describe("Compiler", () => {
         evaluate: (args) => args[1],
       });
 
-      expect(context.execute([...program1, new SubstituteResult()])).to.eql(
-        new StringValue("a")
-      );
-      expect(context.execute([...program2, new SubstituteResult()])).to.eql(
-        new StringValue("b")
-      );
+      expect(context.execute(program1)).to.eql(new StringValue("a"));
+      expect(context.execute(program2)).to.eql(new StringValue("b"));
     });
 
     specify("loop", () => {
       const script = parse("repeat 10 {cmd foo}");
       const program = compiler.compileScript(script);
-      expect(program).to.eql([
+      expect(program.operations).to.eql([
         new OpenFrame(),
         new PushValue(new StringValue("repeat")),
         new PushValue(new StringValue("10")),
         new PushValue(new ScriptValue(parse("cmd foo"), "cmd foo")),
         new CloseFrame(),
         new EvaluateSentence(),
+        new SubstituteResult(),
       ]);
 
       commandResolver.register("repeat", {
@@ -2303,7 +2310,7 @@ describe("Compiler", () => {
           const program = compiler.compileScript(script);
           let value = NIL;
           for (let i = 0; i < nb; i++) {
-            value = context.execute([...program, new SubstituteResult()]);
+            value = context.execute(program);
           }
           return value;
         },
@@ -2317,9 +2324,7 @@ describe("Compiler", () => {
           return new IntegerValue(counter++);
         },
       });
-      expect(context.execute([...program, new SubstituteResult()])).to.eql(
-        new IntegerValue(9)
-      );
+      expect(context.execute(program)).to.eql(new IntegerValue(9));
       expect(counter).to.eql(10);
       expect(acc).to.eql("foo".repeat(10));
     });
