@@ -362,7 +362,7 @@ export class Compiler {
 
   private emitLiteral(program: Program, literal: LiteralMorpheme) {
     const value = new StringValue(literal.value);
-    program.push(new PushValue(value));
+    this.emitConstant(program, value);
   }
   private emitTuple(program: Program, tuple: TupleMorpheme) {
     program.push(new OpenFrame());
@@ -373,7 +373,7 @@ export class Compiler {
   }
   private emitBlock(program: Program, block: BlockMorpheme) {
     const value = new ScriptValue(block.subscript, block.value);
-    program.push(new PushValue(value));
+    this.emitConstant(program, value);
   }
   private emitExpression(program: Program, expression: ExpressionMorpheme) {
     this.emitScript(program, expression.subscript);
@@ -387,15 +387,14 @@ export class Compiler {
   }
   private emitHereString(program: Program, string: HereStringMorpheme) {
     const value = new StringValue(string.value);
-    program.push(new PushValue(value));
+    this.emitConstant(program, value);
   }
   private emitTaggedString(program: Program, string: TaggedStringMorpheme) {
     const value = new StringValue(string.value);
-    program.push(new PushValue(value));
+    this.emitConstant(program, value);
   }
   private emitLiteralVarname(program: Program, literal: LiteralMorpheme) {
-    const value = new StringValue(literal.value);
-    program.push(new PushValue(value));
+    this.emitLiteral(program, literal);
     program.push(new ResolveValue());
   }
   private emitTupleVarnames(program: Program, tuple: TupleMorpheme) {
@@ -404,12 +403,11 @@ export class Compiler {
   }
   private emitBlockVarname(program: Program, block: BlockMorpheme) {
     const value = new StringValue(block.value);
-    program.push(new PushValue(value));
+    this.emitConstant(program, value);
     program.push(new ResolveValue());
   }
   private emitLiteralSource(program: Program, literal: LiteralMorpheme) {
-    const value = new StringValue(literal.value);
-    program.push(new PushValue(value));
+    this.emitLiteral(program, literal);
     program.push(new SetSource());
   }
   private emitTupleSource(program: Program, tuple: TupleMorpheme) {
@@ -418,7 +416,7 @@ export class Compiler {
   }
   private emitBlockSource(program: Program, block: BlockMorpheme) {
     const value = new StringValue(block.value);
-    program.push(new PushValue(value));
+    this.emitConstant(program, value);
     program.push(new SetSource());
   }
   private emitKeyedSelector(program: Program, tuple: TupleMorpheme) {
@@ -443,6 +441,11 @@ export class Compiler {
     program.push(new CloseFrame());
     program.push(new SelectRules());
   }
+
+  private emitConstant(program: Program, value: Value) {
+    program.constants.push(value);
+    program.push(new PushValue());
+  }
 }
 
 export interface Operation {
@@ -450,6 +453,7 @@ export interface Operation {
 }
 export class Program {
   operations: Operation[] = [];
+  constants: Value[] = [];
   push(operation: Operation) {
     this.operations.push(operation);
   }
@@ -459,13 +463,7 @@ export class Program {
 }
 
 export class PushValue implements Operation {
-  value: Value;
-  constructor(value: Value) {
-    this.value = value;
-  }
-  execute(context: Context) {
-    context.push(this.value);
-  }
+  execute(context: Context) {}
 }
 export class OpenFrame implements Operation {
   execute(context: Context) {
@@ -581,8 +579,13 @@ export class Context {
   }
 
   execute(program: Program): Value {
+    let constant = 0;
     for (let operation of program.operations) {
-      operation.execute(this);
+      if (operation instanceof PushValue) {
+        this.push(program.constants[constant++]);
+      } else {
+        operation.execute(this);
+      }
     }
     if (this.frame().length) this.result = this.pop();
     return this.result;

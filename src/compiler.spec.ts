@@ -110,9 +110,8 @@ describe("Compiler", () => {
       specify("literal", () => {
         const script = parse("word");
         const program = compileFirstWord(script);
-        expect(program.operations).to.eql([
-          new PushValue(new StringValue("word")),
-        ]);
+        expect(program.operations).to.eql([new PushValue()]);
+        expect(program.constants).to.eql([new StringValue("word")]);
 
         expect(context.execute(program)).to.eql(new StringValue("word"));
       });
@@ -133,9 +132,13 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("lit1")),
-            new PushValue(new StringValue("lit2")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("lit1"),
+            new StringValue("lit2"),
           ]);
 
           expect(context.execute(program)).to.eql(
@@ -147,25 +150,33 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("this")),
+            new PushValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("cmd")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("complex")),
+            new PushValue(),
             new CloseFrame(),
             new JoinStrings(),
-            new PushValue(new StringValue("var2")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("key")),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
             new CloseFrame(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("this"),
+            new StringValue("cmd"),
+            new StringValue("var1"),
+            new StringValue("complex"),
+            new StringValue("var2"),
+            new StringValue("key"),
           ]);
 
           commandResolver.register("cmd", {
@@ -194,7 +205,8 @@ describe("Compiler", () => {
           const script = parse(`{${source}}`);
           const value = new ScriptValue(parse(source), source);
           const program = compileFirstWord(script);
-          expect(program.operations).to.eql([new PushValue(value)]);
+          expect(program.operations).to.eql([new PushValue()]);
+          expect(program.constants).to.eql([value]);
 
           expect(context.execute(program)).to.eql(value);
         });
@@ -203,7 +215,8 @@ describe("Compiler", () => {
           const script = parse(`{${source}}`);
           const value = new ScriptValue(parse(source), source);
           const program = compileFirstWord(script);
-          expect(program.operations).to.eql([new PushValue(value)]);
+          expect(program.operations).to.eql([new PushValue()]);
+          expect(program.constants).to.eql([value]);
 
           expect(context.execute(program)).to.eql(value);
         });
@@ -214,7 +227,8 @@ describe("Compiler", () => {
             .morphemes[0] as BlockMorpheme;
           const value = new ScriptValue(block.subscript, source);
           const program = compileFirstWord(script);
-          expect(program.operations).to.eql([new PushValue(value)]);
+          expect(program.operations).to.eql([new PushValue()]);
+          expect(program.constants).to.eql([value]);
 
           expect(context.execute(program)).to.eql(value);
         });
@@ -233,11 +247,15 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("cmd")),
-            new PushValue(new StringValue("arg")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("cmd"),
+            new StringValue("arg"),
           ]);
 
           commandResolver.register("cmd", {
@@ -257,27 +275,35 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("this")),
+            new PushValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("cmd")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("complex")),
+            new PushValue(),
             new CloseFrame(),
             new JoinStrings(),
-            new PushValue(new StringValue("var2")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("key")),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("this"),
+            new StringValue("cmd"),
+            new StringValue("var1"),
+            new StringValue("complex"),
+            new StringValue("var2"),
+            new StringValue("key"),
           ]);
 
           commandResolver.register("cmd", {
@@ -320,9 +346,12 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("this is a string")),
+            new PushValue(),
             new CloseFrame(),
             new JoinStrings(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("this is a string"),
           ]);
 
           expect(context.execute(program)).to.eql(
@@ -336,15 +365,20 @@ describe("Compiler", () => {
             const program = compileFirstWord(script);
             expect(program.operations).to.eql([
               new OpenFrame(),
-              new PushValue(new StringValue("this ")),
+              new PushValue(),
               new OpenFrame(),
-              new PushValue(new StringValue("cmd")),
+              new PushValue(),
               new CloseFrame(),
               new EvaluateSentence(),
               new SubstituteResult(),
-              new PushValue(new StringValue(" a string")),
+              new PushValue(),
               new CloseFrame(),
               new JoinStrings(),
+            ]);
+            expect(program.constants).to.eql([
+              new StringValue("this "),
+              new StringValue("cmd"),
+              new StringValue(" a string"),
             ]);
 
             commandResolver.register("cmd", {
@@ -359,20 +393,26 @@ describe("Compiler", () => {
             const program = compileFirstWord(script);
             expect(program.operations).to.eql([
               new OpenFrame(),
-              new PushValue(new StringValue("this ")),
+              new PushValue(),
               new OpenFrame(),
-              new PushValue(new StringValue("cmd1")),
+              new PushValue(),
               new CloseFrame(),
               new EvaluateSentence(),
               new SubstituteResult(),
               new OpenFrame(),
-              new PushValue(new StringValue("cmd2")),
+              new PushValue(),
               new CloseFrame(),
               new EvaluateSentence(),
               new SubstituteResult(),
-              new PushValue(new StringValue(" a string")),
+              new PushValue(),
               new CloseFrame(),
               new JoinStrings(),
+            ]);
+            expect(program.constants).to.eql([
+              new StringValue("this "),
+              new StringValue("cmd1"),
+              new StringValue("cmd2"),
+              new StringValue(" a string"),
             ]);
 
             commandResolver.register("cmd1", {
@@ -395,36 +435,49 @@ describe("Compiler", () => {
 
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("this ")),
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
+            new PushValue(),
             new ResolveValue(),
-            new PushValue(new StringValue(" ")),
-            new PushValue(new StringValue("variable 2")),
+            new PushValue(),
+            new PushValue(),
             new ResolveValue(),
-            new PushValue(new StringValue(" ")),
+            new PushValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("cmd1")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
-            new PushValue(new StringValue(" with subst")),
+            new PushValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("cmd2")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
-            new PushValue(new StringValue("var3")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("cmd3")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
-            new PushValue(new StringValue("var4")),
+            new PushValue(),
             new ResolveValue(),
             new CloseFrame(),
             new JoinStrings(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("this "),
+            new StringValue("var1"),
+            new StringValue(" "),
+            new StringValue("variable 2"),
+            new StringValue(" "),
+            new StringValue("cmd1"),
+            new StringValue(" with subst"),
+            new StringValue("cmd2"),
+            new StringValue("var3"),
+            new StringValue("cmd3"),
+            new StringValue("var4"),
           ]);
 
           variableResolver.register("var1", new StringValue("is"));
@@ -452,8 +505,9 @@ describe("Compiler", () => {
       specify("here-strings", () => {
         const script = parse('"""this is a "\'\\ $ \nhere-string"""');
         const program = compileFirstWord(script);
-        expect(program.operations).to.eql([
-          new PushValue(new StringValue("this is a \"'\\ $ \nhere-string")),
+        expect(program.operations).to.eql([new PushValue()]);
+        expect(program.constants).to.eql([
+          new StringValue("this is a \"'\\ $ \nhere-string"),
         ]);
 
         expect(context.execute(program)).to.eql(
@@ -466,10 +520,9 @@ describe("Compiler", () => {
           '""SOME_TAG\nthis is \n a \n "\'\\ $ tagged string\nSOME_TAG""'
         );
         const program = compileFirstWord(script);
-        expect(program.operations).to.eql([
-          new PushValue(
-            new StringValue("this is \n a \n \"'\\ $ tagged string\n")
-          ),
+        expect(program.operations).to.eql([new PushValue()]);
+        expect(program.constants).to.eql([
+          new StringValue("this is \n a \n \"'\\ $ tagged string\n"),
         ]);
 
         expect(context.execute(program)).to.eql(
@@ -484,24 +537,34 @@ describe("Compiler", () => {
         const program = compileFirstWord(script);
         expect(program.operations).to.eql([
           new OpenFrame(),
-          new PushValue(new StringValue("this_")),
-          new PushValue(new StringValue("var")),
+          new PushValue(),
+          new PushValue(),
           new ResolveValue(),
           new OpenFrame(),
-          new PushValue(new StringValue("key")),
+          new PushValue(),
           new CloseFrame(),
           new SelectKeys(),
-          new PushValue(new StringValue("_a_")),
+          new PushValue(),
           new OpenFrame(),
-          new PushValue(new StringValue("cmd")),
-          new PushValue(new StringValue("a")),
-          new PushValue(new StringValue("b")),
+          new PushValue(),
+          new PushValue(),
+          new PushValue(),
           new CloseFrame(),
           new EvaluateSentence(),
           new SubstituteResult(),
-          new PushValue(new StringValue("_compound")),
+          new PushValue(),
           new CloseFrame(),
           new JoinStrings(),
+        ]);
+        expect(program.constants).to.eql([
+          new StringValue("this_"),
+          new StringValue("var"),
+          new StringValue("key"),
+          new StringValue("_a_"),
+          new StringValue("cmd"),
+          new StringValue("a"),
+          new StringValue("b"),
+          new StringValue("_compound"),
         ]);
 
         variableResolver.register(
@@ -521,22 +584,31 @@ describe("Compiler", () => {
         expect(program.operations).to.eql([
           new OpenFrame(),
           new OpenFrame(),
-          new PushValue(new StringValue("cmd")),
-          new PushValue(new StringValue("a")),
-          new PushValue(new StringValue("b")),
+          new PushValue(),
+          new PushValue(),
+          new PushValue(),
           new CloseFrame(),
           new EvaluateSentence(),
           new SubstituteResult(),
-          new PushValue(new StringValue("_is_an_")),
-          new PushValue(new StringValue("var")),
+          new PushValue(),
+          new PushValue(),
           new ResolveValue(),
           new OpenFrame(),
-          new PushValue(new StringValue("key")),
+          new PushValue(),
           new CloseFrame(),
           new SelectKeys(),
-          new PushValue(new StringValue("_compound")),
+          new PushValue(),
           new CloseFrame(),
           new JoinStrings(),
+        ]);
+        expect(program.constants).to.eql([
+          new StringValue("cmd"),
+          new StringValue("a"),
+          new StringValue("b"),
+          new StringValue("_is_an_"),
+          new StringValue("var"),
+          new StringValue("key"),
+          new StringValue("_compound"),
         ]);
 
         commandResolver.register("cmd", {
@@ -555,23 +627,32 @@ describe("Compiler", () => {
         const program = compileFirstWord(script);
         expect(program.operations).to.eql([
           new OpenFrame(),
-          new PushValue(new StringValue("var")),
+          new PushValue(),
           new ResolveValue(),
           new OpenFrame(),
-          new PushValue(new StringValue("key")),
+          new PushValue(),
           new CloseFrame(),
           new SelectKeys(),
-          new PushValue(new StringValue("_is_a_")),
+          new PushValue(),
           new OpenFrame(),
-          new PushValue(new StringValue("cmd")),
-          new PushValue(new StringValue("a")),
-          new PushValue(new StringValue("b")),
+          new PushValue(),
+          new PushValue(),
+          new PushValue(),
           new CloseFrame(),
           new EvaluateSentence(),
           new SubstituteResult(),
-          new PushValue(new StringValue("_compound")),
+          new PushValue(),
           new CloseFrame(),
           new JoinStrings(),
+        ]);
+        expect(program.constants).to.eql([
+          new StringValue("var"),
+          new StringValue("key"),
+          new StringValue("_is_a_"),
+          new StringValue("cmd"),
+          new StringValue("a"),
+          new StringValue("b"),
+          new StringValue("_compound"),
         ]);
 
         variableResolver.register(
@@ -593,9 +674,10 @@ describe("Compiler", () => {
           const script = parse("$varname");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("varname")),
+            new PushValue(),
             new ResolveValue(),
           ]);
+          expect(program.constants).to.eql([new StringValue("varname")]);
 
           variableResolver.register("varname", new StringValue("value"));
           expect(context.execute(program)).to.eql(new StringValue("value"));
@@ -604,10 +686,11 @@ describe("Compiler", () => {
           const script = parse("$$var1");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
             new ResolveValue(),
             new ResolveValue(),
           ]);
+          expect(program.constants).to.eql([new StringValue("var1")]);
 
           variableResolver.register("var1", new StringValue("var2"));
           variableResolver.register("var2", new StringValue("value"));
@@ -617,11 +700,12 @@ describe("Compiler", () => {
           const script = parse("$$$var1");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
             new ResolveValue(),
             new ResolveValue(),
             new ResolveValue(),
           ]);
+          expect(program.constants).to.eql([new StringValue("var1")]);
 
           variableResolver.register("var1", new StringValue("var2"));
           variableResolver.register("var2", new StringValue("var3"));
@@ -636,10 +720,11 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("varname")),
+            new PushValue(),
             new CloseFrame(),
             new ResolveValue(),
           ]);
+          expect(program.constants).to.eql([new StringValue("varname")]);
 
           variableResolver.register("varname", new StringValue("value"));
           expect(context.execute(program)).to.eql(
@@ -651,10 +736,14 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("var1")),
-            new PushValue(new StringValue("var2")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new ResolveValue(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("var1"),
+            new StringValue("var2"),
           ]);
 
           variableResolver.register("var1", new StringValue("value1"));
@@ -671,11 +760,12 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
             new CloseFrame(),
             new ResolveValue(),
             new ResolveValue(),
           ]);
+          expect(program.constants).to.eql([new StringValue("var1")]);
 
           variableResolver.register("var1", new StringValue("var2"));
           variableResolver.register("var2", new StringValue("value"));
@@ -688,12 +778,16 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("var2")),
+            new PushValue(),
             new CloseFrame(),
             new CloseFrame(),
             new ResolveValue(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("var1"),
+            new StringValue("var2"),
           ]);
 
           variableResolver.register("var1", new StringValue("value1"));
@@ -711,12 +805,13 @@ describe("Compiler", () => {
           expect(program.operations).to.eql([
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
             new CloseFrame(),
             new CloseFrame(),
             new ResolveValue(),
             new ResolveValue(),
           ]);
+          expect(program.constants).to.eql([new StringValue("var1")]);
 
           variableResolver.register("var1", new StringValue("var2"));
           variableResolver.register("var2", new StringValue("value"));
@@ -731,9 +826,10 @@ describe("Compiler", () => {
           const script = parse("${variable name}");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("variable name")),
+            new PushValue(),
             new ResolveValue(),
           ]);
+          expect(program.constants).to.eql([new StringValue("variable name")]);
 
           variableResolver.register("variable name", new StringValue("value"));
           expect(context.execute(program)).to.eql(new StringValue("value"));
@@ -742,8 +838,11 @@ describe("Compiler", () => {
           const script = parse('${variable " " name}');
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue('variable " " name')),
+            new PushValue(),
             new ResolveValue(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue('variable " " name'),
           ]);
 
           variableResolver.register(
@@ -756,9 +855,10 @@ describe("Compiler", () => {
           const script = parse("${variable\\\n \t\r     name}");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("variable name")),
+            new PushValue(),
             new ResolveValue(),
           ]);
+          expect(program.constants).to.eql([new StringValue("variable name")]);
 
           variableResolver.register("variable name", new StringValue("value"));
           variableResolver.register(
@@ -775,11 +875,12 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("cmd")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
           ]);
+          expect(program.constants).to.eql([new StringValue("cmd")]);
 
           commandResolver.register("cmd", {
             evaluate: () =>
@@ -800,12 +901,13 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("cmd")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new ResolveValue(),
           ]);
+          expect(program.constants).to.eql([new StringValue("cmd")]);
 
           commandResolver.register("cmd", {
             evaluate: () => new StringValue("var"),
@@ -818,12 +920,13 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("cmd")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new ResolveValue(),
           ]);
+          expect(program.constants).to.eql([new StringValue("cmd")]);
 
           commandResolver.register("cmd", {
             evaluate: () =>
@@ -846,16 +949,22 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("cmd1")),
-            new PushValue(new StringValue("result1")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new OpenFrame(),
-            new PushValue(new StringValue("cmd2")),
-            new PushValue(new StringValue("result2")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("cmd1"),
+            new StringValue("result1"),
+            new StringValue("cmd2"),
+            new StringValue("result2"),
           ]);
 
           let called = {};
@@ -876,12 +985,13 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("cmdname")),
+            new PushValue(),
             new ResolveValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
           ]);
+          expect(program.constants).to.eql([new StringValue("cmdname")]);
 
           variableResolver.register("cmdname", new StringValue("cmd"));
           commandResolver.register("cmd", {
@@ -896,14 +1006,18 @@ describe("Compiler", () => {
           const script = parse("$varname[1]");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("varname")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("1")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("varname"),
+            new StringValue("1"),
           ]);
 
           variableResolver.register(
@@ -919,15 +1033,19 @@ describe("Compiler", () => {
           const script = parse("$$var1[0]");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("0")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
             new ResolveValue(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("var1"),
+            new StringValue("0"),
           ]);
 
           variableResolver.register(
@@ -941,20 +1059,25 @@ describe("Compiler", () => {
           const script = parse("$varname[1][0]");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("varname")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("1")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
             new OpenFrame(),
-            new PushValue(new StringValue("0")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("varname"),
+            new StringValue("1"),
+            new StringValue("0"),
           ]);
 
           variableResolver.register(
@@ -973,15 +1096,19 @@ describe("Compiler", () => {
           const script = parse("$var1[$var2]");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("var2")),
+            new PushValue(),
             new ResolveValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("var1"),
+            new StringValue("var2"),
           ]);
 
           variableResolver.register(
@@ -999,14 +1126,18 @@ describe("Compiler", () => {
           const script = parse("$varname[cmd]");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("varname")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("cmd")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("varname"),
+            new StringValue("cmd"),
           ]);
 
           commandResolver.register("cmd", {
@@ -1027,16 +1158,20 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("cmd")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new OpenFrame(),
-            new PushValue(new StringValue("0")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("cmd"),
+            new StringValue("0"),
           ]);
 
           commandResolver.register("cmd", {
@@ -1049,16 +1184,20 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("cmd")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new OpenFrame(),
-            new PushValue(new StringValue("0")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("cmd"),
+            new StringValue("0"),
           ]);
 
           commandResolver.register("cmd", {
@@ -1082,12 +1221,16 @@ describe("Compiler", () => {
           const script = parse("$varname(key)");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("varname")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("key")),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("varname"),
+            new StringValue("key"),
           ]);
 
           variableResolver.register(
@@ -1102,13 +1245,17 @@ describe("Compiler", () => {
           const script = parse("$$var1(key)");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("key")),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
             new ResolveValue(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("var1"),
+            new StringValue("key"),
           ]);
 
           variableResolver.register(
@@ -1122,13 +1269,18 @@ describe("Compiler", () => {
           const script = parse("$varname(key1 key2)");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("varname")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("key1")),
-            new PushValue(new StringValue("key2")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("varname"),
+            new StringValue("key1"),
+            new StringValue("key2"),
           ]);
 
           variableResolver.register(
@@ -1143,16 +1295,21 @@ describe("Compiler", () => {
           const script = parse("$varname(key1)(key2)");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("varname")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("key1")),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
             new OpenFrame(),
-            new PushValue(new StringValue("key2")),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("varname"),
+            new StringValue("key1"),
+            new StringValue("key2"),
           ]);
 
           variableResolver.register(
@@ -1167,13 +1324,17 @@ describe("Compiler", () => {
           const script = parse("$var1($var2)");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("var2")),
+            new PushValue(),
             new ResolveValue(),
             new CloseFrame(),
             new SelectKeys(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("var1"),
+            new StringValue("var2"),
           ]);
 
           variableResolver.register(
@@ -1189,15 +1350,19 @@ describe("Compiler", () => {
           const script = parse('$varname("arbitrary key")');
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("varname")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("arbitrary key")),
+            new PushValue(),
             new CloseFrame(),
             new JoinStrings(),
             new CloseFrame(),
             new SelectKeys(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("varname"),
+            new StringValue("arbitrary key"),
           ]);
 
           variableResolver.register(
@@ -1212,14 +1377,16 @@ describe("Compiler", () => {
           const script = parse("$varname({arbitrary key})");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("varname")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(
-              new ScriptValue(parse("arbitrary key"), "arbitrary key")
-            ),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("varname"),
+            new ScriptValue(parse("arbitrary key"), "arbitrary key"),
           ]);
 
           variableResolver.register(
@@ -1235,14 +1402,19 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("var1")),
-            new PushValue(new StringValue("var2")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("key")),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("var1"),
+            new StringValue("var2"),
+            new StringValue("key"),
           ]);
 
           variableResolver.register(
@@ -1265,16 +1437,21 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("var2")),
+            new PushValue(),
             new CloseFrame(),
             new CloseFrame(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("key")),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("var1"),
+            new StringValue("var2"),
+            new StringValue("key"),
           ]);
 
           variableResolver.register(
@@ -1297,15 +1474,20 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("var1")),
-            new PushValue(new StringValue("var2")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new ResolveValue(),
             new OpenFrame(),
-            new PushValue(new StringValue("key")),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
             new ResolveValue(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("var1"),
+            new StringValue("var2"),
+            new StringValue("key"),
           ]);
 
           variableResolver.register(
@@ -1330,14 +1512,18 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("cmd")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new OpenFrame(),
-            new PushValue(new StringValue("key")),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("cmd"),
+            new StringValue("key"),
           ]);
 
           commandResolver.register("cmd", {
@@ -1350,14 +1536,18 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("cmd")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new OpenFrame(),
-            new PushValue(new StringValue("key")),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("cmd"),
+            new StringValue("key"),
           ]);
 
           commandResolver.register("cmd", {
@@ -1390,14 +1580,18 @@ describe("Compiler", () => {
           const script = parse("$varname{last}");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("varname")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("last")),
+            new PushValue(),
             new CloseFrame(),
             new CloseFrame(),
             new SelectRules(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("varname"),
+            new StringValue("last"),
           ]);
 
           variableResolver.register(
@@ -1414,15 +1608,19 @@ describe("Compiler", () => {
           const script = parse("$$var1{last}");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("last")),
+            new PushValue(),
             new CloseFrame(),
             new CloseFrame(),
             new SelectRules(),
             new ResolveValue(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("var1"),
+            new StringValue("last"),
           ]);
 
           variableResolver.register(
@@ -1436,20 +1634,25 @@ describe("Compiler", () => {
           const script = parse("$var{last}{last}");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("var")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("last")),
+            new PushValue(),
             new CloseFrame(),
             new CloseFrame(),
             new SelectRules(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("last")),
+            new PushValue(),
             new CloseFrame(),
             new CloseFrame(),
             new SelectRules(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("var"),
+            new StringValue("last"),
+            new StringValue("last"),
           ]);
 
           variableResolver.register(
@@ -1468,15 +1671,19 @@ describe("Compiler", () => {
           const script = parse("$var1{$var2}");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
             new ResolveValue(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("var2")),
+            new PushValue(),
             new ResolveValue(),
             new CloseFrame(),
             new CloseFrame(),
             new SelectRules(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("var1"),
+            new StringValue("var2"),
           ]);
 
           variableResolver.register(
@@ -1501,16 +1708,20 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("cmd")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("last")),
+            new PushValue(),
             new CloseFrame(),
             new CloseFrame(),
             new SelectRules(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("cmd"),
+            new StringValue("last"),
           ]);
 
           commandResolver.register("cmd", {
@@ -1531,14 +1742,18 @@ describe("Compiler", () => {
           const script = parse("varname[cmd]");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("varname")),
+            new PushValue(),
             new SetSource(),
             new OpenFrame(),
-            new PushValue(new StringValue("cmd")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("varname"),
+            new StringValue("cmd"),
           ]);
 
           commandResolver.register("cmd", {
@@ -1554,13 +1769,18 @@ describe("Compiler", () => {
           const script = parse("varname(key1 key2)");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("varname")),
+            new PushValue(),
             new SetSource(),
             new OpenFrame(),
-            new PushValue(new StringValue("key1")),
-            new PushValue(new StringValue("key2")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("varname"),
+            new StringValue("key1"),
+            new StringValue("key2"),
           ]);
 
           expect(context.execute(program)).to.eql(
@@ -1576,19 +1796,26 @@ describe("Compiler", () => {
           const script = parse("varname{rule1 arg1; rule2 arg2}");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("varname")),
+            new PushValue(),
             new SetSource(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("rule1")),
-            new PushValue(new StringValue("arg1")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("rule2")),
-            new PushValue(new StringValue("arg2")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new CloseFrame(),
             new SelectRules(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("varname"),
+            new StringValue("rule1"),
+            new StringValue("arg1"),
+            new StringValue("rule2"),
+            new StringValue("arg2"),
           ]);
 
           selectorResolver.register((rules) => new GenericSelector(rules));
@@ -1613,22 +1840,22 @@ describe("Compiler", () => {
           );
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("varname")),
+            new PushValue(),
             new SetSource(),
             new OpenFrame(),
-            new PushValue(new StringValue("key1")),
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
+            new PushValue(),
             new ResolveValue(),
             new CloseFrame(),
             new SelectKeys(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("var2")),
+            new PushValue(),
             new ResolveValue(),
             new CloseFrame(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("cmd1")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
@@ -1636,14 +1863,14 @@ describe("Compiler", () => {
             new CloseFrame(),
             new SelectRules(),
             new OpenFrame(),
-            new PushValue(new StringValue("cmd2")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("var3")),
+            new PushValue(),
             new ResolveValue(),
             new CloseFrame(),
             new EvaluateSentence(),
@@ -1651,9 +1878,19 @@ describe("Compiler", () => {
             new CloseFrame(),
             new SelectKeys(),
             new OpenFrame(),
-            new PushValue(new StringValue("key4")),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("varname"),
+            new StringValue("key1"),
+            new StringValue("var1"),
+            new StringValue("var2"),
+            new StringValue("cmd1"),
+            new StringValue("cmd2"),
+            new StringValue("var3"),
+            new StringValue("key4"),
           ]);
 
           variableResolver.register("var1", new StringValue("key2"));
@@ -1694,16 +1931,21 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("varname1")),
-            new PushValue(new StringValue("varname2")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new SetSource(),
             new OpenFrame(),
-            new PushValue(new StringValue("cmd")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("varname1"),
+            new StringValue("varname2"),
+            new StringValue("cmd"),
           ]);
 
           commandResolver.register("cmd", {
@@ -1724,15 +1966,21 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("varname1")),
-            new PushValue(new StringValue("varname2")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new SetSource(),
             new OpenFrame(),
-            new PushValue(new StringValue("key1")),
-            new PushValue(new StringValue("key2")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("varname1"),
+            new StringValue("varname2"),
+            new StringValue("key1"),
+            new StringValue("key2"),
           ]);
 
           expect(context.execute(program)).to.eql(
@@ -1755,21 +2003,29 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("varname1")),
-            new PushValue(new StringValue("varname2")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new SetSource(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("rule1")),
-            new PushValue(new StringValue("arg1")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("rule2")),
-            new PushValue(new StringValue("arg2")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new CloseFrame(),
             new SelectRules(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("varname1"),
+            new StringValue("varname2"),
+            new StringValue("rule1"),
+            new StringValue("arg1"),
+            new StringValue("rule2"),
+            new StringValue("arg2"),
           ]);
 
           selectorResolver.register((rules) => new GenericSelector(rules));
@@ -1801,26 +2057,26 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
             new OpenFrame(),
-            new PushValue(new StringValue("varname1")),
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
+            new PushValue(),
             new ResolveValue(),
             new CloseFrame(),
             new SetSource(),
             new OpenFrame(),
-            new PushValue(new StringValue("cmd1")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
             new OpenFrame(),
-            new PushValue(new StringValue("key1")),
-            new PushValue(new StringValue("var2")),
+            new PushValue(),
+            new PushValue(),
             new ResolveValue(),
             new CloseFrame(),
             new SelectKeys(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("var3")),
+            new PushValue(),
             new ResolveValue(),
             new CloseFrame(),
             new EvaluateSentence(),
@@ -1829,12 +2085,12 @@ describe("Compiler", () => {
             new SelectKeys(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("var4")),
+            new PushValue(),
             new ResolveValue(),
             new CloseFrame(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("cmd2")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
@@ -1842,11 +2098,22 @@ describe("Compiler", () => {
             new CloseFrame(),
             new SelectRules(),
             new OpenFrame(),
-            new PushValue(new StringValue("cmd4")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("varname1"),
+            new StringValue("var1"),
+            new StringValue("cmd1"),
+            new StringValue("key1"),
+            new StringValue("var2"),
+            new StringValue("var3"),
+            new StringValue("var4"),
+            new StringValue("cmd2"),
+            new StringValue("cmd4"),
           ]);
 
           variableResolver.register("var1", new StringValue("varname2"));
@@ -1894,14 +2161,18 @@ describe("Compiler", () => {
           const script = parse("{source name}[cmd]");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("source name")),
+            new PushValue(),
             new SetSource(),
             new OpenFrame(),
-            new PushValue(new StringValue("cmd")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("source name"),
+            new StringValue("cmd"),
           ]);
 
           commandResolver.register("cmd", {
@@ -1917,13 +2188,18 @@ describe("Compiler", () => {
           const script = parse("{source name}(key1 key2)");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("source name")),
+            new PushValue(),
             new SetSource(),
             new OpenFrame(),
-            new PushValue(new StringValue("key1")),
-            new PushValue(new StringValue("key2")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("source name"),
+            new StringValue("key1"),
+            new StringValue("key2"),
           ]);
 
           expect(context.execute(program)).to.eql(
@@ -1939,19 +2215,26 @@ describe("Compiler", () => {
           const script = parse("{source name}{rule1 arg1; rule2 arg2}");
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("source name")),
+            new PushValue(),
             new SetSource(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("rule1")),
-            new PushValue(new StringValue("arg1")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("rule2")),
-            new PushValue(new StringValue("arg2")),
+            new PushValue(),
+            new PushValue(),
             new CloseFrame(),
             new CloseFrame(),
             new SelectRules(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("source name"),
+            new StringValue("rule1"),
+            new StringValue("arg1"),
+            new StringValue("rule2"),
+            new StringValue("arg2"),
           ]);
 
           selectorResolver.register((rules) => new GenericSelector(rules));
@@ -1976,22 +2259,22 @@ describe("Compiler", () => {
           );
           const program = compileFirstWord(script);
           expect(program.operations).to.eql([
-            new PushValue(new StringValue("source name")),
+            new PushValue(),
             new SetSource(),
             new OpenFrame(),
-            new PushValue(new StringValue("key1")),
-            new PushValue(new StringValue("var1")),
+            new PushValue(),
+            new PushValue(),
             new ResolveValue(),
             new CloseFrame(),
             new SelectKeys(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("var2")),
+            new PushValue(),
             new ResolveValue(),
             new CloseFrame(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("cmd1")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
@@ -1999,14 +2282,14 @@ describe("Compiler", () => {
             new CloseFrame(),
             new SelectRules(),
             new OpenFrame(),
-            new PushValue(new StringValue("cmd2")),
+            new PushValue(),
             new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
             new OpenFrame(),
             new OpenFrame(),
-            new PushValue(new StringValue("var3")),
+            new PushValue(),
             new ResolveValue(),
             new CloseFrame(),
             new EvaluateSentence(),
@@ -2014,9 +2297,19 @@ describe("Compiler", () => {
             new CloseFrame(),
             new SelectKeys(),
             new OpenFrame(),
-            new PushValue(new StringValue("key4")),
+            new PushValue(),
             new CloseFrame(),
             new SelectKeys(),
+          ]);
+          expect(program.constants).to.eql([
+            new StringValue("source name"),
+            new StringValue("key1"),
+            new StringValue("var1"),
+            new StringValue("var2"),
+            new StringValue("cmd1"),
+            new StringValue("cmd2"),
+            new StringValue("var3"),
+            new StringValue("key4"),
           ]);
 
           variableResolver.register("var1", new StringValue("key2"));
@@ -2074,12 +2367,17 @@ describe("Compiler", () => {
       const program = compileFirstWord(script);
       expect(program.operations).to.eql([
         new OpenFrame(),
-        new PushValue(new StringValue("prefix")),
-        new PushValue(new StringValue("var")),
+        new PushValue(),
+        new PushValue(),
         new ResolveValue(),
         new ExpandValue(),
-        new PushValue(new StringValue("suffix")),
+        new PushValue(),
         new CloseFrame(),
+      ]);
+      expect(program.constants).to.eql([
+        new StringValue("prefix"),
+        new StringValue("var"),
+        new StringValue("suffix"),
       ]);
 
       variableResolver.register(
@@ -2100,15 +2398,20 @@ describe("Compiler", () => {
       const program = compileFirstWord(script);
       expect(program.operations).to.eql([
         new OpenFrame(),
-        new PushValue(new StringValue("prefix")),
+        new PushValue(),
         new OpenFrame(),
-        new PushValue(new StringValue("cmd")),
+        new PushValue(),
         new CloseFrame(),
         new EvaluateSentence(),
         new SubstituteResult(),
         new ExpandValue(),
-        new PushValue(new StringValue("suffix")),
+        new PushValue(),
         new CloseFrame(),
+      ]);
+      expect(program.constants).to.eql([
+        new StringValue("prefix"),
+        new StringValue("cmd"),
+        new StringValue("suffix"),
       ]);
 
       commandResolver.register("cmd", {
@@ -2138,14 +2441,19 @@ describe("Compiler", () => {
         const program = compiler.compileScript(script);
         expect(program.operations).to.eql([
           new OpenFrame(),
-          new PushValue(new StringValue("cmd")),
-          new PushValue(new StringValue("var")),
+          new PushValue(),
+          new PushValue(),
           new ResolveValue(),
           new ExpandValue(),
-          new PushValue(new StringValue("arg")),
+          new PushValue(),
           new CloseFrame(),
           new EvaluateSentence(),
           new SubstituteResult(),
+        ]);
+        expect(program.constants).to.eql([
+          new StringValue("cmd"),
+          new StringValue("var"),
+          new StringValue("arg"),
         ]);
 
         variableResolver.register(
@@ -2166,17 +2474,23 @@ describe("Compiler", () => {
         const program = compiler.compileScript(script);
         expect(program.operations).to.eql([
           new OpenFrame(),
-          new PushValue(new StringValue("cmd")),
+          new PushValue(),
           new OpenFrame(),
-          new PushValue(new StringValue("var1")),
-          new PushValue(new StringValue("var2")),
+          new PushValue(),
+          new PushValue(),
           new CloseFrame(),
           new ResolveValue(),
           new ExpandValue(),
-          new PushValue(new StringValue("arg")),
+          new PushValue(),
           new CloseFrame(),
           new EvaluateSentence(),
           new SubstituteResult(),
+        ]);
+        expect(program.constants).to.eql([
+          new StringValue("cmd"),
+          new StringValue("var1"),
+          new StringValue("var2"),
+          new StringValue("arg"),
         ]);
 
         variableResolver.register("var1", new StringValue("value1"));
@@ -2195,17 +2509,22 @@ describe("Compiler", () => {
         const program = compiler.compileScript(script);
         expect(program.operations).to.eql([
           new OpenFrame(),
-          new PushValue(new StringValue("cmd")),
+          new PushValue(),
           new OpenFrame(),
-          new PushValue(new StringValue("cmd2")),
+          new PushValue(),
           new CloseFrame(),
           new EvaluateSentence(),
           new SubstituteResult(),
           new ExpandValue(),
-          new PushValue(new StringValue("arg")),
+          new PushValue(),
           new CloseFrame(),
           new EvaluateSentence(),
           new SubstituteResult(),
+        ]);
+        expect(program.constants).to.eql([
+          new StringValue("cmd"),
+          new StringValue("cmd2"),
+          new StringValue("arg"),
         ]);
 
         commandResolver.register("cmd2", {
@@ -2239,28 +2558,42 @@ describe("Compiler", () => {
       const program1 = compiler.compileScript(script1);
       expect(program1.operations).to.eql([
         new OpenFrame(),
-        new PushValue(new StringValue("if")),
-        new PushValue(new StringValue("true")),
-        new PushValue(new ScriptValue(parse("cmd1 a"), "cmd1 a")),
-        new PushValue(new StringValue("else")),
-        new PushValue(new ScriptValue(parse("cmd2 b"), "cmd2 b")),
+        new PushValue(),
+        new PushValue(),
+        new PushValue(),
+        new PushValue(),
+        new PushValue(),
         new CloseFrame(),
         new EvaluateSentence(),
         new SubstituteResult(),
+      ]);
+      expect(program1.constants).to.eql([
+        new StringValue("if"),
+        new StringValue("true"),
+        new ScriptValue(parse("cmd1 a"), "cmd1 a"),
+        new StringValue("else"),
+        new ScriptValue(parse("cmd2 b"), "cmd2 b"),
       ]);
 
       const script2 = parse("if false {cmd1 a} else {cmd2 b}");
       const program2 = compiler.compileScript(script2);
       expect(program2.operations).to.eql([
         new OpenFrame(),
-        new PushValue(new StringValue("if")),
-        new PushValue(new StringValue("false")),
-        new PushValue(new ScriptValue(parse("cmd1 a"), "cmd1 a")),
-        new PushValue(new StringValue("else")),
-        new PushValue(new ScriptValue(parse("cmd2 b"), "cmd2 b")),
+        new PushValue(),
+        new PushValue(),
+        new PushValue(),
+        new PushValue(),
+        new PushValue(),
         new CloseFrame(),
         new EvaluateSentence(),
         new SubstituteResult(),
+      ]);
+      expect(program2.constants).to.eql([
+        new StringValue("if"),
+        new StringValue("false"),
+        new ScriptValue(parse("cmd1 a"), "cmd1 a"),
+        new StringValue("else"),
+        new ScriptValue(parse("cmd2 b"), "cmd2 b"),
       ]);
 
       commandResolver.register("if", {
@@ -2291,12 +2624,17 @@ describe("Compiler", () => {
       const program = compiler.compileScript(script);
       expect(program.operations).to.eql([
         new OpenFrame(),
-        new PushValue(new StringValue("repeat")),
-        new PushValue(new StringValue("10")),
-        new PushValue(new ScriptValue(parse("cmd foo"), "cmd foo")),
+        new PushValue(),
+        new PushValue(),
+        new PushValue(),
         new CloseFrame(),
         new EvaluateSentence(),
         new SubstituteResult(),
+      ]);
+      expect(program.constants).to.eql([
+        new StringValue("repeat"),
+        new StringValue("10"),
+        new ScriptValue(parse("cmd foo"), "cmd foo"),
       ]);
 
       commandResolver.register("repeat", {
