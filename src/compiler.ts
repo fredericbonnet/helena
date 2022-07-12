@@ -44,7 +44,9 @@ export class Compiler {
   compileScript(script: Script): Operation[] {
     const result: Operation[] = [];
     for (let sentence of script.sentences) {
-      result.push(new PushOperations(this.compileSentence(sentence)));
+      result.push(new OpenFrame());
+      result.push(...this.compileSentence(sentence));
+      result.push(new CloseFrame());
       result.push(new EvaluateSentence());
     }
     return result;
@@ -124,7 +126,9 @@ export class Compiler {
   }
   compileCompound(morphemes: Morpheme[]): Operation[] {
     return [
-      new PushOperations(this.compileStems(morphemes)),
+      new OpenFrame(),
+      ...this.compileStems(morphemes),
+      new CloseFrame(),
       new JoinStrings(),
     ];
   }
@@ -343,8 +347,9 @@ export class Compiler {
     result.push(new PushValue(value));
   }
   private emitTuple(result: Operation[], tuple: TupleMorpheme) {
-    const compiled = this.compile(tuple.subscript);
-    result.push(new PushOperations(compiled));
+    result.push(new OpenFrame());
+    result.push(...this.compile(tuple.subscript));
+    result.push(new CloseFrame());
   }
   private emitBlock(result: Operation[], block: BlockMorpheme) {
     const value = new ScriptValue(block.subscript, block.value);
@@ -355,7 +360,9 @@ export class Compiler {
     result.push(new SubstituteResult());
   }
   private emitString(result: Operation[], string: StringMorpheme) {
-    result.push(new PushOperations(this.compileStems(string.morphemes)));
+    result.push(new OpenFrame());
+    result.push(...this.compileStems(string.morphemes));
+    result.push(new CloseFrame());
     result.push(new JoinStrings());
   }
   private emitHereString(result: Operation[], string: HereStringMorpheme) {
@@ -372,8 +379,9 @@ export class Compiler {
     result.push(new ResolveValue());
   }
   private emitTupleVarnames(result: Operation[], tuple: TupleMorpheme) {
-    const compiled = this.compile(tuple.subscript);
-    result.push(new PushOperations(compiled));
+    result.push(new OpenFrame());
+    result.push(...this.compile(tuple.subscript));
+    result.push(new CloseFrame());
     result.push(new ResolveValue());
   }
   private emitBlockVarname(result: Operation[], block: BlockMorpheme) {
@@ -387,8 +395,9 @@ export class Compiler {
     result.push(new SetSource());
   }
   private emitTupleSource(result: Operation[], tuple: TupleMorpheme) {
-    const compiled = this.compile(tuple.subscript);
-    result.push(new PushOperations(compiled));
+    result.push(new OpenFrame());
+    result.push(...this.compile(tuple.subscript));
+    result.push(new CloseFrame());
     result.push(new SetSource());
   }
   private emitBlockSource(result: Operation[], block: BlockMorpheme) {
@@ -397,8 +406,9 @@ export class Compiler {
     result.push(new SetSource());
   }
   private emitKeyedSelector(result: Operation[], tuple: TupleMorpheme) {
-    const compiled = this.compile(tuple.subscript);
-    result.push(new PushOperations(compiled));
+    result.push(new OpenFrame());
+    result.push(...this.compile(tuple.subscript));
+    result.push(new CloseFrame());
     result.push(new SelectKeys());
   }
   private emitIndexedSelector(
@@ -410,12 +420,13 @@ export class Compiler {
     result.push(new SelectIndex());
   }
   private emitSelector(result: Operation[], block: BlockMorpheme) {
-    const rules = [];
+    result.push(new OpenFrame());
     for (let sentence of block.subscript.sentences) {
-      const rule = this.compileSentence(sentence);
-      rules.push(new PushOperations(rule));
+      result.push(new OpenFrame());
+      result.push(...this.compileSentence(sentence));
+      result.push(new CloseFrame());
     }
-    result.push(new PushOperations(rules));
+    result.push(new CloseFrame());
     result.push(new SelectRules());
   }
 }
@@ -431,16 +442,13 @@ export class PushValue implements Operation {
     context.push(this.value);
   }
 }
-export class PushOperations implements Operation {
-  operations: Operation[];
-  constructor(operations: Operation[]) {
-    this.operations = operations;
-  }
+export class OpenFrame implements Operation {
   execute(context: Context) {
     context.openFrame();
-    for (let operation of this.operations) {
-      operation.execute(context);
-    }
+  }
+}
+export class CloseFrame implements Operation {
+  execute(context: Context) {
     const values = context.closeFrame();
     context.push(new TupleValue(values));
   }

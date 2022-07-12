@@ -5,7 +5,8 @@ import {
   Compiler,
   Context,
   PushValue,
-  PushOperations,
+  OpenFrame,
+  CloseFrame,
   ResolveValue,
   SetSource,
   SelectIndex,
@@ -119,7 +120,7 @@ describe("Compiler", () => {
         specify("empty tuple", () => {
           const script = parse("()");
           const program = compileFirstWord(script);
-          expect(program).to.eql([new PushOperations([])]);
+          expect(program).to.eql([new OpenFrame(), new CloseFrame()]);
 
           expect(context.execute(program)).to.eql(new TupleValue([]));
         });
@@ -127,10 +128,10 @@ describe("Compiler", () => {
           const script = parse("( lit1 lit2 )");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([
-              new PushValue(new StringValue("lit1")),
-              new PushValue(new StringValue("lit2")),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("lit1")),
+            new PushValue(new StringValue("lit2")),
+            new CloseFrame(),
           ]);
 
           expect(context.execute(program)).to.eql(
@@ -141,20 +142,26 @@ describe("Compiler", () => {
           const script = parse('( this [cmd] $var1 "complex" ${var2}(key) )');
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([
-              new PushValue(new StringValue("this")),
-              new PushOperations([new PushValue(new StringValue("cmd"))]),
-              new EvaluateSentence(),
-              new SubstituteResult(),
-              new PushValue(new StringValue("var1")),
-              new ResolveValue(),
-              new PushOperations([new PushValue(new StringValue("complex"))]),
-              new JoinStrings(),
-              new PushValue(new StringValue("var2")),
-              new ResolveValue(),
-              new PushOperations([new PushValue(new StringValue("key"))]),
-              new SelectKeys(),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("this")),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd")),
+            new CloseFrame(),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new PushValue(new StringValue("var1")),
+            new ResolveValue(),
+            new OpenFrame(),
+            new PushValue(new StringValue("complex")),
+            new CloseFrame(),
+            new JoinStrings(),
+            new PushValue(new StringValue("var2")),
+            new ResolveValue(),
+            new OpenFrame(),
+            new PushValue(new StringValue("key")),
+            new CloseFrame(),
+            new SelectKeys(),
+            new CloseFrame(),
           ]);
 
           commandResolver.register("cmd", {
@@ -221,10 +228,10 @@ describe("Compiler", () => {
           const script = parse("[ cmd arg ]");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([
-              new PushValue(new StringValue("cmd")),
-              new PushValue(new StringValue("arg")),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd")),
+            new PushValue(new StringValue("arg")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
           ]);
@@ -245,20 +252,26 @@ describe("Compiler", () => {
           const script = parse('[ this [cmd] $var1 "complex" ${var2}(key) ]');
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([
-              new PushValue(new StringValue("this")),
-              new PushOperations([new PushValue(new StringValue("cmd"))]),
-              new EvaluateSentence(),
-              new SubstituteResult(),
-              new PushValue(new StringValue("var1")),
-              new ResolveValue(),
-              new PushOperations([new PushValue(new StringValue("complex"))]),
-              new JoinStrings(),
-              new PushValue(new StringValue("var2")),
-              new ResolveValue(),
-              new PushOperations([new PushValue(new StringValue("key"))]),
-              new SelectKeys(),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("this")),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd")),
+            new CloseFrame(),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new PushValue(new StringValue("var1")),
+            new ResolveValue(),
+            new OpenFrame(),
+            new PushValue(new StringValue("complex")),
+            new CloseFrame(),
+            new JoinStrings(),
+            new PushValue(new StringValue("var2")),
+            new ResolveValue(),
+            new OpenFrame(),
+            new PushValue(new StringValue("key")),
+            new CloseFrame(),
+            new SelectKeys(),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
           ]);
@@ -290,7 +303,11 @@ describe("Compiler", () => {
         specify("empty string", () => {
           const script = parse('""');
           const program = compileFirstWord(script);
-          expect(program).to.eql([new PushOperations([]), new JoinStrings()]);
+          expect(program).to.eql([
+            new OpenFrame(),
+            new CloseFrame(),
+            new JoinStrings(),
+          ]);
 
           expect(context.execute(program)).to.eql(new StringValue(""));
         });
@@ -298,9 +315,9 @@ describe("Compiler", () => {
           const script = parse('"this is a string"');
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([
-              new PushValue(new StringValue("this is a string")),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("this is a string")),
+            new CloseFrame(),
             new JoinStrings(),
           ]);
 
@@ -314,13 +331,15 @@ describe("Compiler", () => {
             const script = parse('"this [cmd] a string"');
             const program = compileFirstWord(script);
             expect(program).to.eql([
-              new PushOperations([
-                new PushValue(new StringValue("this ")),
-                new PushOperations([new PushValue(new StringValue("cmd"))]),
-                new EvaluateSentence(),
-                new SubstituteResult(),
-                new PushValue(new StringValue(" a string")),
-              ]),
+              new OpenFrame(),
+              new PushValue(new StringValue("this ")),
+              new OpenFrame(),
+              new PushValue(new StringValue("cmd")),
+              new CloseFrame(),
+              new EvaluateSentence(),
+              new SubstituteResult(),
+              new PushValue(new StringValue(" a string")),
+              new CloseFrame(),
               new JoinStrings(),
             ]);
 
@@ -335,16 +354,20 @@ describe("Compiler", () => {
             const script = parse('"this [cmd1][cmd2] a string"');
             const program = compileFirstWord(script);
             expect(program).to.eql([
-              new PushOperations([
-                new PushValue(new StringValue("this ")),
-                new PushOperations([new PushValue(new StringValue("cmd1"))]),
-                new EvaluateSentence(),
-                new SubstituteResult(),
-                new PushOperations([new PushValue(new StringValue("cmd2"))]),
-                new EvaluateSentence(),
-                new SubstituteResult(),
-                new PushValue(new StringValue(" a string")),
-              ]),
+              new OpenFrame(),
+              new PushValue(new StringValue("this ")),
+              new OpenFrame(),
+              new PushValue(new StringValue("cmd1")),
+              new CloseFrame(),
+              new EvaluateSentence(),
+              new SubstituteResult(),
+              new OpenFrame(),
+              new PushValue(new StringValue("cmd2")),
+              new CloseFrame(),
+              new EvaluateSentence(),
+              new SubstituteResult(),
+              new PushValue(new StringValue(" a string")),
+              new CloseFrame(),
               new JoinStrings(),
             ]);
 
@@ -367,30 +390,36 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
 
           expect(program).to.eql([
-            new PushOperations([
-              new PushValue(new StringValue("this ")),
-              new PushValue(new StringValue("var1")),
-              new ResolveValue(),
-              new PushValue(new StringValue(" ")),
-              new PushValue(new StringValue("variable 2")),
-              new ResolveValue(),
-              new PushValue(new StringValue(" ")),
-              new PushOperations([new PushValue(new StringValue("cmd1"))]),
-              new EvaluateSentence(),
-              new SubstituteResult(),
-              new PushValue(new StringValue(" with subst")),
-              new PushOperations([new PushValue(new StringValue("cmd2"))]),
-              new EvaluateSentence(),
-              new SubstituteResult(),
-              new PushValue(new StringValue("var3")),
-              new ResolveValue(),
-              new PushOperations([new PushValue(new StringValue("cmd3"))]),
-              new EvaluateSentence(),
-              new SubstituteResult(),
-              new SelectIndex(),
-              new PushValue(new StringValue("var4")),
-              new ResolveValue(),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("this ")),
+            new PushValue(new StringValue("var1")),
+            new ResolveValue(),
+            new PushValue(new StringValue(" ")),
+            new PushValue(new StringValue("variable 2")),
+            new ResolveValue(),
+            new PushValue(new StringValue(" ")),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd1")),
+            new CloseFrame(),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new PushValue(new StringValue(" with subst")),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd2")),
+            new CloseFrame(),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new PushValue(new StringValue("var3")),
+            new ResolveValue(),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd3")),
+            new CloseFrame(),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new SelectIndex(),
+            new PushValue(new StringValue("var4")),
+            new ResolveValue(),
+            new CloseFrame(),
             new JoinStrings(),
           ]);
 
@@ -450,22 +479,24 @@ describe("Compiler", () => {
         const script = parse("this_${var}(key)_a_[cmd a b]_compound");
         const program = compileFirstWord(script);
         expect(program).to.eql([
-          new PushOperations([
-            new PushValue(new StringValue("this_")),
-            new PushValue(new StringValue("var")),
-            new ResolveValue(),
-            new PushOperations([new PushValue(new StringValue("key"))]),
-            new SelectKeys(),
-            new PushValue(new StringValue("_a_")),
-            new PushOperations([
-              new PushValue(new StringValue("cmd")),
-              new PushValue(new StringValue("a")),
-              new PushValue(new StringValue("b")),
-            ]),
-            new EvaluateSentence(),
-            new SubstituteResult(),
-            new PushValue(new StringValue("_compound")),
-          ]),
+          new OpenFrame(),
+          new PushValue(new StringValue("this_")),
+          new PushValue(new StringValue("var")),
+          new ResolveValue(),
+          new OpenFrame(),
+          new PushValue(new StringValue("key")),
+          new CloseFrame(),
+          new SelectKeys(),
+          new PushValue(new StringValue("_a_")),
+          new OpenFrame(),
+          new PushValue(new StringValue("cmd")),
+          new PushValue(new StringValue("a")),
+          new PushValue(new StringValue("b")),
+          new CloseFrame(),
+          new EvaluateSentence(),
+          new SubstituteResult(),
+          new PushValue(new StringValue("_compound")),
+          new CloseFrame(),
           new JoinStrings(),
         ]);
 
@@ -484,21 +515,23 @@ describe("Compiler", () => {
         const script = parse("[cmd a b]_is_an_${var}(key)_compound");
         const program = compileFirstWord(script);
         expect(program).to.eql([
-          new PushOperations([
-            new PushOperations([
-              new PushValue(new StringValue("cmd")),
-              new PushValue(new StringValue("a")),
-              new PushValue(new StringValue("b")),
-            ]),
-            new EvaluateSentence(),
-            new SubstituteResult(),
-            new PushValue(new StringValue("_is_an_")),
-            new PushValue(new StringValue("var")),
-            new ResolveValue(),
-            new PushOperations([new PushValue(new StringValue("key"))]),
-            new SelectKeys(),
-            new PushValue(new StringValue("_compound")),
-          ]),
+          new OpenFrame(),
+          new OpenFrame(),
+          new PushValue(new StringValue("cmd")),
+          new PushValue(new StringValue("a")),
+          new PushValue(new StringValue("b")),
+          new CloseFrame(),
+          new EvaluateSentence(),
+          new SubstituteResult(),
+          new PushValue(new StringValue("_is_an_")),
+          new PushValue(new StringValue("var")),
+          new ResolveValue(),
+          new OpenFrame(),
+          new PushValue(new StringValue("key")),
+          new CloseFrame(),
+          new SelectKeys(),
+          new PushValue(new StringValue("_compound")),
+          new CloseFrame(),
           new JoinStrings(),
         ]);
 
@@ -517,21 +550,23 @@ describe("Compiler", () => {
         const script = parse("${var}(key)_is_a_[cmd a b]_compound");
         const program = compileFirstWord(script);
         expect(program).to.eql([
-          new PushOperations([
-            new PushValue(new StringValue("var")),
-            new ResolveValue(),
-            new PushOperations([new PushValue(new StringValue("key"))]),
-            new SelectKeys(),
-            new PushValue(new StringValue("_is_a_")),
-            new PushOperations([
-              new PushValue(new StringValue("cmd")),
-              new PushValue(new StringValue("a")),
-              new PushValue(new StringValue("b")),
-            ]),
-            new EvaluateSentence(),
-            new SubstituteResult(),
-            new PushValue(new StringValue("_compound")),
-          ]),
+          new OpenFrame(),
+          new PushValue(new StringValue("var")),
+          new ResolveValue(),
+          new OpenFrame(),
+          new PushValue(new StringValue("key")),
+          new CloseFrame(),
+          new SelectKeys(),
+          new PushValue(new StringValue("_is_a_")),
+          new OpenFrame(),
+          new PushValue(new StringValue("cmd")),
+          new PushValue(new StringValue("a")),
+          new PushValue(new StringValue("b")),
+          new CloseFrame(),
+          new EvaluateSentence(),
+          new SubstituteResult(),
+          new PushValue(new StringValue("_compound")),
+          new CloseFrame(),
           new JoinStrings(),
         ]);
 
@@ -596,7 +631,9 @@ describe("Compiler", () => {
           const script = parse("$(varname)");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([new PushValue(new StringValue("varname"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("varname")),
+            new CloseFrame(),
             new ResolveValue(),
           ]);
 
@@ -609,10 +646,10 @@ describe("Compiler", () => {
           const script = parse("$(var1 var2)");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([
-              new PushValue(new StringValue("var1")),
-              new PushValue(new StringValue("var2")),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("var1")),
+            new PushValue(new StringValue("var2")),
+            new CloseFrame(),
             new ResolveValue(),
           ]);
 
@@ -629,7 +666,9 @@ describe("Compiler", () => {
           const script = parse("$$(var1)");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([new PushValue(new StringValue("var1"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("var1")),
+            new CloseFrame(),
             new ResolveValue(),
             new ResolveValue(),
           ]);
@@ -644,10 +683,12 @@ describe("Compiler", () => {
           const script = parse("$(var1 (var2))");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([
-              new PushValue(new StringValue("var1")),
-              new PushOperations([new PushValue(new StringValue("var2"))]),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("var1")),
+            new OpenFrame(),
+            new PushValue(new StringValue("var2")),
+            new CloseFrame(),
+            new CloseFrame(),
             new ResolveValue(),
           ]);
 
@@ -664,9 +705,11 @@ describe("Compiler", () => {
           const script = parse("$$((var1))");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([
-              new PushOperations([new PushValue(new StringValue("var1"))]),
-            ]),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("var1")),
+            new CloseFrame(),
+            new CloseFrame(),
             new ResolveValue(),
             new ResolveValue(),
           ]);
@@ -727,7 +770,9 @@ describe("Compiler", () => {
           const script = parse("$[cmd]");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([new PushValue(new StringValue("cmd"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
           ]);
@@ -750,7 +795,9 @@ describe("Compiler", () => {
           const script = parse("$$[cmd]");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([new PushValue(new StringValue("cmd"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new ResolveValue(),
@@ -766,7 +813,9 @@ describe("Compiler", () => {
           const script = parse("$$[cmd]");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([new PushValue(new StringValue("cmd"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new ResolveValue(),
@@ -792,15 +841,15 @@ describe("Compiler", () => {
           const script = parse("[cmd1 result1; cmd2 result2]");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([
-              new PushValue(new StringValue("cmd1")),
-              new PushValue(new StringValue("result1")),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd1")),
+            new PushValue(new StringValue("result1")),
+            new CloseFrame(),
             new EvaluateSentence(),
-            new PushOperations([
-              new PushValue(new StringValue("cmd2")),
-              new PushValue(new StringValue("result2")),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd2")),
+            new PushValue(new StringValue("result2")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
           ]);
@@ -822,10 +871,10 @@ describe("Compiler", () => {
           const script = parse("[$cmdname]");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([
-              new PushValue(new StringValue("cmdname")),
-              new ResolveValue(),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmdname")),
+            new ResolveValue(),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
           ]);
@@ -845,7 +894,9 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
-            new PushOperations([new PushValue(new StringValue("1"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("1")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
@@ -866,7 +917,9 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("var1")),
             new ResolveValue(),
-            new PushOperations([new PushValue(new StringValue("0"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("0")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
@@ -886,11 +939,15 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
-            new PushOperations([new PushValue(new StringValue("1"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("1")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
-            new PushOperations([new PushValue(new StringValue("0"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("0")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
@@ -914,10 +971,10 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("var1")),
             new ResolveValue(),
-            new PushOperations([
-              new PushValue(new StringValue("var2")),
-              new ResolveValue(),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("var2")),
+            new ResolveValue(),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
@@ -940,7 +997,9 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
-            new PushOperations([new PushValue(new StringValue("cmd"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
@@ -963,10 +1022,14 @@ describe("Compiler", () => {
           const script = parse("$[cmd][0]");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([new PushValue(new StringValue("cmd"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
-            new PushOperations([new PushValue(new StringValue("0"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("0")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
@@ -981,10 +1044,14 @@ describe("Compiler", () => {
           const script = parse("$[cmd][0]");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([new PushValue(new StringValue("cmd"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
-            new PushOperations([new PushValue(new StringValue("0"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("0")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
@@ -1013,7 +1080,9 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
-            new PushOperations([new PushValue(new StringValue("key"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key")),
+            new CloseFrame(),
             new SelectKeys(),
           ]);
 
@@ -1031,7 +1100,9 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("var1")),
             new ResolveValue(),
-            new PushOperations([new PushValue(new StringValue("key"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key")),
+            new CloseFrame(),
             new SelectKeys(),
             new ResolveValue(),
           ]);
@@ -1049,10 +1120,10 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
-            new PushOperations([
-              new PushValue(new StringValue("key1")),
-              new PushValue(new StringValue("key2")),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key1")),
+            new PushValue(new StringValue("key2")),
+            new CloseFrame(),
             new SelectKeys(),
           ]);
 
@@ -1070,9 +1141,13 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
-            new PushOperations([new PushValue(new StringValue("key1"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key1")),
+            new CloseFrame(),
             new SelectKeys(),
-            new PushOperations([new PushValue(new StringValue("key2"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key2")),
+            new CloseFrame(),
             new SelectKeys(),
           ]);
 
@@ -1090,10 +1165,10 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("var1")),
             new ResolveValue(),
-            new PushOperations([
-              new PushValue(new StringValue("var2")),
-              new ResolveValue(),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("var2")),
+            new ResolveValue(),
+            new CloseFrame(),
             new SelectKeys(),
           ]);
 
@@ -1112,12 +1187,12 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
-            new PushOperations([
-              new PushOperations([
-                new PushValue(new StringValue("arbitrary key")),
-              ]),
-              new JoinStrings(),
-            ]),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("arbitrary key")),
+            new CloseFrame(),
+            new JoinStrings(),
+            new CloseFrame(),
             new SelectKeys(),
           ]);
 
@@ -1135,11 +1210,11 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
-            new PushOperations([
-              new PushValue(
-                new ScriptValue(parse("arbitrary key"), "arbitrary key")
-              ),
-            ]),
+            new OpenFrame(),
+            new PushValue(
+              new ScriptValue(parse("arbitrary key"), "arbitrary key")
+            ),
+            new CloseFrame(),
             new SelectKeys(),
           ]);
 
@@ -1155,12 +1230,14 @@ describe("Compiler", () => {
           const script = parse("$(var1 var2)(key)");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([
-              new PushValue(new StringValue("var1")),
-              new PushValue(new StringValue("var2")),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("var1")),
+            new PushValue(new StringValue("var2")),
+            new CloseFrame(),
             new ResolveValue(),
-            new PushOperations([new PushValue(new StringValue("key"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key")),
+            new CloseFrame(),
             new SelectKeys(),
           ]);
 
@@ -1183,12 +1260,16 @@ describe("Compiler", () => {
           const script = parse("$(var1 (var2))(key)");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([
-              new PushValue(new StringValue("var1")),
-              new PushOperations([new PushValue(new StringValue("var2"))]),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("var1")),
+            new OpenFrame(),
+            new PushValue(new StringValue("var2")),
+            new CloseFrame(),
+            new CloseFrame(),
             new ResolveValue(),
-            new PushOperations([new PushValue(new StringValue("key"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key")),
+            new CloseFrame(),
             new SelectKeys(),
           ]);
 
@@ -1211,12 +1292,14 @@ describe("Compiler", () => {
           const script = parse("$$(var1 var2)(key)");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([
-              new PushValue(new StringValue("var1")),
-              new PushValue(new StringValue("var2")),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("var1")),
+            new PushValue(new StringValue("var2")),
+            new CloseFrame(),
             new ResolveValue(),
-            new PushOperations([new PushValue(new StringValue("key"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key")),
+            new CloseFrame(),
             new SelectKeys(),
             new ResolveValue(),
           ]);
@@ -1242,10 +1325,14 @@ describe("Compiler", () => {
           const script = parse("$[cmd](key)");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([new PushValue(new StringValue("cmd"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
-            new PushOperations([new PushValue(new StringValue("key"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key")),
+            new CloseFrame(),
             new SelectKeys(),
           ]);
 
@@ -1258,10 +1345,14 @@ describe("Compiler", () => {
           const script = parse("$[cmd](key)");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([new PushValue(new StringValue("cmd"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
-            new PushOperations([new PushValue(new StringValue("key"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key")),
+            new CloseFrame(),
             new SelectKeys(),
           ]);
 
@@ -1297,9 +1388,11 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("varname")),
             new ResolveValue(),
-            new PushOperations([
-              new PushOperations([new PushValue(new StringValue("last"))]),
-            ]),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("last")),
+            new CloseFrame(),
+            new CloseFrame(),
             new SelectRules(),
           ]);
 
@@ -1319,9 +1412,11 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("var1")),
             new ResolveValue(),
-            new PushOperations([
-              new PushOperations([new PushValue(new StringValue("last"))]),
-            ]),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("last")),
+            new CloseFrame(),
+            new CloseFrame(),
             new SelectRules(),
             new ResolveValue(),
           ]);
@@ -1339,13 +1434,17 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("var")),
             new ResolveValue(),
-            new PushOperations([
-              new PushOperations([new PushValue(new StringValue("last"))]),
-            ]),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("last")),
+            new CloseFrame(),
+            new CloseFrame(),
             new SelectRules(),
-            new PushOperations([
-              new PushOperations([new PushValue(new StringValue("last"))]),
-            ]),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("last")),
+            new CloseFrame(),
+            new CloseFrame(),
             new SelectRules(),
           ]);
 
@@ -1367,12 +1466,12 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("var1")),
             new ResolveValue(),
-            new PushOperations([
-              new PushOperations([
-                new PushValue(new StringValue("var2")),
-                new ResolveValue(),
-              ]),
-            ]),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("var2")),
+            new ResolveValue(),
+            new CloseFrame(),
+            new CloseFrame(),
             new SelectRules(),
           ]);
 
@@ -1397,12 +1496,16 @@ describe("Compiler", () => {
           const script = parse("$[cmd]{last}");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([new PushValue(new StringValue("cmd"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
-            new PushOperations([
-              new PushOperations([new PushValue(new StringValue("last"))]),
-            ]),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("last")),
+            new CloseFrame(),
+            new CloseFrame(),
             new SelectRules(),
           ]);
 
@@ -1426,7 +1529,9 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("varname")),
             new SetSource(),
-            new PushOperations([new PushValue(new StringValue("cmd"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
@@ -1447,10 +1552,10 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("varname")),
             new SetSource(),
-            new PushOperations([
-              new PushValue(new StringValue("key1")),
-              new PushValue(new StringValue("key2")),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key1")),
+            new PushValue(new StringValue("key2")),
+            new CloseFrame(),
             new SelectKeys(),
           ]);
 
@@ -1469,16 +1574,16 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("varname")),
             new SetSource(),
-            new PushOperations([
-              new PushOperations([
-                new PushValue(new StringValue("rule1")),
-                new PushValue(new StringValue("arg1")),
-              ]),
-              new PushOperations([
-                new PushValue(new StringValue("rule2")),
-                new PushValue(new StringValue("arg2")),
-              ]),
-            ]),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("rule1")),
+            new PushValue(new StringValue("arg1")),
+            new CloseFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("rule2")),
+            new PushValue(new StringValue("arg2")),
+            new CloseFrame(),
+            new CloseFrame(),
             new SelectRules(),
           ]);
 
@@ -1506,38 +1611,44 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("varname")),
             new SetSource(),
-            new PushOperations([
-              new PushValue(new StringValue("key1")),
-              new PushValue(new StringValue("var1")),
-              new ResolveValue(),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key1")),
+            new PushValue(new StringValue("var1")),
+            new ResolveValue(),
+            new CloseFrame(),
             new SelectKeys(),
-            new PushOperations([
-              new PushOperations([
-                new PushValue(new StringValue("var2")),
-                new ResolveValue(),
-              ]),
-              new PushOperations([
-                new PushOperations([new PushValue(new StringValue("cmd1"))]),
-                new EvaluateSentence(),
-                new SubstituteResult(),
-              ]),
-            ]),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("var2")),
+            new ResolveValue(),
+            new CloseFrame(),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd1")),
+            new CloseFrame(),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new CloseFrame(),
+            new CloseFrame(),
             new SelectRules(),
-            new PushOperations([new PushValue(new StringValue("cmd2"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd2")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
-            new PushOperations([
-              new PushOperations([
-                new PushValue(new StringValue("var3")),
-                new ResolveValue(),
-              ]),
-              new EvaluateSentence(),
-              new SubstituteResult(),
-            ]),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("var3")),
+            new ResolveValue(),
+            new CloseFrame(),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new CloseFrame(),
             new SelectKeys(),
-            new PushOperations([new PushValue(new StringValue("key4"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key4")),
+            new CloseFrame(),
             new SelectKeys(),
           ]);
 
@@ -1578,12 +1689,14 @@ describe("Compiler", () => {
           const script = parse("(varname1 varname2)[cmd]");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([
-              new PushValue(new StringValue("varname1")),
-              new PushValue(new StringValue("varname2")),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("varname1")),
+            new PushValue(new StringValue("varname2")),
+            new CloseFrame(),
             new SetSource(),
-            new PushOperations([new PushValue(new StringValue("cmd"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
@@ -1606,15 +1719,15 @@ describe("Compiler", () => {
           const script = parse("(varname1 varname2)(key1 key2)");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([
-              new PushValue(new StringValue("varname1")),
-              new PushValue(new StringValue("varname2")),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("varname1")),
+            new PushValue(new StringValue("varname2")),
+            new CloseFrame(),
             new SetSource(),
-            new PushOperations([
-              new PushValue(new StringValue("key1")),
-              new PushValue(new StringValue("key2")),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key1")),
+            new PushValue(new StringValue("key2")),
+            new CloseFrame(),
             new SelectKeys(),
           ]);
 
@@ -1637,21 +1750,21 @@ describe("Compiler", () => {
           const script = parse("(varname1 varname2){rule1 arg1; rule2 arg2}");
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([
-              new PushValue(new StringValue("varname1")),
-              new PushValue(new StringValue("varname2")),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("varname1")),
+            new PushValue(new StringValue("varname2")),
+            new CloseFrame(),
             new SetSource(),
-            new PushOperations([
-              new PushOperations([
-                new PushValue(new StringValue("rule1")),
-                new PushValue(new StringValue("arg1")),
-              ]),
-              new PushOperations([
-                new PushValue(new StringValue("rule2")),
-                new PushValue(new StringValue("arg2")),
-              ]),
-            ]),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("rule1")),
+            new PushValue(new StringValue("arg1")),
+            new CloseFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("rule2")),
+            new PushValue(new StringValue("arg2")),
+            new CloseFrame(),
+            new CloseFrame(),
             new SelectRules(),
           ]);
 
@@ -1683,44 +1796,50 @@ describe("Compiler", () => {
           );
           const program = compileFirstWord(script);
           expect(program).to.eql([
-            new PushOperations([
-              new PushValue(new StringValue("varname1")),
-              new PushValue(new StringValue("var1")),
-              new ResolveValue(),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("varname1")),
+            new PushValue(new StringValue("var1")),
+            new ResolveValue(),
+            new CloseFrame(),
             new SetSource(),
-            new PushOperations([new PushValue(new StringValue("cmd1"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd1")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
-            new PushOperations([
-              new PushValue(new StringValue("key1")),
-              new PushValue(new StringValue("var2")),
-              new ResolveValue(),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key1")),
+            new PushValue(new StringValue("var2")),
+            new ResolveValue(),
+            new CloseFrame(),
             new SelectKeys(),
-            new PushOperations([
-              new PushOperations([
-                new PushValue(new StringValue("var3")),
-                new ResolveValue(),
-              ]),
-              new EvaluateSentence(),
-              new SubstituteResult(),
-            ]),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("var3")),
+            new ResolveValue(),
+            new CloseFrame(),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new CloseFrame(),
             new SelectKeys(),
-            new PushOperations([
-              new PushOperations([
-                new PushValue(new StringValue("var4")),
-                new ResolveValue(),
-              ]),
-              new PushOperations([
-                new PushOperations([new PushValue(new StringValue("cmd2"))]),
-                new EvaluateSentence(),
-                new SubstituteResult(),
-              ]),
-            ]),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("var4")),
+            new ResolveValue(),
+            new CloseFrame(),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd2")),
+            new CloseFrame(),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new CloseFrame(),
+            new CloseFrame(),
             new SelectRules(),
-            new PushOperations([new PushValue(new StringValue("cmd4"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd4")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
@@ -1773,7 +1892,9 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("source name")),
             new SetSource(),
-            new PushOperations([new PushValue(new StringValue("cmd"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
@@ -1794,10 +1915,10 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("source name")),
             new SetSource(),
-            new PushOperations([
-              new PushValue(new StringValue("key1")),
-              new PushValue(new StringValue("key2")),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key1")),
+            new PushValue(new StringValue("key2")),
+            new CloseFrame(),
             new SelectKeys(),
           ]);
 
@@ -1816,16 +1937,16 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("source name")),
             new SetSource(),
-            new PushOperations([
-              new PushOperations([
-                new PushValue(new StringValue("rule1")),
-                new PushValue(new StringValue("arg1")),
-              ]),
-              new PushOperations([
-                new PushValue(new StringValue("rule2")),
-                new PushValue(new StringValue("arg2")),
-              ]),
-            ]),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("rule1")),
+            new PushValue(new StringValue("arg1")),
+            new CloseFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("rule2")),
+            new PushValue(new StringValue("arg2")),
+            new CloseFrame(),
+            new CloseFrame(),
             new SelectRules(),
           ]);
 
@@ -1853,38 +1974,44 @@ describe("Compiler", () => {
           expect(program).to.eql([
             new PushValue(new StringValue("source name")),
             new SetSource(),
-            new PushOperations([
-              new PushValue(new StringValue("key1")),
-              new PushValue(new StringValue("var1")),
-              new ResolveValue(),
-            ]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key1")),
+            new PushValue(new StringValue("var1")),
+            new ResolveValue(),
+            new CloseFrame(),
             new SelectKeys(),
-            new PushOperations([
-              new PushOperations([
-                new PushValue(new StringValue("var2")),
-                new ResolveValue(),
-              ]),
-              new PushOperations([
-                new PushOperations([new PushValue(new StringValue("cmd1"))]),
-                new EvaluateSentence(),
-                new SubstituteResult(),
-              ]),
-            ]),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("var2")),
+            new ResolveValue(),
+            new CloseFrame(),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd1")),
+            new CloseFrame(),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new CloseFrame(),
+            new CloseFrame(),
             new SelectRules(),
-            new PushOperations([new PushValue(new StringValue("cmd2"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("cmd2")),
+            new CloseFrame(),
             new EvaluateSentence(),
             new SubstituteResult(),
             new SelectIndex(),
-            new PushOperations([
-              new PushOperations([
-                new PushValue(new StringValue("var3")),
-                new ResolveValue(),
-              ]),
-              new EvaluateSentence(),
-              new SubstituteResult(),
-            ]),
+            new OpenFrame(),
+            new OpenFrame(),
+            new PushValue(new StringValue("var3")),
+            new ResolveValue(),
+            new CloseFrame(),
+            new EvaluateSentence(),
+            new SubstituteResult(),
+            new CloseFrame(),
             new SelectKeys(),
-            new PushOperations([new PushValue(new StringValue("key4"))]),
+            new OpenFrame(),
+            new PushValue(new StringValue("key4")),
+            new CloseFrame(),
             new SelectKeys(),
           ]);
 
@@ -1942,13 +2069,13 @@ describe("Compiler", () => {
       const script = parse("(prefix $*var suffix)");
       const program = compileFirstWord(script);
       expect(program).to.eql([
-        new PushOperations([
-          new PushValue(new StringValue("prefix")),
-          new PushValue(new StringValue("var")),
-          new ResolveValue(),
-          new ExpandValue(),
-          new PushValue(new StringValue("suffix")),
-        ]),
+        new OpenFrame(),
+        new PushValue(new StringValue("prefix")),
+        new PushValue(new StringValue("var")),
+        new ResolveValue(),
+        new ExpandValue(),
+        new PushValue(new StringValue("suffix")),
+        new CloseFrame(),
       ]);
 
       variableResolver.register(
@@ -1968,14 +2095,16 @@ describe("Compiler", () => {
       const script = parse("(prefix $*[cmd] suffix)");
       const program = compileFirstWord(script);
       expect(program).to.eql([
-        new PushOperations([
-          new PushValue(new StringValue("prefix")),
-          new PushOperations([new PushValue(new StringValue("cmd"))]),
-          new EvaluateSentence(),
-          new SubstituteResult(),
-          new ExpandValue(),
-          new PushValue(new StringValue("suffix")),
-        ]),
+        new OpenFrame(),
+        new PushValue(new StringValue("prefix")),
+        new OpenFrame(),
+        new PushValue(new StringValue("cmd")),
+        new CloseFrame(),
+        new EvaluateSentence(),
+        new SubstituteResult(),
+        new ExpandValue(),
+        new PushValue(new StringValue("suffix")),
+        new CloseFrame(),
       ]);
 
       commandResolver.register("cmd", {
@@ -2004,13 +2133,13 @@ describe("Compiler", () => {
         const script = parse("cmd $*var arg");
         const program = compiler.compileScript(script);
         expect(program).to.eql([
-          new PushOperations([
-            new PushValue(new StringValue("cmd")),
-            new PushValue(new StringValue("var")),
-            new ResolveValue(),
-            new ExpandValue(),
-            new PushValue(new StringValue("arg")),
-          ]),
+          new OpenFrame(),
+          new PushValue(new StringValue("cmd")),
+          new PushValue(new StringValue("var")),
+          new ResolveValue(),
+          new ExpandValue(),
+          new PushValue(new StringValue("arg")),
+          new CloseFrame(),
           new EvaluateSentence(),
         ]);
 
@@ -2031,16 +2160,16 @@ describe("Compiler", () => {
         const script = parse("cmd $*(var1 var2) arg");
         const program = compiler.compileScript(script);
         expect(program).to.eql([
-          new PushOperations([
-            new PushValue(new StringValue("cmd")),
-            new PushOperations([
-              new PushValue(new StringValue("var1")),
-              new PushValue(new StringValue("var2")),
-            ]),
-            new ResolveValue(),
-            new ExpandValue(),
-            new PushValue(new StringValue("arg")),
-          ]),
+          new OpenFrame(),
+          new PushValue(new StringValue("cmd")),
+          new OpenFrame(),
+          new PushValue(new StringValue("var1")),
+          new PushValue(new StringValue("var2")),
+          new CloseFrame(),
+          new ResolveValue(),
+          new ExpandValue(),
+          new PushValue(new StringValue("arg")),
+          new CloseFrame(),
           new EvaluateSentence(),
         ]);
 
@@ -2059,14 +2188,16 @@ describe("Compiler", () => {
         const script = parse("cmd $*[cmd2] arg");
         const program = compiler.compileScript(script);
         expect(program).to.eql([
-          new PushOperations([
-            new PushValue(new StringValue("cmd")),
-            new PushOperations([new PushValue(new StringValue("cmd2"))]),
-            new EvaluateSentence(),
-            new SubstituteResult(),
-            new ExpandValue(),
-            new PushValue(new StringValue("arg")),
-          ]),
+          new OpenFrame(),
+          new PushValue(new StringValue("cmd")),
+          new OpenFrame(),
+          new PushValue(new StringValue("cmd2")),
+          new CloseFrame(),
+          new EvaluateSentence(),
+          new SubstituteResult(),
+          new ExpandValue(),
+          new PushValue(new StringValue("arg")),
+          new CloseFrame(),
           new EvaluateSentence(),
         ]);
 
@@ -2099,26 +2230,26 @@ describe("Compiler", () => {
       const script1 = parse("if true {cmd1 a} else {cmd2 b}");
       const program1 = compiler.compileScript(script1);
       expect(program1).to.eql([
-        new PushOperations([
-          new PushValue(new StringValue("if")),
-          new PushValue(new StringValue("true")),
-          new PushValue(new ScriptValue(parse("cmd1 a"), "cmd1 a")),
-          new PushValue(new StringValue("else")),
-          new PushValue(new ScriptValue(parse("cmd2 b"), "cmd2 b")),
-        ]),
+        new OpenFrame(),
+        new PushValue(new StringValue("if")),
+        new PushValue(new StringValue("true")),
+        new PushValue(new ScriptValue(parse("cmd1 a"), "cmd1 a")),
+        new PushValue(new StringValue("else")),
+        new PushValue(new ScriptValue(parse("cmd2 b"), "cmd2 b")),
+        new CloseFrame(),
         new EvaluateSentence(),
       ]);
 
       const script2 = parse("if false {cmd1 a} else {cmd2 b}");
       const program2 = compiler.compileScript(script2);
       expect(program2).to.eql([
-        new PushOperations([
-          new PushValue(new StringValue("if")),
-          new PushValue(new StringValue("false")),
-          new PushValue(new ScriptValue(parse("cmd1 a"), "cmd1 a")),
-          new PushValue(new StringValue("else")),
-          new PushValue(new ScriptValue(parse("cmd2 b"), "cmd2 b")),
-        ]),
+        new OpenFrame(),
+        new PushValue(new StringValue("if")),
+        new PushValue(new StringValue("false")),
+        new PushValue(new ScriptValue(parse("cmd1 a"), "cmd1 a")),
+        new PushValue(new StringValue("else")),
+        new PushValue(new ScriptValue(parse("cmd2 b"), "cmd2 b")),
+        new CloseFrame(),
         new EvaluateSentence(),
       ]);
 
@@ -2153,11 +2284,11 @@ describe("Compiler", () => {
       const script = parse("repeat 10 {cmd foo}");
       const program = compiler.compileScript(script);
       expect(program).to.eql([
-        new PushOperations([
-          new PushValue(new StringValue("repeat")),
-          new PushValue(new StringValue("10")),
-          new PushValue(new ScriptValue(parse("cmd foo"), "cmd foo")),
-        ]),
+        new OpenFrame(),
+        new PushValue(new StringValue("repeat")),
+        new PushValue(new StringValue("10")),
+        new PushValue(new ScriptValue(parse("cmd foo"), "cmd foo")),
+        new CloseFrame(),
         new EvaluateSentence(),
       ]);
 
