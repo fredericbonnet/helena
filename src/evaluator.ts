@@ -26,7 +26,7 @@ import {
   QualifiedValue,
 } from "./values";
 import { Command } from "./command";
-import { Compiler, Context } from "./compiler";
+import { Compiler, Executor } from "./compiler";
 
 export interface VariableResolver {
   resolve(name: string): Value;
@@ -39,7 +39,7 @@ export interface SelectorResolver {
 }
 
 export interface Evaluator {
-  evaluateScript(script: Script);
+  evaluateScript(script: Script): Value;
   evaluateSentence(sentence: Sentence): Value;
   evaluateWord(word: Word): Value;
 }
@@ -64,7 +64,7 @@ export class InlineEvaluator implements Evaluator {
    * Scripts
    */
 
-  evaluateScript(script: Script) {
+  evaluateScript(script: Script): Value {
     let value: Value = NIL;
     for (let sentence of script.sentences) {
       value = this.evaluateSentence(sentence);
@@ -412,42 +412,36 @@ export class InlineEvaluator implements Evaluator {
 }
 
 export class CompilingEvaluator implements Evaluator {
-  private variableResolver: VariableResolver;
-  private commandResolver: CommandResolver;
-  private selectorResolver: SelectorResolver;
   private compiler: Compiler;
-  private context: Context;
+  private executor: Executor;
 
   constructor(
     variableResolver: VariableResolver,
     commandResolver: CommandResolver,
     selectorResolver: SelectorResolver
   ) {
-    this.variableResolver = variableResolver;
-    this.commandResolver = commandResolver;
-    this.selectorResolver = selectorResolver;
     this.compiler = new Compiler();
-    this.context = new Context(
-      this.variableResolver,
-      this.commandResolver,
-      this.selectorResolver
+    this.executor = new Executor(
+      variableResolver,
+      commandResolver,
+      selectorResolver
     );
   }
 
-  evaluateScript(script: Script) {
+  evaluateScript(script: Script): Value {
     const program = this.compiler.compileScript(script);
-    return this.context.execute(program);
+    return this.executor.execute(program);
   }
 
   evaluateSentence(sentence: Sentence): Value {
     const script = new Script();
     script.sentences.push(sentence);
     const program = this.compiler.compileScript(script);
-    return this.context.execute(program);
+    return this.executor.execute(program);
   }
 
   evaluateWord(word: Word): Value {
     const program = this.compiler.compileWord(word);
-    return this.context.execute(program);
+    return this.executor.execute(program);
   }
 }

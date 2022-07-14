@@ -477,7 +477,7 @@ export class Compiler {
   }
 }
 
-export class Context {
+export class Executor {
   private variableResolver: VariableResolver;
   private commandResolver: CommandResolver;
   private selectorResolver: SelectorResolver;

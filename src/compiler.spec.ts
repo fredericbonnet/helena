@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { Command } from "./command";
-import { Compiler, OpCode, Context } from "./compiler";
+import { Compiler, OpCode, Executor } from "./compiler";
 import {
   VariableResolver,
   CommandResolver,
@@ -74,7 +74,7 @@ describe("Compiler", () => {
   let commandResolver: MockCommandResolver;
   let selectorResolver: MockSelectorResolver;
   let compiler: Compiler;
-  let context: Context;
+  let executor: Executor;
 
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
   const compileFirstWord = (script: Script) =>
@@ -87,7 +87,11 @@ describe("Compiler", () => {
     variableResolver = new MockVariableResolver();
     commandResolver = new MockCommandResolver();
     selectorResolver = new MockSelectorResolver();
-    context = new Context(variableResolver, commandResolver, selectorResolver);
+    executor = new Executor(
+      variableResolver,
+      commandResolver,
+      selectorResolver
+    );
   });
 
   describe("words", () => {
@@ -98,7 +102,7 @@ describe("Compiler", () => {
         expect(program.opCodes).to.eql([OpCode.PUSH_CONSTANT]);
         expect(program.constants).to.eql([new StringValue("word")]);
 
-        expect(context.execute(program)).to.eql(new StringValue("word"));
+        expect(executor.execute(program)).to.eql(new StringValue("word"));
       });
 
       describe("tuples", () => {
@@ -110,7 +114,7 @@ describe("Compiler", () => {
             OpCode.CLOSE_FRAME,
           ]);
 
-          expect(context.execute(program)).to.eql(new TupleValue([]));
+          expect(executor.execute(program)).to.eql(new TupleValue([]));
         });
         specify("tuple with literals", () => {
           const script = parse("( lit1 lit2 )");
@@ -126,7 +130,7 @@ describe("Compiler", () => {
             new StringValue("lit2"),
           ]);
 
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new TupleValue([new StringValue("lit1"), new StringValue("lit2")])
           );
         });
@@ -172,7 +176,7 @@ describe("Compiler", () => {
             "var2",
             new MapValue({ key: new StringValue("tuple") })
           );
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new TupleValue([
               new StringValue("this"),
               new StringValue("is"),
@@ -193,7 +197,7 @@ describe("Compiler", () => {
           expect(program.opCodes).to.eql([OpCode.PUSH_CONSTANT]);
           expect(program.constants).to.eql([value]);
 
-          expect(context.execute(program)).to.eql(value);
+          expect(executor.execute(program)).to.eql(value);
         });
         specify("block with literals", () => {
           const source = " lit1 lit2 ";
@@ -203,7 +207,7 @@ describe("Compiler", () => {
           expect(program.opCodes).to.eql([OpCode.PUSH_CONSTANT]);
           expect(program.constants).to.eql([value]);
 
-          expect(context.execute(program)).to.eql(value);
+          expect(executor.execute(program)).to.eql(value);
         });
         specify("complex case", () => {
           const source = ' this [cmd] $var1 "complex" ${var2}(key) ';
@@ -215,7 +219,7 @@ describe("Compiler", () => {
           expect(program.opCodes).to.eql([OpCode.PUSH_CONSTANT]);
           expect(program.constants).to.eql([value]);
 
-          expect(context.execute(program)).to.eql(value);
+          expect(executor.execute(program)).to.eql(value);
         });
       });
 
@@ -225,7 +229,7 @@ describe("Compiler", () => {
           const program = compileFirstWord(script);
           expect(program.opCodes).to.eql([OpCode.SUBSTITUTE_RESULT]);
 
-          expect(context.execute(program)).to.eql(NIL);
+          expect(executor.execute(program)).to.eql(NIL);
         });
         specify("expression with literals", () => {
           const script = parse("[ cmd arg ]");
@@ -247,7 +251,7 @@ describe("Compiler", () => {
             evaluate: (args) =>
               new TupleValue([...args, new StringValue("foo")]),
           });
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new TupleValue([
               new StringValue("cmd"),
               new StringValue("arg"),
@@ -302,7 +306,7 @@ describe("Compiler", () => {
           commandResolver.register("this", {
             evaluate: (args) => new TupleValue(args),
           });
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new TupleValue([
               new StringValue("this"),
               new StringValue("is"),
@@ -324,7 +328,7 @@ describe("Compiler", () => {
             OpCode.JOIN_STRINGS,
           ]);
 
-          expect(context.execute(program)).to.eql(new StringValue(""));
+          expect(executor.execute(program)).to.eql(new StringValue(""));
         });
         specify("simple string", () => {
           const script = parse('"this is a string"');
@@ -339,7 +343,7 @@ describe("Compiler", () => {
             new StringValue("this is a string"),
           ]);
 
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new StringValue("this is a string")
           );
         });
@@ -369,7 +373,7 @@ describe("Compiler", () => {
             commandResolver.register("cmd", {
               evaluate: () => new StringValue("is"),
             });
-            expect(context.execute(program)).to.eql(
+            expect(executor.execute(program)).to.eql(
               new StringValue("this is a string")
             );
           });
@@ -406,7 +410,7 @@ describe("Compiler", () => {
             commandResolver.register("cmd2", {
               evaluate: () => new StringValue("s"),
             });
-            expect(context.execute(program)).to.eql(
+            expect(executor.execute(program)).to.eql(
               new StringValue("this is a string")
             );
           });
@@ -481,7 +485,7 @@ describe("Compiler", () => {
             evaluate: () => new IntegerValue(1),
           });
           variableResolver.register("var4", new StringValue("ions"));
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new StringValue("this is a string with substitutions")
           );
         });
@@ -495,7 +499,7 @@ describe("Compiler", () => {
           new StringValue("this is a \"'\\ $ \nhere-string"),
         ]);
 
-        expect(context.execute(program)).to.eql(
+        expect(executor.execute(program)).to.eql(
           new StringValue("this is a \"'\\ $ \nhere-string")
         );
       });
@@ -510,7 +514,7 @@ describe("Compiler", () => {
           new StringValue("this is \n a \n \"'\\ $ tagged string\n"),
         ]);
 
-        expect(context.execute(program)).to.eql(
+        expect(executor.execute(program)).to.eql(
           new StringValue("this is \n a \n \"'\\ $ tagged string\n")
         );
       });
@@ -559,7 +563,7 @@ describe("Compiler", () => {
         commandResolver.register("cmd", {
           evaluate: () => new StringValue("literal-prefixed"),
         });
-        expect(context.execute(program)).to.eql(
+        expect(executor.execute(program)).to.eql(
           new StringValue("this_is_a_literal-prefixed_compound")
         );
       });
@@ -603,7 +607,7 @@ describe("Compiler", () => {
           "var",
           new MapValue({ key: new StringValue("expression-prefixed") })
         );
-        expect(context.execute(program)).to.eql(
+        expect(executor.execute(program)).to.eql(
           new StringValue("this_is_an_expression-prefixed_compound")
         );
       });
@@ -647,7 +651,7 @@ describe("Compiler", () => {
         commandResolver.register("cmd", {
           evaluate: () => new StringValue("substitution-prefixed"),
         });
-        expect(context.execute(program)).to.eql(
+        expect(executor.execute(program)).to.eql(
           new StringValue("this_is_a_substitution-prefixed_compound")
         );
       });
@@ -665,7 +669,7 @@ describe("Compiler", () => {
           expect(program.constants).to.eql([new StringValue("varname")]);
 
           variableResolver.register("varname", new StringValue("value"));
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
         specify("double substitution", () => {
           const script = parse("$$var1");
@@ -679,7 +683,7 @@ describe("Compiler", () => {
 
           variableResolver.register("var1", new StringValue("var2"));
           variableResolver.register("var2", new StringValue("value"));
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
         specify("triple substitution", () => {
           const script = parse("$$$var1");
@@ -695,7 +699,7 @@ describe("Compiler", () => {
           variableResolver.register("var1", new StringValue("var2"));
           variableResolver.register("var2", new StringValue("var3"));
           variableResolver.register("var3", new StringValue("value"));
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
       });
 
@@ -712,7 +716,7 @@ describe("Compiler", () => {
           expect(program.constants).to.eql([new StringValue("varname")]);
 
           variableResolver.register("varname", new StringValue("value"));
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new TupleValue([new StringValue("value")])
           );
         });
@@ -733,7 +737,7 @@ describe("Compiler", () => {
 
           variableResolver.register("var1", new StringValue("value1"));
           variableResolver.register("var2", new StringValue("value2"));
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new TupleValue([
               new StringValue("value1"),
               new StringValue("value2"),
@@ -754,7 +758,7 @@ describe("Compiler", () => {
 
           variableResolver.register("var1", new StringValue("var2"));
           variableResolver.register("var2", new StringValue("value"));
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new TupleValue([new StringValue("value")])
           );
         });
@@ -777,7 +781,7 @@ describe("Compiler", () => {
 
           variableResolver.register("var1", new StringValue("value1"));
           variableResolver.register("var2", new StringValue("value2"));
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new TupleValue([
               new StringValue("value1"),
               new TupleValue([new StringValue("value2")]),
@@ -800,7 +804,7 @@ describe("Compiler", () => {
 
           variableResolver.register("var1", new StringValue("var2"));
           variableResolver.register("var2", new StringValue("value"));
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new TupleValue([new TupleValue([new StringValue("value")])])
           );
         });
@@ -817,7 +821,7 @@ describe("Compiler", () => {
           expect(program.constants).to.eql([new StringValue("variable name")]);
 
           variableResolver.register("variable name", new StringValue("value"));
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
         specify("varname with special characters", () => {
           const script = parse('${variable " " name}');
@@ -834,7 +838,7 @@ describe("Compiler", () => {
             'variable " " name',
             new StringValue("value")
           );
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
         specify("varname with continuations", () => {
           const script = parse("${variable\\\n \t\r     name}");
@@ -850,7 +854,7 @@ describe("Compiler", () => {
             'variable " " name',
             new StringValue("value")
           );
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
       });
 
@@ -874,7 +878,7 @@ describe("Compiler", () => {
                 new StringValue("value2"),
               ]),
           });
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new ListValue([
               new StringValue("value1"),
               new StringValue("value2"),
@@ -898,7 +902,7 @@ describe("Compiler", () => {
             evaluate: () => new StringValue("var"),
           });
           variableResolver.register("var", new StringValue("value"));
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
         specify("double substitution, tuple", () => {
           const script = parse("$$[cmd]");
@@ -922,7 +926,7 @@ describe("Compiler", () => {
           });
           variableResolver.register("var1", new StringValue("value1"));
           variableResolver.register("var2", new StringValue("value2"));
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new TupleValue([
               new StringValue("value1"),
               new StringValue("value2"),
@@ -962,7 +966,7 @@ describe("Compiler", () => {
           };
           commandResolver.register("cmd1", fn);
           commandResolver.register("cmd2", fn);
-          expect(context.execute(program)).to.eql(new StringValue("result2"));
+          expect(executor.execute(program)).to.eql(new StringValue("result2"));
           expect(called).to.eql({ cmd1: 1, cmd2: 1 });
         });
         specify("indirect command", () => {
@@ -982,7 +986,7 @@ describe("Compiler", () => {
           commandResolver.register("cmd", {
             evaluate: () => new StringValue("value"),
           });
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
       });
 
@@ -1012,7 +1016,7 @@ describe("Compiler", () => {
               new StringValue("value2"),
             ])
           );
-          expect(context.execute(program)).to.eql(new StringValue("value2"));
+          expect(executor.execute(program)).to.eql(new StringValue("value2"));
         });
         specify("double substitution", () => {
           const script = parse("$$var1[0]");
@@ -1038,7 +1042,7 @@ describe("Compiler", () => {
             new ListValue([new StringValue("var2")])
           );
           variableResolver.register("var2", new StringValue("value"));
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
         specify("successive indexes", () => {
           const script = parse("$varname[1][0]");
@@ -1075,7 +1079,7 @@ describe("Compiler", () => {
               ]),
             ])
           );
-          expect(context.execute(program)).to.eql(new StringValue("value2_1"));
+          expect(executor.execute(program)).to.eql(new StringValue("value2_1"));
         });
         specify("indirect index", () => {
           const script = parse("$var1[$var2]");
@@ -1105,7 +1109,7 @@ describe("Compiler", () => {
             ])
           );
           variableResolver.register("var2", new StringValue("1"));
-          expect(context.execute(program)).to.eql(new StringValue("value2"));
+          expect(executor.execute(program)).to.eql(new StringValue("value2"));
         });
         specify("command index", () => {
           const script = parse("$varname[cmd]");
@@ -1136,7 +1140,7 @@ describe("Compiler", () => {
               new StringValue("value3"),
             ])
           );
-          expect(context.execute(program)).to.eql(new StringValue("value2"));
+          expect(executor.execute(program)).to.eql(new StringValue("value2"));
         });
         specify("scalar expression", () => {
           const script = parse("$[cmd][0]");
@@ -1162,7 +1166,7 @@ describe("Compiler", () => {
           commandResolver.register("cmd", {
             evaluate: () => new ListValue([new StringValue("value")]),
           });
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
         specify("tuple expression", () => {
           const script = parse("$[cmd][0]");
@@ -1192,7 +1196,7 @@ describe("Compiler", () => {
                 new ListValue([new StringValue("value2")]),
               ]),
           });
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new TupleValue([
               new StringValue("value1"),
               new StringValue("value2"),
@@ -1224,7 +1228,7 @@ describe("Compiler", () => {
               key: new StringValue("value"),
             })
           );
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
         specify("double substitution", () => {
           const script = parse("$$var1(key)");
@@ -1248,7 +1252,7 @@ describe("Compiler", () => {
             new MapValue({ key: new StringValue("var2") })
           );
           variableResolver.register("var2", new StringValue("value"));
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
         specify("recursive keys", () => {
           const script = parse("$varname(key1 key2)");
@@ -1274,7 +1278,7 @@ describe("Compiler", () => {
               key1: new MapValue({ key2: new StringValue("value") }),
             })
           );
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
         specify("successive keys", () => {
           const script = parse("$varname(key1)(key2)");
@@ -1303,7 +1307,7 @@ describe("Compiler", () => {
               key1: new MapValue({ key2: new StringValue("value") }),
             })
           );
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
         specify("indirect key", () => {
           const script = parse("$var1($var2)");
@@ -1329,7 +1333,7 @@ describe("Compiler", () => {
             })
           );
           variableResolver.register("var2", new StringValue("key"));
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
         specify("string key", () => {
           const script = parse('$varname("arbitrary key")');
@@ -1356,7 +1360,7 @@ describe("Compiler", () => {
               "arbitrary key": new StringValue("value"),
             })
           );
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
         specify("block key", () => {
           const script = parse("$varname({arbitrary key})");
@@ -1380,7 +1384,7 @@ describe("Compiler", () => {
               "arbitrary key": new StringValue("value"),
             })
           );
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
         specify("tuple", () => {
           const script = parse("$(var1 var2)(key)");
@@ -1410,7 +1414,7 @@ describe("Compiler", () => {
             "var2",
             new MapValue({ key: new StringValue("value2") })
           );
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new TupleValue([
               new StringValue("value1"),
               new StringValue("value2"),
@@ -1447,7 +1451,7 @@ describe("Compiler", () => {
             "var2",
             new MapValue({ key: new StringValue("value2") })
           );
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new TupleValue([
               new StringValue("value1"),
               new TupleValue([new StringValue("value2")]),
@@ -1485,7 +1489,7 @@ describe("Compiler", () => {
           );
           variableResolver.register("var3", new StringValue("value3"));
           variableResolver.register("var4", new StringValue("value4"));
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new TupleValue([
               new StringValue("value3"),
               new StringValue("value4"),
@@ -1514,7 +1518,7 @@ describe("Compiler", () => {
           commandResolver.register("cmd", {
             evaluate: () => new MapValue({ key: new StringValue("value") }),
           });
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
         specify("tuple expression", () => {
           const script = parse("$[cmd](key)");
@@ -1542,7 +1546,7 @@ describe("Compiler", () => {
                 new MapValue({ key: new StringValue("value2") }),
               ]),
           });
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new TupleValue([
               new StringValue("value1"),
               new StringValue("value2"),
@@ -1587,7 +1591,7 @@ describe("Compiler", () => {
               new StringValue("value3"),
             ])
           );
-          expect(context.execute(program)).to.eql(new StringValue("value3"));
+          expect(executor.execute(program)).to.eql(new StringValue("value3"));
         });
         specify("double substitution", () => {
           const script = parse("$$var1{last}");
@@ -1613,7 +1617,7 @@ describe("Compiler", () => {
             new ListValue([new StringValue("var2"), new StringValue("var3")])
           );
           variableResolver.register("var3", new StringValue("value"));
-          expect(context.execute(program)).to.eql(new StringValue("value"));
+          expect(executor.execute(program)).to.eql(new StringValue("value"));
         });
         specify("successive selectors", () => {
           const script = parse("$var{last}{last}");
@@ -1650,7 +1654,7 @@ describe("Compiler", () => {
               ]),
             ])
           );
-          expect(context.execute(program)).to.eql(new StringValue("value2_2"));
+          expect(executor.execute(program)).to.eql(new StringValue("value2_2"));
         });
         specify("indirect selector", () => {
           const script = parse("$var1{$var2}");
@@ -1686,7 +1690,7 @@ describe("Compiler", () => {
               return list.values[list.values.length - 1];
             },
           }));
-          expect(context.execute(program)).to.eql(new StringValue("value3"));
+          expect(executor.execute(program)).to.eql(new StringValue("value3"));
         });
         specify("expression", () => {
           const script = parse("$[cmd]{last}");
@@ -1716,7 +1720,7 @@ describe("Compiler", () => {
                 new StringValue("value2"),
               ]),
           });
-          expect(context.execute(program)).to.eql(new StringValue("value2"));
+          expect(executor.execute(program)).to.eql(new StringValue("value2"));
         });
       });
     });
@@ -1744,7 +1748,7 @@ describe("Compiler", () => {
           commandResolver.register("cmd", {
             evaluate: () => new StringValue("index"),
           });
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new QualifiedValue(new StringValue("varname"), [
               new IndexedSelector(new StringValue("index")),
             ])
@@ -1768,7 +1772,7 @@ describe("Compiler", () => {
             new StringValue("key2"),
           ]);
 
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new QualifiedValue(new StringValue("varname"), [
               new KeyedSelector([
                 new StringValue("key1"),
@@ -1804,7 +1808,7 @@ describe("Compiler", () => {
           ]);
 
           selectorResolver.register((rules) => new GenericSelector(rules));
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new QualifiedValue(new StringValue("varname"), [
               new GenericSelector([
                 new TupleValue([
@@ -1891,7 +1895,7 @@ describe("Compiler", () => {
             evaluate: () => new StringValue("key3"),
           });
           selectorResolver.register((rules) => new GenericSelector(rules));
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new QualifiedValue(new StringValue("varname"), [
               new KeyedSelector([
                 new StringValue("key1"),
@@ -1936,7 +1940,7 @@ describe("Compiler", () => {
           commandResolver.register("cmd", {
             evaluate: () => new StringValue("index"),
           });
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new QualifiedValue(
               new TupleValue([
                 new StringValue("varname1"),
@@ -1968,7 +1972,7 @@ describe("Compiler", () => {
             new StringValue("key2"),
           ]);
 
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new QualifiedValue(
               new TupleValue([
                 new StringValue("varname1"),
@@ -2014,7 +2018,7 @@ describe("Compiler", () => {
           ]);
 
           selectorResolver.register((rules) => new GenericSelector(rules));
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new QualifiedValue(
               new TupleValue([
                 new StringValue("varname1"),
@@ -2118,7 +2122,7 @@ describe("Compiler", () => {
             evaluate: () => new StringValue("index2"),
           });
           selectorResolver.register((rules) => new GenericSelector(rules));
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new QualifiedValue(
               new TupleValue([
                 new StringValue("varname1"),
@@ -2163,7 +2167,7 @@ describe("Compiler", () => {
           commandResolver.register("cmd", {
             evaluate: () => new StringValue("index"),
           });
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new QualifiedValue(new StringValue("source name"), [
               new IndexedSelector(new StringValue("index")),
             ])
@@ -2187,7 +2191,7 @@ describe("Compiler", () => {
             new StringValue("key2"),
           ]);
 
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new QualifiedValue(new StringValue("source name"), [
               new KeyedSelector([
                 new StringValue("key1"),
@@ -2223,7 +2227,7 @@ describe("Compiler", () => {
           ]);
 
           selectorResolver.register((rules) => new GenericSelector(rules));
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new QualifiedValue(new StringValue("source name"), [
               new GenericSelector([
                 new TupleValue([
@@ -2310,7 +2314,7 @@ describe("Compiler", () => {
             evaluate: () => new StringValue("key3"),
           });
           selectorResolver.register((rules) => new GenericSelector(rules));
-          expect(context.execute(program)).to.eql(
+          expect(executor.execute(program)).to.eql(
             new QualifiedValue(new StringValue("source name"), [
               new KeyedSelector([
                 new StringValue("key1"),
@@ -2369,7 +2373,7 @@ describe("Compiler", () => {
         "var",
         new TupleValue([new StringValue("value1"), new StringValue("value2")])
       );
-      expect(context.execute(program)).to.eql(
+      expect(executor.execute(program)).to.eql(
         new TupleValue([
           new StringValue("prefix"),
           new StringValue("value1"),
@@ -2406,7 +2410,7 @@ describe("Compiler", () => {
             new StringValue("value2"),
           ]),
       });
-      expect(context.execute(program)).to.eql(
+      expect(executor.execute(program)).to.eql(
         new TupleValue([
           new StringValue("prefix"),
           new StringValue("value1"),
@@ -2445,7 +2449,7 @@ describe("Compiler", () => {
           "var",
           new TupleValue([new StringValue("value1"), new StringValue("value2")])
         );
-        expect(context.execute(program)).to.eql(
+        expect(executor.execute(program)).to.eql(
           new TupleValue([
             new StringValue("cmd"),
             new StringValue("value1"),
@@ -2480,7 +2484,7 @@ describe("Compiler", () => {
 
         variableResolver.register("var1", new StringValue("value1"));
         variableResolver.register("var2", new StringValue("value2"));
-        expect(context.execute(program)).to.eql(
+        expect(executor.execute(program)).to.eql(
           new TupleValue([
             new StringValue("cmd"),
             new StringValue("value1"),
@@ -2519,7 +2523,7 @@ describe("Compiler", () => {
               new StringValue("value2"),
             ]),
         });
-        expect(context.execute(program)).to.eql(
+        expect(executor.execute(program)).to.eql(
           new TupleValue([
             new StringValue("cmd"),
             new StringValue("value1"),
@@ -2536,7 +2540,7 @@ describe("Compiler", () => {
       const script = parse("");
       const program = compiler.compileScript(script);
       expect(program.opCodes).to.eql([]);
-      expect(context.execute(program)).to.eql(NIL);
+      expect(executor.execute(program)).to.eql(NIL);
     });
     specify("conditional evaluation", () => {
       const script1 = parse("if true {cmd1 a} else {cmd2 b}");
@@ -2590,7 +2594,7 @@ describe("Compiler", () => {
               ? (block as ScriptValue).script
               : parse(block.asString());
           const program = compiler.compileScript(script);
-          return context.execute(program);
+          return executor.execute(program);
         },
       });
       commandResolver.register("cmd1", {
@@ -2600,8 +2604,8 @@ describe("Compiler", () => {
         evaluate: (args) => args[1],
       });
 
-      expect(context.execute(program1)).to.eql(new StringValue("a"));
-      expect(context.execute(program2)).to.eql(new StringValue("b"));
+      expect(executor.execute(program1)).to.eql(new StringValue("a"));
+      expect(executor.execute(program2)).to.eql(new StringValue("b"));
     });
 
     specify("loop", () => {
@@ -2633,7 +2637,7 @@ describe("Compiler", () => {
           const program = compiler.compileScript(script);
           let value = NIL;
           for (let i = 0; i < nb; i++) {
-            value = context.execute(program);
+            value = executor.execute(program);
           }
           return value;
         },
@@ -2647,7 +2651,7 @@ describe("Compiler", () => {
           return new IntegerValue(counter++);
         },
       });
-      expect(context.execute(program)).to.eql(new IntegerValue(9));
+      expect(executor.execute(program)).to.eql(new IntegerValue(9));
       expect(counter).to.eql(10);
       expect(acc).to.eql("foo".repeat(10));
     });
