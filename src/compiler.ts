@@ -32,6 +32,7 @@ import {
 } from "./values";
 
 export enum OpCode {
+  PUSH_NIL,
   PUSH_CONSTANT,
   OPEN_FRAME,
   CLOSE_FRAME,
@@ -69,17 +70,22 @@ export class Compiler {
 
   compileScript(script: Script): Program {
     const program: Program = new Program();
+    if (script.sentences.length == 0) return program;
     this.emitScript(program, script);
-    if (!program.empty()) program.pushOpCode(OpCode.PUSH_RESULT);
     return program;
   }
   private emitScript(program: Program, script: Script) {
+    if (script.sentences.length == 0) {
+      program.pushOpCode(OpCode.PUSH_NIL);
+      return;
+    }
     for (let sentence of script.sentences) {
       program.pushOpCode(OpCode.OPEN_FRAME);
       this.emitSentence(program, sentence);
       program.pushOpCode(OpCode.CLOSE_FRAME);
       program.pushOpCode(OpCode.EVALUATE_SENTENCE);
     }
+    program.pushOpCode(OpCode.PUSH_RESULT);
   }
 
   /*
@@ -406,7 +412,6 @@ export class Compiler {
   }
   private emitExpression(program: Program, expression: ExpressionMorpheme) {
     this.emitScript(program, expression.subscript);
-    program.pushOpCode(OpCode.PUSH_RESULT);
   }
   private emitString(program: Program, string: StringMorpheme) {
     program.pushOpCode(OpCode.OPEN_FRAME);
@@ -457,7 +462,6 @@ export class Compiler {
     expression: ExpressionMorpheme
   ) {
     this.emitScript(program, expression.subscript);
-    program.pushOpCode(OpCode.PUSH_RESULT);
     program.pushOpCode(OpCode.SELECT_INDEX);
   }
   private emitSelector(program: Program, block: BlockMorpheme) {
@@ -498,6 +502,10 @@ export class Executor {
     let constant = 0;
     for (let opcode of program.opCodes) {
       switch (opcode) {
+        case OpCode.PUSH_NIL:
+          this.push(NIL);
+          break;
+
         case OpCode.PUSH_CONSTANT:
           this.push(program.constants[constant++]);
           break;
@@ -579,6 +587,9 @@ export class Executor {
             this.push(new StringValue(chunks.join("")));
           }
           break;
+
+        default:
+          throw new Error("TODO");
       }
     }
     if (this.frame().length) this.result = this.pop();

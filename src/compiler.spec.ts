@@ -228,7 +228,7 @@ describe("Compiler", () => {
         specify("empty expression", () => {
           const script = parse("[]");
           const program = compileFirstWord(script);
-          expect(program.opCodes).to.eql([OpCode.PUSH_RESULT]);
+          expect(program.opCodes).to.eql([OpCode.PUSH_NIL]);
 
           expect(executor.execute(program)).to.eql(NIL);
         });
