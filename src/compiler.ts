@@ -42,7 +42,7 @@ export enum OpCode {
   SELECT_KEYS,
   SELECT_RULES,
   EVALUATE_SENTENCE,
-  SUBSTITUTE_RESULT,
+  PUSH_RESULT,
   JOIN_STRINGS,
 }
 
@@ -70,7 +70,7 @@ export class Compiler {
   compileScript(script: Script): Program {
     const program: Program = new Program();
     this.emitScript(program, script);
-    if (!program.empty()) program.pushOpCode(OpCode.SUBSTITUTE_RESULT);
+    if (!program.empty()) program.pushOpCode(OpCode.PUSH_RESULT);
     return program;
   }
   private emitScript(program: Program, script: Script) {
@@ -406,7 +406,7 @@ export class Compiler {
   }
   private emitExpression(program: Program, expression: ExpressionMorpheme) {
     this.emitScript(program, expression.subscript);
-    program.pushOpCode(OpCode.SUBSTITUTE_RESULT);
+    program.pushOpCode(OpCode.PUSH_RESULT);
   }
   private emitString(program: Program, string: StringMorpheme) {
     program.pushOpCode(OpCode.OPEN_FRAME);
@@ -457,7 +457,7 @@ export class Compiler {
     expression: ExpressionMorpheme
   ) {
     this.emitScript(program, expression.subscript);
-    program.pushOpCode(OpCode.SUBSTITUTE_RESULT);
+    program.pushOpCode(OpCode.PUSH_RESULT);
     program.pushOpCode(OpCode.SELECT_INDEX);
   }
   private emitSelector(program: Program, block: BlockMorpheme) {
@@ -568,7 +568,7 @@ export class Executor {
           }
           break;
 
-        case OpCode.SUBSTITUTE_RESULT:
+        case OpCode.PUSH_RESULT:
           this.push(this.result);
           break;
 

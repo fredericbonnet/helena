@@ -145,7 +145,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.PUSH_CONSTANT,
             OpCode.RESOLVE_VALUE,
             OpCode.OPEN_FRAME,
@@ -228,7 +228,7 @@ describe("Compiler", () => {
         specify("empty expression", () => {
           const script = parse("[]");
           const program = compileFirstWord(script);
-          expect(program.opCodes).to.eql([OpCode.SUBSTITUTE_RESULT]);
+          expect(program.opCodes).to.eql([OpCode.PUSH_RESULT]);
 
           expect(executor.execute(program)).to.eql(NIL);
         });
@@ -241,7 +241,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
           ]);
           expect(program.constants).to.eql([
             new StringValue("cmd"),
@@ -270,7 +270,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.PUSH_CONSTANT,
             OpCode.RESOLVE_VALUE,
             OpCode.OPEN_FRAME,
@@ -285,7 +285,7 @@ describe("Compiler", () => {
             OpCode.SELECT_KEYS,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
           ]);
           expect(program.constants).to.eql([
             new StringValue("this"),
@@ -360,7 +360,7 @@ describe("Compiler", () => {
               OpCode.PUSH_CONSTANT,
               OpCode.CLOSE_FRAME,
               OpCode.EVALUATE_SENTENCE,
-              OpCode.SUBSTITUTE_RESULT,
+              OpCode.PUSH_RESULT,
               OpCode.PUSH_CONSTANT,
               OpCode.CLOSE_FRAME,
               OpCode.JOIN_STRINGS,
@@ -388,12 +388,12 @@ describe("Compiler", () => {
               OpCode.PUSH_CONSTANT,
               OpCode.CLOSE_FRAME,
               OpCode.EVALUATE_SENTENCE,
-              OpCode.SUBSTITUTE_RESULT,
+              OpCode.PUSH_RESULT,
               OpCode.OPEN_FRAME,
               OpCode.PUSH_CONSTANT,
               OpCode.CLOSE_FRAME,
               OpCode.EVALUATE_SENTENCE,
-              OpCode.SUBSTITUTE_RESULT,
+              OpCode.PUSH_RESULT,
               OpCode.PUSH_CONSTANT,
               OpCode.CLOSE_FRAME,
               OpCode.JOIN_STRINGS,
@@ -436,20 +436,20 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.PUSH_CONSTANT,
             OpCode.OPEN_FRAME,
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.PUSH_CONSTANT,
             OpCode.RESOLVE_VALUE,
             OpCode.OPEN_FRAME,
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.SELECT_INDEX,
             OpCode.PUSH_CONSTANT,
             OpCode.RESOLVE_VALUE,
@@ -541,7 +541,7 @@ describe("Compiler", () => {
           OpCode.PUSH_CONSTANT,
           OpCode.CLOSE_FRAME,
           OpCode.EVALUATE_SENTENCE,
-          OpCode.SUBSTITUTE_RESULT,
+          OpCode.PUSH_RESULT,
           OpCode.PUSH_CONSTANT,
           OpCode.CLOSE_FRAME,
           OpCode.JOIN_STRINGS,
@@ -579,7 +579,7 @@ describe("Compiler", () => {
           OpCode.PUSH_CONSTANT,
           OpCode.CLOSE_FRAME,
           OpCode.EVALUATE_SENTENCE,
-          OpCode.SUBSTITUTE_RESULT,
+          OpCode.PUSH_RESULT,
           OpCode.PUSH_CONSTANT,
           OpCode.PUSH_CONSTANT,
           OpCode.RESOLVE_VALUE,
@@ -630,7 +630,7 @@ describe("Compiler", () => {
           OpCode.PUSH_CONSTANT,
           OpCode.CLOSE_FRAME,
           OpCode.EVALUATE_SENTENCE,
-          OpCode.SUBSTITUTE_RESULT,
+          OpCode.PUSH_RESULT,
           OpCode.PUSH_CONSTANT,
           OpCode.CLOSE_FRAME,
           OpCode.JOIN_STRINGS,
@@ -868,7 +868,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
           ]);
           expect(program.constants).to.eql([new StringValue("cmd")]);
 
@@ -894,7 +894,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.RESOLVE_VALUE,
           ]);
           expect(program.constants).to.eql([new StringValue("cmd")]);
@@ -913,7 +913,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.RESOLVE_VALUE,
           ]);
           expect(program.constants).to.eql([new StringValue("cmd")]);
@@ -948,7 +948,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
           ]);
           expect(program.constants).to.eql([
             new StringValue("cmd1"),
@@ -979,7 +979,7 @@ describe("Compiler", () => {
             OpCode.RESOLVE_VALUE,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
           ]);
           expect(program.constants).to.eql([new StringValue("cmdname")]);
 
@@ -1002,7 +1002,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.SELECT_INDEX,
           ]);
           expect(program.constants).to.eql([
@@ -1029,7 +1029,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.SELECT_INDEX,
             OpCode.RESOLVE_VALUE,
           ]);
@@ -1055,13 +1055,13 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.SELECT_INDEX,
             OpCode.OPEN_FRAME,
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.SELECT_INDEX,
           ]);
           expect(program.constants).to.eql([
@@ -1093,7 +1093,7 @@ describe("Compiler", () => {
             OpCode.RESOLVE_VALUE,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.SELECT_INDEX,
           ]);
           expect(program.constants).to.eql([
@@ -1122,7 +1122,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.SELECT_INDEX,
           ]);
           expect(program.constants).to.eql([
@@ -1151,12 +1151,12 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.OPEN_FRAME,
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.SELECT_INDEX,
           ]);
           expect(program.constants).to.eql([
@@ -1177,12 +1177,12 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.OPEN_FRAME,
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.SELECT_INDEX,
           ]);
           expect(program.constants).to.eql([
@@ -1505,7 +1505,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.OPEN_FRAME,
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
@@ -1529,7 +1529,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.OPEN_FRAME,
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
@@ -1701,7 +1701,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.OPEN_FRAME,
             OpCode.OPEN_FRAME,
             OpCode.PUSH_CONSTANT,
@@ -1738,7 +1738,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.SELECT_INDEX,
           ]);
           expect(program.constants).to.eql([
@@ -1848,7 +1848,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.CLOSE_FRAME,
             OpCode.CLOSE_FRAME,
             OpCode.SELECT_RULES,
@@ -1856,7 +1856,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.SELECT_INDEX,
             OpCode.OPEN_FRAME,
             OpCode.OPEN_FRAME,
@@ -1864,7 +1864,7 @@ describe("Compiler", () => {
             OpCode.RESOLVE_VALUE,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.CLOSE_FRAME,
             OpCode.SELECT_KEYS,
             OpCode.OPEN_FRAME,
@@ -1929,7 +1929,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.SELECT_INDEX,
           ]);
           expect(program.constants).to.eql([
@@ -2056,7 +2056,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.SELECT_INDEX,
             OpCode.OPEN_FRAME,
             OpCode.PUSH_CONSTANT,
@@ -2070,7 +2070,7 @@ describe("Compiler", () => {
             OpCode.RESOLVE_VALUE,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.CLOSE_FRAME,
             OpCode.SELECT_KEYS,
             OpCode.OPEN_FRAME,
@@ -2083,7 +2083,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.CLOSE_FRAME,
             OpCode.CLOSE_FRAME,
             OpCode.SELECT_RULES,
@@ -2091,7 +2091,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.SELECT_INDEX,
           ]);
           expect(program.constants).to.eql([
@@ -2157,7 +2157,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.SELECT_INDEX,
           ]);
           expect(program.constants).to.eql([
@@ -2267,7 +2267,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.CLOSE_FRAME,
             OpCode.CLOSE_FRAME,
             OpCode.SELECT_RULES,
@@ -2275,7 +2275,7 @@ describe("Compiler", () => {
             OpCode.PUSH_CONSTANT,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.SELECT_INDEX,
             OpCode.OPEN_FRAME,
             OpCode.OPEN_FRAME,
@@ -2283,7 +2283,7 @@ describe("Compiler", () => {
             OpCode.RESOLVE_VALUE,
             OpCode.CLOSE_FRAME,
             OpCode.EVALUATE_SENTENCE,
-            OpCode.SUBSTITUTE_RESULT,
+            OpCode.PUSH_RESULT,
             OpCode.CLOSE_FRAME,
             OpCode.SELECT_KEYS,
             OpCode.OPEN_FRAME,
@@ -2393,7 +2393,7 @@ describe("Compiler", () => {
         OpCode.PUSH_CONSTANT,
         OpCode.CLOSE_FRAME,
         OpCode.EVALUATE_SENTENCE,
-        OpCode.SUBSTITUTE_RESULT,
+        OpCode.PUSH_RESULT,
         OpCode.EXPAND_VALUE,
         OpCode.PUSH_CONSTANT,
         OpCode.CLOSE_FRAME,
@@ -2438,7 +2438,7 @@ describe("Compiler", () => {
           OpCode.PUSH_CONSTANT,
           OpCode.CLOSE_FRAME,
           OpCode.EVALUATE_SENTENCE,
-          OpCode.SUBSTITUTE_RESULT,
+          OpCode.PUSH_RESULT,
         ]);
         expect(program.constants).to.eql([
           new StringValue("cmd"),
@@ -2474,7 +2474,7 @@ describe("Compiler", () => {
           OpCode.PUSH_CONSTANT,
           OpCode.CLOSE_FRAME,
           OpCode.EVALUATE_SENTENCE,
-          OpCode.SUBSTITUTE_RESULT,
+          OpCode.PUSH_RESULT,
         ]);
         expect(program.constants).to.eql([
           new StringValue("cmd"),
@@ -2504,12 +2504,12 @@ describe("Compiler", () => {
           OpCode.PUSH_CONSTANT,
           OpCode.CLOSE_FRAME,
           OpCode.EVALUATE_SENTENCE,
-          OpCode.SUBSTITUTE_RESULT,
+          OpCode.PUSH_RESULT,
           OpCode.EXPAND_VALUE,
           OpCode.PUSH_CONSTANT,
           OpCode.CLOSE_FRAME,
           OpCode.EVALUATE_SENTENCE,
-          OpCode.SUBSTITUTE_RESULT,
+          OpCode.PUSH_RESULT,
         ]);
         expect(program.constants).to.eql([
           new StringValue("cmd"),
@@ -2555,7 +2555,7 @@ describe("Compiler", () => {
         OpCode.PUSH_CONSTANT,
         OpCode.CLOSE_FRAME,
         OpCode.EVALUATE_SENTENCE,
-        OpCode.SUBSTITUTE_RESULT,
+        OpCode.PUSH_RESULT,
       ]);
       expect(program1.constants).to.eql([
         new StringValue("if"),
@@ -2576,7 +2576,7 @@ describe("Compiler", () => {
         OpCode.PUSH_CONSTANT,
         OpCode.CLOSE_FRAME,
         OpCode.EVALUATE_SENTENCE,
-        OpCode.SUBSTITUTE_RESULT,
+        OpCode.PUSH_RESULT,
       ]);
       expect(program2.constants).to.eql([
         new StringValue("if"),
@@ -2619,7 +2619,7 @@ describe("Compiler", () => {
         OpCode.PUSH_CONSTANT,
         OpCode.CLOSE_FRAME,
         OpCode.EVALUATE_SENTENCE,
-        OpCode.SUBSTITUTE_RESULT,
+        OpCode.PUSH_RESULT,
       ]);
       expect(program.constants).to.eql([
         new StringValue("repeat"),
