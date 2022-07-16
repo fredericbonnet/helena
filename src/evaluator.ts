@@ -32,7 +32,7 @@ export interface VariableResolver {
   resolve(name: string): Value;
 }
 export interface CommandResolver {
-  resolve(name: string): Command;
+  resolve(name: Value): Command;
 }
 export interface SelectorResolver {
   resolve(rules: Value[]): Selector;
@@ -80,9 +80,10 @@ export class InlineEvaluator implements Evaluator {
     if (!this.commandResolver) throw new Error("no command resolver");
     const values = this.getWordValues(sentence.words);
     if (values.length == 0) return NIL;
-    const cmdname = values[0].asString();
+    const cmdname = values[0];
     const command = this.commandResolver.resolve(cmdname);
-    if (!command) throw new Error(`cannot resolve command ${cmdname}`);
+    if (!command)
+      throw new Error(`cannot resolve command ${cmdname.asString()}`);
     return command.evaluate(values);
   }
 

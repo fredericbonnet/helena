@@ -5,7 +5,7 @@ import { TclScope, initTclCommands } from "./tcl-dialect";
 import { Tokenizer } from "./tokenizer";
 import { StringValue, TupleValue } from "./values";
 
-describe.only("Tcl dialect", () => {
+describe("Tcl dialect", () => {
   let rootScope: TclScope;
 
   let tokenizer: Tokenizer;

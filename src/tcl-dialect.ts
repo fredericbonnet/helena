@@ -35,8 +35,8 @@ export class TclScope {
     }
     return this.variables.get(name);
   }
-  resolveCommand(name: string): Command {
-    return this.resolveScopedCommand(name)(this);
+  resolveCommand(name: Value): Command {
+    return this.resolveScopedCommand(name.asString())(this);
   }
   resolveScopedCommand(name: string): (scope: TclScope) => Command {
     if (!this.commands.has(name)) {

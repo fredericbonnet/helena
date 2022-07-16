@@ -637,9 +637,10 @@ export class Executor {
     );
   }
   private resolveCommand(args: Value[]) {
-    const cmdname = args[0].asString();
+    const cmdname = args[0];
     const command = this.commandResolver.resolve(cmdname);
-    if (!command) throw new Error(`cannot resolve command ${cmdname}`);
+    if (!command)
+      throw new Error(`cannot resolve command ${cmdname.asString()}`);
     return command;
   }
   private resolveSelector(rules: Value[]) {
