@@ -1,3 +1,4 @@
+import { Result, ResultCode } from "./command";
 import {
   CommandResolver,
   SelectorResolver,
@@ -498,7 +499,7 @@ export class Executor {
     this.selectorResolver = selectorResolver;
   }
 
-  execute(program: Program): Value {
+  execute(program: Program): Result {
     let constant = 0;
     for (let opcode of program.opCodes) {
       switch (opcode) {
@@ -571,7 +572,14 @@ export class Executor {
             const args = this.pop() as TupleValue;
             if (args.values.length) {
               const command = this.resolveCommand(args.values);
-              this.result = command.evaluate(args.values);
+              let code = ResultCode.OK;
+              this.result = command.evaluate(args.values, {
+                interrupt: (c, v) => {
+                  code = c;
+                  return v;
+                },
+              });
+              if (code != ResultCode.OK) return [code, this.result];
             }
           }
           break;
@@ -593,7 +601,7 @@ export class Executor {
       }
     }
     if (this.frame().length) this.result = this.pop();
-    return this.result;
+    return [ResultCode.OK, this.result];
   }
 
   private openFrame() {

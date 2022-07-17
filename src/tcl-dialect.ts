@@ -1,4 +1,4 @@
-import { Command } from "./command";
+import { Command, ResultCode } from "./command";
 import {
   VariableResolver,
   CommandResolver,
@@ -46,6 +46,40 @@ export class TclScope {
     return this.commands.get(name);
   }
 }
+
+function valueToInt(value: Value): number {
+  let i = parseInt(value.asString());
+  if (isNaN(i))
+    throw new Error(`expected integer but got "${value.asString()}"`);
+  return i;
+}
+
+const ifCmd = (scope: TclScope): Command => ({
+  evaluate: (args, flowController) => {
+    if (args.length != 3 && args.length != 5) {
+      throw new Error(
+        'wrong # args: should be "if test script1 ?else script2?"'
+      );
+    }
+    const evaluator = new CompilingEvaluator(
+      scope.variableResolver,
+      scope.commandResolver,
+      null
+    );
+    const expr = valueToInt(args[1]);
+    let script: ScriptValue;
+    if (expr) {
+      script = args[2] as ScriptValue;
+    } else if (args.length == 3) {
+      return new StringValue("");
+    } else {
+      script = args[4] as ScriptValue;
+    }
+    const [code, result] = evaluator.executeScript(script.script);
+    if (code != ResultCode.OK) return flowController.interrupt(code, result);
+    return result == NIL ? new StringValue("") : result;
+  },
+});
 
 const setCmd = (scope: TclScope): Command => ({
   evaluate: (args) => {
@@ -187,7 +221,20 @@ const procCmd = (scope: TclScope): Command => ({
   },
 });
 
+const returnCmd = (scope: TclScope): Command => ({
+  evaluate: (args, flowController) => {
+    if (args.length > 2)
+      throw new Error('wrong # args: should be "return ?result?"');
+    return flowController.interrupt(
+      ResultCode.RETURN,
+      args.length == 2 ? args[1] : new StringValue("")
+    );
+  },
+});
+
 export function initTclCommands(scope: TclScope) {
+  scope.commands.set("if", ifCmd);
   scope.commands.set("set", setCmd);
   scope.commands.set("proc", procCmd);
+  scope.commands.set("return", returnCmd);
 }

@@ -22,7 +22,7 @@ import {
   QualifiedValue,
   ValueType,
 } from "./values";
-import { Command } from "./command";
+import { Command, ResultCode } from "./command";
 import {
   GenericSelector,
   IndexedSelector,
@@ -1717,6 +1717,116 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
         expect(mapValue(value)).to.eql(9);
         expect(counter).to.eql(10);
         expect(acc).to.eql("foo".repeat(10));
+      });
+    });
+
+    describe("result codes", () => {
+      describe("return", () => {
+        it("should interrupt script evaluation", () => {
+          commandResolver.register("return", {
+            evaluate: (args, flowController) => {
+              return flowController.interrupt(ResultCode.RETURN, args[1]);
+            },
+          });
+          const script = parse("return a [return b]; return c");
+          const value = evaluator.evaluateScript(script);
+          expect(mapValue(value)).to.eql("b");
+        });
+        it("should interrupt sentence evaluation", () => {
+          commandResolver.register("cmd", {
+            evaluate: () => new StringValue("value"),
+          });
+          commandResolver.register("return", {
+            evaluate: (args, flowController) => {
+              return flowController.interrupt(ResultCode.RETURN, args[1]);
+            },
+          });
+          const script = parse("cmd [return a [return b]]");
+          const value = evaluator.evaluateScript(script);
+          expect(mapValue(value)).to.eql("b");
+        });
+        it("should interrupt tuple evaluation", () => {
+          commandResolver.register("cmd", {
+            evaluate: () => new StringValue("value"),
+          });
+          commandResolver.register("return", {
+            evaluate: (args, flowController) => {
+              return flowController.interrupt(ResultCode.RETURN, args[1]);
+            },
+          });
+          const script = parse("cmd ([return a [return b]])");
+          const value = evaluator.evaluateScript(script);
+          expect(mapValue(value)).to.eql("b");
+        });
+        it("should interrupt expression evaluation", () => {
+          commandResolver.register("cmd", {
+            evaluate: () => new StringValue("value"),
+          });
+          commandResolver.register("cmd2", {
+            evaluate: () => {
+              throw new Error("CANTHAPPEN");
+            },
+          });
+          commandResolver.register("return", {
+            evaluate: (args, flowController) => {
+              return flowController.interrupt(ResultCode.RETURN, args[1]);
+            },
+          });
+          const script = parse("cmd [return a [return b]; cmd2] ");
+          const value = evaluator.evaluateScript(script);
+          expect(mapValue(value)).to.eql("b");
+        });
+        it("should interrupt keyed selector evaluation", () => {
+          commandResolver.register("cmd", {
+            evaluate: () => new StringValue("value"),
+          });
+          commandResolver.register("return", {
+            evaluate: (args, flowController) => {
+              return flowController.interrupt(ResultCode.RETURN, args[1]);
+            },
+          });
+          variableResolver.register(
+            "var",
+            new MapValue({ key: new StringValue("value") })
+          );
+          const script = parse("cmd $var([return a [return b]])");
+          const value = evaluator.evaluateScript(script);
+          expect(mapValue(value)).to.eql("b");
+        });
+        it("should interrupt indexed selector evaluation", () => {
+          commandResolver.register("cmd", {
+            evaluate: () => new StringValue("value"),
+          });
+          commandResolver.register("return", {
+            evaluate: (args, flowController) => {
+              return flowController.interrupt(ResultCode.RETURN, args[1]);
+            },
+          });
+          variableResolver.register(
+            "var",
+            new ListValue([
+              new StringValue("value1"),
+              new StringValue("value2"),
+            ])
+          );
+          const script = parse("cmd $var[return a [return b]]");
+          const value = evaluator.evaluateScript(script);
+          expect(mapValue(value)).to.eql("b");
+        });
+        it("should interrupt generic selector evaluation", () => {
+          commandResolver.register("cmd", {
+            evaluate: () => new StringValue("value"),
+          });
+          commandResolver.register("return", {
+            evaluate: (args, flowController) => {
+              return flowController.interrupt(ResultCode.RETURN, args[1]);
+            },
+          });
+          variableResolver.register("var", new StringValue("value"));
+          const script = parse("cmd $var{[return a [return b]]}");
+          const value = evaluator.evaluateScript(script);
+          expect(mapValue(value)).to.eql("b");
+        });
       });
     });
   });

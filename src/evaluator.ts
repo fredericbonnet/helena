@@ -25,7 +25,7 @@ import {
   ValueType,
   QualifiedValue,
 } from "./values";
-import { Command } from "./command";
+import { Command, Result, ResultCode } from "./command";
 import { Compiler, Executor } from "./compiler";
 
 export interface VariableResolver {
@@ -39,9 +39,21 @@ export interface SelectorResolver {
 }
 
 export interface Evaluator {
+  executeScript(script: Script): [ResultCode, Value];
   evaluateScript(script: Script): Value;
   evaluateSentence(sentence: Sentence): Value;
   evaluateWord(word: Word): Value;
+}
+
+class Interrupt extends Error {
+  code: ResultCode;
+  value: Value;
+  constructor(code: ResultCode, value: Value) {
+    super(`code ${code}`);
+    Object.setPrototypeOf(this, Interrupt.prototype);
+    this.code = code;
+    this.value = value;
+  }
 }
 
 export class InlineEvaluator implements Evaluator {
@@ -64,7 +76,18 @@ export class InlineEvaluator implements Evaluator {
    * Scripts
    */
 
+  executeScript(script: Script): [ResultCode, Value] {
+    try {
+      return [ResultCode.OK, this.evaluateScriptInternal(script)];
+    } catch (e) {
+      if (e instanceof Interrupt) return [e.code, e.value];
+      throw e;
+    }
+  }
   evaluateScript(script: Script): Value {
+    return this.executeScript(script)[1];
+  }
+  private evaluateScriptInternal(script: Script): Value {
     let value: Value = NIL;
     for (let sentence of script.sentences) {
       value = this.evaluateSentence(sentence);
@@ -77,14 +100,18 @@ export class InlineEvaluator implements Evaluator {
    */
 
   evaluateSentence(sentence: Sentence): Value {
-    if (!this.commandResolver) throw new Error("no command resolver");
     const values = this.getWordValues(sentence.words);
     if (values.length == 0) return NIL;
+    if (!this.commandResolver) throw new Error("no command resolver");
     const cmdname = values[0];
     const command = this.commandResolver.resolve(cmdname);
     if (!command)
       throw new Error(`cannot resolve command ${cmdname.asString()}`);
-    return command.evaluate(values);
+    return command.evaluate(values, {
+      interrupt: (code, value) => {
+        throw new Interrupt(code, value);
+      },
+    });
   }
 
   /*
@@ -222,7 +249,7 @@ export class InlineEvaluator implements Evaluator {
 
   evaluateExpression(expression: ExpressionMorpheme): Value {
     const script = (expression as ExpressionMorpheme).subscript;
-    return this.evaluateScript(script);
+    return this.evaluateScriptInternal(script);
   }
 
   /*
@@ -429,20 +456,24 @@ export class CompilingEvaluator implements Evaluator {
     );
   }
 
-  evaluateScript(script: Script): Value {
+  executeScript(script: Script): Result {
     const program = this.compiler.compileScript(script);
     return this.executor.execute(program);
+  }
+
+  evaluateScript(script: Script): Value {
+    return this.executeScript(script)[1];
   }
 
   evaluateSentence(sentence: Sentence): Value {
     const script = new Script();
     script.sentences.push(sentence);
     const program = this.compiler.compileScript(script);
-    return this.executor.execute(program);
+    return this.executor.execute(program)[1];
   }
 
   evaluateWord(word: Word): Value {
     const program = this.compiler.compileWord(word);
-    return this.executor.execute(program);
+    return this.executor.execute(program)[1];
   }
 }
