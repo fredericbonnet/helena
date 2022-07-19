@@ -1,14 +1,14 @@
 import { expect } from "chai";
 import { CompilingEvaluator, Evaluator, InlineEvaluator } from "./evaluator";
 import { Parser } from "./parser";
-import { TclScope, initTclCommands } from "./tcl-dialect";
+import { PicolScope, initPicolCommands } from "./picol-dialect";
 import { Tokenizer } from "./tokenizer";
-import { StringValue, TupleValue } from "./values";
+import { NumberValue, StringValue, TupleValue } from "./values";
 
-describe("Tcl dialect", () => {
+describe("Picol dialect", () => {
   for (let klass of [InlineEvaluator, CompilingEvaluator]) {
     describe(klass.name, () => {
-      let rootScope: TclScope;
+      let rootScope: PicolScope;
 
       let tokenizer: Tokenizer;
       let parser: Parser;
@@ -20,8 +20,8 @@ describe("Tcl dialect", () => {
         evaluator.executeScript(parse(script))[1];
 
       beforeEach(() => {
-        rootScope = new TclScope();
-        initTclCommands(rootScope);
+        rootScope = new PicolScope();
+        initPicolCommands(rootScope);
 
         tokenizer = new Tokenizer();
         parser = new Parser();
@@ -30,6 +30,145 @@ describe("Tcl dialect", () => {
           rootScope.commandResolver,
           null
         );
+      });
+
+      describe("math", () => {
+        describe("+", () => {
+          it("should accept one number", () => {
+            expect(evaluate("+ 3")).to.eql(new NumberValue(3));
+            expect(evaluate("+ -1.2e3")).to.eql(new NumberValue(-1.2e3));
+          });
+          it("should add two numbers", () => {
+            expect(evaluate("+ 6 23")).to.eql(new NumberValue(6 + 23));
+            expect(evaluate("+ 4.5e-3 -6")).to.eql(new NumberValue(4.5e-3 - 6));
+          });
+          it("should add several numbers", () => {
+            const numbers = [];
+            let total = 0;
+            for (let i = 0; i < 10; i++) {
+              const v = Math.random();
+              numbers.push(v);
+              total += v;
+            }
+            expect(evaluate("+ " + numbers.join(" "))).to.eql(
+              new NumberValue(total)
+            );
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("+")).to.throw(
+                'wrong # args: should be "+ arg ?arg ...?"'
+              );
+            });
+            specify("invalid value", () => {
+              expect(() => evaluate("+ a")).to.throw('invalid number "a"');
+            });
+          });
+        });
+        describe("-", () => {
+          it("should negate one number", () => {
+            expect(evaluate("- 6")).to.eql(new NumberValue(-6));
+            expect(evaluate("- -3.4e5")).to.eql(new NumberValue(3.4e5));
+          });
+          it("should subtract two numbers", () => {
+            expect(evaluate("- 4 12")).to.eql(new NumberValue(4 - 12));
+            expect(evaluate("- 12.3e4 -56")).to.eql(
+              new NumberValue(12.3e4 + 56)
+            );
+          });
+          it("should subtract several numbers", () => {
+            const numbers = [];
+            let total = 0;
+            for (let i = 0; i < 10; i++) {
+              const v = Math.random();
+              numbers.push(v);
+              if (i == 0) total = v;
+              else total -= v;
+            }
+            expect(evaluate("- " + numbers.join(" "))).to.eql(
+              new NumberValue(total)
+            );
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("-")).to.throw(
+                'wrong # args: should be "- arg ?arg ...?"'
+              );
+            });
+            specify("invalid value", () => {
+              expect(() => evaluate("- a")).to.throw('invalid number "a"');
+            });
+          });
+        });
+        describe("*", () => {
+          it("should accept one number", () => {
+            expect(evaluate("* 12")).to.eql(new NumberValue(12));
+            expect(evaluate("* -67.89")).to.eql(new NumberValue(-67.89));
+          });
+          it("should multiply two numbers", () => {
+            expect(evaluate("* 45 67")).to.eql(new NumberValue(45 * 67));
+            expect(evaluate("* 1.23e-4 -56")).to.eql(
+              new NumberValue(1.23e-4 * -56)
+            );
+          });
+          it("should add several numbers", () => {
+            const numbers = [];
+            let total = 1;
+            for (let i = 0; i < 10; i++) {
+              const v = Math.random();
+              numbers.push(v);
+              total *= v;
+            }
+            expect(evaluate("* " + numbers.join(" "))).to.eql(
+              new NumberValue(total)
+            );
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("*")).to.throw(
+                'wrong # args: should be "* arg ?arg ...?"'
+              );
+            });
+            specify("invalid value", () => {
+              expect(() => evaluate("* a")).to.throw('invalid number "a"');
+            });
+          });
+        });
+        describe("/", () => {
+          it("should divide two numbers", () => {
+            expect(evaluate("/ 12 -34")).to.eql(new NumberValue(12 / -34));
+            expect(evaluate("/ 45.67e8 -123")).to.eql(
+              new NumberValue(45.67e8 / -123)
+            );
+          });
+          it("should divide several numbers", () => {
+            const numbers = [];
+            let total = 0;
+            for (let i = 0; i < 10; i++) {
+              const v = Math.random() || 0.1;
+              numbers.push(v);
+              if (i == 0) total = v;
+              else total /= v;
+            }
+            expect(evaluate("/ " + numbers.join(" "))).to.eql(
+              new NumberValue(total)
+            );
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("/")).to.throw(
+                'wrong # args: should be "/ arg arg ?arg ...?"'
+              );
+              expect(() => evaluate("/ 1")).to.throw(
+                'wrong # args: should be "/ arg arg ?arg ...?"'
+              );
+            });
+            specify("invalid value", () => {
+              expect(() => evaluate("/ a 1")).to.throw('invalid number "a"');
+              expect(() => evaluate("/ 2 b")).to.throw('invalid number "b"');
+            });
+          });
+        });
       });
 
       describe("if", () => {

@@ -12,13 +12,14 @@ import {
   StringValue,
   ValueType,
   TupleValue,
+  NumberValue,
 } from "./values";
 
-export class TclScope {
-  parent?: TclScope;
+export class PicolScope {
+  parent?: PicolScope;
   variables: Map<string, Value> = new Map();
-  commands: Map<string, (scope: TclScope) => Command> = new Map();
-  constructor(parent?: TclScope) {
+  commands: Map<string, (scope: PicolScope) => Command> = new Map();
+  constructor(parent?: PicolScope) {
     this.parent = parent;
   }
 
@@ -38,7 +39,7 @@ export class TclScope {
   resolveCommand(name: Value): Command {
     return this.resolveScopedCommand(name.asString())(this);
   }
-  resolveScopedCommand(name: string): (scope: TclScope) => Command {
+  resolveScopedCommand(name: string): (scope: PicolScope) => Command {
     if (!this.commands.has(name)) {
       if (!this.parent) throw new Error(`invalid command name "${name}"`);
       return this.parent.resolveScopedCommand(name);
@@ -54,7 +55,7 @@ function valueToInt(value: Value): number {
   return i;
 }
 
-const ifCmd = (scope: TclScope): Command => ({
+const ifCmd = (scope: PicolScope): Command => ({
   evaluate: (args, flowController) => {
     if (args.length != 3 && args.length != 5) {
       throw new Error(
@@ -81,7 +82,63 @@ const ifCmd = (scope: TclScope): Command => ({
   },
 });
 
-const setCmd = (scope: TclScope): Command => ({
+const addCmd = (scope: PicolScope): Command => ({
+  evaluate: (args) => {
+    if (args.length < 2)
+      throw new Error(`wrong # args: should be "+ arg ?arg ...?"`);
+    const result = args.reduce((total, arg, i) => {
+      if (i == 0) return 0;
+      const v = NumberValue.fromValue(arg).value;
+      return total + v;
+    }, 0);
+    return new NumberValue(result);
+  },
+});
+const subtractCmd = (scope: PicolScope): Command => ({
+  evaluate: (args) => {
+    if (args.length < 2)
+      throw new Error(`wrong # args: should be "- arg ?arg ...?"`);
+    if (args.length == 2) {
+      const v = NumberValue.fromValue(args[1]).value;
+      return new NumberValue(-v);
+    }
+    const result = args.reduce((total, arg, i) => {
+      if (i == 0) return 0;
+      const v = NumberValue.fromValue(arg).value;
+      if (i == 1) return v;
+      return total - v;
+    }, 0);
+    return new NumberValue(result);
+  },
+});
+
+const multiplyCmd = (scope: PicolScope): Command => ({
+  evaluate: (args) => {
+    if (args.length < 2)
+      throw new Error(`wrong # args: should be "* arg ?arg ...?"`);
+    const result = args.reduce((total, arg, i) => {
+      if (i == 0) return 1;
+      const v = NumberValue.fromValue(arg).value;
+      return total * v;
+    }, 1);
+    return new NumberValue(result);
+  },
+});
+const divideCmd = (scope: PicolScope): Command => ({
+  evaluate: (args) => {
+    if (args.length < 3)
+      throw new Error(`wrong # args: should be "/ arg arg ?arg ...?"`);
+    const result = args.reduce((total, arg, i) => {
+      if (i == 0) return 1;
+      const v = NumberValue.fromValue(arg).value;
+      if (i == 1) return v;
+      return total / v;
+    }, 0);
+    return new NumberValue(result);
+  },
+});
+
+const setCmd = (scope: PicolScope): Command => ({
   evaluate: (args) => {
     switch (args.length) {
       case 2:
@@ -100,17 +157,17 @@ type ArgSpec = {
   default?: Value;
 };
 class ProcCommand implements Command {
-  scope: TclScope;
+  scope: PicolScope;
   argspecs: ArgSpec[];
   body: ScriptValue;
-  constructor(scope: TclScope, argspecs: ArgSpec[], body: ScriptValue) {
+  constructor(scope: PicolScope, argspecs: ArgSpec[], body: ScriptValue) {
     this.scope = scope;
     this.argspecs = argspecs;
     this.body = body;
   }
 
   evaluate(args: Value[]): Value {
-    const scope = new TclScope(this.scope);
+    const scope = new PicolScope(this.scope);
     let p, a;
     for (p = 0, a = 1; p < this.argspecs.length; p++, a++) {
       const argspec = this.argspecs[p];
@@ -207,7 +264,7 @@ function argspecsToSignature(name: Value, argspecs: ArgSpec[]): string {
   return chunks.join(" ");
 }
 
-const procCmd = (scope: TclScope): Command => ({
+const procCmd = (scope: PicolScope): Command => ({
   evaluate: (args) => {
     if (args.length != 4)
       throw new Error('wrong # args: should be "proc name args body"');
@@ -215,13 +272,14 @@ const procCmd = (scope: TclScope): Command => ({
     const argspecs = valueToArgspecs(_argspecs);
     scope.commands.set(
       name.asString(),
-      (scope: TclScope) => new ProcCommand(scope, argspecs, body as ScriptValue)
+      (scope: PicolScope) =>
+        new ProcCommand(scope, argspecs, body as ScriptValue)
     );
     return new StringValue("");
   },
 });
 
-const returnCmd = (scope: TclScope): Command => ({
+const returnCmd = (scope: PicolScope): Command => ({
   evaluate: (args, flowController) => {
     if (args.length > 2)
       throw new Error('wrong # args: should be "return ?result?"');
@@ -232,7 +290,11 @@ const returnCmd = (scope: TclScope): Command => ({
   },
 });
 
-export function initTclCommands(scope: TclScope) {
+export function initPicolCommands(scope: PicolScope) {
+  scope.commands.set("+", addCmd);
+  scope.commands.set("-", subtractCmd);
+  scope.commands.set("*", multiplyCmd);
+  scope.commands.set("/", divideCmd);
   scope.commands.set("if", ifCmd);
   scope.commands.set("set", setCmd);
   scope.commands.set("proc", procCmd);

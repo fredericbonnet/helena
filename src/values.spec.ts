@@ -3,7 +3,6 @@ import { GenericSelector, IndexedSelector, KeyedSelector } from "./selectors";
 import { Script } from "./syntax";
 import {
   NIL,
-  Value,
   IntegerValue,
   StringValue,
   ListValue,
@@ -11,6 +10,7 @@ import {
   TupleValue,
   ScriptValue,
   QualifiedValue,
+  NumberValue,
 } from "./values";
 
 describe("values", () => {
@@ -42,6 +42,22 @@ describe("values", () => {
         expect(value.asString()).to.eql("4660");
       }
     );
+    describe("fromValue()", () => {
+      it("should return the passed IntegerValue", () => {
+        const value = new IntegerValue(1234);
+        expect(IntegerValue.fromValue(value)).to.equal(value);
+      });
+      it("should accept integer strings", () => {
+        const value = new StringValue("1234");
+        expect(IntegerValue.fromValue(value).value).to.eql(1234);
+      });
+      it("should reject non-integer strings", () => {
+        const value = new StringValue("a");
+        expect(() => IntegerValue.fromValue(value)).to.throw(
+          'invalid integer "a"'
+        );
+      });
+    });
     it("should not be index-selectable", () => {
       const value = new IntegerValue(0);
       expect(() => value.selectIndex(new StringValue("index"))).to.throw(
@@ -56,6 +72,53 @@ describe("values", () => {
     });
     it("should not be selectable", () => {
       const value = new IntegerValue(0);
+      expect(() => value.selectRules([])).to.throw("value is not selectable");
+    });
+  });
+
+  describe("NumberValue", () => {
+    specify(
+      "string representation should be the decimal representation of its value",
+      () => {
+        const integer = 123.4;
+        const value = new NumberValue(integer);
+        expect(value.asString()).to.eql("123.4");
+      }
+    );
+    describe("fromValue()", () => {
+      it("should return the passed NumberValue", () => {
+        const value = new NumberValue(12.34);
+        expect(NumberValue.fromValue(value)).to.equal(value);
+      });
+      it("should accept integer values", () => {
+        const value = new IntegerValue(4567);
+        expect(NumberValue.fromValue(value).value).to.eql(4567);
+      });
+      it("should accept float strings", () => {
+        const value = new StringValue("12.34");
+        expect(NumberValue.fromValue(value).value).to.eql(12.34);
+      });
+      it("should reject non-number strings", () => {
+        const value = new StringValue("a");
+        expect(() => NumberValue.fromValue(value)).to.throw(
+          'invalid number "a"'
+        );
+      });
+    });
+    it("should not be index-selectable", () => {
+      const value = new NumberValue(0);
+      expect(() => value.selectIndex(new StringValue("index"))).to.throw(
+        "value is not index-selectable"
+      );
+    });
+    it("should not be key-selectable", () => {
+      const value = new NumberValue(0);
+      expect(() => value.selectKey(new StringValue("key"))).to.throw(
+        "value is not key-selectable"
+      );
+    });
+    it("should not be selectable", () => {
+      const value = new NumberValue(0);
       expect(() => value.selectRules([])).to.throw("value is not selectable");
     });
   });

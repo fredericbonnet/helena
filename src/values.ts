@@ -9,6 +9,7 @@ import {
 export enum ValueType {
   NIL,
   INTEGER,
+  NUMBER,
   STRING,
   LIST,
   MAP,
@@ -52,8 +53,35 @@ export class IntegerValue implements Value {
   static fromValue(value: Value): IntegerValue {
     if (value.type == ValueType.INTEGER) return value as IntegerValue;
     const integer = parseInt(value.asString());
-    if (isNaN(integer)) throw new Error(`invalid integer ${value}`);
+    if (isNaN(integer))
+      throw new Error(`invalid integer "${value.asString()}"`);
     return new IntegerValue(integer);
+  }
+  asString(): string {
+    return this.value.toString();
+  }
+  selectIndex(index: Value): Value {
+    throw new Error("value is not index-selectable");
+  }
+  selectKey(key: Value): Value {
+    throw new Error("value is not key-selectable");
+  }
+  selectRules(rules: Value[]): Value {
+    throw new Error("value is not selectable");
+  }
+}
+
+export class NumberValue implements Value {
+  type = ValueType.NUMBER;
+  value: number;
+  constructor(value: number) {
+    this.value = value;
+  }
+  static fromValue(value: Value): NumberValue {
+    if (value.type == ValueType.NUMBER) return value as NumberValue;
+    const number = parseFloat(value.asString());
+    if (isNaN(number)) throw new Error(`invalid number "${value.asString()}"`);
+    return new NumberValue(number);
   }
   asString(): string {
     return this.value.toString();
