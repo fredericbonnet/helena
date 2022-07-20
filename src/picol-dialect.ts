@@ -13,6 +13,8 @@ import {
   ValueType,
   TupleValue,
   NumberValue,
+  FALSE,
+  TRUE,
 } from "./values";
 
 export class PicolScope {
@@ -54,33 +56,6 @@ function valueToInt(value: Value): number {
     throw new Error(`expected integer but got "${value.asString()}"`);
   return i;
 }
-
-const ifCmd = (scope: PicolScope): Command => ({
-  evaluate: (args, flowController) => {
-    if (args.length != 3 && args.length != 5) {
-      throw new Error(
-        'wrong # args: should be "if test script1 ?else script2?"'
-      );
-    }
-    const evaluator = new CompilingEvaluator(
-      scope.variableResolver,
-      scope.commandResolver,
-      null
-    );
-    const expr = valueToInt(args[1]);
-    let script: ScriptValue;
-    if (expr) {
-      script = args[2] as ScriptValue;
-    } else if (args.length == 3) {
-      return new StringValue("");
-    } else {
-      script = args[4] as ScriptValue;
-    }
-    const [code, result] = evaluator.executeScript(script.script);
-    if (code != ResultCode.OK) return flowController.interrupt(code, result);
-    return result == NIL ? new StringValue("") : result;
-  },
-});
 
 const addCmd = (scope: PicolScope): Command => ({
   evaluate: (args) => {
@@ -135,6 +110,68 @@ const divideCmd = (scope: PicolScope): Command => ({
       return total / v;
     }, 0);
     return new NumberValue(result);
+  },
+});
+
+const compareValuesCmd =
+  (name: string, fn: (op1, op2) => boolean) =>
+  (scope: PicolScope): Command => ({
+    evaluate: (args) => {
+      if (args.length != 3)
+        throw new Error(`wrong # args: should be "${name} arg arg"`);
+      return fn(args[1], args[2]) ? TRUE : FALSE;
+    },
+  });
+const eqCmd = compareValuesCmd(
+  "==",
+  (op1, op2) => op1 == op2 || op1.asString() == op2.asString()
+);
+const neCmd = compareValuesCmd(
+  "!=",
+  (op1, op2) => op1 != op2 && op1.asString() != op2.asString()
+);
+
+const compareNumbersCmd =
+  (name: string, fn: (op1, op2) => boolean) =>
+  (scope: PicolScope): Command => ({
+    evaluate: (args) => {
+      if (args.length != 3)
+        throw new Error(`wrong # args: should be "${name} arg arg"`);
+      const op1 = NumberValue.fromValue(args[1]).value;
+      const op2 = NumberValue.fromValue(args[2]).value;
+      return fn(op1, op2) ? TRUE : FALSE;
+    },
+  });
+
+const gtCmd = compareNumbersCmd(">", (op1, op2) => op1 > op2);
+const geCmd = compareNumbersCmd(">=", (op1, op2) => op1 >= op2);
+const ltCmd = compareNumbersCmd("<", (op1, op2) => op1 < op2);
+const leCmd = compareNumbersCmd("<=", (op1, op2) => op1 <= op2);
+
+const ifCmd = (scope: PicolScope): Command => ({
+  evaluate: (args, flowController) => {
+    if (args.length != 3 && args.length != 5) {
+      throw new Error(
+        'wrong # args: should be "if test script1 ?else script2?"'
+      );
+    }
+    const evaluator = new CompilingEvaluator(
+      scope.variableResolver,
+      scope.commandResolver,
+      null
+    );
+    const expr = valueToInt(args[1]);
+    let script: ScriptValue;
+    if (expr) {
+      script = args[2] as ScriptValue;
+    } else if (args.length == 3) {
+      return new StringValue("");
+    } else {
+      script = args[4] as ScriptValue;
+    }
+    const [code, result] = evaluator.executeScript(script.script);
+    if (code != ResultCode.OK) return flowController.interrupt(code, result);
+    return result == NIL ? new StringValue("") : result;
   },
 });
 
@@ -295,6 +332,12 @@ export function initPicolCommands(scope: PicolScope) {
   scope.commands.set("-", subtractCmd);
   scope.commands.set("*", multiplyCmd);
   scope.commands.set("/", divideCmd);
+  scope.commands.set("==", eqCmd);
+  scope.commands.set("!=", neCmd);
+  scope.commands.set(">", gtCmd);
+  scope.commands.set(">=", geCmd);
+  scope.commands.set("<", ltCmd);
+  scope.commands.set("<=", leCmd);
   scope.commands.set("if", ifCmd);
   scope.commands.set("set", setCmd);
   scope.commands.set("proc", procCmd);

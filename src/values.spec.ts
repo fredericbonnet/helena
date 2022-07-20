@@ -11,6 +11,9 @@ import {
   ScriptValue,
   QualifiedValue,
   NumberValue,
+  BooleanValue,
+  FALSE,
+  TRUE,
 } from "./values";
 
 describe("values", () => {
@@ -30,6 +33,59 @@ describe("values", () => {
     });
     it("should not be selectable", () => {
       expect(() => NIL.selectRules([])).to.throw("nil is not selectable");
+    });
+  });
+
+  describe("BooleanValue", () => {
+    specify("string representation should be true or false", () => {
+      expect(TRUE.asString()).to.eql("true");
+      expect(FALSE.asString()).to.eql("false");
+      expect(new BooleanValue(true).asString()).to.eql("true");
+      expect(new BooleanValue(false).asString()).to.eql("false");
+    });
+    describe("fromValue()", () => {
+      it("should return the passed BooleanValue", () => {
+        expect(BooleanValue.fromValue(TRUE)).to.equal(TRUE);
+        expect(BooleanValue.fromValue(FALSE)).to.equal(FALSE);
+      });
+      it("should accept integer values", () => {
+        expect(BooleanValue.fromValue(new IntegerValue(0))).to.equal(FALSE);
+        expect(BooleanValue.fromValue(new IntegerValue(4567))).to.equal(TRUE);
+      });
+      it("should accept integer strings", () => {
+        expect(BooleanValue.fromValue(new StringValue("0"))).to.equal(FALSE);
+        expect(BooleanValue.fromValue(new StringValue("1234"))).to.equal(TRUE);
+      });
+      it("should accept boolean strings", () => {
+        expect(BooleanValue.fromValue(new StringValue("false"))).to.equal(
+          FALSE
+        );
+        expect(BooleanValue.fromValue(new StringValue("no"))).to.equal(FALSE);
+        expect(BooleanValue.fromValue(new StringValue("true"))).to.equal(TRUE);
+        expect(BooleanValue.fromValue(new StringValue("yes"))).to.equal(TRUE);
+      });
+      it("should reject non-boolean strings", () => {
+        const value = new StringValue("a");
+        expect(() => BooleanValue.fromValue(value)).to.throw(
+          'invalid boolean "a"'
+        );
+      });
+    });
+    it("should not be index-selectable", () => {
+      const value = new IntegerValue(0);
+      expect(() => value.selectIndex(new StringValue("index"))).to.throw(
+        "value is not index-selectable"
+      );
+    });
+    it("should not be key-selectable", () => {
+      const value = new IntegerValue(0);
+      expect(() => value.selectKey(new StringValue("key"))).to.throw(
+        "value is not key-selectable"
+      );
+    });
+    it("should not be selectable", () => {
+      const value = new IntegerValue(0);
+      expect(() => value.selectRules([])).to.throw("value is not selectable");
     });
   });
 

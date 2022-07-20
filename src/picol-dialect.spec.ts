@@ -3,7 +3,7 @@ import { CompilingEvaluator, Evaluator, InlineEvaluator } from "./evaluator";
 import { Parser } from "./parser";
 import { PicolScope, initPicolCommands } from "./picol-dialect";
 import { Tokenizer } from "./tokenizer";
-import { NumberValue, StringValue, TupleValue } from "./values";
+import { FALSE, TRUE, NumberValue, StringValue, TupleValue } from "./values";
 
 describe("Picol dialect", () => {
   for (let klass of [InlineEvaluator, CompilingEvaluator]) {
@@ -166,6 +166,128 @@ describe("Picol dialect", () => {
             specify("invalid value", () => {
               expect(() => evaluate("/ a 1")).to.throw('invalid number "a"');
               expect(() => evaluate("/ 2 b")).to.throw('invalid number "b"');
+            });
+          });
+        });
+      });
+      describe("comparisons", () => {
+        describe("==", () => {
+          it("should compare two values", () => {
+            expect(evaluate('== "123" -34')).to.equal(FALSE);
+            expect(evaluate('== 56 "56"')).to.equal(TRUE);
+            expect(evaluate('== abc "abc"')).to.equal(TRUE);
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("==")).to.throw(
+                'wrong # args: should be "== arg arg"'
+              );
+              expect(() => evaluate("== a")).to.throw(
+                'wrong # args: should be "== arg arg"'
+              );
+            });
+          });
+        });
+        describe("!=", () => {
+          it("should compare two values", () => {
+            expect(evaluate('!= "123" -34')).to.equal(TRUE);
+            expect(evaluate('!= 56 "56"')).to.equal(FALSE);
+            expect(evaluate('!= abc "abc"')).to.equal(FALSE);
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("!=")).to.throw(
+                'wrong # args: should be "!= arg arg"'
+              );
+            });
+            specify("wrong arity", () => {
+              expect(() => evaluate("!= a")).to.throw(
+                'wrong # args: should be "!= arg arg"'
+              );
+            });
+          });
+        });
+        describe(">", () => {
+          it("should compare two numbers", () => {
+            expect(evaluate("> 12 -34")).to.equal(TRUE);
+            expect(evaluate("> 56 56")).to.equal(FALSE);
+            expect(evaluate("> -45.6e7 890")).to.equal(FALSE);
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate(">")).to.throw(
+                'wrong # args: should be "> arg arg"'
+              );
+              expect(() => evaluate("> a")).to.throw(
+                'wrong # args: should be "> arg arg"'
+              );
+            });
+            specify("invalid value", () => {
+              expect(() => evaluate("> a 1")).to.throw('invalid number "a"');
+              expect(() => evaluate("> 2 b")).to.throw('invalid number "b"');
+            });
+          });
+        });
+        describe(">=", () => {
+          it("should compare two numbers", () => {
+            expect(evaluate(">= 12 -34")).to.equal(TRUE);
+            expect(evaluate(">= 56 56")).to.equal(TRUE);
+            expect(evaluate(">= -45.6e7 890")).to.equal(FALSE);
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate(">=")).to.throw(
+                'wrong # args: should be ">= arg arg"'
+              );
+              expect(() => evaluate(">= a")).to.throw(
+                'wrong # args: should be ">= arg arg"'
+              );
+            });
+            specify("invalid value", () => {
+              expect(() => evaluate(">= a 1")).to.throw('invalid number "a"');
+              expect(() => evaluate(">= 2 b")).to.throw('invalid number "b"');
+            });
+          });
+        });
+        describe("<", () => {
+          it("should compare two numbers", () => {
+            expect(evaluate("< 12 -34")).to.equal(FALSE);
+            expect(evaluate("< 56 56")).to.equal(FALSE);
+            expect(evaluate("< -45.6e7 890")).to.equal(TRUE);
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("<")).to.throw(
+                'wrong # args: should be "< arg arg"'
+              );
+              expect(() => evaluate("< a")).to.throw(
+                'wrong # args: should be "< arg arg"'
+              );
+            });
+            specify("invalid value", () => {
+              expect(() => evaluate("< a 1")).to.throw('invalid number "a"');
+              expect(() => evaluate("< 2 b")).to.throw('invalid number "b"');
+            });
+          });
+        });
+        describe("<=", () => {
+          it("should compare two numbers", () => {
+            expect(evaluate("<= 12 -34")).to.equal(FALSE);
+            expect(evaluate("<= 56 56")).to.equal(TRUE);
+            expect(evaluate("<= -45.6e7 890")).to.equal(TRUE);
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("<=")).to.throw(
+                'wrong # args: should be "<= arg arg"'
+              );
+              expect(() => evaluate("<= a")).to.throw(
+                'wrong # args: should be "<= arg arg"'
+              );
+            });
+            specify("invalid value", () => {
+              expect(() => evaluate("<= a 1")).to.throw('invalid number "a"');
+              expect(() => evaluate("<= 2 b")).to.throw('invalid number "b"');
             });
           });
         });

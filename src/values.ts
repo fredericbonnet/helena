@@ -8,6 +8,7 @@ import {
 
 export enum ValueType {
   NIL,
+  BOOLEAN,
   INTEGER,
   NUMBER,
   STRING,
@@ -44,6 +45,42 @@ class NilValue implements Value {
 }
 export const NIL = new NilValue();
 
+export class BooleanValue implements Value {
+  type = ValueType.BOOLEAN;
+  value: boolean;
+  constructor(value: boolean) {
+    this.value = value;
+  }
+  static fromValue(value: Value): BooleanValue {
+    switch (value.type) {
+      case ValueType.BOOLEAN:
+        return value as BooleanValue;
+      case ValueType.INTEGER:
+        return !!(value as IntegerValue).value ? TRUE : FALSE;
+    }
+    const s = value.asString();
+    if (s == "true" || s == "yes" || s == "1") return TRUE;
+    if (s == "false" || s == "no" || s == "0") return FALSE;
+    const i = parseInt(s);
+    if (isNaN(i)) throw new Error(`invalid boolean "${s}"`);
+    return !!i ? TRUE : FALSE;
+  }
+  asString(): string {
+    return this.value.toString();
+  }
+  selectIndex(index: Value): Value {
+    throw new Error("value is not index-selectable");
+  }
+  selectKey(key: Value): Value {
+    throw new Error("value is not key-selectable");
+  }
+  selectRules(rules: Value[]): Value {
+    throw new Error("value is not selectable");
+  }
+}
+export const TRUE = new BooleanValue(true);
+export const FALSE = new BooleanValue(false);
+
 export class IntegerValue implements Value {
   type = ValueType.INTEGER;
   value: number;
@@ -52,10 +89,10 @@ export class IntegerValue implements Value {
   }
   static fromValue(value: Value): IntegerValue {
     if (value.type == ValueType.INTEGER) return value as IntegerValue;
-    const integer = parseInt(value.asString());
-    if (isNaN(integer))
-      throw new Error(`invalid integer "${value.asString()}"`);
-    return new IntegerValue(integer);
+    const s = value.asString();
+    const i = parseInt(s);
+    if (isNaN(i)) throw new Error(`invalid integer "${s}"`);
+    return new IntegerValue(i);
   }
   asString(): string {
     return this.value.toString();
@@ -79,9 +116,10 @@ export class NumberValue implements Value {
   }
   static fromValue(value: Value): NumberValue {
     if (value.type == ValueType.NUMBER) return value as NumberValue;
-    const number = parseFloat(value.asString());
-    if (isNaN(number)) throw new Error(`invalid number "${value.asString()}"`);
-    return new NumberValue(number);
+    const s = value.asString();
+    const n = parseFloat(s);
+    if (isNaN(n)) throw new Error(`invalid number "${s}"`);
+    return new NumberValue(n);
   }
   asString(): string {
     return this.value.toString();
