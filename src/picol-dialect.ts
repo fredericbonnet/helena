@@ -15,6 +15,7 @@ import {
   NumberValue,
   FALSE,
   TRUE,
+  BooleanValue,
 } from "./values";
 
 export class PicolScope {
@@ -147,6 +148,46 @@ const gtCmd = compareNumbersCmd(">", (op1, op2) => op1 > op2);
 const geCmd = compareNumbersCmd(">=", (op1, op2) => op1 >= op2);
 const ltCmd = compareNumbersCmd("<", (op1, op2) => op1 < op2);
 const leCmd = compareNumbersCmd("<=", (op1, op2) => op1 <= op2);
+
+const notCmd = (scope: PicolScope): Command => ({
+  evaluate: (args) => {
+    if (args.length != 2) throw new Error(`wrong # args: should be "! arg"`);
+    const v = BooleanValue.fromValue(args[1]);
+    return v.value ? FALSE : TRUE;
+  },
+});
+const andCmd = (scope: PicolScope): Command => ({
+  evaluate: (args) => {
+    if (args.length < 2)
+      throw new Error(`wrong # args: should be "&& arg ?arg ...?"`);
+    let result = true;
+    for (let i = 1; i < args.length; i++) {
+      const v = BooleanValue.fromValue(args[i]).value;
+      if (!v) {
+        result = false;
+        break;
+      }
+    }
+
+    return result ? TRUE : FALSE;
+  },
+});
+const orCmd = (scope: PicolScope): Command => ({
+  evaluate: (args) => {
+    if (args.length < 2)
+      throw new Error(`wrong # args: should be "|| arg ?arg ...?"`);
+    let result = false;
+    for (let i = 1; i < args.length; i++) {
+      const v = BooleanValue.fromValue(args[i]).value;
+      if (v) {
+        result = true;
+        break;
+      }
+    }
+
+    return result ? TRUE : FALSE;
+  },
+});
 
 const ifCmd = (scope: PicolScope): Command => ({
   evaluate: (args, flowController) => {
@@ -338,6 +379,9 @@ export function initPicolCommands(scope: PicolScope) {
   scope.commands.set(">=", geCmd);
   scope.commands.set("<", ltCmd);
   scope.commands.set("<=", leCmd);
+  scope.commands.set("!", notCmd);
+  scope.commands.set("&&", andCmd);
+  scope.commands.set("||", orCmd);
   scope.commands.set("if", ifCmd);
   scope.commands.set("set", setCmd);
   scope.commands.set("proc", procCmd);

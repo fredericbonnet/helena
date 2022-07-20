@@ -292,6 +292,77 @@ describe("Picol dialect", () => {
           });
         });
       });
+      describe("logic", () => {
+        describe("!", () => {
+          it("should invert boolean values", () => {
+            expect(evaluate("! true")).to.eql(FALSE);
+            expect(evaluate("! false")).to.eql(TRUE);
+          });
+          it("should invert integer values", () => {
+            expect(evaluate("! 1")).to.eql(FALSE);
+            expect(evaluate("! 123")).to.eql(FALSE);
+            expect(evaluate("! 0")).to.eql(TRUE);
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("!")).to.throw(
+                'wrong # args: should be "! arg"'
+              );
+            });
+            specify("invalid value", () => {
+              expect(() => evaluate("! a")).to.throw('invalid boolean "a"');
+            });
+          });
+        });
+        describe("&&", () => {
+          it("should accept one boolean", () => {
+            expect(evaluate("&& false")).to.eql(FALSE);
+            expect(evaluate("&& true")).to.eql(TRUE);
+          });
+          it("should accept two booleans", () => {
+            expect(evaluate("&& false false")).to.eql(FALSE);
+            expect(evaluate("&& false true")).to.eql(FALSE);
+            expect(evaluate("&& true false")).to.eql(FALSE);
+            expect(evaluate("&& true true")).to.eql(TRUE);
+          });
+          it("should accept several booleans", () => {
+            expect(evaluate("&&" + " true".repeat(3))).to.eql(TRUE);
+            expect(evaluate("&&" + " true".repeat(3) + " false")).to.eql(FALSE);
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("&&")).to.throw(
+                'wrong # args: should be "&& arg ?arg ...?"'
+              );
+            });
+            specify("invalid value", () => {
+              expect(() => evaluate("&& a")).to.throw('invalid boolean "a"');
+            });
+          });
+        });
+        describe("||", () => {
+          it("should accept two booleans", () => {
+            expect(evaluate("|| false false")).to.eql(FALSE);
+            expect(evaluate("|| false true")).to.eql(TRUE);
+            expect(evaluate("|| true false")).to.eql(TRUE);
+            expect(evaluate("|| true true")).to.eql(TRUE);
+          });
+          it("should accept several booleans", () => {
+            expect(evaluate("||" + " false".repeat(3))).to.eql(FALSE);
+            expect(evaluate("||" + " false".repeat(3) + " true")).to.eql(TRUE);
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("||")).to.throw(
+                'wrong # args: should be "|| arg ?arg ...?"'
+              );
+            });
+            specify("invalid value", () => {
+              expect(() => evaluate("|| a")).to.throw('invalid boolean "a"');
+            });
+          });
+        });
+      });
 
       describe("if", () => {
         it("should evaluate the if branch when expression is true", () => {
