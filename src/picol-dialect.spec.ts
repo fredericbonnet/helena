@@ -303,6 +303,15 @@ describe("Picol dialect", () => {
             expect(evaluate("! 123")).to.eql(FALSE);
             expect(evaluate("! 0")).to.eql(TRUE);
           });
+          it("should accept block expressions", () => {
+            expect(evaluate("! {!= 1 2}")).to.eql(FALSE);
+            expect(evaluate("! {== 1 2}")).to.eql(TRUE);
+          });
+          it("should propagate return", () => {
+            expect(evaluate("! {return value}")).to.eql(
+              new StringValue("value")
+            );
+          });
           describe("exceptions", () => {
             specify("wrong arity", () => {
               expect(() => evaluate("!")).to.throw(
@@ -329,6 +338,18 @@ describe("Picol dialect", () => {
             expect(evaluate("&&" + " true".repeat(3))).to.eql(TRUE);
             expect(evaluate("&&" + " true".repeat(3) + " false")).to.eql(FALSE);
           });
+          it("should accept block expressions", () => {
+            expect(evaluate("&& {!= 1 2}")).to.eql(TRUE);
+            expect(evaluate("&& {== 1 2}")).to.eql(FALSE);
+          });
+          it("should short-circuit on false", () => {
+            expect(evaluate("&& false {error}")).to.eql(FALSE);
+          });
+          it("should propagate return", () => {
+            expect(evaluate("&& {return value}")).to.eql(
+              new StringValue("value")
+            );
+          });
           describe("exceptions", () => {
             specify("wrong arity", () => {
               expect(() => evaluate("&&")).to.throw(
@@ -351,6 +372,18 @@ describe("Picol dialect", () => {
             expect(evaluate("||" + " false".repeat(3))).to.eql(FALSE);
             expect(evaluate("||" + " false".repeat(3) + " true")).to.eql(TRUE);
           });
+          it("should accept block expressions", () => {
+            expect(evaluate("|| {!= 1 2}")).to.eql(TRUE);
+            expect(evaluate("|| {== 1 2}")).to.eql(FALSE);
+          });
+          it("should short-circuit on true", () => {
+            expect(evaluate("|| true {error}")).to.eql(TRUE);
+          });
+          it("should propagate return", () => {
+            expect(evaluate("|| {return value}")).to.eql(
+              new StringValue("value")
+            );
+          });
           describe("exceptions", () => {
             specify("wrong arity", () => {
               expect(() => evaluate("||")).to.throw(
@@ -365,23 +398,40 @@ describe("Picol dialect", () => {
       });
 
       describe("if", () => {
-        it("should evaluate the if branch when expression is true", () => {
+        it("should evaluate the if branch when test is true", () => {
+          expect(evaluate("if true {set var if}")).to.eql(
+            new StringValue("if")
+          );
           expect(evaluate("if 1 {set var if}")).to.eql(new StringValue("if"));
         });
-        it("should evaluate the else branch when expression is false", () => {
+        it("should evaluate the else branch when test is false", () => {
+          expect(evaluate("if false {set var if} else {set var else}")).to.eql(
+            new StringValue("else")
+          );
           expect(evaluate("if 0 {set var if} else {set var else}")).to.eql(
             new StringValue("else")
           );
         });
-        it("should return empty when expression is false and there is no else branch", () => {
-          expect(evaluate("if 0 {set var if}")).to.eql(new StringValue(""));
+        it("should accept block expressions", () => {
+          expect(
+            evaluate("if {!= 1 2} {set var if} else {set var else}")
+          ).to.eql(new StringValue("if"));
+          expect(
+            evaluate("if {== 1 2} {set var if} else {set var else}")
+          ).to.eql(new StringValue("else"));
+        });
+        it("should return empty when test is false and there is no else branch", () => {
+          expect(evaluate("if false {set var if}")).to.eql(new StringValue(""));
         });
         it("should propagate return", () => {
           evaluate(
             "proc cmd {expr} {if $expr {return if} else {return else}; set var val}"
           );
-          expect(evaluate("cmd 0")).to.eql(new StringValue("else"));
-          expect(evaluate("cmd 1")).to.eql(new StringValue("if"));
+          expect(evaluate("cmd true")).to.eql(new StringValue("if"));
+          expect(evaluate("cmd false")).to.eql(new StringValue("else"));
+          expect(evaluate("cmd {!= 1 2}")).to.eql(new StringValue("if"));
+          expect(evaluate("cmd {== 1 2}")).to.eql(new StringValue("else"));
+          expect(evaluate("cmd {return test}")).to.eql(new StringValue("test"));
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
@@ -398,10 +448,8 @@ describe("Picol dialect", () => {
               'wrong # args: should be "if test script1 ?else script2?"'
             );
           });
-          specify("invalid expression", () => {
-            expect(() => evaluate("if a {}")).to.throw(
-              'expected integer but got "a"'
-            );
+            specify("invalid condition", () => {
+            expect(() => evaluate("if a {}")).to.throw('invalid boolean "a"');
           });
         });
       });

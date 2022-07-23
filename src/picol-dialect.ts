@@ -4,7 +4,9 @@ import {
   CommandResolver,
   CompilingEvaluator,
   InlineEvaluator,
+  Evaluator,
 } from "./evaluator";
+import { Script } from "./syntax";
 import {
   Value,
   ScriptValue,
@@ -22,8 +24,18 @@ export class PicolScope {
   parent?: PicolScope;
   variables: Map<string, Value> = new Map();
   commands: Map<string, (scope: PicolScope) => Command> = new Map();
+  evaluator: Evaluator;
   constructor(parent?: PicolScope) {
     this.parent = parent;
+    this.evaluator = new CompilingEvaluator(
+      this.variableResolver,
+      this.commandResolver,
+      null
+    );
+  }
+
+  evaluate(script: Script): Value {
+    return this.evaluator.evaluateScript(script);
   }
 
   variableResolver: VariableResolver = {
@@ -49,13 +61,6 @@ export class PicolScope {
     }
     return this.commands.get(name);
   }
-}
-
-function valueToInt(value: Value): number {
-  let i = parseInt(value.asString());
-  if (isNaN(i))
-    throw new Error(`expected integer but got "${value.asString()}"`);
-  return i;
 }
 
 const addCmd = (scope: PicolScope): Command => ({
@@ -150,20 +155,22 @@ const ltCmd = compareNumbersCmd("<", (op1, op2) => op1 < op2);
 const leCmd = compareNumbersCmd("<=", (op1, op2) => op1 <= op2);
 
 const notCmd = (scope: PicolScope): Command => ({
-  evaluate: (args) => {
+  evaluate: (args, flowController) => {
     if (args.length != 2) throw new Error(`wrong # args: should be "! arg"`);
-    const v = BooleanValue.fromValue(args[1]);
-    return v.value ? FALSE : TRUE;
+    const [code, v] = evaluateCondition(args[1], scope);
+    if (code != ResultCode.OK) return flowController.interrupt(code, v);
+    return (v as BooleanValue).value ? FALSE : TRUE;
   },
 });
 const andCmd = (scope: PicolScope): Command => ({
-  evaluate: (args) => {
+  evaluate: (args, flowController) => {
     if (args.length < 2)
       throw new Error(`wrong # args: should be "&& arg ?arg ...?"`);
     let result = true;
     for (let i = 1; i < args.length; i++) {
-      const v = BooleanValue.fromValue(args[i]).value;
-      if (!v) {
+      const [code, v] = evaluateCondition(args[i], scope);
+      if (code != ResultCode.OK) return flowController.interrupt(code, v);
+      if (!(v as BooleanValue).value) {
         result = false;
         break;
       }
@@ -173,13 +180,14 @@ const andCmd = (scope: PicolScope): Command => ({
   },
 });
 const orCmd = (scope: PicolScope): Command => ({
-  evaluate: (args) => {
+  evaluate: (args, flowController) => {
     if (args.length < 2)
       throw new Error(`wrong # args: should be "|| arg ?arg ...?"`);
     let result = false;
     for (let i = 1; i < args.length; i++) {
-      const v = BooleanValue.fromValue(args[i]).value;
-      if (v) {
+      const [code, v] = evaluateCondition(args[i], scope);
+      if (code != ResultCode.OK) return flowController.interrupt(code, v);
+      if ((v as BooleanValue).value) {
         result = true;
         break;
       }
@@ -196,25 +204,36 @@ const ifCmd = (scope: PicolScope): Command => ({
         'wrong # args: should be "if test script1 ?else script2?"'
       );
     }
-    const evaluator = new CompilingEvaluator(
-      scope.variableResolver,
-      scope.commandResolver,
-      null
-    );
-    const expr = valueToInt(args[1]);
+    const [testCode, test] = evaluateCondition(args[1], scope);
+    if (testCode != ResultCode.OK)
+      return flowController.interrupt(testCode, test);
     let script: ScriptValue;
-    if (expr) {
+    if ((test as BooleanValue).value) {
       script = args[2] as ScriptValue;
     } else if (args.length == 3) {
       return new StringValue("");
     } else {
       script = args[4] as ScriptValue;
     }
-    const [code, result] = evaluator.executeScript(script.script);
+    const [code, result] = scope.evaluator.executeScript(script.script);
     if (code != ResultCode.OK) return flowController.interrupt(code, result);
     return result == NIL ? new StringValue("") : result;
   },
 });
+function evaluateCondition(
+  value: Value,
+  scope: PicolScope
+): [ResultCode, Value] {
+  if (value.type == ValueType.SCRIPT) {
+    const [code, result] = scope.evaluator.executeScript(
+      (value as ScriptValue).script
+    );
+    if (code != ResultCode.OK) return [code, result];
+    return [code, BooleanValue.fromValue(result)];
+  } else {
+    return [ResultCode.OK, BooleanValue.fromValue(value)];
+  }
+}
 
 const setCmd = (scope: PicolScope): Command => ({
   evaluate: (args) => {
@@ -275,12 +294,7 @@ class ProcCommand implements Command {
         )}"`
       );
 
-    const evaluator = new CompilingEvaluator(
-      scope.variableResolver,
-      scope.commandResolver,
-      null
-    );
-    const result = evaluator.evaluateScript(this.body.script);
+    const result = scope.evaluate(this.body.script);
     return result == NIL ? new StringValue("") : result;
   }
 }
