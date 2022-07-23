@@ -308,9 +308,9 @@ describe("Picol dialect", () => {
             expect(evaluate("! {== 1 2}")).to.eql(TRUE);
           });
           it("should propagate return", () => {
-            expect(evaluate("! {return value}")).to.eql(
-              new StringValue("value")
-            );
+            expect(
+              evaluate("proc cmd {} {! {return value}; error}; cmd")
+            ).to.eql(new StringValue("value"));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -346,9 +346,9 @@ describe("Picol dialect", () => {
             expect(evaluate("&& false {error}")).to.eql(FALSE);
           });
           it("should propagate return", () => {
-            expect(evaluate("&& {return value}")).to.eql(
-              new StringValue("value")
-            );
+            expect(
+              evaluate("proc cmd {} {&& {return value}; error}; cmd")
+            ).to.eql(new StringValue("value"));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -380,9 +380,9 @@ describe("Picol dialect", () => {
             expect(evaluate("|| true {error}")).to.eql(TRUE);
           });
           it("should propagate return", () => {
-            expect(evaluate("|| {return value}")).to.eql(
-              new StringValue("value")
-            );
+            expect(
+              evaluate("proc cmd {} {|| {return value}; error}; cmd")
+            ).to.eql(new StringValue("value"));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -397,59 +397,206 @@ describe("Picol dialect", () => {
         });
       });
 
-      describe("if", () => {
-        it("should evaluate the if branch when test is true", () => {
-          expect(evaluate("if true {set var if}")).to.eql(
-            new StringValue("if")
-          );
-          expect(evaluate("if 1 {set var if}")).to.eql(new StringValue("if"));
-        });
-        it("should evaluate the else branch when test is false", () => {
-          expect(evaluate("if false {set var if} else {set var else}")).to.eql(
-            new StringValue("else")
-          );
-          expect(evaluate("if 0 {set var if} else {set var else}")).to.eql(
-            new StringValue("else")
-          );
-        });
-        it("should accept block expressions", () => {
-          expect(
-            evaluate("if {!= 1 2} {set var if} else {set var else}")
-          ).to.eql(new StringValue("if"));
-          expect(
-            evaluate("if {== 1 2} {set var if} else {set var else}")
-          ).to.eql(new StringValue("else"));
-        });
-        it("should return empty when test is false and there is no else branch", () => {
-          expect(evaluate("if false {set var if}")).to.eql(new StringValue(""));
-        });
-        it("should propagate return", () => {
-          evaluate(
-            "proc cmd {expr} {if $expr {return if} else {return else}; set var val}"
-          );
-          expect(evaluate("cmd true")).to.eql(new StringValue("if"));
-          expect(evaluate("cmd false")).to.eql(new StringValue("else"));
-          expect(evaluate("cmd {!= 1 2}")).to.eql(new StringValue("if"));
-          expect(evaluate("cmd {== 1 2}")).to.eql(new StringValue("else"));
-          expect(evaluate("cmd {return test}")).to.eql(new StringValue("test"));
-        });
-        describe("exceptions", () => {
-          specify("wrong arity", () => {
-            expect(() => evaluate("if")).to.throw(
-              'wrong # args: should be "if test script1 ?else script2?"'
+      describe("control flow", () => {
+        describe("if", () => {
+          it("should evaluate the if branch when test is true", () => {
+            expect(evaluate("if true {set var if}")).to.eql(
+              new StringValue("if")
             );
-            expect(() => evaluate("if true")).to.throw(
-              'wrong # args: should be "if test script1 ?else script2?"'
-            );
-            expect(() => evaluate("if true {} else")).to.throw(
-              'wrong # args: should be "if test script1 ?else script2?"'
-            );
-            expect(() => evaluate("if true {} else {} {}")).to.throw(
-              'wrong # args: should be "if test script1 ?else script2?"'
+            expect(evaluate("if 1 {set var if}")).to.eql(new StringValue("if"));
+          });
+          it("should evaluate the else branch when test is false", () => {
+            expect(
+              evaluate("if false {set var if} else {set var else}")
+            ).to.eql(new StringValue("else"));
+            expect(evaluate("if 0 {set var if} else {set var else}")).to.eql(
+              new StringValue("else")
             );
           });
+          it("should accept block expressions", () => {
+            expect(
+              evaluate("if {!= 1 2} {set var if} else {set var else}")
+            ).to.eql(new StringValue("if"));
+            expect(
+              evaluate("if {== 1 2} {set var if} else {set var else}")
+            ).to.eql(new StringValue("else"));
+          });
+          it("should return empty when test is false and there is no else branch", () => {
+            expect(evaluate("if false {set var if}")).to.eql(
+              new StringValue("")
+            );
+          });
+          it("should propagate return", () => {
+            evaluate(
+              "proc cmd {expr} {if $expr {return if} else {return else}; error}"
+            );
+            expect(evaluate("cmd true")).to.eql(new StringValue("if"));
+            expect(evaluate("cmd false")).to.eql(new StringValue("else"));
+            expect(evaluate("cmd {!= 1 2}")).to.eql(new StringValue("if"));
+            expect(evaluate("cmd {== 1 2}")).to.eql(new StringValue("else"));
+            expect(evaluate("cmd {return test}")).to.eql(
+              new StringValue("test")
+            );
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("if")).to.throw(
+                'wrong # args: should be "if test script1 ?else script2?"'
+              );
+              expect(() => evaluate("if true")).to.throw(
+                'wrong # args: should be "if test script1 ?else script2?"'
+              );
+              expect(() => evaluate("if true {} else")).to.throw(
+                'wrong # args: should be "if test script1 ?else script2?"'
+              );
+              expect(() => evaluate("if true {} else {} {}")).to.throw(
+                'wrong # args: should be "if test script1 ?else script2?"'
+              );
+            });
             specify("invalid condition", () => {
-            expect(() => evaluate("if a {}")).to.throw('invalid boolean "a"');
+              expect(() => evaluate("if a {}")).to.throw('invalid boolean "a"');
+            });
+          });
+        });
+        describe("for", () => {
+          it("should always evaluate the start segment", () => {
+            expect(evaluate("for {set var start} false {} {}; set var")).to.eql(
+              new StringValue("start")
+            );
+            expect(
+              evaluate(
+                "for {set var start} {== $var start} {set var ${var}2} {}; set var"
+              )
+            ).to.eql(new StringValue("start2"));
+          });
+          it("should skip the body when test is false", () => {
+            expect(
+              evaluate(
+                "set var before; for {} false {set var next} {set var body}; set var"
+              )
+            ).to.eql(new StringValue("before"));
+          });
+          it("should skip next statement when test is false", () => {
+            expect(
+              evaluate(
+                "set var before; for {} false {set var next} {}; set var"
+              )
+            ).to.eql(new StringValue("before"));
+          });
+          it("should loop over the body while test is true", () => {
+            expect(
+              evaluate("for {set i 0} {< $i 10} {incr i} {set var $i}; set var")
+            ).to.eql(new NumberValue(9));
+          });
+          it("should return empty", () => {
+            expect(
+              evaluate("for {set i 0} {< $i 10} {incr i} {set var $i}")
+            ).to.eql(new StringValue(""));
+          });
+          it("should propagate return", () => {
+            evaluate(
+              "proc cmd {start test next body} {for $start $test $next $body; set var val}"
+            );
+            expect(evaluate("cmd {return start} {} {} {}")).to.eql(
+              new StringValue("start")
+            );
+            expect(evaluate("cmd {} {return test} {} {}")).to.eql(
+              new StringValue("test")
+            );
+            expect(evaluate("cmd {} true {return next} {}")).to.eql(
+              new StringValue("next")
+            );
+            expect(evaluate("cmd {} true {} {return body}")).to.eql(
+              new StringValue("body")
+            );
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("for")).to.throw(
+                'wrong # args: should be "for start test next command"'
+              );
+              expect(() => evaluate("for a b c")).to.throw(
+                'wrong # args: should be "for start test next command"'
+              );
+              expect(() => evaluate("for a b c d e")).to.throw(
+                'wrong # args: should be "for start test next command"'
+              );
+            });
+            specify("invalid condition", () => {
+              expect(() => evaluate("for {} a {} {} ")).to.throw(
+                'invalid boolean "a"'
+              );
+            });
+          });
+        });
+        describe("while", () => {
+          it("should skip the body when test is false", () => {
+            expect(
+              evaluate("set var before; while false {set var body}; set var")
+            ).to.eql(new StringValue("before"));
+          });
+          it("should loop over the body while test is true", () => {
+            expect(evaluate("set i 0; while {< $i 10} {incr i}; set i")).to.eql(
+              new NumberValue(10)
+            );
+          });
+          it("should return empty", () => {
+            expect(evaluate("set i 0; while {< $i 10} {incr i}")).to.eql(
+              new StringValue("")
+            );
+          });
+          it("should propagate return", () => {
+            evaluate(
+              "proc cmd {test} {while $test {return body; error}; set var val}"
+            );
+            expect(evaluate("cmd true")).to.eql(new StringValue("body"));
+            expect(evaluate("cmd false")).to.eql(new StringValue("val"));
+            expect(evaluate("cmd {!= 1 2}")).to.eql(new StringValue("body"));
+            expect(evaluate("cmd {== 1 2}")).to.eql(new StringValue("val"));
+            expect(evaluate("cmd {return test}")).to.eql(
+              new StringValue("test")
+            );
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("while")).to.throw(
+                'wrong # args: should be "while test script"'
+              );
+              expect(() => evaluate("while true")).to.throw(
+                'wrong # args: should be "while test script"'
+              );
+              expect(() => evaluate("while true a b")).to.throw(
+                'wrong # args: should be "while test script"'
+              );
+            });
+            specify("invalid condition", () => {
+              expect(() => evaluate("while a {}")).to.throw(
+                'invalid boolean "a"'
+              );
+            });
+          });
+        });
+        describe("return", () => {
+          it("should return empty by default", () => {
+            expect(evaluate("return")).to.eql(new StringValue(""));
+          });
+          it("should return an optional result", () => {
+            expect(evaluate("return value")).to.eql(new StringValue("value"));
+          });
+          it("should interrupt a proc", () => {
+            evaluate("proc cmd {} {return; set var val}");
+            expect(evaluate("cmd")).to.eql(new StringValue(""));
+          });
+          it("should return result from a proc", () => {
+            evaluate("proc cmd {} {return result; set var val}");
+            expect(evaluate("cmd")).to.eql(new StringValue("result"));
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("return a b")).to.throw(
+                'wrong # args: should be "return ?result?"'
+              );
+            });
           });
         });
       });
@@ -484,6 +631,43 @@ describe("Picol dialect", () => {
             expect(() => evaluate("set a b c")).to.throw(
               'wrong # args: should be "set varName ?newValue?"'
             );
+          });
+        });
+      });
+      describe("incr", () => {
+        it("should set new variables to the increment", () => {
+          evaluate("incr var 5");
+          expect(rootScope.variables.get("var")).to.eql(new NumberValue(5));
+        });
+        it("should increment existing variables by the increment", () => {
+          rootScope.variables.set("var", new NumberValue(2));
+          evaluate("incr var 4");
+          expect(rootScope.variables.get("var")).to.eql(new NumberValue(6));
+        });
+        specify("increment should default to 1", () => {
+          rootScope.variables.set("var", new NumberValue(1));
+          evaluate("incr var");
+          expect(rootScope.variables.get("var")).to.eql(new NumberValue(2));
+        });
+        it("should return the new value", () => {
+          expect(evaluate("set var 1; incr var")).to.eql(new NumberValue(2));
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(() => evaluate("incr")).to.throw(
+              'wrong # args: should be "incr varName ?increment?"'
+            );
+            expect(() => evaluate("incr a 1 2")).to.throw(
+              'wrong # args: should be "incr varName ?increment?"'
+            );
+          });
+          specify("invalid variable value", () => {
+            expect(() => evaluate("set var a; incr var")).to.throw(
+              'invalid number "a"'
+            );
+          });
+          specify("invalid increment", () => {
+            expect(() => evaluate("incr var a")).to.throw('invalid number "a"');
           });
         });
       });
@@ -618,30 +802,6 @@ describe("Picol dialect", () => {
           specify("wrong argument specifier format", () => {
             expect(() => evaluate("proc cmd {{a b c}} {}")).to.throw(
               'too many fields in argument specifier "a b c"'
-            );
-          });
-        });
-      });
-
-      describe("return", () => {
-        it("should return empty by default", () => {
-          expect(evaluate("return")).to.eql(new StringValue(""));
-        });
-        it("should return an optional result", () => {
-          expect(evaluate("return value")).to.eql(new StringValue("value"));
-        });
-        it("should interrupt a proc", () => {
-          evaluate("proc cmd {} {return; set var val}");
-          expect(evaluate("cmd")).to.eql(new StringValue(""));
-        });
-        it("should return result from a proc", () => {
-          evaluate("proc cmd {} {return result; set var val}");
-          expect(evaluate("cmd")).to.eql(new StringValue("result"));
-        });
-        describe("exceptions", () => {
-          specify("wrong arity", () => {
-            expect(() => evaluate("return a b")).to.throw(
-              'wrong # args: should be "return ?result?"'
             );
           });
         });

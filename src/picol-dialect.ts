@@ -220,6 +220,51 @@ const ifCmd = (scope: PicolScope): Command => ({
     return result == NIL ? new StringValue("") : result;
   },
 });
+const forCmd = (scope: PicolScope): Command => ({
+  evaluate: (args, flowController) => {
+    if (args.length != 5) {
+      throw new Error('wrong # args: should be "for start test next command"');
+    }
+    const start = args[1] as ScriptValue;
+    const test = args[2];
+    const next = args[3] as ScriptValue;
+    const script = args[4] as ScriptValue;
+    let code: ResultCode;
+    let value: Value;
+    [code, value] = scope.evaluator.executeScript(start.script);
+    if (code != ResultCode.OK) return flowController.interrupt(code, value);
+    for (;;) {
+      [code, value] = evaluateCondition(test, scope);
+      if (code != ResultCode.OK) return flowController.interrupt(code, value);
+      if (!(value as BooleanValue).value) break;
+      [code, value] = scope.evaluator.executeScript(script.script);
+      if (code != ResultCode.OK) return flowController.interrupt(code, value);
+      [code, value] = scope.evaluator.executeScript(next.script);
+      if (code != ResultCode.OK) return flowController.interrupt(code, value);
+    }
+    return new StringValue("");
+  },
+});
+const whileCmd = (scope: PicolScope): Command => ({
+  evaluate: (args, flowController) => {
+    if (args.length != 3 && args.length != 5) {
+      throw new Error('wrong # args: should be "while test script"');
+    }
+    const test = args[1];
+    const script = args[2] as ScriptValue;
+    let code: ResultCode;
+    let value: Value;
+    for (;;) {
+      [code, value] = evaluateCondition(test, scope);
+      if (code != ResultCode.OK) return flowController.interrupt(code, value);
+      if (!(value as BooleanValue).value) break;
+      [code, value] = scope.evaluator.executeScript(script.script);
+      if (code != ResultCode.OK) return flowController.interrupt(code, value);
+    }
+    return new StringValue("");
+  },
+});
+
 function evaluateCondition(
   value: Value,
   scope: PicolScope
@@ -246,6 +291,28 @@ const setCmd = (scope: PicolScope): Command => ({
       default:
         throw new Error('wrong # args: should be "set varName ?newValue?"');
     }
+  },
+});
+const incrCmd = (scope: PicolScope): Command => ({
+  evaluate: (args) => {
+    let increment: number;
+    switch (args.length) {
+      case 2:
+        increment = 1;
+        break;
+      case 3:
+        increment = NumberValue.fromValue(args[2]).value;
+        break;
+      default:
+        throw new Error('wrong # args: should be "incr varName ?increment?"');
+    }
+    const varName = args[1].asString();
+    const value = scope.variables.get(varName);
+    const result = new NumberValue(
+      (value ? NumberValue.fromValue(value).value : 0) + increment
+    );
+    scope.variables.set(varName, result);
+    return result;
   },
 });
 
@@ -397,7 +464,10 @@ export function initPicolCommands(scope: PicolScope) {
   scope.commands.set("&&", andCmd);
   scope.commands.set("||", orCmd);
   scope.commands.set("if", ifCmd);
+  scope.commands.set("for", forCmd);
+  scope.commands.set("while", whileCmd);
   scope.commands.set("set", setCmd);
+  scope.commands.set("incr", incrCmd);
   scope.commands.set("proc", procCmd);
   scope.commands.set("return", returnCmd);
 }
