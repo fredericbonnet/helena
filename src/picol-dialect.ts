@@ -238,7 +238,9 @@ const forCmd = (scope: PicolScope): Command => ({
       if (code != ResultCode.OK) return flowController.interrupt(code, value);
       if (!(value as BooleanValue).value) break;
       [code, value] = scope.evaluator.executeScript(script.script);
-      if (code != ResultCode.OK) return flowController.interrupt(code, value);
+      if (code == ResultCode.RETURN)
+        return flowController.interrupt(code, value);
+      if (code == ResultCode.BREAK) break;
       [code, value] = scope.evaluator.executeScript(next.script);
       if (code != ResultCode.OK) return flowController.interrupt(code, value);
     }
@@ -259,7 +261,9 @@ const whileCmd = (scope: PicolScope): Command => ({
       if (code != ResultCode.OK) return flowController.interrupt(code, value);
       if (!(value as BooleanValue).value) break;
       [code, value] = scope.evaluator.executeScript(script.script);
-      if (code != ResultCode.OK) return flowController.interrupt(code, value);
+      if (code == ResultCode.RETURN)
+        return flowController.interrupt(code, value);
+      if (code == ResultCode.BREAK) break;
     }
     return new StringValue("");
   },
@@ -448,6 +452,18 @@ const returnCmd = (scope: PicolScope): Command => ({
     );
   },
 });
+const breakCmd = (scope: PicolScope): Command => ({
+  evaluate: (args, flowController) => {
+    if (args.length != 1) throw new Error('wrong # args: should be "break"');
+    return flowController.interrupt(ResultCode.BREAK, NIL);
+  },
+});
+const continueCmd = (scope: PicolScope): Command => ({
+  evaluate: (args, flowController) => {
+    if (args.length != 1) throw new Error('wrong # args: should be "continue"');
+    return flowController.interrupt(ResultCode.CONTINUE, NIL);
+  },
+});
 
 export function initPicolCommands(scope: PicolScope) {
   scope.commands.set("+", addCmd);
@@ -470,4 +486,6 @@ export function initPicolCommands(scope: PicolScope) {
   scope.commands.set("incr", incrCmd);
   scope.commands.set("proc", procCmd);
   scope.commands.set("return", returnCmd);
+  scope.commands.set("break", breakCmd);
+  scope.commands.set("continue", continueCmd);
 }

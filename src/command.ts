@@ -3,6 +3,8 @@ import { Value } from "./values";
 export enum ResultCode {
   OK,
   RETURN,
+  BREAK,
+  CONTINUE,
 }
 export type Result = [ResultCode, Value];
 export interface FlowController {

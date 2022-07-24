@@ -584,12 +584,14 @@ describe("Picol dialect", () => {
             expect(evaluate("return value")).to.eql(new StringValue("value"));
           });
           it("should interrupt a proc", () => {
-            evaluate("proc cmd {} {return; set var val}");
-            expect(evaluate("cmd")).to.eql(new StringValue(""));
+            expect(evaluate("proc cmd {} {return; set var val}; cmd")).to.eql(
+              new StringValue("")
+            );
           });
           it("should return result from a proc", () => {
-            evaluate("proc cmd {} {return result; set var val}");
-            expect(evaluate("cmd")).to.eql(new StringValue("result"));
+            expect(
+              evaluate("proc cmd {} {return result; set var val}; cmd")
+            ).to.eql(new StringValue("result"));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -597,6 +599,66 @@ describe("Picol dialect", () => {
                 'wrong # args: should be "return ?result?"'
               );
             });
+          });
+        });
+        describe("break", () => {
+          it("should interrupt a for loop", () => {
+            expect(
+              evaluate(
+                "for {set i 0} {< $i 10} {incr i} {set var before$i; break; set var after$i}; set var"
+              )
+            ).to.eql(new StringValue("before0"));
+          });
+          it("should interrupt a while loop", () => {
+            expect(
+              evaluate(
+                "while true {set var before; break; set var after}; set var"
+              )
+            ).to.eql(new StringValue("before"));
+          });
+          it("should not interrupt a proc", () => {
+            expect(
+              evaluate(
+                "proc cmd {} {for {set i 0} {< $i 10} {incr i} {break}; set i}; cmd"
+              )
+            ).to.eql(new StringValue("0"));
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("break a")).to.throw(
+                'wrong # args: should be "break"'
+              );
+            });
+          });
+        });
+      });
+      describe("continue", () => {
+        it("should interrupt a for loop iteration", () => {
+          expect(
+            evaluate(
+              "for {set i 0} {< $i 10} {incr i} {set var before$i; continue; set var after$i}; set var"
+            )
+          ).to.eql(new StringValue("before9"));
+        });
+        it("should interrupt a while loop iteration", () => {
+          expect(
+            evaluate(
+              "set i 0; while {< $i 10} {incr i; set var before$i; continue; set var after$i}; set var"
+            )
+          ).to.eql(new StringValue("before10"));
+        });
+        it("should not interrupt a proc", () => {
+          expect(
+            evaluate(
+              "proc cmd {} {for {set i 0} {< $i 10} {incr i} {continue}; set i}; cmd"
+            )
+          ).to.eql(new NumberValue(10));
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(() => evaluate("continue a")).to.throw(
+              'wrong # args: should be "continue"'
+            );
           });
         });
       });
