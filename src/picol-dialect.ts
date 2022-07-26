@@ -1,4 +1,4 @@
-import { Command, ResultCode } from "./command";
+import { Command, Result, ResultCode } from "./command";
 import {
   VariableResolver,
   CommandResolver,
@@ -63,25 +63,34 @@ export class PicolScope {
   }
 }
 
+const OK = (value: Value): Result => [ResultCode.OK, value];
+const RETURN = (value: Value): Result => [ResultCode.RETURN, value];
+const BREAK: Result = [ResultCode.BREAK, NIL];
+const CONTINUE: Result = [ResultCode.CONTINUE, NIL];
+const ERROR = (value: Value): Result => [ResultCode.ERROR, value];
+
+const EMPTY: Result = OK(new StringValue(""));
+
+const ARITY_ERROR = (signature: string) =>
+  ERROR(new StringValue(`wrong # args: should be "${signature}"`));
+
 const addCmd = (scope: PicolScope): Command => ({
-  evaluate: (args) => {
-    if (args.length < 2)
-      throw new Error(`wrong # args: should be "+ arg ?arg ...?"`);
+  execute: (args) => {
+    if (args.length < 2) return ARITY_ERROR("+ arg ?arg ...?");
     const result = args.reduce((total, arg, i) => {
       if (i == 0) return 0;
       const v = NumberValue.fromValue(arg).value;
       return total + v;
     }, 0);
-    return new NumberValue(result);
+    return OK(new NumberValue(result));
   },
 });
 const subtractCmd = (scope: PicolScope): Command => ({
-  evaluate: (args) => {
-    if (args.length < 2)
-      throw new Error(`wrong # args: should be "- arg ?arg ...?"`);
+  execute: (args) => {
+    if (args.length < 2) return ARITY_ERROR("- arg ?arg ...?");
     if (args.length == 2) {
       const v = NumberValue.fromValue(args[1]).value;
-      return new NumberValue(-v);
+      return OK(new NumberValue(-v));
     }
     const result = args.reduce((total, arg, i) => {
       if (i == 0) return 0;
@@ -89,43 +98,40 @@ const subtractCmd = (scope: PicolScope): Command => ({
       if (i == 1) return v;
       return total - v;
     }, 0);
-    return new NumberValue(result);
+    return OK(new NumberValue(result));
   },
 });
 
 const multiplyCmd = (scope: PicolScope): Command => ({
-  evaluate: (args) => {
-    if (args.length < 2)
-      throw new Error(`wrong # args: should be "* arg ?arg ...?"`);
+  execute: (args) => {
+    if (args.length < 2) return ARITY_ERROR("* arg ?arg ...?");
     const result = args.reduce((total, arg, i) => {
       if (i == 0) return 1;
       const v = NumberValue.fromValue(arg).value;
       return total * v;
     }, 1);
-    return new NumberValue(result);
+    return OK(new NumberValue(result));
   },
 });
 const divideCmd = (scope: PicolScope): Command => ({
-  evaluate: (args) => {
-    if (args.length < 3)
-      throw new Error(`wrong # args: should be "/ arg arg ?arg ...?"`);
+  execute: (args) => {
+    if (args.length < 3) return ARITY_ERROR("/ arg arg ?arg ...?");
     const result = args.reduce((total, arg, i) => {
       if (i == 0) return 1;
       const v = NumberValue.fromValue(arg).value;
       if (i == 1) return v;
       return total / v;
     }, 0);
-    return new NumberValue(result);
+    return OK(new NumberValue(result));
   },
 });
 
 const compareValuesCmd =
   (name: string, fn: (op1, op2) => boolean) =>
   (scope: PicolScope): Command => ({
-    evaluate: (args) => {
-      if (args.length != 3)
-        throw new Error(`wrong # args: should be "${name} arg arg"`);
-      return fn(args[1], args[2]) ? TRUE : FALSE;
+    execute: (args) => {
+      if (args.length != 3) return ARITY_ERROR(`${name} arg arg`);
+      return fn(args[1], args[2]) ? OK(TRUE) : OK(FALSE);
     },
   });
 const eqCmd = compareValuesCmd(
@@ -140,12 +146,11 @@ const neCmd = compareValuesCmd(
 const compareNumbersCmd =
   (name: string, fn: (op1, op2) => boolean) =>
   (scope: PicolScope): Command => ({
-    evaluate: (args) => {
-      if (args.length != 3)
-        throw new Error(`wrong # args: should be "${name} arg arg"`);
+    execute: (args) => {
+      if (args.length != 3) return ARITY_ERROR(`${name} arg arg`);
       const op1 = NumberValue.fromValue(args[1]).value;
       const op2 = NumberValue.fromValue(args[2]).value;
-      return fn(op1, op2) ? TRUE : FALSE;
+      return fn(op1, op2) ? OK(TRUE) : OK(FALSE);
     },
   });
 
@@ -155,75 +160,70 @@ const ltCmd = compareNumbersCmd("<", (op1, op2) => op1 < op2);
 const leCmd = compareNumbersCmd("<=", (op1, op2) => op1 <= op2);
 
 const notCmd = (scope: PicolScope): Command => ({
-  evaluate: (args, flowController) => {
-    if (args.length != 2) throw new Error(`wrong # args: should be "! arg"`);
+  execute: (args) => {
+    if (args.length != 2) return ARITY_ERROR("! arg");
     const [code, v] = evaluateCondition(args[1], scope);
-    if (code != ResultCode.OK) return flowController.interrupt(code, v);
-    return (v as BooleanValue).value ? FALSE : TRUE;
+    if (code != ResultCode.OK) return [code, v];
+    return (v as BooleanValue).value ? OK(FALSE) : OK(TRUE);
   },
 });
 const andCmd = (scope: PicolScope): Command => ({
-  evaluate: (args, flowController) => {
-    if (args.length < 2)
-      throw new Error(`wrong # args: should be "&& arg ?arg ...?"`);
+  execute: (args) => {
+    if (args.length < 2) return ARITY_ERROR("&& arg ?arg ...?");
     let result = true;
     for (let i = 1; i < args.length; i++) {
       const [code, v] = evaluateCondition(args[i], scope);
-      if (code != ResultCode.OK) return flowController.interrupt(code, v);
+      if (code != ResultCode.OK) return [code, v];
       if (!(v as BooleanValue).value) {
         result = false;
         break;
       }
     }
 
-    return result ? TRUE : FALSE;
+    return result ? OK(TRUE) : OK(FALSE);
   },
 });
 const orCmd = (scope: PicolScope): Command => ({
-  evaluate: (args, flowController) => {
-    if (args.length < 2)
-      throw new Error(`wrong # args: should be "|| arg ?arg ...?"`);
+  execute: (args) => {
+    if (args.length < 2) return ARITY_ERROR("|| arg ?arg ...?");
     let result = false;
     for (let i = 1; i < args.length; i++) {
       const [code, v] = evaluateCondition(args[i], scope);
-      if (code != ResultCode.OK) return flowController.interrupt(code, v);
+      if (code != ResultCode.OK) return [code, v];
       if ((v as BooleanValue).value) {
         result = true;
         break;
       }
     }
 
-    return result ? TRUE : FALSE;
+    return result ? OK(TRUE) : OK(FALSE);
   },
 });
 
 const ifCmd = (scope: PicolScope): Command => ({
-  evaluate: (args, flowController) => {
+  execute: (args) => {
     if (args.length != 3 && args.length != 5) {
-      throw new Error(
-        'wrong # args: should be "if test script1 ?else script2?"'
-      );
+      return ARITY_ERROR("if test script1 ?else script2?");
     }
     const [testCode, test] = evaluateCondition(args[1], scope);
-    if (testCode != ResultCode.OK)
-      return flowController.interrupt(testCode, test);
+    if (testCode != ResultCode.OK) return [testCode, test];
     let script: ScriptValue;
     if ((test as BooleanValue).value) {
       script = args[2] as ScriptValue;
     } else if (args.length == 3) {
-      return new StringValue("");
+      return EMPTY;
     } else {
       script = args[4] as ScriptValue;
     }
     const [code, result] = scope.evaluator.executeScript(script.script);
-    if (code != ResultCode.OK) return flowController.interrupt(code, result);
-    return result == NIL ? new StringValue("") : result;
+    if (code != ResultCode.OK) return [code, result];
+    return result == NIL ? EMPTY : OK(result);
   },
 });
 const forCmd = (scope: PicolScope): Command => ({
-  evaluate: (args, flowController) => {
+  execute: (args) => {
     if (args.length != 5) {
-      throw new Error('wrong # args: should be "for start test next command"');
+      return ARITY_ERROR("for start test next command");
     }
     const start = args[1] as ScriptValue;
     const test = args[2];
@@ -232,25 +232,24 @@ const forCmd = (scope: PicolScope): Command => ({
     let code: ResultCode;
     let value: Value;
     [code, value] = scope.evaluator.executeScript(start.script);
-    if (code != ResultCode.OK) return flowController.interrupt(code, value);
+    if (code != ResultCode.OK) return [code, value];
     for (;;) {
       [code, value] = evaluateCondition(test, scope);
-      if (code != ResultCode.OK) return flowController.interrupt(code, value);
+      if (code != ResultCode.OK) return [code, value];
       if (!(value as BooleanValue).value) break;
       [code, value] = scope.evaluator.executeScript(script.script);
-      if (code == ResultCode.RETURN)
-        return flowController.interrupt(code, value);
+      if (code == ResultCode.RETURN) return [code, value];
       if (code == ResultCode.BREAK) break;
       [code, value] = scope.evaluator.executeScript(next.script);
-      if (code != ResultCode.OK) return flowController.interrupt(code, value);
+      if (code != ResultCode.OK) return [code, value];
     }
-    return new StringValue("");
+    return EMPTY;
   },
 });
 const whileCmd = (scope: PicolScope): Command => ({
-  evaluate: (args, flowController) => {
+  execute: (args) => {
     if (args.length != 3 && args.length != 5) {
-      throw new Error('wrong # args: should be "while test script"');
+      return ARITY_ERROR("while test script");
     }
     const test = args[1];
     const script = args[2] as ScriptValue;
@@ -258,14 +257,13 @@ const whileCmd = (scope: PicolScope): Command => ({
     let value: Value;
     for (;;) {
       [code, value] = evaluateCondition(test, scope);
-      if (code != ResultCode.OK) return flowController.interrupt(code, value);
+      if (code != ResultCode.OK) return [code, value];
       if (!(value as BooleanValue).value) break;
       [code, value] = scope.evaluator.executeScript(script.script);
-      if (code == ResultCode.RETURN)
-        return flowController.interrupt(code, value);
+      if (code == ResultCode.RETURN) return [code, value];
       if (code == ResultCode.BREAK) break;
     }
-    return new StringValue("");
+    return EMPTY;
   },
 });
 
@@ -285,20 +283,20 @@ function evaluateCondition(
 }
 
 const setCmd = (scope: PicolScope): Command => ({
-  evaluate: (args) => {
+  execute: (args) => {
     switch (args.length) {
       case 2:
-        return scope.variableResolver.resolve(args[1].asString());
+        return OK(scope.variableResolver.resolve(args[1].asString()));
       case 3:
         scope.variables.set(args[1].asString(), args[2]);
-        return args[2];
+        return OK(args[2]);
       default:
-        throw new Error('wrong # args: should be "set varName ?newValue?"');
+        return ARITY_ERROR("set varName ?newValue?");
     }
   },
 });
 const incrCmd = (scope: PicolScope): Command => ({
-  evaluate: (args) => {
+  execute: (args) => {
     let increment: number;
     switch (args.length) {
       case 2:
@@ -308,7 +306,7 @@ const incrCmd = (scope: PicolScope): Command => ({
         increment = NumberValue.fromValue(args[2]).value;
         break;
       default:
-        throw new Error('wrong # args: should be "incr varName ?increment?"');
+        return ARITY_ERROR("incr varName ?increment?");
     }
     const varName = args[1].asString();
     const value = scope.variables.get(varName);
@@ -316,7 +314,7 @@ const incrCmd = (scope: PicolScope): Command => ({
       (value ? NumberValue.fromValue(value).value : 0) + increment
     );
     scope.variables.set(varName, result);
-    return result;
+    return OK(result);
   },
 });
 
@@ -334,7 +332,7 @@ class ProcCommand implements Command {
     this.body = body;
   }
 
-  evaluate(args: Value[]): Value {
+  execute(args: Value[]): Result {
     const scope = new PicolScope(this.scope);
     let p, a;
     for (p = 0, a = 1; p < this.argspecs.length; p++, a++) {
@@ -348,25 +346,15 @@ class ProcCommand implements Command {
       } else if (argspec.default) {
         value = argspec.default;
       } else {
-        throw new Error(
-          `wrong # args: should be "${argspecsToSignature(
-            args[0],
-            this.argspecs
-          )}"`
-        );
+        return ARITY_ERROR(argspecsToSignature(args[0], this.argspecs));
       }
       scope.variables.set(argspec.name, value);
     }
     if (a < args.length)
-      throw new Error(
-        `wrong # args: should be "${argspecsToSignature(
-          args[0],
-          this.argspecs
-        )}"`
-      );
+      return ARITY_ERROR(argspecsToSignature(args[0], this.argspecs));
 
     const result = scope.evaluate(this.body.script);
-    return result == NIL ? new StringValue("") : result;
+    return result == NIL ? EMPTY : OK(result);
   }
 }
 
@@ -428,9 +416,8 @@ function argspecsToSignature(name: Value, argspecs: ArgSpec[]): string {
 }
 
 const procCmd = (scope: PicolScope): Command => ({
-  evaluate: (args) => {
-    if (args.length != 4)
-      throw new Error('wrong # args: should be "proc name args body"');
+  execute: (args) => {
+    if (args.length != 4) return ARITY_ERROR("proc name args body");
     const [, name, _argspecs, body] = args;
     const argspecs = valueToArgspecs(_argspecs);
     scope.commands.set(
@@ -438,30 +425,26 @@ const procCmd = (scope: PicolScope): Command => ({
       (scope: PicolScope) =>
         new ProcCommand(scope, argspecs, body as ScriptValue)
     );
-    return new StringValue("");
+    return EMPTY;
   },
 });
 
 const returnCmd = (scope: PicolScope): Command => ({
-  evaluate: (args, flowController) => {
-    if (args.length > 2)
-      throw new Error('wrong # args: should be "return ?result?"');
-    return flowController.interrupt(
-      ResultCode.RETURN,
-      args.length == 2 ? args[1] : new StringValue("")
-    );
+  execute: (args) => {
+    if (args.length > 2) return ARITY_ERROR("return ?result?");
+    return args.length == 2 ? RETURN(args[1]) : RETURN(new StringValue(""));
   },
 });
 const breakCmd = (scope: PicolScope): Command => ({
-  evaluate: (args, flowController) => {
-    if (args.length != 1) throw new Error('wrong # args: should be "break"');
-    return flowController.interrupt(ResultCode.BREAK, NIL);
+  execute: (args) => {
+    if (args.length != 1) return ARITY_ERROR("break");
+    return BREAK;
   },
 });
 const continueCmd = (scope: PicolScope): Command => ({
-  evaluate: (args, flowController) => {
-    if (args.length != 1) throw new Error('wrong # args: should be "continue"');
-    return flowController.interrupt(ResultCode.CONTINUE, NIL);
+  execute: (args) => {
+    if (args.length != 1) return ARITY_ERROR("continue");
+    return CONTINUE;
   },
 });
 

@@ -573,12 +573,7 @@ export class Executor {
             if (args.values.length) {
               const command = this.resolveCommand(args.values);
               let code = ResultCode.OK;
-              this.result = command.evaluate(args.values, {
-                interrupt: (c, v) => {
-                  code = c;
-                  return v;
-                },
-              });
+              [code, this.result] = command.execute(args.values);
               if (code != ResultCode.OK) return [code, this.result];
             }
           }

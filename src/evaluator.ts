@@ -107,11 +107,9 @@ export class InlineEvaluator implements Evaluator {
     const command = this.commandResolver.resolve(cmdname);
     if (!command)
       throw new Error(`cannot resolve command ${cmdname.asString()}`);
-    return command.evaluate(values, {
-      interrupt: (code, value) => {
-        throw new Interrupt(code, value);
-      },
-    });
+    const [code, result] = command.execute(values);
+    if (code != ResultCode.OK) throw new Interrupt(code, result);
+    return result;
   }
 
   /*

@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { ResultCode } from "./command";
 import { CompilingEvaluator, Evaluator, InlineEvaluator } from "./evaluator";
 import { Parser } from "./parser";
 import { PicolScope, initPicolCommands } from "./picol-dialect";
@@ -16,8 +17,13 @@ describe("Picol dialect", () => {
 
       const parse = (script: string) =>
         parser.parse(tokenizer.tokenize(script));
-      const evaluate = (script: string) =>
-        evaluator.executeScript(parse(script))[1];
+      const execute = (script: string) =>
+        evaluator.executeScript(parse(script));
+      const evaluate = (script: string) => {
+        const [code, result] = execute(script);
+        if (code == ResultCode.ERROR) throw new Error(result.asString());
+        return result;
+      };
 
       beforeEach(() => {
         rootScope = new PicolScope();
@@ -631,34 +637,34 @@ describe("Picol dialect", () => {
             });
           });
         });
-      });
-      describe("continue", () => {
-        it("should interrupt a for loop iteration", () => {
-          expect(
-            evaluate(
-              "for {set i 0} {< $i 10} {incr i} {set var before$i; continue; set var after$i}; set var"
-            )
-          ).to.eql(new StringValue("before9"));
-        });
-        it("should interrupt a while loop iteration", () => {
-          expect(
-            evaluate(
-              "set i 0; while {< $i 10} {incr i; set var before$i; continue; set var after$i}; set var"
-            )
-          ).to.eql(new StringValue("before10"));
-        });
-        it("should not interrupt a proc", () => {
-          expect(
-            evaluate(
-              "proc cmd {} {for {set i 0} {< $i 10} {incr i} {continue}; set i}; cmd"
-            )
-          ).to.eql(new NumberValue(10));
-        });
-        describe("exceptions", () => {
-          specify("wrong arity", () => {
-            expect(() => evaluate("continue a")).to.throw(
-              'wrong # args: should be "continue"'
-            );
+        describe("continue", () => {
+          it("should interrupt a for loop iteration", () => {
+            expect(
+              evaluate(
+                "for {set i 0} {< $i 10} {incr i} {set var before$i; continue; set var after$i}; set var"
+              )
+            ).to.eql(new StringValue("before9"));
+          });
+          it("should interrupt a while loop iteration", () => {
+            expect(
+              evaluate(
+                "set i 0; while {< $i 10} {incr i; set var before$i; continue; set var after$i}; set var"
+              )
+            ).to.eql(new StringValue("before10"));
+          });
+          it("should not interrupt a proc", () => {
+            expect(
+              evaluate(
+                "proc cmd {} {for {set i 0} {< $i 10} {incr i} {continue}; set i}; cmd"
+              )
+            ).to.eql(new NumberValue(10));
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("continue a")).to.throw(
+                'wrong # args: should be "continue"'
+              );
+            });
           });
         });
       });

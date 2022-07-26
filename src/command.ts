@@ -5,11 +5,9 @@ export enum ResultCode {
   RETURN,
   BREAK,
   CONTINUE,
+  ERROR,
 }
 export type Result = [ResultCode, Value];
-export interface FlowController {
-  interrupt(code: ResultCode, value: Value);
-}
 export interface Command {
-  evaluate(args: Value[], flowController?: FlowController): Value;
+  execute(args: Value[]): Result;
 }

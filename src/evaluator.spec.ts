@@ -22,7 +22,7 @@ import {
   QualifiedValue,
   ValueType,
 } from "./values";
-import { Command, ResultCode } from "./command";
+import { Command, Result, ResultCode } from "./command";
 import {
   GenericSelector,
   IndexedSelector,
@@ -89,8 +89,8 @@ class MockVariableResolver implements VariableResolver {
 }
 
 class IntCommand implements Command {
-  evaluate(args: Value[]): Value {
-    return args[0];
+  execute(args: Value[]): Result {
+    return [ResultCode.OK, args[0]];
   }
 }
 const INT_CMD = new IntCommand();
@@ -112,8 +112,8 @@ class FunctionCommand implements Command {
     this.fn = fn;
   }
 
-  evaluate(args: Value[]): Value {
-    return this.fn(args);
+  execute(args: Value[]): Result {
+    return [ResultCode.OK, this.fn(args)];
   }
 }
 
@@ -1724,9 +1724,7 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
       describe("return", () => {
         it("should interrupt script evaluation", () => {
           commandResolver.register("return", {
-            evaluate: (args, flowController) => {
-              return flowController.interrupt(ResultCode.RETURN, args[1]);
-            },
+            execute: (args) => [ResultCode.RETURN, args[1]],
           });
           const script = parse("return a [return b]; return c");
           const value = evaluator.evaluateScript(script);
@@ -1734,12 +1732,10 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
         });
         it("should interrupt sentence evaluation", () => {
           commandResolver.register("cmd", {
-            evaluate: () => new StringValue("value"),
+            execute: () => [ResultCode.RETURN, new StringValue("value")],
           });
           commandResolver.register("return", {
-            evaluate: (args, flowController) => {
-              return flowController.interrupt(ResultCode.RETURN, args[1]);
-            },
+            execute: (args) => [ResultCode.RETURN, args[1]],
           });
           const script = parse("cmd [return a [return b]]");
           const value = evaluator.evaluateScript(script);
@@ -1747,12 +1743,10 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
         });
         it("should interrupt tuple evaluation", () => {
           commandResolver.register("cmd", {
-            evaluate: () => new StringValue("value"),
+            execute: () => [ResultCode.OK, new StringValue("value")],
           });
           commandResolver.register("return", {
-            evaluate: (args, flowController) => {
-              return flowController.interrupt(ResultCode.RETURN, args[1]);
-            },
+            execute: (args) => [ResultCode.RETURN, args[1]],
           });
           const script = parse("cmd ([return a [return b]])");
           const value = evaluator.evaluateScript(script);
@@ -1760,17 +1754,15 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
         });
         it("should interrupt expression evaluation", () => {
           commandResolver.register("cmd", {
-            evaluate: () => new StringValue("value"),
+            execute: () => [ResultCode.RETURN, new StringValue("value")],
           });
           commandResolver.register("cmd2", {
-            evaluate: () => {
+            execute: () => {
               throw new Error("CANTHAPPEN");
             },
           });
           commandResolver.register("return", {
-            evaluate: (args, flowController) => {
-              return flowController.interrupt(ResultCode.RETURN, args[1]);
-            },
+            execute: (args) => [ResultCode.RETURN, args[1]],
           });
           const script = parse("cmd [return a [return b]; cmd2] ");
           const value = evaluator.evaluateScript(script);
@@ -1778,12 +1770,10 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
         });
         it("should interrupt keyed selector evaluation", () => {
           commandResolver.register("cmd", {
-            evaluate: () => new StringValue("value"),
+            execute: () => [ResultCode.RETURN, new StringValue("value")],
           });
           commandResolver.register("return", {
-            evaluate: (args, flowController) => {
-              return flowController.interrupt(ResultCode.RETURN, args[1]);
-            },
+            execute: (args) => [ResultCode.RETURN, args[1]],
           });
           variableResolver.register(
             "var",
@@ -1795,12 +1785,10 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
         });
         it("should interrupt indexed selector evaluation", () => {
           commandResolver.register("cmd", {
-            evaluate: () => new StringValue("value"),
+            execute: () => [ResultCode.RETURN, new StringValue("value")],
           });
           commandResolver.register("return", {
-            evaluate: (args, flowController) => {
-              return flowController.interrupt(ResultCode.RETURN, args[1]);
-            },
+            execute: (args) => [ResultCode.RETURN, args[1]],
           });
           variableResolver.register(
             "var",
@@ -1815,12 +1803,10 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
         });
         it("should interrupt generic selector evaluation", () => {
           commandResolver.register("cmd", {
-            evaluate: () => new StringValue("value"),
+            execute: () => [ResultCode.RETURN, new StringValue("value")],
           });
           commandResolver.register("return", {
-            evaluate: (args, flowController) => {
-              return flowController.interrupt(ResultCode.RETURN, args[1]);
-            },
+            execute: (args) => [ResultCode.RETURN, args[1]],
           });
           variableResolver.register("var", new StringValue("value"));
           const script = parse("cmd $var{[return a [return b]]}");
