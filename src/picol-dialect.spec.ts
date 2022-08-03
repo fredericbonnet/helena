@@ -667,6 +667,34 @@ describe("Picol dialect", () => {
             });
           });
         });
+        describe("error", () => {
+          it("should interrupt a for loop", () => {
+            expect(
+              execute(
+                "for {set i 0} {< $i 10} {incr i} {set var before$i; error message; set var after$i}; set var"
+              )
+            ).to.eql([ResultCode.ERROR, new StringValue("message")]);
+          });
+          it("should interrupt a while loop", () => {
+            expect(
+              execute(
+                "while true {set var before; error message; set var after}; set var"
+              )
+            ).to.eql([ResultCode.ERROR, new StringValue("message")]);
+          });
+          it("should interrupt a proc", () => {
+            expect(
+              execute("proc cmd {} {error message; set var val}; cmd")
+            ).to.eql([ResultCode.ERROR, new StringValue("message")]);
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("error")).to.throw(
+                'wrong # args: should be "error message"'
+              );
+            });
+          });
+        });
       });
 
       describe("set", () => {

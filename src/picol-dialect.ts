@@ -238,8 +238,13 @@ const forCmd = (scope: PicolScope): Command => ({
       if (code != ResultCode.OK) return [code, value];
       if (!(value as BooleanValue).value) break;
       [code, value] = scope.evaluator.executeScript(script.script);
-      if (code == ResultCode.RETURN) return [code, value];
       if (code == ResultCode.BREAK) break;
+      if (code == ResultCode.CONTINUE) {
+        [code, value] = scope.evaluator.executeScript(next.script);
+        if (code != ResultCode.OK) return [code, value];
+        continue;
+      }
+      if (code != ResultCode.OK) return [code, value];
       [code, value] = scope.evaluator.executeScript(next.script);
       if (code != ResultCode.OK) return [code, value];
     }
@@ -260,8 +265,9 @@ const whileCmd = (scope: PicolScope): Command => ({
       if (code != ResultCode.OK) return [code, value];
       if (!(value as BooleanValue).value) break;
       [code, value] = scope.evaluator.executeScript(script.script);
-      if (code == ResultCode.RETURN) return [code, value];
       if (code == ResultCode.BREAK) break;
+      if (code == ResultCode.CONTINUE) continue;
+      if (code != ResultCode.OK) return [code, value];
     }
     return EMPTY;
   },
@@ -353,8 +359,9 @@ class ProcCommand implements Command {
     if (a < args.length)
       return ARITY_ERROR(argspecsToSignature(args[0], this.argspecs));
 
-    const result = scope.evaluate(this.body.script);
-    return result == NIL ? EMPTY : OK(result);
+    const [code, value] = scope.evaluator.executeScript(this.body.script);
+    if (code == ResultCode.ERROR) return [code, value];
+    return value == NIL ? EMPTY : OK(value);
   }
 }
 
@@ -447,6 +454,12 @@ const continueCmd = (scope: PicolScope): Command => ({
     return CONTINUE;
   },
 });
+const errorCmd = (scope: PicolScope): Command => ({
+  execute: (args) => {
+    if (args.length != 2) return ARITY_ERROR("error message");
+    return ERROR(args[1]);
+  },
+});
 
 export function initPicolCommands(scope: PicolScope) {
   scope.commands.set("+", addCmd);
@@ -471,4 +484,5 @@ export function initPicolCommands(scope: PicolScope) {
   scope.commands.set("return", returnCmd);
   scope.commands.set("break", breakCmd);
   scope.commands.set("continue", continueCmd);
+  scope.commands.set("error", errorCmd);
 }
