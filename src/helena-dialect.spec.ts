@@ -2,9 +2,9 @@ import { expect } from "chai";
 import { ResultCode } from "./command";
 import { CompilingEvaluator, Evaluator, InlineEvaluator } from "./evaluator";
 import { Parser } from "./parser";
-import { Scope, initCommands, Variable } from "./helena-dialect";
+import { Scope, initCommands, Variable, CommandValue } from "./helena-dialect";
 import { Tokenizer } from "./tokenizer";
-import { StringValue } from "./values";
+import { NIL, StringValue, TupleValue } from "./values";
 
 describe("Helena dialect", () => {
   for (let klass of [InlineEvaluator, CompilingEvaluator]) {
@@ -36,6 +36,29 @@ describe("Helena dialect", () => {
           rootScope.commandResolver,
           null
         );
+      });
+
+      describe("idem", () => {
+        it("should return its argument", () => {
+          expect(evaluate("idem val")).to.eql(new StringValue("val"));
+          expect(evaluate("idem (a b c)")).to.eql(
+            new TupleValue([
+              new StringValue("a"),
+              new StringValue("b"),
+              new StringValue("c"),
+            ])
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(() => evaluate("idem")).to.throw(
+              'wrong # args: should be "idem value"'
+            );
+            expect(() => evaluate("idem a b")).to.throw(
+              'wrong # args: should be "idem value"'
+            );
+          });
+        });
       });
 
       describe("constants and variables", () => {
@@ -142,6 +165,89 @@ describe("Helena dialect", () => {
             expect(() => evaluate("get a b")).to.throw(
               'wrong # args: should be "get varName"'
             );
+          });
+        });
+      });
+
+      describe("commands", () => {
+        describe("macro", () => {
+          it("should define a new command", () => {
+            execute("macro cmd {} {}");
+            expect(rootScope.commands.has("cmd"));
+          });
+          it("should replace existing commands", () => {
+            evaluate("macro cmd {} {}");
+            expect(() => evaluate("macro cmd {} {}")).to.not.throw();
+          });
+          it("should return a command value", () => {
+            expect(evaluate("macro {} {}")).to.be.instanceof(CommandValue);
+            expect(evaluate("macro cmd {} {}")).to.be.instanceof(CommandValue);
+          });
+          it("should define a variable with command value when given a name", () => {
+            const value = evaluate("macro cmd {} {}");
+            expect(evaluate("get cmd")).to.eql(value);
+          });
+          describe("calls", () => {
+            it("should return nil for empty body", () => {
+              evaluate("macro cmd {} {}");
+              expect(evaluate("cmd")).to.eql(NIL);
+            });
+            it("should return the result of the last command", () => {
+              evaluate("macro cmd {} {idem val1; idem val2}");
+              expect(evaluate("cmd")).to.eql(new StringValue("val2"));
+            });
+            it("should be callable by value", () => {
+              evaluate("set cmd [macro {} {idem val}]");
+              expect(evaluate("$cmd")).to.eql(new StringValue("val"));
+            });
+            it("should be callable by variable", () => {
+              evaluate("macro cmd {} {idem val}");
+              expect(evaluate("$cmd")).to.eql(new StringValue("val"));
+            });
+            it("should evaluate in the caller scope", () => {
+              evaluate(
+                "macro cmd {} {let cst val1; set var val2; macro cmd2 {} {}}"
+              );
+              evaluate("cmd");
+              expect(rootScope.constants.get("cst")).to.eql(
+                new StringValue("val1")
+              );
+              expect(rootScope.variables.get("var")).to.eql(
+                new Variable(new StringValue("val2"))
+              );
+              expect(rootScope.commands.get("cmd2")).to.exist;
+            });
+            it("should access scope variables", () => {
+              evaluate("set var val");
+              evaluate("macro cmd {} {get var}");
+              expect(evaluate("cmd")).to.eql(new StringValue("val"));
+            });
+            it("should set scope variables", () => {
+              evaluate("set var old");
+              evaluate("macro cmd {} {set var val; set var2 val2}");
+              evaluate("cmd");
+              expect(evaluate("get var")).to.eql(new StringValue("val"));
+              expect(evaluate("get var2")).to.eql(new StringValue("val2"));
+            });
+            it("should access scope commands", () => {
+              evaluate("macro cmd2 {} {set var val}");
+              evaluate("macro cmd {} {cmd2}");
+              evaluate("cmd");
+              expect(evaluate("get var")).to.eql(new StringValue("val"));
+            });
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("macro")).to.throw(
+                'wrong # args: should be "macro ?name? args body"'
+              );
+              expect(() => evaluate("macro a")).to.throw(
+                'wrong # args: should be "macro ?name? args body"'
+              );
+              expect(() => evaluate("macro a b c d")).to.throw(
+                'wrong # args: should be "macro ?name? args body"'
+              );
+            });
           });
         });
       });

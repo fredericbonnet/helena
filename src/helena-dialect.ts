@@ -6,7 +6,7 @@ import {
   Evaluator,
 } from "./evaluator";
 import { Script } from "./syntax";
-import { Value, NIL, StringValue } from "./values";
+import { Value, NIL, StringValue, ScriptValue, ValueType } from "./values";
 
 export class Variable {
   value: Value;
@@ -14,11 +14,32 @@ export class Variable {
     this.value = value;
   }
 }
+type ScopedCommand = (scope: Scope) => Command;
+export class CommandValue implements Value {
+  type: ValueType = ValueType.CUSTOM;
+  command: ScopedCommand;
+
+  constructor(command: ScopedCommand) {
+    this.command = command;
+  }
+  asString(): string {
+    throw new Error("Method not implemented.");
+  }
+  selectIndex(index: Value): Value {
+    throw new Error("Method not implemented.");
+  }
+  selectKey(key: Value): Value {
+    throw new Error("Method not implemented.");
+  }
+  selectRules(rules: Value[]): Value {
+    throw new Error("Method not implemented.");
+  }
+}
 export class Scope {
   parent?: Scope;
   constants: Map<string, Value> = new Map();
   variables: Map<string, Variable> = new Map();
-  commands: Map<string, (scope: Scope) => Command> = new Map();
+  commands: Map<string, ScopedCommand> = new Map();
   evaluator: Evaluator;
   constructor(parent?: Scope) {
     this.parent = parent;
@@ -45,10 +66,11 @@ export class Scope {
     if (this.variables.has(name)) return this.variables.get(name).value;
     throw new Error(`can\'t read "${name}": no such variable`);
   }
-  resolveCommand(name: Value): Command {
-    return this.resolveScopedCommand(name.asString())(this);
+  resolveCommand(value: Value): Command {
+    if (value instanceof CommandValue) return value.command(this);
+    return this.resolveScopedCommand(value.asString())(this);
   }
-  resolveScopedCommand(name: string): (scope: Scope) => Command {
+  resolveScopedCommand(name: string): ScopedCommand {
     if (!this.commands.has(name)) {
       if (!this.parent) throw new Error(`invalid command name "${name}"`);
       return this.parent.resolveScopedCommand(name);
@@ -63,10 +85,15 @@ const BREAK: Result = [ResultCode.BREAK, NIL];
 const CONTINUE: Result = [ResultCode.CONTINUE, NIL];
 const ERROR = (value: Value): Result => [ResultCode.ERROR, value];
 
-const EMPTY: Result = OK(new StringValue(""));
-
 const ARITY_ERROR = (signature: string) =>
   ERROR(new StringValue(`wrong # args: should be "${signature}"`));
+
+const idemCmd = (scope: Scope): Command => ({
+  execute: (args) => {
+    if (args.length != 2) return ARITY_ERROR("idem value");
+    return OK(args[1]);
+  },
+});
 
 const letCmd = (scope: Scope): Command => ({
   execute: (args) => {
@@ -123,8 +150,63 @@ const getCmd = (scope: Scope): Command => ({
     }
   },
 });
+
+type ArgSpec = {
+  name: string;
+  default?: Value;
+};
+class MacroCommand implements Command {
+  scope: Scope;
+  argspecs: ArgSpec[];
+  body: ScriptValue;
+  constructor(scope: Scope, argspecs: ArgSpec[], body: ScriptValue) {
+    this.scope = scope;
+    this.argspecs = argspecs;
+    this.body = body;
+  }
+
+  execute(args: Value[]): Result {
+    return this.scope.evaluator.executeScript(this.body.script);
+  }
+}
+
+const macroCmd = (scope: Scope): Command => ({
+  execute: (args) => {
+    let name, argspecs, body;
+    switch (args.length) {
+      case 3:
+        [, argspecs, body] = args;
+        break;
+      case 4:
+        [, name, argspecs, body] = args;
+        break;
+      default:
+        return ARITY_ERROR("macro ?name? args body");
+    }
+
+    const command = (scope: Scope) =>
+      new MacroCommand(scope, valueToArgspecs(argspecs), body as ScriptValue);
+    const value = new CommandValue(command);
+    if (name) {
+      scope.commands.set(name.asString(), command);
+      scope.variables.set(name.asString(), new Variable(value));
+    }
+
+    return OK(value);
+  },
+});
+
+function valueToArgspecs(value: Value): ArgSpec[] {
+  // TODO
+  return [];
+}
+
 export function initCommands(scope: Scope) {
+  scope.commands.set("idem", idemCmd);
+
   scope.commands.set("let", letCmd);
   scope.commands.set("set", setCmd);
   scope.commands.set("get", getCmd);
+
+  scope.commands.set("macro", macroCmd);
 }
