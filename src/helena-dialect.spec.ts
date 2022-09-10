@@ -89,17 +89,15 @@ describe("Helena dialect", () => {
               );
             });
             specify("wrong arity", () => {
-              specify("wrong arity", () => {
-                expect(() => evaluate("let")).to.throw(
-                  'wrong # args: should be "let constName value"'
-                );
-                expect(() => evaluate("let a")).to.throw(
-                  'wrong # args: should be "let constName value"'
-                );
-                expect(() => evaluate("let a b c")).to.throw(
-                  'wrong # args: should be "let constName value"'
-                );
-              });
+              expect(() => evaluate("let")).to.throw(
+                'wrong # args: should be "let constname value"'
+              );
+              expect(() => evaluate("let a")).to.throw(
+                'wrong # args: should be "let constname value"'
+              );
+              expect(() => evaluate("let a b c")).to.throw(
+                'wrong # args: should be "let constname value"'
+              );
             });
           });
         });
@@ -132,13 +130,13 @@ describe("Helena dialect", () => {
             });
             specify("wrong arity", () => {
               expect(() => evaluate("set")).to.throw(
-                'wrong # args: should be "set varName value"'
+                'wrong # args: should be "set varname value"'
               );
               expect(() => evaluate("set a")).to.throw(
-                'wrong # args: should be "set varName value"'
+                'wrong # args: should be "set varname value"'
               );
               expect(() => evaluate("set a b c")).to.throw(
-                'wrong # args: should be "set varName value"'
+                'wrong # args: should be "set varname value"'
               );
             });
           });
@@ -160,10 +158,165 @@ describe("Helena dialect", () => {
           });
           specify("wrong arity", () => {
             expect(() => evaluate("get")).to.throw(
-              'wrong # args: should be "get varName"'
+              'wrong # args: should be "get varname"'
             );
             expect(() => evaluate("get a b")).to.throw(
-              'wrong # args: should be "get varName"'
+              'wrong # args: should be "get varname"'
+            );
+          });
+        });
+      });
+
+      describe("scope", () => {
+        it("should define a new command", () => {
+          evaluate("scope cmd {}");
+          expect(rootScope.commands.has("cmd"));
+        });
+        it("should replace existing commands", () => {
+          evaluate("scope cmd {}");
+          expect(() => evaluate("scope cmd {}")).to.not.throw();
+        });
+        it("should return a command value", () => {
+          expect(evaluate("scope {}")).to.be.instanceof(CommandValue);
+          expect(evaluate("scope cmd  {}")).to.be.instanceof(CommandValue);
+        });
+        it("should define a variable with command value when given a name", () => {
+          const value = evaluate("scope cmd {}");
+          expect(evaluate("get cmd")).to.eql(value);
+        });
+        specify("command should return self", () => {
+          const value = evaluate("scope cmd {}");
+          expect(evaluate("cmd")).to.eql(value);
+        });
+        describe("body", () => {
+          it("should be executed", () => {
+            evaluate("closure cmd {} {let var val}");
+            expect(rootScope.constants.has("var")).to.be.false;
+            evaluate("scope {cmd}");
+            expect(rootScope.constants.get("var")).to.eql(
+              new StringValue("val")
+            );
+          });
+          it("should access global commands", () => {
+            expect(() => evaluate("scope {idem val}")).to.not.throw();
+          });
+          it("should not access global variables", () => {
+            evaluate("set var val");
+            expect(() => evaluate("scope {get var}")).to.throw();
+          });
+          it("should not set global variables", () => {
+            evaluate("set var val");
+            evaluate("scope {set var val2; let cst val3}");
+            expect(rootScope.variables.get("var")).to.eql(
+              new Variable(new StringValue("val"))
+            );
+            expect(rootScope.constants.has("cst")).to.be.false;
+          });
+          it("should set scope variables", () => {
+            evaluate("set var val");
+            evaluate("scope cmd {set var val2; let cst val3}");
+            expect(rootScope.variables.get("var")).to.eql(
+              new Variable(new StringValue("val"))
+            );
+            expect(rootScope.constants.has("cst")).to.be.false;
+            expect(evaluate("cmd eval {get var}")).to.eql(
+              new StringValue("val2")
+            );
+            expect(evaluate("cmd eval {get cst}")).to.eql(
+              new StringValue("val3")
+            );
+          });
+        });
+        describe("methods", () => {
+          describe("eval", () => {
+            it("should evaluate body", () => {
+              evaluate("scope cmd {let cst val}");
+              expect(evaluate("cmd eval {get cst}")).to.eql(
+                new StringValue("val")
+              );
+            });
+            it("should evaluate macros in scope", () => {
+              evaluate("scope cmd {macro mac {} {let cst val}}");
+              evaluate("cmd eval {mac}");
+              expect(rootScope.constants.has("cst")).to.be.false;
+              expect(evaluate("cmd eval {get cst}")).to.eql(
+                new StringValue("val")
+              );
+            });
+            it("should evaluate closures in their scope", () => {
+              evaluate("closure cls {} {let cst val}");
+              evaluate("scope cmd {}");
+              evaluate("cmd eval {cls}");
+              expect(rootScope.constants.get("cst")).to.eql(
+                new StringValue("val")
+              );
+              expect(() => evaluate("cmd eval {get cst}")).to.throw();
+            });
+            describe("exceptions", () => {
+              specify("wrong arity", () => {
+                expect(() => evaluate("[scope {}] eval")).to.throw(
+                  'wrong # args: should be "scope eval body'
+                );
+                expect(() => evaluate("[scope {}] eval a b")).to.throw(
+                  'wrong # args: should be "scope eval body'
+                );
+              });
+            });
+          });
+          describe("call", () => {
+            it("should call scope commands", () => {
+              evaluate('scope cmd {macro mac {} {idem "val"}}');
+              expect(evaluate("cmd call mac")).to.eql(new StringValue("val"));
+            });
+            it("should evaluate macros in scope", () => {
+              evaluate("scope cmd {macro mac {} {let cst val}}");
+              evaluate("cmd call mac");
+              expect(rootScope.constants.has("cst")).to.be.false;
+              expect(evaluate("cmd eval {get cst}")).to.eql(
+                new StringValue("val")
+              );
+            });
+            it("should evaluate closures in scope", () => {
+              evaluate("scope cmd {closure cls {} {let cst val}}");
+              evaluate("cmd call cls");
+              expect(rootScope.constants.has("cst")).to.be.false;
+              expect(evaluate("cmd eval {get cst}")).to.eql(
+                new StringValue("val")
+              );
+            });
+            describe("exceptions", () => {
+              specify("wrong arity", () => {
+                expect(() => evaluate("[scope {}] call")).to.throw(
+                  'wrong # args: should be "scope call cmdname ?arg ...?"'
+                );
+              });
+              specify("non-existing command", () => {
+                expect(() =>
+                  evaluate("[scope {}] call unknownCommand")
+                ).to.throw('invalid command name "unknownCommand"');
+              });
+              specify("out-of-scope command", () => {
+                expect(() =>
+                  evaluate("macro cmd {} {}; [scope {}] call cmd")
+                ).to.throw('invalid command name "cmd"');
+              });
+            });
+          });
+          describe("exceptions", () => {
+            specify("non-existing method", () => {
+              expect(() => evaluate("[scope {}] unknownMethod")).to.throw(
+                'invalid method name "unknownMethod"'
+              );
+            });
+          });
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(() => evaluate("scope")).to.throw(
+              'wrong # args: should be "scope ?name? body"'
+            );
+            expect(() => evaluate("scope a b c")).to.throw(
+              'wrong # args: should be "scope ?name? body"'
             );
           });
         });
@@ -172,7 +325,7 @@ describe("Helena dialect", () => {
       describe("commands", () => {
         describe("macro", () => {
           it("should define a new command", () => {
-            execute("macro cmd {} {}");
+            evaluate("macro cmd {} {}");
             expect(rootScope.commands.has("cmd"));
           });
           it("should replace existing commands", () => {
@@ -204,18 +357,56 @@ describe("Helena dialect", () => {
               evaluate("macro cmd {} {idem val}");
               expect(evaluate("$cmd")).to.eql(new StringValue("val"));
             });
-            it("should evaluate in the caller scope", () => {
-              evaluate(
-                "macro cmd {} {let cst val1; set var val2; macro cmd2 {} {}}"
-              );
-              evaluate("cmd");
-              expect(rootScope.constants.get("cst")).to.eql(
-                new StringValue("val1")
-              );
-              expect(rootScope.variables.get("var")).to.eql(
-                new Variable(new StringValue("val2"))
-              );
-              expect(rootScope.commands.get("cmd2")).to.exist;
+            describe("should evaluate in the caller scope", () => {
+              specify("global scope", () => {
+                evaluate(
+                  "macro cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}"
+                );
+                evaluate("cmd");
+                expect(rootScope.constants.get("cst")).to.eql(
+                  new StringValue("val1")
+                );
+                expect(rootScope.variables.get("var")).to.eql(
+                  new Variable(new StringValue("val2"))
+                );
+                expect(rootScope.commands.has("cmd2")).to.be.true;
+              });
+              specify("child scope", () => {
+                evaluate(
+                  "macro cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}"
+                );
+                evaluate("scope scp {cmd}");
+                expect(rootScope.constants.has("cst")).to.be.false;
+                expect(rootScope.variables.has("var")).to.be.false;
+                expect(rootScope.commands.has("cmd2")).to.be.false;
+                expect(evaluate("scp eval {get cst}")).to.eql(
+                  new StringValue("val1")
+                );
+                expect(evaluate("scp eval {get var}")).to.eql(
+                  new StringValue("val2")
+                );
+                expect(evaluate("scp eval {cmd2}")).to.eql(
+                  new StringValue("val3")
+                );
+              });
+              specify("scoped macro", () => {
+                evaluate(
+                  "scope scp1 {macro cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}}"
+                );
+                evaluate("scope scp2 {[scp1 eval {get cmd}]}");
+                expect(() => evaluate("scp1 eval {get cst}")).to.throw();
+                expect(() => evaluate("scp1 eval {get var}")).to.throw();
+                expect(() => evaluate("scp1 eval {cmd2}")).to.throw();
+                expect(evaluate("scp2 eval {get cst}")).to.eql(
+                  new StringValue("val1")
+                );
+                expect(evaluate("scp2 eval {get var}")).to.eql(
+                  new StringValue("val2")
+                );
+                expect(evaluate("scp2 eval {cmd2}")).to.eql(
+                  new StringValue("val3")
+                );
+              });
             });
             it("should access scope variables", () => {
               evaluate("set var val");
@@ -246,6 +437,104 @@ describe("Helena dialect", () => {
               );
               expect(() => evaluate("macro a b c d")).to.throw(
                 'wrong # args: should be "macro ?name? args body"'
+              );
+            });
+          });
+        });
+
+        describe("closure", () => {
+          it("should define a new command", () => {
+            evaluate("closure cmd {} {}");
+            expect(rootScope.commands.has("cmd"));
+          });
+          it("should replace existing commands", () => {
+            evaluate("closure cmd {} {}");
+            expect(() => evaluate("closure cmd {} {}")).to.not.throw();
+          });
+          it("should return a command value", () => {
+            expect(evaluate("closure {} {}")).to.be.instanceof(CommandValue);
+            expect(evaluate("closure cmd {} {}")).to.be.instanceof(
+              CommandValue
+            );
+          });
+          it("should define a variable with command value when given a name", () => {
+            const value = evaluate("closure cmd {} {}");
+            expect(evaluate("get cmd")).to.eql(value);
+          });
+          describe("calls", () => {
+            it("should return nil for empty body", () => {
+              evaluate("closure cmd {} {}");
+              expect(evaluate("cmd")).to.eql(NIL);
+            });
+            it("should return the result of the last command", () => {
+              evaluate("closure cmd {} {idem val1; idem val2}");
+              expect(evaluate("cmd")).to.eql(new StringValue("val2"));
+            });
+            it("should be callable by value", () => {
+              evaluate("set cmd [closure {} {idem val}]");
+              expect(evaluate("$cmd")).to.eql(new StringValue("val"));
+            });
+            it("should be callable by variable", () => {
+              evaluate("closure cmd {} {idem val}");
+              expect(evaluate("$cmd")).to.eql(new StringValue("val"));
+            });
+            describe("should evaluate in the parent scope", () => {
+              specify("global scope", () => {
+                evaluate(
+                  "closure cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}"
+                );
+                evaluate("cmd");
+                expect(rootScope.constants.get("cst")).to.eql(
+                  new StringValue("val1")
+                );
+                expect(rootScope.variables.get("var")).to.eql(
+                  new Variable(new StringValue("val2"))
+                );
+                expect(rootScope.commands.has("cmd2")).to.be.true;
+              });
+              specify("child scope", () => {
+                evaluate(
+                  "closure cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}"
+                );
+                evaluate("scope scp {cmd}");
+                expect(rootScope.constants.get("cst")).to.eql(
+                  new StringValue("val1")
+                );
+                expect(rootScope.variables.get("var")).to.eql(
+                  new Variable(new StringValue("val2"))
+                );
+                expect(rootScope.commands.has("cmd2")).to.be.true;
+              });
+              specify("scoped closure", () => {
+                evaluate(
+                  "scope scp1 {closure cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}}"
+                );
+                evaluate("scope scp2 {[scp1 eval {get cmd}]}");
+                expect(evaluate("scp1 eval {get cst}")).to.eql(
+                  new StringValue("val1")
+                );
+                expect(evaluate("scp1 eval {get var}")).to.eql(
+                  new StringValue("val2")
+                );
+                expect(evaluate("scp1 eval {cmd2}")).to.eql(
+                  new StringValue("val3")
+                );
+                expect(() => evaluate("scp2 eval {get cst}")).to.throw();
+                expect(() => evaluate("scp2 eval {get var}")).to.throw();
+                expect(() => evaluate("scp2 eval {cmd2}")).to.throw();
+              });
+            });
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("closure")).to.throw(
+                'wrong # args: should be "closure ?name? args body"'
+              );
+              expect(() => evaluate("closure a")).to.throw(
+                'wrong # args: should be "closure ?name? args body"'
+              );
+              expect(() => evaluate("closure a b c d")).to.throw(
+                'wrong # args: should be "closure ?name? args body"'
               );
             });
           });

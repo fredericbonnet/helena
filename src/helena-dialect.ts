@@ -66,14 +66,15 @@ export class Scope {
     if (this.variables.has(name)) return this.variables.get(name).value;
     throw new Error(`can\'t read "${name}": no such variable`);
   }
-  resolveCommand(value: Value): Command {
+  resolveCommand(value: Value, recurse: boolean = true): Command {
     if (value instanceof CommandValue) return value.command(this);
-    return this.resolveScopedCommand(value.asString())(this);
+    return this.resolveScopedCommand(value.asString(), recurse)(this);
   }
-  resolveScopedCommand(name: string): ScopedCommand {
+  resolveScopedCommand(name: string, recurse: boolean): ScopedCommand {
     if (!this.commands.has(name)) {
-      if (!this.parent) throw new Error(`invalid command name "${name}"`);
-      return this.parent.resolveScopedCommand(name);
+      if (!recurse || !this.parent)
+        throw new Error(`invalid command name "${name}"`);
+      return this.parent.resolveScopedCommand(name, recurse);
     }
     return this.commands.get(name);
   }
@@ -115,7 +116,7 @@ const letCmd = (scope: Scope): Command => ({
         return OK(args[2]);
       }
       default:
-        return ARITY_ERROR("let constName value");
+        return ARITY_ERROR("let constname value");
     }
   },
 });
@@ -136,7 +137,7 @@ const setCmd = (scope: Scope): Command => ({
         return OK(args[2]);
       }
       default:
-        return ARITY_ERROR("set varName value");
+        return ARITY_ERROR("set varname value");
     }
   },
 });
@@ -146,7 +147,7 @@ const getCmd = (scope: Scope): Command => ({
       case 2:
         return OK(scope.variableResolver.resolve(args[1].asString()));
       default:
-        return ARITY_ERROR("get varName");
+        return ARITY_ERROR("get varname");
     }
   },
 });
@@ -155,6 +156,74 @@ type ArgSpec = {
   name: string;
   default?: Value;
 };
+
+class ScopeValue extends CommandValue {
+  scope: Scope;
+  constructor(scope: Scope) {
+    super((_: Scope) => new ScopeCommand(scope, this));
+    this.scope = scope;
+  }
+}
+class ScopeCommand implements Command {
+  scope: Scope;
+  value: ScopeValue;
+  constructor(scope: Scope, value: ScopeValue) {
+    this.scope = scope;
+    this.value = value;
+  }
+
+  execute(args: Value[]): Result {
+    if (args.length == 1) return OK(this.value);
+    if (args.length < 2) return ARITY_ERROR("scope method ?arg ...?");
+    const method = args[1];
+    switch (method.asString()) {
+      case "eval": {
+        if (args.length != 3) return ARITY_ERROR("scope eval body");
+        const body = args[2] as ScriptValue;
+        return this.scope.evaluator.executeScript(body.script);
+      }
+      case "call": {
+        if (args.length < 3) return ARITY_ERROR("scope call cmdname ?arg ...?");
+        const cmdline = args.slice(2);
+        return this.scope.resolveCommand(cmdline[0], false).execute(cmdline);
+      }
+      default:
+        return ERROR(
+          new StringValue(`invalid method name "${method.asString()}"`)
+        );
+    }
+  }
+}
+const scopeCmd = (scope: Scope): Command => ({
+  execute: (args) => {
+    let name, body;
+    switch (args.length) {
+      case 2:
+        [, body] = args;
+        break;
+      case 3:
+        [, name, body] = args;
+        break;
+      default:
+        return ARITY_ERROR("scope ?name? body");
+    }
+
+    const subscope = new Scope(scope);
+    const [code, result] = subscope.evaluator.executeScript(
+      (body as ScriptValue).script
+    );
+    if (code != ResultCode.OK) return [code, result];
+
+    const value = new ScopeValue(subscope);
+    if (name) {
+      scope.commands.set(name.asString(), value.command);
+      scope.variables.set(name.asString(), new Variable(value));
+    }
+
+    return OK(value);
+  },
+});
+
 class MacroCommand implements Command {
   scope: Scope;
   argspecs: ArgSpec[];
@@ -169,7 +238,6 @@ class MacroCommand implements Command {
     return this.scope.evaluator.executeScript(this.body.script);
   }
 }
-
 const macroCmd = (scope: Scope): Command => ({
   execute: (args) => {
     let name, argspecs, body;
@@ -196,6 +264,46 @@ const macroCmd = (scope: Scope): Command => ({
   },
 });
 
+class ClosureCommand implements Command {
+  scope: Scope;
+  argspecs: ArgSpec[];
+  body: ScriptValue;
+  constructor(scope: Scope, argspecs: ArgSpec[], body: ScriptValue) {
+    this.scope = scope;
+    this.argspecs = argspecs;
+    this.body = body;
+  }
+
+  execute(args: Value[]): Result {
+    return this.scope.evaluator.executeScript(this.body.script);
+  }
+}
+const closureCmd = (scope: Scope): Command => ({
+  execute: (args) => {
+    let name, argspecs, body;
+    switch (args.length) {
+      case 3:
+        [, argspecs, body] = args;
+        break;
+      case 4:
+        [, name, argspecs, body] = args;
+        break;
+      default:
+        return ARITY_ERROR("closure ?name? args body");
+    }
+
+    const command = (_: Scope) =>
+      new ClosureCommand(scope, valueToArgspecs(argspecs), body as ScriptValue);
+    const value = new CommandValue(command);
+    if (name) {
+      scope.commands.set(name.asString(), command);
+      scope.variables.set(name.asString(), new Variable(value));
+    }
+
+    return OK(value);
+  },
+});
+
 function valueToArgspecs(value: Value): ArgSpec[] {
   // TODO
   return [];
@@ -208,5 +316,8 @@ export function initCommands(scope: Scope) {
   scope.commands.set("set", setCmd);
   scope.commands.set("get", getCmd);
 
+  scope.commands.set("scope", scopeCmd);
+
   scope.commands.set("macro", macroCmd);
+  scope.commands.set("closure", closureCmd);
 }
