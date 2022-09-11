@@ -1,12 +1,12 @@
-import { Command, Result, ResultCode } from "./command";
+import { Command, Result, ResultCode } from "../core/command";
 import {
   VariableResolver,
   CommandResolver,
   CompilingEvaluator,
   InlineEvaluator,
   Evaluator,
-} from "./evaluator";
-import { Script } from "./syntax";
+} from "../core/evaluator";
+import { Script } from "../core/syntax";
 import {
   Value,
   ScriptValue,
@@ -18,7 +18,7 @@ import {
   FALSE,
   TRUE,
   BooleanValue,
-} from "./values";
+} from "../core/values";
 
 export class PicolScope {
   parent?: PicolScope;

@@ -1,10 +1,20 @@
 import { expect } from "chai";
-import { ResultCode } from "./command";
-import { CompilingEvaluator, Evaluator, InlineEvaluator } from "./evaluator";
-import { Parser } from "./parser";
+import { ResultCode } from "../core/command";
+import {
+  CompilingEvaluator,
+  Evaluator,
+  InlineEvaluator,
+} from "../core/evaluator";
+import { Parser } from "../core/parser";
 import { PicolScope, initPicolCommands } from "./picol-dialect";
-import { Tokenizer } from "./tokenizer";
-import { FALSE, TRUE, NumberValue, StringValue, TupleValue } from "./values";
+import { Tokenizer } from "../core/tokenizer";
+import {
+  FALSE,
+  TRUE,
+  NumberValue,
+  StringValue,
+  TupleValue,
+} from "../core/values";
 
 describe("Picol dialect", () => {
   for (let klass of [InlineEvaluator, CompilingEvaluator]) {

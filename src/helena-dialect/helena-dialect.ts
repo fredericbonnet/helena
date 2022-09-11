@@ -1,12 +1,18 @@
-import { Command, Result, ResultCode } from "./command";
+import { Command, Result, ResultCode } from "../core/command";
 import {
   VariableResolver,
   CommandResolver,
   CompilingEvaluator,
   Evaluator,
-} from "./evaluator";
-import { Script } from "./syntax";
-import { Value, NIL, StringValue, ScriptValue, ValueType } from "./values";
+} from "../core/evaluator";
+import { Script } from "../core/syntax";
+import {
+  Value,
+  NIL,
+  StringValue,
+  ScriptValue,
+  ValueType,
+} from "../core/values";
 
 export class Variable {
   value: Value;
