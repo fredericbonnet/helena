@@ -76,7 +76,7 @@ class StringNode implements StringMorpheme, ContextualNode {
 }
 class HereStringNode implements HereStringMorpheme, ContextualNode {
   type = MorphemeType.HERE_STRING;
-  value: string = "";
+  value = "";
   delimiterLength: number;
   parentContext?: Context;
 
@@ -86,7 +86,7 @@ class HereStringNode implements HereStringMorpheme, ContextualNode {
 }
 class TaggedStringNode implements TaggedStringMorpheme, ContextualNode {
   type = MorphemeType.TAGGED_STRING;
-  value: string = "";
+  value = "";
   tag: string;
   parentContext?: Context;
 
@@ -96,7 +96,7 @@ class TaggedStringNode implements TaggedStringMorpheme, ContextualNode {
 }
 class LineCommentNode implements LineCommentMorpheme, ContextualNode {
   type = MorphemeType.LINE_COMMENT;
-  value: string = "";
+  value = "";
   delimiterLength: number;
   parentContext?: Context;
 
@@ -106,9 +106,9 @@ class LineCommentNode implements LineCommentMorpheme, ContextualNode {
 }
 class BlockCommentNode implements BlockCommentMorpheme, ContextualNode {
   type = MorphemeType.BLOCK_COMMENT;
-  value: string = "";
+  value = "";
   delimiterLength: number;
-  nesting: number = 1;
+  nesting = 1;
   parentContext?: Context;
 
   constructor(delimiter: string) {
@@ -117,8 +117,8 @@ class BlockCommentNode implements BlockCommentMorpheme, ContextualNode {
 }
 class SubstituteNextNode implements SubstituteNextMorpheme {
   type = MorphemeType.SUBSTITUTE_NEXT;
-  expansion: boolean = false;
-  levels: number = 1;
+  expansion = false;
+  levels = 1;
   value: string;
 
   constructor(value: string) {
@@ -523,7 +523,7 @@ export class Parser {
       case TokenType.STRING_DELIMITER:
         if (this.closeHereString(token.literal)) break;
       /* continued */
-
+      // eslint-disable-next-line no-fallthrough
       default:
         this.addHereStringSequence(token.sequence);
     }
@@ -557,7 +557,7 @@ export class Parser {
       case TokenType.TEXT:
         if (this.closeTaggedString(token.literal)) break;
       /* continued */
-
+      // eslint-disable-next-line no-fallthrough
       default:
         this.addTaggedStringSequence(token.sequence);
     }
@@ -739,7 +739,7 @@ class TokenStream {
   tokens: Token[];
 
   /** Current position in stream */
-  index: number = 0;
+  index = 0;
 
   /**
    * Create a new stream from an array of tokens

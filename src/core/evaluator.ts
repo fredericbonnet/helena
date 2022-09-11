@@ -89,7 +89,7 @@ export class InlineEvaluator implements Evaluator {
   }
   private evaluateScriptInternal(script: Script): Value {
     let value: Value = NIL;
-    for (let sentence of script.sentences) {
+    for (const sentence of script.sentences) {
       value = this.evaluateSentence(sentence);
     }
     return value;
@@ -159,7 +159,7 @@ export class InlineEvaluator implements Evaluator {
   }
   private getWordValues(words: Word[]): Value[] {
     const values: Value[] = [];
-    for (let word of words) {
+    for (const word of words) {
       const type = this.syntaxChecker.checkWord(word);
       const value = this.getWordValue(word, type);
       if (value == NIL) continue;
@@ -215,7 +215,7 @@ export class InlineEvaluator implements Evaluator {
 
   evaluateTuple(tuple: TupleMorpheme): TupleValue {
     const values: Value[] = [];
-    for (let sentence of tuple.subscript.sentences) {
+    for (const sentence of tuple.subscript.sentences) {
       values.push(...this.getWordValues(sentence.words));
     }
     return new TupleValue(values);
@@ -357,7 +357,7 @@ export class InlineEvaluator implements Evaluator {
    */
 
   private resolveVariable(varname: string): Value {
-    let value = this.variableResolver.resolve(varname);
+    const value = this.variableResolver.resolve(varname);
     if (!value) throw new Error(`cannot resolve variable ${varname}`);
     return value;
   }
@@ -430,7 +430,7 @@ export class InlineEvaluator implements Evaluator {
     return new TupleValue(words);
   }
   private applySelectors(value: Value, selectors: Selector[]): Value {
-    for (let selector of selectors) {
+    for (const selector of selectors) {
       value = selector.apply(value);
     }
     return value;

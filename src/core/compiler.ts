@@ -80,7 +80,7 @@ export class Compiler {
       program.pushOpCode(OpCode.PUSH_NIL);
       return;
     }
-    for (let sentence of script.sentences) {
+    for (const sentence of script.sentences) {
       program.pushOpCode(OpCode.OPEN_FRAME);
       this.emitSentence(program, sentence);
       program.pushOpCode(OpCode.CLOSE_FRAME);
@@ -99,7 +99,7 @@ export class Compiler {
     return program;
   }
   private emitSentence(program: Program, sentence: Sentence) {
-    for (let word of sentence.words) {
+    for (const word of sentence.words) {
       this.emitWord(program, word);
     }
   }
@@ -304,7 +304,7 @@ export class Compiler {
   private emitStems(program: Program, morphemes: Morpheme[]) {
     let mode: "" | "substitute" | "selectable" = "";
     let substitute: SubstituteNextMorpheme;
-    for (let morpheme of morphemes) {
+    for (const morpheme of morphemes) {
       switch (morpheme.type) {
         case MorphemeType.SUBSTITUTE_NEXT:
           mode = "substitute";
@@ -402,7 +402,7 @@ export class Compiler {
   }
   private emitTuple(program: Program, tuple: TupleMorpheme) {
     program.pushOpCode(OpCode.OPEN_FRAME);
-    for (let sentence of tuple.subscript.sentences) {
+    for (const sentence of tuple.subscript.sentences) {
       this.emitSentence(program, sentence);
     }
     program.pushOpCode(OpCode.CLOSE_FRAME);
@@ -467,7 +467,7 @@ export class Compiler {
   }
   private emitSelector(program: Program, block: BlockMorpheme) {
     program.pushOpCode(OpCode.OPEN_FRAME);
-    for (let sentence of block.subscript.sentences) {
+    for (const sentence of block.subscript.sentences) {
       program.pushOpCode(OpCode.OPEN_FRAME);
       this.emitSentence(program, sentence);
       program.pushOpCode(OpCode.CLOSE_FRAME);
@@ -501,7 +501,7 @@ export class Executor {
 
   execute(program: Program): Result {
     let constant = 0;
-    for (let opcode of program.opCodes) {
+    for (const opcode of program.opCodes) {
       switch (opcode) {
         case OpCode.PUSH_NIL:
           this.push(NIL);
@@ -634,7 +634,7 @@ export class Executor {
     }
   }
   private resolveVariable(varname: string): Value {
-    let value = this.variableResolver.resolve(varname);
+    const value = this.variableResolver.resolve(varname);
     if (!value) throw new Error(`cannot resolve variable ${varname}`);
     return value;
   }

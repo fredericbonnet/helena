@@ -11,7 +11,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { NIL, StringValue, TupleValue } from "../core/values";
 
 describe("Helena dialect", () => {
-  for (let klass of [InlineEvaluator, CompilingEvaluator]) {
+  for (const klass of [InlineEvaluator, CompilingEvaluator]) {
     describe(klass.name, () => {
       let rootScope: Scope;
 
@@ -145,28 +145,29 @@ describe("Helena dialect", () => {
             });
           });
         });
-        describe("get", () => {});
-        it("should return the value of an existing variable", () => {
-          evaluate("let cst val");
-          expect(evaluate("get cst")).to.eql(new StringValue("val"));
-        });
-        it("should return the value of an existing constant", () => {
-          evaluate("set var val");
-          expect(evaluate("get var")).to.eql(new StringValue("val"));
-        });
-        describe("exceptions", () => {
-          specify("non-existing variable", () => {
-            expect(() => evaluate("get unknownVariable")).to.throw(
-              'can\'t read "unknownVariable": no such variable'
-            );
+        describe("get", () => {
+          it("should return the value of an existing variable", () => {
+            evaluate("let cst val");
+            expect(evaluate("get cst")).to.eql(new StringValue("val"));
           });
-          specify("wrong arity", () => {
-            expect(() => evaluate("get")).to.throw(
-              'wrong # args: should be "get varname"'
-            );
-            expect(() => evaluate("get a b")).to.throw(
-              'wrong # args: should be "get varname"'
-            );
+          it("should return the value of an existing constant", () => {
+            evaluate("set var val");
+            expect(evaluate("get var")).to.eql(new StringValue("val"));
+          });
+          describe("exceptions", () => {
+            specify("non-existing variable", () => {
+              expect(() => evaluate("get unknownVariable")).to.throw(
+                'can\'t read "unknownVariable": no such variable'
+              );
+            });
+            specify("wrong arity", () => {
+              expect(() => evaluate("get")).to.throw(
+                'wrong # args: should be "get varname"'
+              );
+              expect(() => evaluate("get a b")).to.throw(
+                'wrong # args: should be "get varname"'
+              );
+            });
           });
         });
       });

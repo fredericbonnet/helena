@@ -127,7 +127,7 @@ class MockSelectorResolver implements SelectorResolver {
   }
 }
 
-for (let klass of [InlineEvaluator, CompilingEvaluator]) {
+for (const klass of [InlineEvaluator, CompilingEvaluator]) {
   describe(klass.name, () => {
     let tokenizer: Tokenizer;
     let parser: Parser;
@@ -555,7 +555,7 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
                     return list.values[list.values.length - 1];
                   },
                 };
-                selectorResolver.register((rules) => lastSelector);
+                selectorResolver.register(() => lastSelector);
               });
               specify("simple substitution", () => {
                 variableResolver.register(
@@ -1354,7 +1354,7 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
                 return list.values[list.values.length - 1];
               },
             };
-            selectorResolver.register((rules) => lastSelector);
+            selectorResolver.register(() => lastSelector);
           });
           specify("simple substitution", () => {
             variableResolver.register(
@@ -1507,7 +1507,7 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
         specify("scalar expression", () => {
           commandResolver.register(
             "cmd",
-            new FunctionCommand((args) => new StringValue("value"))
+            new FunctionCommand(() => new StringValue("value"))
           );
           const word = firstWord(parse("(prefix $*[cmd] suffix)"));
           const value = evaluator.evaluateWord(word);
@@ -1517,7 +1517,7 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
           commandResolver.register(
             "cmd",
             new FunctionCommand(
-              (args) =>
+              () =>
                 new TupleValue([
                   new StringValue("value1"),
                   new StringValue("value2"),
@@ -1581,7 +1581,7 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
         specify("scalar expression", () => {
           commandResolver.register(
             "cmd2",
-            new FunctionCommand((args) => new StringValue("value"))
+            new FunctionCommand(() => new StringValue("value"))
           );
           const sentence = firstSentence(parse("cmd $*[cmd2] arg"));
           const value = evaluator.evaluateSentence(sentence);
@@ -1591,7 +1591,7 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
           commandResolver.register(
             "cmd2",
             new FunctionCommand(
-              (args) =>
+              () =>
                 new TupleValue([
                   new StringValue("value1"),
                   new StringValue("value2"),
@@ -1672,8 +1672,8 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
             return evaluator.evaluateScript((block as ScriptValue).script);
           })
         );
-        let called = {};
-        let fn = new FunctionCommand((args) => {
+        const called = {};
+        const fn = new FunctionCommand((args) => {
           const cmd = args[0].asString();
           called[cmd] = called[cmd] ?? 0 + 1;
           return args[1];
@@ -1695,7 +1695,7 @@ for (let klass of [InlineEvaluator, CompilingEvaluator]) {
           new FunctionCommand((args) => {
             const nb = IntegerValue.fromValue(args[1]).value;
             const block = args[2];
-            let value = NIL;
+            let value: Value = NIL;
             for (let i = 0; i < nb; i++) {
               value = evaluator.evaluateScript((block as ScriptValue).script);
             }

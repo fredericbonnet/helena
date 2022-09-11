@@ -47,7 +47,7 @@ export class PicolScope {
 
   resolveVariable(name: string): Value {
     if (!this.variables.has(name)) {
-      throw new Error(`can\'t read "${name}": no such variable`);
+      throw new Error(`can't read "${name}": no such variable`);
     }
     return this.variables.get(name);
   }
@@ -74,7 +74,7 @@ const EMPTY: Result = OK(new StringValue(""));
 const ARITY_ERROR = (signature: string) =>
   ERROR(new StringValue(`wrong # args: should be "${signature}"`));
 
-const addCmd = (scope: PicolScope): Command => ({
+const addCmd = (): Command => ({
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("+ arg ?arg ...?");
     const result = args.reduce((total, arg, i) => {
@@ -85,7 +85,7 @@ const addCmd = (scope: PicolScope): Command => ({
     return OK(new NumberValue(result));
   },
 });
-const subtractCmd = (scope: PicolScope): Command => ({
+const subtractCmd = (): Command => ({
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("- arg ?arg ...?");
     if (args.length == 2) {
@@ -102,7 +102,7 @@ const subtractCmd = (scope: PicolScope): Command => ({
   },
 });
 
-const multiplyCmd = (scope: PicolScope): Command => ({
+const multiplyCmd = (): Command => ({
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("* arg ?arg ...?");
     const result = args.reduce((total, arg, i) => {
@@ -113,7 +113,7 @@ const multiplyCmd = (scope: PicolScope): Command => ({
     return OK(new NumberValue(result));
   },
 });
-const divideCmd = (scope: PicolScope): Command => ({
+const divideCmd = (): Command => ({
   execute: (args) => {
     if (args.length < 3) return ARITY_ERROR("/ arg arg ?arg ...?");
     const result = args.reduce((total, arg, i) => {
@@ -127,8 +127,7 @@ const divideCmd = (scope: PicolScope): Command => ({
 });
 
 const compareValuesCmd =
-  (name: string, fn: (op1, op2) => boolean) =>
-  (scope: PicolScope): Command => ({
+  (name: string, fn: (op1, op2) => boolean) => (): Command => ({
     execute: (args) => {
       if (args.length != 3) return ARITY_ERROR(`${name} arg arg`);
       return fn(args[1], args[2]) ? OK(TRUE) : OK(FALSE);
@@ -144,8 +143,7 @@ const neCmd = compareValuesCmd(
 );
 
 const compareNumbersCmd =
-  (name: string, fn: (op1, op2) => boolean) =>
-  (scope: PicolScope): Command => ({
+  (name: string, fn: (op1, op2) => boolean) => (): Command => ({
     execute: (args) => {
       if (args.length != 3) return ARITY_ERROR(`${name} arg arg`);
       const op1 = NumberValue.fromValue(args[1]).value;
@@ -372,8 +370,8 @@ function valueToList(value: Value): Value[] {
     case ValueType.SCRIPT: {
       const evaluator = new InlineEvaluator(null, null, null);
       const values = [];
-      for (let sentence of (value as ScriptValue).script.sentences) {
-        for (let word of sentence.words) {
+      for (const sentence of (value as ScriptValue).script.sentences) {
+        for (const word of sentence.words) {
           values.push(evaluator.evaluateWord(word));
         }
       }
@@ -436,25 +434,25 @@ const procCmd = (scope: PicolScope): Command => ({
   },
 });
 
-const returnCmd = (scope: PicolScope): Command => ({
+const returnCmd = (): Command => ({
   execute: (args) => {
     if (args.length > 2) return ARITY_ERROR("return ?result?");
     return args.length == 2 ? RETURN(args[1]) : RETURN(new StringValue(""));
   },
 });
-const breakCmd = (scope: PicolScope): Command => ({
+const breakCmd = (): Command => ({
   execute: (args) => {
     if (args.length != 1) return ARITY_ERROR("break");
     return BREAK;
   },
 });
-const continueCmd = (scope: PicolScope): Command => ({
+const continueCmd = (): Command => ({
   execute: (args) => {
     if (args.length != 1) return ARITY_ERROR("continue");
     return CONTINUE;
   },
 });
-const errorCmd = (scope: PicolScope): Command => ({
+const errorCmd = (): Command => ({
   execute: (args) => {
     if (args.length != 2) return ARITY_ERROR("error message");
     return ERROR(args[1]);

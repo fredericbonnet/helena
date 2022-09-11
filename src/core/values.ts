@@ -33,13 +33,13 @@ class NilValue implements Value {
   asString(): string {
     throw new Error("nil has no string representation");
   }
-  selectIndex(index: Value): Value {
+  selectIndex(_index: Value): Value {
     throw new Error("nil is not index-selectable");
   }
-  selectKey(key: Value): Value {
+  selectKey(_key: Value): Value {
     throw new Error("nil is not key-selectable");
   }
-  selectRules(rules: Value[]): Value {
+  selectRules(_rules: Value[]): Value {
     throw new Error("nil is not selectable");
   }
 }
@@ -56,25 +56,25 @@ export class BooleanValue implements Value {
       case ValueType.BOOLEAN:
         return value as BooleanValue;
       case ValueType.INTEGER:
-        return !!(value as IntegerValue).value ? TRUE : FALSE;
+        return (value as IntegerValue).value ? TRUE : FALSE;
     }
     const s = value.asString();
     if (s == "true" || s == "yes" || s == "1") return TRUE;
     if (s == "false" || s == "no" || s == "0") return FALSE;
     const i = parseInt(s);
     if (isNaN(i)) throw new Error(`invalid boolean "${s}"`);
-    return !!i ? TRUE : FALSE;
+    return i ? TRUE : FALSE;
   }
   asString(): string {
     return this.value.toString();
   }
-  selectIndex(index: Value): Value {
+  selectIndex(_index: Value): Value {
     throw new Error("value is not index-selectable");
   }
-  selectKey(key: Value): Value {
+  selectKey(_key: Value): Value {
     throw new Error("value is not key-selectable");
   }
-  selectRules(rules: Value[]): Value {
+  selectRules(_rules: Value[]): Value {
     throw new Error("value is not selectable");
   }
 }
@@ -97,13 +97,13 @@ export class IntegerValue implements Value {
   asString(): string {
     return this.value.toString();
   }
-  selectIndex(index: Value): Value {
+  selectIndex(_index: Value): Value {
     throw new Error("value is not index-selectable");
   }
-  selectKey(key: Value): Value {
+  selectKey(_key: Value): Value {
     throw new Error("value is not key-selectable");
   }
-  selectRules(rules: Value[]): Value {
+  selectRules(_rules: Value[]): Value {
     throw new Error("value is not selectable");
   }
 }
@@ -124,13 +124,13 @@ export class NumberValue implements Value {
   asString(): string {
     return this.value.toString();
   }
-  selectIndex(index: Value): Value {
+  selectIndex(_index: Value): Value {
     throw new Error("value is not index-selectable");
   }
-  selectKey(key: Value): Value {
+  selectKey(_key: Value): Value {
     throw new Error("value is not key-selectable");
   }
-  selectRules(rules: Value[]): Value {
+  selectRules(_rules: Value[]): Value {
     throw new Error("value is not selectable");
   }
 }
@@ -149,10 +149,10 @@ export class StringValue implements Value {
     if (i < 0 || i >= this.value.length) throw new Error("index out of range");
     return new StringValue(this.value[i]);
   }
-  selectKey(key: Value): Value {
+  selectKey(_key: Value): Value {
     throw new Error("value is not key-selectable");
   }
-  selectRules(rules: Value[]): Value {
+  selectRules(_rules: Value[]): Value {
     throw new Error("value is not selectable");
   }
 }
@@ -171,10 +171,10 @@ export class ListValue implements Value {
     if (i < 0 || i >= this.values.length) throw new Error("index out of range");
     return this.values[i];
   }
-  selectKey(key: Value): Value {
+  selectKey(_key: Value): Value {
     throw new Error("value is not key-selectable");
   }
-  selectRules(rules: Value[]): Value {
+  selectRules(_rules: Value[]): Value {
     throw new Error("value is not selectable");
   }
 }
@@ -188,7 +188,7 @@ export class MapValue implements Value {
   asString(): string {
     throw new Error("value has no string representation");
   }
-  selectIndex(index: Value): Value {
+  selectIndex(_index: Value): Value {
     throw new Error("value is not index-selectable");
   }
   selectKey(key: Value): Value {
@@ -196,7 +196,7 @@ export class MapValue implements Value {
     if (!this.map.has(k)) throw new Error("unknown key");
     return this.map.get(k);
   }
-  selectRules(rules: Value[]): Value {
+  selectRules(_rules: Value[]): Value {
     throw new Error("value is not selectable");
   }
 }
@@ -216,7 +216,7 @@ export class TupleValue implements Value {
   selectKey(key: Value): Value {
     return new TupleValue(this.values.map((value) => value.selectKey(key)));
   }
-  selectRules(rules: Value[]): Value {
+  selectRules(_rules: Value[]): Value {
     throw new Error("value is not selectable");
   }
 }
@@ -232,13 +232,13 @@ export class ScriptValue implements Value {
   asString(): string {
     return this.value;
   }
-  selectIndex(index: Value): Value {
+  selectIndex(_index: Value): Value {
     throw new Error("value is not index-selectable");
   }
-  selectKey(key: Value): Value {
+  selectKey(_key: Value): Value {
     throw new Error("value is not key-selectable");
   }
-  selectRules(rules: Value[]): Value {
+  selectRules(_rules: Value[]): Value {
     throw new Error("value is not selectable");
   }
 }

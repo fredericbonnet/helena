@@ -25,13 +25,13 @@ export enum TokenType {
  */
 export class Position {
   /** Character index (zero-indexed) */
-  index: number = 0;
+  index = 0;
 
   /** Line number (zero-indexed) */
-  line: number = 0;
+  line = 0;
 
   /** Column number (zero-indexed) */
-  column: number = 0;
+  column = 0;
 
   copy() {
     const copy = new Position();
@@ -118,7 +118,7 @@ export class Tokenizer {
           break;
 
         // Escape sequence
-        case "\\":
+        case "\\": {
           if (this.stream.end()) {
             this.addToken(TokenType.TEXT, position);
             break;
@@ -203,6 +203,7 @@ export class Tokenizer {
           }
           this.addToken(TokenType.ESCAPE, position, escape);
           break;
+        }
 
         // Comment
         case "#":

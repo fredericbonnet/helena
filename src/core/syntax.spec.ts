@@ -49,7 +49,7 @@ describe("SyntaxChecker", () => {
   });
 
   describe("roots", () => {
-    for (let [type, value] of [...roots, ...monomorphemes]) {
+    for (const [type, value] of [...roots, ...monomorphemes]) {
       specify(type + " root", () => {
         const script = parse(value);
         const word = firstWord(script);
@@ -84,7 +84,7 @@ describe("SyntaxChecker", () => {
       expect(checker.checkWord(word)).to.eq(WordType.COMPOUND);
     });
     describe("exceptions", () => {
-      for (let [type, value] of [
+      for (const [type, value] of [
         ["tuple", TUPLE],
         ["block", BLOCK],
       ]) {
@@ -132,7 +132,7 @@ describe("SyntaxChecker", () => {
     });
   });
   describe("substitutions", () => {
-    for (let [type, value] of roots) {
+    for (const [type, value] of roots) {
       describe(type + " source", () => {
         specify("simple", () => {
           const script = parse("$" + value);
@@ -176,7 +176,7 @@ describe("SyntaxChecker", () => {
     }
   });
   describe("qualified words", () => {
-    for (let [type, value] of qualifiedSources) {
+    for (const [type, value] of qualifiedSources) {
       describe(type + " source", () => {
         specify("indexed selector", () => {
           const script = parse(value + EXPRESSION);
@@ -220,7 +220,7 @@ describe("SyntaxChecker", () => {
     });
   });
   describe("ignored words", () => {
-    for (let [type, value] of ignored) {
+    for (const [type, value] of ignored) {
       specify(type, () => {
         const script = parse(value);
         const word = firstWord(script);
@@ -240,8 +240,8 @@ describe("SyntaxChecker", () => {
       expect(() => checker.checkWord(word)).to.throw("invalid word structure");
     });
     describe("incompatible morphemes", () => {
-      for (let [type1, value1] of [...monomorphemes, ...ignored]) {
-        for (let [type2, value2] of [...roots, ...monomorphemes]) {
+      for (const [type1, value1] of [...monomorphemes, ...ignored]) {
+        for (const [type2, value2] of [...roots, ...monomorphemes]) {
           specify(type1 + "/" + type2, () => {
             const word = new Word();
             word.morphemes.push(firstWord(parse(value1)).morphemes[0]);

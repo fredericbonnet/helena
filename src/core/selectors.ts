@@ -22,7 +22,7 @@ export class KeyedSelector implements Selector {
     this.keys = keys;
   }
   apply(value: Value): Value {
-    for (let key of this.keys) {
+    for (const key of this.keys) {
       value = value.selectKey(key);
     }
     return value;

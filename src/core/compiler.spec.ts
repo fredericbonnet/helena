@@ -987,8 +987,8 @@ describe("Compiler", () => {
             new StringValue("result2"),
           ]);
 
-          let called = {};
-          let fn: Command = new FunctionCommand((args) => {
+          const called = {};
+          const fn: Command = new FunctionCommand((args) => {
             const cmd = args[0].asString();
             called[cmd] = called[cmd] ?? 0 + 1;
             return args[1];
@@ -1604,7 +1604,7 @@ describe("Compiler", () => {
               return list.values[list.values.length - 1];
             },
           };
-          selectorResolver.register((rules) => lastSelector);
+          selectorResolver.register(() => lastSelector);
         });
         specify("simple substitution", () => {
           const script = parse("$varname{last}");
@@ -1725,7 +1725,7 @@ describe("Compiler", () => {
             ])
           );
           variableResolver.register("var2", new StringValue("last"));
-          selectorResolver.register((rules) => ({
+          selectorResolver.register(() => ({
             apply(value: Value): Value {
               const list = value as ListValue;
               return list.values[list.values.length - 1];
@@ -2697,7 +2697,7 @@ describe("Compiler", () => {
               ? (block as ScriptValue).script
               : parse(block.asString());
           const program = compiler.compileScript(script);
-          let value = NIL;
+          let value: Value = NIL;
           for (let i = 0; i < nb; i++) {
             value = evaluate(program);
           }

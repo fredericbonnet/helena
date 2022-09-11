@@ -119,7 +119,7 @@ export class SyntaxChecker {
 
   private checkSubstitutionWord(word: Word): WordType {
     if (word.morphemes.length < 2) throw new Error("invalid word structure");
-    let nbStems = this.checkStems(word.morphemes);
+    const nbStems = this.checkStems(word.morphemes);
     return nbStems > 1 ? WordType.COMPOUND : WordType.SUBSTITUTION;
   }
 

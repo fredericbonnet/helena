@@ -31,13 +31,13 @@ export class CommandValue implements Value {
   asString(): string {
     throw new Error("Method not implemented.");
   }
-  selectIndex(index: Value): Value {
+  selectIndex(_index: Value): Value {
     throw new Error("Method not implemented.");
   }
-  selectKey(key: Value): Value {
+  selectKey(_key: Value): Value {
     throw new Error("Method not implemented.");
   }
-  selectRules(rules: Value[]): Value {
+  selectRules(_rules: Value[]): Value {
     throw new Error("Method not implemented.");
   }
 }
@@ -70,9 +70,9 @@ export class Scope {
   resolveVariable(name: string): Value {
     if (this.constants.has(name)) return this.constants.get(name);
     if (this.variables.has(name)) return this.variables.get(name).value;
-    throw new Error(`can\'t read "${name}": no such variable`);
+    throw new Error(`can't read "${name}": no such variable`);
   }
-  resolveCommand(value: Value, recurse: boolean = true): Command {
+  resolveCommand(value: Value, recurse = true): Command {
     if (value instanceof CommandValue) return value.command(this);
     return this.resolveScopedCommand(value.asString(), recurse)(this);
   }
@@ -87,15 +87,18 @@ export class Scope {
 }
 
 const OK = (value: Value): Result => [ResultCode.OK, value];
-const RETURN = (value: Value): Result => [ResultCode.RETURN, value];
-const BREAK: Result = [ResultCode.BREAK, NIL];
-const CONTINUE: Result = [ResultCode.CONTINUE, NIL];
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const RETURN = (value: Value): Result => [ResultCode.RETURN, value]; // TODO implement command
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const BREAK: Result = [ResultCode.BREAK, NIL]; // TODO implement command
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const CONTINUE: Result = [ResultCode.CONTINUE, NIL]; // TODO implement command
 const ERROR = (value: Value): Result => [ResultCode.ERROR, value];
 
 const ARITY_ERROR = (signature: string) =>
   ERROR(new StringValue(`wrong # args: should be "${signature}"`));
 
-const idemCmd = (scope: Scope): Command => ({
+const idemCmd = (): Command => ({
   execute: (args) => {
     if (args.length != 2) return ARITY_ERROR("idem value");
     return OK(args[1]);
@@ -166,7 +169,7 @@ type ArgSpec = {
 class ScopeValue extends CommandValue {
   scope: Scope;
   constructor(scope: Scope) {
-    super((_: Scope) => new ScopeCommand(scope, this));
+    super(() => new ScopeCommand(scope, this));
     this.scope = scope;
   }
 }
@@ -240,7 +243,8 @@ class MacroCommand implements Command {
     this.body = body;
   }
 
-  execute(args: Value[]): Result {
+  execute(_args: Value[]): Result {
+    // TODO args
     return this.scope.evaluator.executeScript(this.body.script);
   }
 }
@@ -280,7 +284,8 @@ class ClosureCommand implements Command {
     this.body = body;
   }
 
-  execute(args: Value[]): Result {
+  execute(_args: Value[]): Result {
+    // TODO args
     return this.scope.evaluator.executeScript(this.body.script);
   }
 }
@@ -298,7 +303,7 @@ const closureCmd = (scope: Scope): Command => ({
         return ARITY_ERROR("closure ?name? args body");
     }
 
-    const command = (_: Scope) =>
+    const command = () =>
       new ClosureCommand(scope, valueToArgspecs(argspecs), body as ScriptValue);
     const value = new CommandValue(command);
     if (name) {
@@ -310,7 +315,7 @@ const closureCmd = (scope: Scope): Command => ({
   },
 });
 
-function valueToArgspecs(value: Value): ArgSpec[] {
+function valueToArgspecs(_value: Value): ArgSpec[] {
   // TODO
   return [];
 }

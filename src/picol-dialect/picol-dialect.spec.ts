@@ -17,7 +17,7 @@ import {
 } from "../core/values";
 
 describe("Picol dialect", () => {
-  for (let klass of [InlineEvaluator, CompilingEvaluator]) {
+  for (const klass of [InlineEvaluator, CompilingEvaluator]) {
     describe(klass.name, () => {
       let rootScope: PicolScope;
 
