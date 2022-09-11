@@ -419,6 +419,48 @@ describe("values", () => {
       const value = new TupleValue([]);
       expect(() => value.selectRules([])).to.throw("value is not selectable");
     });
+    describe("select", () => {
+      it("should apply selector to elements", () => {
+        const values = [
+          new ListValue([new StringValue("value1"), new StringValue("value2")]),
+          new StringValue("12345"),
+        ];
+        const value = new TupleValue(values);
+        const index = new IntegerValue(1);
+        expect(value.select(new IndexedSelector(index))).to.eql(
+          new TupleValue([new StringValue("value2"), new StringValue("2")])
+        );
+      });
+      it("should recurse into tuples", () => {
+        const values = [
+          new MapValue({
+            key1: new StringValue("value1"),
+            key2: new StringValue("value2"),
+          }),
+          new TupleValue([
+            new MapValue({
+              key2: new StringValue("value3"),
+              key3: new StringValue("value4"),
+            }),
+            new MapValue({
+              key2: new StringValue("value5"),
+              key4: new StringValue("value6"),
+            }),
+          ]),
+        ];
+        const value = new TupleValue(values);
+        const key = new StringValue("key2");
+        expect(value.select(new KeyedSelector([key]))).to.eql(
+          new TupleValue([
+            new StringValue("value2"),
+            new TupleValue([
+              new StringValue("value3"),
+              new StringValue("value5"),
+            ]),
+          ])
+        );
+      });
+    });
   });
 
   describe("ScriptValue", () => {
@@ -500,6 +542,19 @@ describe("values", () => {
           new QualifiedValue(new StringValue("name"), [
             new GenericSelector([new StringValue("rule")]),
           ])
+        );
+      });
+    });
+    describe("select", () => {
+      it("should return a new qualified value", () => {
+        const value = new QualifiedValue(new StringValue("name"), []);
+        const selector = {
+          apply() {
+            return new StringValue("value");
+          },
+        };
+        expect(value.select(selector)).to.eql(
+          new QualifiedValue(new StringValue("name"), [selector])
         );
       });
     });

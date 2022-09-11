@@ -26,6 +26,7 @@ export interface Value {
   selectIndex(index: Value): Value;
   selectKey(key: Value): Value;
   selectRules(rules: Value[]): Value;
+  select?(selector: Selector): Value;
 }
 
 class NilValue implements Value {
@@ -219,6 +220,9 @@ export class TupleValue implements Value {
   selectRules(_rules: Value[]): Value {
     throw new Error("value is not selectable");
   }
+  select(selector: Selector): Value {
+    return new TupleValue(this.values.map((value) => selector.apply(value)));
+  }
 }
 
 export class ScriptValue implements Value {
@@ -255,31 +259,26 @@ export class QualifiedValue implements Value {
     throw new Error("value has no string representation");
   }
   selectIndex(index: Value): Value {
-    return new QualifiedValue(this.source, [
-      ...this.selectors,
-      new IndexedSelector(index),
-    ]);
+    return this.select(new IndexedSelector(index));
   }
   selectKey(key: Value): Value {
     if (
       this.selectors.length > 0 &&
       this.selectors[this.selectors.length - 1] instanceof KeyedSelector
     ) {
+      // Merge successive keys
       const last = this.selectors[this.selectors.length - 1] as KeyedSelector;
       return new QualifiedValue(this.source, [
         ...this.selectors.slice(0, -1),
         new KeyedSelector([...last.keys, key]),
       ]);
     }
-    return new QualifiedValue(this.source, [
-      ...this.selectors,
-      new KeyedSelector([key]),
-    ]);
+    return this.select(new KeyedSelector([key]));
   }
   selectRules(rules: Value[]): Value {
-    return new QualifiedValue(this.source, [
-      ...this.selectors,
-      new GenericSelector(rules),
-    ]);
+    return this.select(new GenericSelector(rules));
+  }
+  select(selector: Selector): Value {
+    return new QualifiedValue(this.source, [...this.selectors, selector]);
   }
 }

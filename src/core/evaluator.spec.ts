@@ -74,7 +74,7 @@ const mapSelector = (selector: Selector) => {
   if (selector instanceof GenericSelector) {
     return { rules: selector.rules.map(mapValue) };
   }
-  throw new Error("TODO");
+  return { custom: selector };
 };
 
 class MockVariableResolver implements VariableResolver {
@@ -551,6 +551,11 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               beforeEach(() => {
                 const lastSelector = {
                   apply(value: Value): Value {
+                    if (value.select) {
+                      return value.select(this);
+                    }
+                    if (!(value instanceof ListValue))
+                      throw new Error("value is not a list");
                     const list = value as ListValue;
                     return list.values[list.values.length - 1];
                   },
@@ -796,6 +801,38 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               });
             });
           });
+          describe("custom selectors", () => {
+            let lastSelector;
+            beforeEach(() => {
+              lastSelector = {
+                apply(value: Value): Value {
+                  if (!(value instanceof ListValue))
+                    throw new Error("value is not a list");
+                  const list = value as ListValue;
+                  return list.values[list.values.length - 1];
+                },
+              };
+              selectorResolver.register(() => lastSelector);
+            });
+            specify("simple rule", () => {
+              const word = firstWord(parse("var{last}"));
+              const value = evaluator.evaluateWord(word);
+              expect(mapValue(value)).to.eql({
+                source: "var",
+                selectors: [{ custom: lastSelector }],
+              });
+            });
+            specify("indirect selector", () => {
+              variableResolver.register("var2", new StringValue("last"));
+              const word = firstWord(parse("var1{$var2}"));
+              const value = evaluator.evaluateWord(word);
+              expect(mapValue(value)).to.eql({
+                source: "var1",
+                selectors: [{ custom: lastSelector }],
+              });
+            });
+          });
+
           specify("multiple selectors", () => {
             selectorResolver.register((rules) => new GenericSelector(rules));
             const word = firstWord(
@@ -1161,6 +1198,59 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             const value = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value2");
           });
+          specify("tuple", () => {
+            variableResolver.register(
+              "var1",
+              new ListValue([
+                new StringValue("value1"),
+                new StringValue("value2"),
+              ])
+            );
+            variableResolver.register(
+              "var2",
+              new ListValue([
+                new StringValue("value3"),
+                new StringValue("value4"),
+              ])
+            );
+            const word = firstWord(parse("$(var1 var2)[1]"));
+            const value = evaluator.evaluateWord(word);
+            expect(mapValue(value)).to.eql(["value2", "value4"]);
+          });
+          specify("recursive tuple", () => {
+            variableResolver.register(
+              "var1",
+              new ListValue([
+                new StringValue("value1"),
+                new StringValue("value2"),
+              ])
+            );
+            variableResolver.register(
+              "var2",
+              new ListValue([
+                new StringValue("value3"),
+                new StringValue("value4"),
+              ])
+            );
+            const word = firstWord(parse("$(var1 (var2))[1]"));
+            const value = evaluator.evaluateWord(word);
+            expect(mapValue(value)).to.eql(["value2", ["value4"]]);
+          });
+          specify("tuple with double substitution", () => {
+            variableResolver.register(
+              "var1",
+              new ListValue([new StringValue("var3"), new StringValue("var4")])
+            );
+            variableResolver.register(
+              "var2",
+              new ListValue([new StringValue("var5"), new StringValue("var6")])
+            );
+            variableResolver.register("var4", new StringValue("value1"));
+            variableResolver.register("var6", new StringValue("value2"));
+            const word = firstWord(parse("$$(var1 var2)[1]"));
+            const value = evaluator.evaluateWord(word);
+            expect(mapValue(value)).to.eql(["value1", "value2"]);
+          });
           specify("scalar expression", () => {
             commandResolver.register(
               "cmd",
@@ -1350,6 +1440,11 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           beforeEach(() => {
             const lastSelector = {
               apply(value: Value): Value {
+                if (value.select) {
+                  return value.select(this);
+                }
+                if (!(value instanceof ListValue))
+                  throw new Error("value is not a list");
                 const list = value as ListValue;
                 return list.values[list.values.length - 1];
               },
@@ -1407,6 +1502,60 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             const word = firstWord(parse("$var1{$var2}"));
             const value = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value3");
+          });
+          specify("tuple", () => {
+            variableResolver.register(
+              "var1",
+              new ListValue([
+                new StringValue("value1"),
+                new StringValue("value2"),
+              ])
+            );
+            variableResolver.register(
+              "var2",
+              new ListValue([
+                new StringValue("value3"),
+                new StringValue("value4"),
+                new StringValue("value5"),
+              ])
+            );
+            const word = firstWord(parse("$(var1 var2){last}"));
+            const value = evaluator.evaluateWord(word);
+            expect(mapValue(value)).to.eql(["value2", "value5"]);
+          });
+          specify("recursive tuple", () => {
+            variableResolver.register(
+              "var1",
+              new ListValue([
+                new StringValue("value1"),
+                new StringValue("value2"),
+              ])
+            );
+            variableResolver.register(
+              "var2",
+              new ListValue([
+                new StringValue("value3"),
+                new StringValue("value4"),
+              ])
+            );
+            const word = firstWord(parse("$(var1 (var2))[1]"));
+            const value = evaluator.evaluateWord(word);
+            expect(mapValue(value)).to.eql(["value2", ["value4"]]);
+          });
+          specify("tuple with double substitution", () => {
+            variableResolver.register(
+              "var1",
+              new ListValue([new StringValue("var3"), new StringValue("var4")])
+            );
+            variableResolver.register(
+              "var2",
+              new ListValue([new StringValue("var5"), new StringValue("var6")])
+            );
+            variableResolver.register("var4", new StringValue("value1"));
+            variableResolver.register("var6", new StringValue("value2"));
+            const word = firstWord(parse("$$(var1 var2)[1]"));
+            const value = evaluator.evaluateWord(word);
+            expect(mapValue(value)).to.eql(["value1", "value2"]);
           });
           specify("expression", () => {
             commandResolver.register(

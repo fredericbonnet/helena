@@ -563,7 +563,11 @@ export class Executor {
             const rules = this.pop() as TupleValue;
             const selector = this.resolveSelector(rules.values);
             const value = this.pop();
-            this.push(selector.apply(value));
+            if (value.select) {
+              this.push(value.select(selector));
+            } else {
+              this.push(selector.apply(value));
+            }
           }
           break;
 
