@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command, Result, ResultCode } from "../core/command";
 import {
   VariableResolver,

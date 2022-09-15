@@ -1,3 +1,7 @@
+/**
+ * @file Helena script evaluation
+ */
+
 import {
   Sentence,
   Word,
@@ -28,40 +32,131 @@ import {
 import { Command, Result, ResultCode } from "./command";
 import { Compiler, Executor } from "./compiler";
 
+/**
+ * Variable resolver
+ */
 export interface VariableResolver {
+  /**
+   * Resolve a value from its name
+   *
+   * @param name - Name to resolve
+   *
+   * @returns      Resolved value
+   */
   resolve(name: string): Value;
 }
+
+/**
+ * Command resolver
+ */
 export interface CommandResolver {
+  /**
+   * Resolve a command from its name
+   *
+   * @param name - Name to resolve
+   *
+   * @returns      Resolved command
+   */
   resolve(name: Value): Command;
 }
+
+/**
+ * Selector resolver
+ */
 export interface SelectorResolver {
+  /**
+   * Resolve a selector from a set of rules
+   *
+   * @param rules - Rules to resolve
+   *
+   * @returns       Resolved selector
+   */
   resolve(rules: Value[]): Selector;
 }
 
+/**
+ * Helena evaluator
+ */
 export interface Evaluator {
-  executeScript(script: Script): [ResultCode, Value];
+  /**
+   * Execute a script
+   *
+   * @param script - Script to execute
+   *
+   * @returns        Result of execution
+   */
+  executeScript(script: Script): Result;
+
+  /**
+   * Evaluate a script
+   *
+   * @param script - Script to evaluate
+   *
+   * @returns        Resulting value
+   */
   evaluateScript(script: Script): Value;
+
+  /**
+   * Evaluate a sentence
+   *
+   * @param sentence - Sentence to evaluate
+   *
+   * @returns          Result of command evaluation
+   */
   evaluateSentence(sentence: Sentence): Value;
+
+  /**
+   * Evaluate a word
+   *
+   * @param word - Word to evaluate
+   *
+   * @returns      Word value
+   */
   evaluateWord(word: Word): Value;
 }
 
+/**
+ * Exception used by {@link InlineEvaluator} to propagate error codes through
+ * all the stacks
+ */
 class Interrupt extends Error {
-  code: ResultCode;
-  value: Value;
+  /** Encapsulated result */
+  result: Result;
+
+  /**
+   * @param code  - Result code
+   * @param value - Result value
+   */
   constructor(code: ResultCode, value: Value) {
     super(`code ${code}`);
     Object.setPrototypeOf(this, Interrupt.prototype);
-    this.code = code;
-    this.value = value;
+    this.result = [code, value];
   }
 }
 
+/**
+ * Helena inline evaluator
+ *
+ * This class evaluates scripts inline and recursively
+ */
 export class InlineEvaluator implements Evaluator {
+  /** Variable resolver used during evaluation */
   private variableResolver: VariableResolver;
+
+  /** Command resolver used during evaluation */
   private commandResolver: CommandResolver;
+
+  /** Selector resolver used during evaluation */
   private selectorResolver: SelectorResolver;
+
+  /** Syntax checker used during evaluation */
   private syntaxChecker: SyntaxChecker = new SyntaxChecker();
 
+  /**
+   * @param variableResolver - Variable resolver
+   * @param commandResolver  - Command resolver
+   * @param selectorResolver - Selector resolver
+   */
   constructor(
     variableResolver: VariableResolver,
     commandResolver: CommandResolver,
@@ -76,14 +171,35 @@ export class InlineEvaluator implements Evaluator {
    * Scripts
    */
 
-  executeScript(script: Script): [ResultCode, Value] {
+  /**
+   * Execute a script
+   *
+   * This will execute all the sentences of the script and return the last
+   * result
+   *
+   * @param script - Script to execute
+   *
+   * @returns        Result of execution
+   */
+  executeScript(script: Script): Result {
     try {
       return [ResultCode.OK, this.evaluateScriptInternal(script)];
     } catch (e) {
-      if (e instanceof Interrupt) return [e.code, e.value];
+      if (e instanceof Interrupt) return e.result;
       throw e;
     }
   }
+
+  /**
+   * Evaluate a script
+   *
+   * This will execute all the sentences of the script and return the last
+   * result value
+   *
+   * @param script - Script to evaluate
+   *
+   * @returns        Last evaluated result
+   */
   evaluateScript(script: Script): Value {
     return this.executeScript(script)[1];
   }
@@ -99,6 +215,16 @@ export class InlineEvaluator implements Evaluator {
    * Sentences
    */
 
+  /**
+   * Evaluate a sentence
+   *
+   * This will resolve the first word as a command and pass the remaining words
+   * as parameters
+   *
+   * @param sentence - Sentence to evaluate
+   *
+   * @returns          Result of command evaluation
+   */
   evaluateSentence(sentence: Sentence): Value {
     const values = this.getWordValues(sentence.words);
     if (values.length == 0) return NIL;
@@ -116,6 +242,7 @@ export class InlineEvaluator implements Evaluator {
    * Words
    */
 
+  /** @override */
   evaluateWord(word: Word): Value {
     const type = this.syntaxChecker.checkWord(word);
     return this.getWordValue(word, type);
@@ -180,6 +307,13 @@ export class InlineEvaluator implements Evaluator {
    * Morphemes
    */
 
+  /**
+   * Evaluate a morpheme
+   *
+   * @param morpheme - Morpheme to evaluate
+   *
+   * @returns          Morpheme value
+   */
   evaluateMorpheme(morpheme: Morpheme): Value {
     switch (morpheme.type) {
       case MorphemeType.LITERAL:
@@ -205,7 +339,7 @@ export class InlineEvaluator implements Evaluator {
    * Literals
    */
 
-  evaluateLiteral(literal: LiteralMorpheme): StringValue {
+  private evaluateLiteral(literal: LiteralMorpheme): StringValue {
     return new StringValue(literal.value);
   }
 
@@ -213,7 +347,7 @@ export class InlineEvaluator implements Evaluator {
    * Tuples
    */
 
-  evaluateTuple(tuple: TupleMorpheme): TupleValue {
+  private evaluateTuple(tuple: TupleMorpheme): TupleValue {
     const values: Value[] = [];
     for (const sentence of tuple.subscript.sentences) {
       values.push(...this.getWordValues(sentence.words));
@@ -237,7 +371,7 @@ export class InlineEvaluator implements Evaluator {
    * Blocks
    */
 
-  evaluateBlock(block: BlockMorpheme): ScriptValue {
+  private evaluateBlock(block: BlockMorpheme): ScriptValue {
     return new ScriptValue(block.subscript, block.value);
   }
 
@@ -245,7 +379,7 @@ export class InlineEvaluator implements Evaluator {
    * Expressions
    */
 
-  evaluateExpression(expression: ExpressionMorpheme): Value {
+  private evaluateExpression(expression: ExpressionMorpheme): Value {
     const script = (expression as ExpressionMorpheme).subscript;
     return this.evaluateScriptInternal(script);
   }
@@ -254,7 +388,7 @@ export class InlineEvaluator implements Evaluator {
    * Strings
    */
 
-  evaluateString(string: StringMorpheme): StringValue {
+  private evaluateString(string: StringMorpheme): StringValue {
     const values: Value[] = [];
     for (let i = 0; i < string.morphemes.length; i++) {
       const morpheme = string.morphemes[i];
@@ -273,7 +407,7 @@ export class InlineEvaluator implements Evaluator {
    * Here-strings
    */
 
-  evaluateHereString(hereString: HereStringMorpheme): StringValue {
+  private evaluateHereString(hereString: HereStringMorpheme): StringValue {
     return new StringValue(hereString.value);
   }
 
@@ -281,7 +415,9 @@ export class InlineEvaluator implements Evaluator {
    * Tagged strings
    */
 
-  evaluateTaggedString(taggedString: TaggedStringMorpheme): StringValue {
+  private evaluateTaggedString(
+    taggedString: TaggedStringMorpheme
+  ): StringValue {
     return new StringValue(taggedString.value);
   }
 
@@ -437,10 +573,24 @@ export class InlineEvaluator implements Evaluator {
   }
 }
 
+/**
+ * Helena compiling evaluator
+ *
+ * This class compiles scripts to programs before executing them in an
+ * encapsulated {@link Executor}
+ */
 export class CompilingEvaluator implements Evaluator {
+  /** Compiler used for scripts */
   private compiler: Compiler;
+
+  /** Executor for compiled script programs */
   private executor: Executor;
 
+  /**
+   * @param variableResolver - Variable resolver
+   * @param commandResolver  - Command resolver
+   * @param selectorResolver - Selector resolver
+   */
   constructor(
     variableResolver: VariableResolver,
     commandResolver: CommandResolver,
@@ -454,15 +604,42 @@ export class CompilingEvaluator implements Evaluator {
     );
   }
 
+  /**
+   * Execute a script
+   *
+   * This will compile then execute the script
+   *
+   * @param script - Script to execute
+   *
+   * @returns        Result of execution
+   */
   executeScript(script: Script): Result {
     const program = this.compiler.compileScript(script);
     return this.executor.execute(program);
   }
 
+  /**
+   * Evaluate a script
+   *
+   * This will compile then execute the script and return the resulting value
+   *
+   * @param script - Script to evaluate
+   *
+   * @returns        Resulting value
+   */
   evaluateScript(script: Script): Value {
     return this.executeScript(script)[1];
   }
 
+  /**
+   * Evaluate a sentence
+   *
+   * This will execute a single-sentence script
+   *
+   * @param sentence - Sentence to evaluate
+   *
+   * @returns          Result of command evaluation
+   */
   evaluateSentence(sentence: Sentence): Value {
     const script = new Script();
     script.sentences.push(sentence);
@@ -470,6 +647,15 @@ export class CompilingEvaluator implements Evaluator {
     return this.executor.execute(program)[1];
   }
 
+  /**
+   * Evaluate a word
+   *
+   * This will compile then execute the word and return the resulting value
+   *
+   * @param word - Word to evaluate
+   *
+   * @returns      Word value
+   */
   evaluateWord(word: Word): Value {
     const program = this.compiler.compileWord(word);
     return this.executor.execute(program)[1];

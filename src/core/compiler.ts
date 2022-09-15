@@ -1,3 +1,7 @@
+/**
+ * @file Helena script compilation
+ */
+
 import { Result, ResultCode } from "./command";
 import {
   CommandResolver,
@@ -32,6 +36,7 @@ import {
   ValueType,
 } from "./values";
 
+/** Supported compiler opcodes */
 export enum OpCode {
   PUSH_NIL,
   PUSH_CONSTANT,
@@ -48,27 +53,63 @@ export enum OpCode {
   JOIN_STRINGS,
 }
 
+/**
+ * Helena program
+ */
 export class Program {
+  /** Sequence of opcodes the program is made of */
   opCodes: OpCode[] = [];
+
+  /** Constants the opcodes refer to */
   constants: Value[] = [];
+
+  /**
+   * Push a new opcode
+   *
+   * @param opCode - Opcode to add
+   */
   pushOpCode(opCode: OpCode) {
     this.opCodes.push(opCode);
   }
+  /**
+   * Push a new constant
+   *
+   * @param value - Constant to add
+   */
   pushConstant(value: Value) {
     this.constants.push(value);
   }
+
+  /**
+   * Predicate telling whether the program is empty
+   *
+   * @returns Whether the program is empty
+   */
   empty(): boolean {
     return !this.opCodes.length;
   }
 }
 
+/**
+ * Helena compiler
+ *
+ * This class transforms scripts, sentences and words into programs
+ */
 export class Compiler {
+  /** Syntax checker used during compilation */
   private syntaxChecker: SyntaxChecker = new SyntaxChecker();
 
   /*
    * Scripts
    */
 
+  /**
+   * Compile the given script into a program
+   *
+   * @param script - Script to compile
+   *
+   * @returns        Compiled program
+   */
   compileScript(script: Script): Program {
     const program: Program = new Program();
     if (script.sentences.length == 0) return program;
@@ -93,6 +134,13 @@ export class Compiler {
    * Sentences
    */
 
+  /**
+   * Compile the given sentence into a program
+   *
+   * @param sentence - Sentence to compile
+   *
+   * @returns          Compiled program
+   */
   compileSentence(sentence: Sentence): Program {
     const program: Program = new Program();
     this.emitSentence(program, sentence);
@@ -108,6 +156,13 @@ export class Compiler {
    * Words
    */
 
+  /**
+   * Compile the given word into a program
+   *
+   * @param word - Word to compile
+   *
+   * @returns      Compile program
+   */
   compileWord(word: Word): Program {
     const program: Program = new Program();
     this.emitWord(program, word);
@@ -482,13 +537,32 @@ export class Compiler {
   }
 }
 
+/**
+ * Helena program executor
+ *
+ * This class executes compiled programs in a provided context
+ */
 export class Executor {
+  /** Variable resolver used during execution */
   private variableResolver: VariableResolver;
+
+  /** Command resolver used during execution */
   private commandResolver: CommandResolver;
+
+  /** Selector resolver used during execution */
   private selectorResolver: SelectorResolver;
+
+  /** Execution frames; each frame is a stack of values */
   private frames: Value[][] = [[]];
+
+  /** Last executed result value */
   result: Value = NIL;
 
+  /**
+   * @param variableResolver - Variable resolver
+   * @param commandResolver  - Command resolver
+   * @param selectorResolver - Selector resolver
+   */
   constructor(
     variableResolver: VariableResolver,
     commandResolver: CommandResolver,
@@ -499,6 +573,15 @@ export class Executor {
     this.selectorResolver = selectorResolver;
   }
 
+  /**
+   * Execute the given program
+   *
+   * Runs a flat loop over the program opcodes
+   *
+   * @param program - Program to execute
+   *
+   * @returns         Last executed result
+   */
   execute(program: Program): Result {
     let constant = 0;
     for (const opcode of program.opCodes) {
@@ -603,24 +686,49 @@ export class Executor {
     return [ResultCode.OK, this.result];
   }
 
+  /** Open a new frame */
   private openFrame() {
     this.frames.push([]);
   }
+
+  /**
+   * Close the current frame
+   *
+   * @returns The closed frame
+   */
   private closeFrame() {
     return this.frames.pop();
   }
+
+  /** @returns Current frame */
   private frame() {
     return this.frames[this.frames.length - 1];
   }
+
+  /**
+   * Push value on current frame
+   *
+   * @param value - Value to push
+   */
   private push(value: Value) {
     this.frame().push(value);
   }
+
+  /**
+   * Pop last value on current frame
+   *
+   * @returns Popped value
+   */
   private pop() {
     return this.frame().pop();
   }
+
+  /** @returns Last value on current frame */
   private last() {
     return this.frame()[this.frame().length - 1];
   }
+
+  /** Expand last value in current frame */
   private expand() {
     const last = this.last();
     if (last && last.type == ValueType.TUPLE) {
@@ -637,11 +745,15 @@ export class Executor {
       return this.resolveVariable(source.asString());
     }
   }
-  private resolveVariable(varname: string): Value {
-    const value = this.variableResolver.resolve(varname);
-    if (!value) throw new Error(`cannot resolve variable ${varname}`);
-    return value;
-  }
+
+  /**
+   * Apply a function to a tuple values recursively
+   *
+   * @param tuple - Tuple to map
+   * @param mapFn - Map function
+   *
+   * @returns       Mapped tuple
+   */
   private mapTuple(tuple: TupleValue, mapFn: (value: Value) => Value) {
     return new TupleValue(
       tuple.values.map((value) => {
@@ -653,6 +765,12 @@ export class Executor {
         }
       })
     );
+  }
+
+  private resolveVariable(varname: string): Value {
+    const value = this.variableResolver.resolve(varname);
+    if (!value) throw new Error(`cannot resolve variable ${varname}`);
+    return value;
   }
   private resolveCommand(args: Value[]) {
     const cmdname = args[0];

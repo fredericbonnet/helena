@@ -1,4 +1,8 @@
 /**
+ * @file Helena tokenization
+ */
+
+/**
  * Helena token type for each special character or sequence
  */
 export enum TokenType {
@@ -33,6 +37,11 @@ export class Position {
   /** Column number (zero-indexed) */
   column = 0;
 
+  /**
+   * Make a copy of the current position
+   *
+   * @returns a new position
+   */
   copy() {
     const copy = new Position();
     copy.index = this.index;
@@ -44,9 +53,9 @@ export class Position {
   /**
    * Advance to next character
    *
-   * @param newline Whether to increment line number
+   * @param newline - Whether to increment line number
    *
-   * @returns Previous index
+   * @returns         Previous index
    */
   next(newline: boolean) {
     if (newline) {
@@ -78,17 +87,22 @@ export interface Token {
 
 /**
  * Helena tokenizer
+ *
+ * This class transforms a stream of characters into a stream of tokens
  */
 export class Tokenizer {
+  /** Input stream */
   private stream: StringStream;
+
+  /** Output tokens */
   private tokens: Token[];
 
   /**
    * Tokenize a Helena source string
    *
-   * @param source Source string
+   * @param source - Source string
    *
-   * @returns Array of tokens
+   * @returns        Array of tokens
    */
   tokenize(source: string): Token[] {
     this.stream = new StringStream(source);
@@ -271,9 +285,9 @@ export class Tokenizer {
   /**
    * Add token to result
    *
-   * @param type Token type
-   * @param position Position of first character
-   * @param literal Literal value
+   * @param type     - Token type
+   * @param position - Position of first character
+   * @param literal  - Literal value
    */
   private addToken(type: TokenType, position: Position, literal?: string) {
     const sequence = this.stream.range(
@@ -294,7 +308,7 @@ export class Tokenizer {
    * Added character sequence is between given position and current stream
    * position
    *
-   * @param position Position of first character to add
+   * @param position - Position of first character to add
    */
   private addText(position: Position) {
     const last = this.tokens[this.tokens.length - 1];
@@ -316,9 +330,9 @@ export class Tokenizer {
   /**
    * Predicate for whitespace characters (excluding newlines)
    *
-   * @param c Character to test
+   * @param c - Character to test
    *
-   * @returns Whether character is a whitespace
+   * @returns   Whether character is a whitespace
    */
   private isWhitespace(c: string) {
     return c.match(/[ \t\r\f]/);
@@ -327,9 +341,9 @@ export class Tokenizer {
   /**
    * Predicate for escape characters
    *
-   * @param c Character to test
+   * @param c - Character to test
    *
-   * @returns Whether character is a known escape
+   * @returns   Whether character is a known escape
    */
   private isEscape(c: string) {
     return c.match(/[abfnrtv\\]/);
@@ -338,9 +352,9 @@ export class Tokenizer {
   /**
    * Get escaped character
    *
-   * @param c Character to escape
+   * @param c - Character to escape
    *
-   * @returns Escaped character
+   * @returns   Escaped character
    */
   private getEscape(c: string) {
     return {
@@ -358,9 +372,9 @@ export class Tokenizer {
   /**
    * Predicate for octal characters
    *
-   * @param c Character to test
+   * @param c - Character to test
    *
-   * @returns Whether character is octal
+   * @returns   Whether character is octal
    */
   private isOctal(c: string) {
     return c.match(/[0-7]/);
@@ -369,9 +383,9 @@ export class Tokenizer {
   /**
    * Predicate for hexadecimal characters
    *
-   * @param c Character to test
+   * @param c - Character to test
    *
-   * @returns Whether character is hexadecimal
+   * @returns   Whether character is hexadecimal
    */
   private isHexadecimal(c: string) {
     return c.match(/[0-9a-fA-F]/);
@@ -391,7 +405,7 @@ class StringStream {
   /**
    * Create a new stream from a string
    *
-   * @param source Source string
+   * @param source - Source string
    */
   constructor(source: string) {
     this.source = source;
@@ -427,10 +441,10 @@ class StringStream {
   /**
    * Get range of characters
    *
-   * @param start First character index (inclusive)
-   * @param end Last character index (exclusive)
+   * @param start - First character index (inclusive)
+   * @param end   - Last character index (exclusive)
    *
-   * @returns Range of characters
+   * @returns       Range of characters
    */
   range(start: number, end: number) {
     return this.source.substring(start, end);

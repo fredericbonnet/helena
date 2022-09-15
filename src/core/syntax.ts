@@ -1,15 +1,40 @@
+/**
+ * @file Helena syntax checking and AST
+ */
+
+/**
+ * Helena script
+ *
+ * Scripts are lists of sentences
+ */
 export class Script {
+  /** Sentences that compose the script */
   sentences: Sentence[] = [];
 }
 
+/**
+ * Helena sentence
+ *
+ * Sentences are lists of words
+ */
 export class Sentence {
+  /** Words that compose the sentence */
   words: Word[] = [];
 }
 
+/**
+ * Helena word
+ *
+ * Words are made of morphemes
+ */
 export class Word {
+  /** Morphemes that compose the word */
   morphemes: Morpheme[] = [];
 }
 
+/**
+ * Helena morpheme type
+ */
 export enum MorphemeType {
   LITERAL,
   TUPLE,
@@ -23,56 +48,171 @@ export enum MorphemeType {
   SUBSTITUTE_NEXT,
 }
 
+/**
+ * Helena morpheme
+ *
+ * Morphemes are the basic constituents of words
+ */
 export interface Morpheme {
+  /** Type identifier */
   type: MorphemeType;
 }
+
+/**
+ * Literal morpheme
+ *
+ * Literals are plain strings
+ */
 export interface LiteralMorpheme extends Morpheme {
-  value: string;
-}
-export interface TupleMorpheme extends Morpheme {
-  subscript: Script;
-}
-export interface BlockMorpheme extends Morpheme {
-  subscript: Script;
-  value: string;
-}
-export interface ExpressionMorpheme extends Morpheme {
-  subscript: Script;
-}
-export interface StringMorpheme extends Morpheme {
-  morphemes: Morpheme[];
-}
-export interface HereStringMorpheme extends Morpheme {
-  value: string;
-  delimiterLength: number;
-}
-export interface TaggedStringMorpheme extends Morpheme {
-  value: string;
-  tag: string;
-}
-export interface LineCommentMorpheme extends Morpheme {
-  value: string;
-  delimiterLength: number;
-}
-export interface BlockCommentMorpheme extends Morpheme {
-  value: string;
-  delimiterLength: number;
-}
-export interface SubstituteNextMorpheme extends Morpheme {
-  expansion: boolean;
-  levels: number;
+  /** Literal string value */
   value: string;
 }
 
+/**
+ * Tuple morpheme
+ *
+ * Tuples are scripts between tuple delimiters
+ */
+export interface TupleMorpheme extends Morpheme {
+  /** Tuple script content */
+  subscript: Script;
+}
+
+/**
+ * Block morpheme
+ *
+ * Blocks are scripts or strings between block delimiters
+ */
+export interface BlockMorpheme extends Morpheme {
+  /** Block script content */
+  subscript: Script;
+
+  /** Block string value */
+  value: string;
+}
+
+/**
+ * Expression morpheme
+ *
+ * Expressions are scripts between expression delimiters
+ */
+export interface ExpressionMorpheme extends Morpheme {
+  /** Expression script content */
+  subscript: Script;
+}
+
+/**
+ * String morpheme
+ *
+ * Strings are made of morphemes between single string delimiters
+ */
+export interface StringMorpheme extends Morpheme {
+  /** String content */
+  morphemes: Morpheme[];
+}
+
+/**
+ * Here-string morpheme
+ *
+ * Here-strings are plain strings between three or more string delimiters
+ */
+export interface HereStringMorpheme extends Morpheme {
+  /** Here-string value */
+  value: string;
+
+  /** Number of string delimiters around content */
+  delimiterLength: number;
+}
+
+/**
+ * Tagged string morpheme
+ *
+ * Tagged strings are plain strings between two string delimiters and an
+ * arbitrary tag
+ */
+export interface TaggedStringMorpheme extends Morpheme {
+  /** Tagged string value */
+  value: string;
+
+  /** Tag */
+  tag: string;
+}
+
+/**
+ * Line comment morpheme
+ */
+export interface LineCommentMorpheme extends Morpheme {
+  /** Line comment content */
+  value: string;
+
+  /** Number of comment characters before content  */
+  delimiterLength: number;
+}
+
+/**
+ * Block comment morpheme
+ */
+export interface BlockCommentMorpheme extends Morpheme {
+  /** Block comment content */
+  value: string;
+
+  /** Number of comment characters around content  */
+  delimiterLength: number;
+}
+
+/**
+ * Substitute Next morpheme
+ *
+ * Always followed by a sequence of morphemes to substitute; stale substitutions
+ * (substitution characters with no such sequence) are always converted to
+ * {@link LiteralMorpheme} and should not appear in a well-formed AST
+ */
+export interface SubstituteNextMorpheme extends Morpheme {
+  /** Simple or expanded substitution flag */
+  expansion: boolean;
+
+  /** Number of substitutions to perform */
+  levels: number;
+
+  /** Literal value; can be safely ignored */
+  value: string;
+}
+
+/**
+ * Helena word type
+ *
+ * Valid word types must respect strict syntactic rules
+ */
 export enum WordType {
+  /** Roots are monomorphemic words */
   ROOT,
+
+  /** Compounds are words made of several stems, that don't fit in the other categories */
   COMPOUND,
+
+  /** Substitions are root or qualified words prefixed by a substitute morpheme */
   SUBSTITUTION,
+
+  /** Qualified words are root words followed by selectors */
   QUALIFIED,
+
+  /** Ignored words are line and block comments */
   IGNORED,
 }
 
+/**
+ * Helena syntax checker
+ *
+ * This class validates syntactic rules on words and determines their type
+ */
 export class SyntaxChecker {
+  /**
+   * Check word syntax and determine its type
+   *
+   * @param word - Word to check
+   *
+   * @returns      Checked word type
+   */
   checkWord(word: Word): WordType {
     if (word.morphemes.length == 0) throw new Error("empty word");
     switch (word.morphemes[0].type) {
@@ -105,16 +245,21 @@ export class SyntaxChecker {
   }
 
   private checkCompoundWord(word: Word): WordType {
+    /* Lone morphemes are roots */
     if (word.morphemes.length == 1) return WordType.ROOT;
+
     this.checkStems(word.morphemes);
     return WordType.COMPOUND;
   }
 
   private checkQualifiedWord(word: Word): WordType {
+    /* Lone morphemes are roots */
     if (word.morphemes.length == 1) return WordType.ROOT;
+
     const selectors = this.skipSelectors(word.morphemes, 1);
-    if (selectors == word.morphemes.length) return WordType.QUALIFIED;
-    throw new Error("invalid word structure");
+    if (selectors != word.morphemes.length)
+      throw new Error("invalid word structure");
+    return WordType.QUALIFIED;
   }
 
   private checkSubstitutionWord(word: Word): WordType {
@@ -128,12 +273,20 @@ export class SyntaxChecker {
     return WordType.IGNORED;
   }
 
+  /**
+   * Check stem sequence in a compound or substitution word
+   *
+   * @param morphemes - Morphemes to check
+   *
+   * @returns           Number of stems
+   */
   private checkStems(morphemes: Morpheme[]): number {
     let nbStems = 0;
     let substitute = false;
     for (let i = 0; i < morphemes.length; i++) {
       const morpheme = morphemes[i];
       if (substitute) {
+        /* Expect valid root followed by selectors */
         switch (morpheme.type) {
           case MorphemeType.LITERAL:
           case MorphemeType.TUPLE:
@@ -167,6 +320,14 @@ export class SyntaxChecker {
     return nbStems;
   }
 
+  /**
+   * Skip all the selectors following a stem root
+   *
+   * @param morphemes - Morphemes to check
+   * @param first     - Index of first expected selector
+   *
+   * @returns           Index after selector sequence
+   */
   private skipSelectors(morphemes: Morpheme[], first: number): number {
     for (let i = first; i < morphemes.length; i++) {
       const morpheme = morphemes[i];
@@ -174,9 +335,11 @@ export class SyntaxChecker {
         case MorphemeType.TUPLE:
         case MorphemeType.BLOCK:
         case MorphemeType.EXPRESSION:
+          /* Eat up valid selector */
           break;
 
         default:
+          /* Stop there */
           return i;
       }
     }
