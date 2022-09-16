@@ -6,7 +6,6 @@ import {
   CompilingEvaluator,
   Evaluator,
 } from "../core/evaluator";
-import { Script } from "../core/syntax";
 import {
   Value,
   NIL,
@@ -55,10 +54,6 @@ export class Scope {
       this.commandResolver,
       null
     );
-  }
-
-  evaluate(script: Script): Value {
-    return this.evaluator.evaluateScript(script);
   }
 
   variableResolver: VariableResolver = {

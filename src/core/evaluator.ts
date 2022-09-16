@@ -88,15 +88,6 @@ export interface Evaluator {
   executeScript(script: Script): Result;
 
   /**
-   * Evaluate a script
-   *
-   * @param script - Script to evaluate
-   *
-   * @returns        Resulting value
-   */
-  evaluateScript(script: Script): Value;
-
-  /**
    * Evaluate a sentence
    *
    * @param sentence - Sentence to evaluate
@@ -183,27 +174,13 @@ export class InlineEvaluator implements Evaluator {
    */
   executeScript(script: Script): Result {
     try {
-      return [ResultCode.OK, this.evaluateScriptInternal(script)];
+      return [ResultCode.OK, this.evaluateScript(script)];
     } catch (e) {
       if (e instanceof Interrupt) return e.result;
       throw e;
     }
   }
-
-  /**
-   * Evaluate a script
-   *
-   * This will execute all the sentences of the script and return the last
-   * result value
-   *
-   * @param script - Script to evaluate
-   *
-   * @returns        Last evaluated result
-   */
-  evaluateScript(script: Script): Value {
-    return this.executeScript(script)[1];
-  }
-  private evaluateScriptInternal(script: Script): Value {
+  private evaluateScript(script: Script): Value {
     let value: Value = NIL;
     for (const sentence of script.sentences) {
       value = this.evaluateSentence(sentence);
@@ -381,7 +358,7 @@ export class InlineEvaluator implements Evaluator {
 
   private evaluateExpression(expression: ExpressionMorpheme): Value {
     const script = (expression as ExpressionMorpheme).subscript;
-    return this.evaluateScriptInternal(script);
+    return this.evaluateScript(script);
   }
 
   /*
@@ -616,19 +593,6 @@ export class CompilingEvaluator implements Evaluator {
   executeScript(script: Script): Result {
     const program = this.compiler.compileScript(script);
     return this.executor.execute(program);
-  }
-
-  /**
-   * Evaluate a script
-   *
-   * This will compile then execute the script and return the resulting value
-   *
-   * @param script - Script to evaluate
-   *
-   * @returns        Resulting value
-   */
-  evaluateScript(script: Script): Value {
-    return this.executeScript(script)[1];
   }
 
   /**
