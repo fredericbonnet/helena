@@ -86,15 +86,14 @@ export interface Evaluator {
    * @returns        Result of execution
    */
   executeScript(script: Script): Result;
-
   /**
-   * Evaluate a sentence
+   * Execute a sentence
    *
-   * @param sentence - Sentence to evaluate
+   * @param sentence - Sentence to execute
    *
-   * @returns          Result of command evaluation
+   * @returns          Result of command execution
    */
-  evaluateSentence(sentence: Sentence): Value;
+  executeSentence(sentence: Sentence): Result;
 
   /**
    * Evaluate a word
@@ -173,19 +172,12 @@ export class InlineEvaluator implements Evaluator {
    * @returns        Result of execution
    */
   executeScript(script: Script): Result {
-    try {
-      return [ResultCode.OK, this.evaluateScript(script)];
-    } catch (e) {
-      if (e instanceof Interrupt) return e.result;
-      throw e;
-    }
-  }
-  private evaluateScript(script: Script): Value {
-    let value: Value = NIL;
+    let result: Result = [ResultCode.OK, NIL];
     for (const sentence of script.sentences) {
-      value = this.evaluateSentence(sentence);
+      result = this.executeSentence(sentence);
+      if (result[0] != ResultCode.OK) break;
     }
-    return value;
+    return result;
   }
 
   /*
@@ -193,26 +185,29 @@ export class InlineEvaluator implements Evaluator {
    */
 
   /**
-   * Evaluate a sentence
+   * Execute a sentence
    *
    * This will resolve the first word as a command and pass the remaining words
    * as parameters
    *
-   * @param sentence - Sentence to evaluate
+   * @param sentence - Sentence to execute
    *
-   * @returns          Result of command evaluation
+   * @returns          Result of command execution
    */
-  evaluateSentence(sentence: Sentence): Value {
-    const values = this.getWordValues(sentence.words);
-    if (values.length == 0) return NIL;
-    if (!this.commandResolver) throw new Error("no command resolver");
-    const cmdname = values[0];
-    const command = this.commandResolver.resolve(cmdname);
-    if (!command)
-      throw new Error(`cannot resolve command ${cmdname.asString()}`);
-    const [code, result] = command.execute(values);
-    if (code != ResultCode.OK) throw new Interrupt(code, result);
-    return result;
+  executeSentence(sentence: Sentence): Result {
+    try {
+      const values = this.getWordValues(sentence.words);
+      if (values.length == 0) return [ResultCode.OK, NIL];
+      if (!this.commandResolver) throw new Error("no command resolver");
+      const cmdname = values[0];
+      const command = this.commandResolver.resolve(cmdname);
+      if (!command)
+        throw new Error(`cannot resolve command ${cmdname.asString()}`);
+      return command.execute(values);
+    } catch (e) {
+      if (e instanceof Interrupt) return e.result;
+      throw e;
+    }
   }
 
   /*
@@ -358,7 +353,9 @@ export class InlineEvaluator implements Evaluator {
 
   private evaluateExpression(expression: ExpressionMorpheme): Value {
     const script = (expression as ExpressionMorpheme).subscript;
-    return this.evaluateScript(script);
+    const [code, value] = this.executeScript(script);
+    if (code != ResultCode.OK) throw new Interrupt(code, value);
+    return value;
   }
 
   /*
@@ -596,19 +593,19 @@ export class CompilingEvaluator implements Evaluator {
   }
 
   /**
-   * Evaluate a sentence
+   * Execute a sentence
    *
    * This will execute a single-sentence script
    *
-   * @param sentence - Sentence to evaluate
+   * @param sentence - Sentence to execute
    *
-   * @returns          Result of command evaluation
+   * @returns          Result of command execution
    */
-  evaluateSentence(sentence: Sentence): Value {
+  executeSentence(sentence: Sentence): Result {
     const script = new Script();
     script.sentences.push(sentence);
     const program = this.compiler.compileScript(script);
-    return this.executor.execute(program)[1];
+    return this.executor.execute(program);
   }
 
   /**

@@ -1693,19 +1693,19 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
         specify("empty string", () => {
           variableResolver.register("var", new StringValue(""));
           const sentence = firstSentence(parse("cmd $*var arg"));
-          const value = evaluator.evaluateSentence(sentence);
+          const [, value] = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "", "arg"]);
         });
         specify("scalar variable", () => {
           variableResolver.register("var", new StringValue("value"));
           const sentence = firstSentence(parse("cmd $*var arg"));
-          const value = evaluator.evaluateSentence(sentence);
+          const [, value] = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "value", "arg"]);
         });
         specify("empty tuple variable", () => {
           variableResolver.register("var", new TupleValue([]));
           const sentence = firstSentence(parse("cmd $*var arg"));
-          const value = evaluator.evaluateSentence(sentence);
+          const [, value] = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "arg"]);
         });
         specify("tuple variable", () => {
@@ -1717,14 +1717,14 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             ])
           );
           const sentence = firstSentence(parse("cmd $*var arg"));
-          const value = evaluator.evaluateSentence(sentence);
+          const [, value] = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "value1", "value2", "arg"]);
         });
         specify("multiple variables", () => {
           variableResolver.register("var1", new StringValue("value1"));
           variableResolver.register("var2", new StringValue("value2"));
           const sentence = firstSentence(parse("cmd $*(var1 var2) arg"));
-          const value = evaluator.evaluateSentence(sentence);
+          const [, value] = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "value1", "value2", "arg"]);
         });
         specify("scalar expression", () => {
@@ -1733,7 +1733,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             new FunctionCommand(() => new StringValue("value"))
           );
           const sentence = firstSentence(parse("cmd $*[cmd2] arg"));
-          const value = evaluator.evaluateSentence(sentence);
+          const [, value] = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "value", "arg"]);
         });
         specify("tuple expression", () => {
@@ -1748,7 +1748,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             )
           );
           const sentence = firstSentence(parse("cmd $*[cmd2] arg"));
-          const value = evaluator.evaluateSentence(sentence);
+          const [, value] = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "value1", "value2", "arg"]);
         });
       });
@@ -1758,7 +1758,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
       describe("line comments", () => {
         specify("empty sentence", () => {
           const sentence = firstSentence(parse("# this is a comment"));
-          const value = evaluator.evaluateSentence(sentence);
+          const [, value] = evaluator.executeSentence(sentence);
           expect(value).to.eql(NIL);
         });
         specify("command", () => {
@@ -1767,7 +1767,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             new FunctionCommand((args) => new TupleValue(args))
           );
           const sentence = firstSentence(parse("cmd arg # this is a comment"));
-          const value = evaluator.evaluateSentence(sentence);
+          const [, value] = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "arg"]);
         });
       });
@@ -1776,7 +1776,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           const sentence = firstSentence(
             parse("#{ this is\na\nblock comment }#")
           );
-          const value = evaluator.evaluateSentence(sentence);
+          const [, value] = evaluator.executeSentence(sentence);
           expect(value).to.eql(NIL);
         });
         specify("command", () => {
@@ -1787,7 +1787,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           const sentence = firstSentence(
             parse("cmd #{ this is\na\nblock comment }# arg")
           );
-          const value = evaluator.evaluateSentence(sentence);
+          const [, value] = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "arg"]);
         });
         specify("command", () => {
@@ -1798,7 +1798,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           const sentence = firstSentence(
             parse("cmd #{ this is\na\nblock comment }# arg")
           );
-          const value = evaluator.evaluateSentence(sentence);
+          const [, value] = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "arg"]);
         });
         specify("tuple", () => {
