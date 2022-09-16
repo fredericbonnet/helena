@@ -538,6 +538,77 @@ export class Compiler {
 }
 
 /**
+ * Helena program execution context
+ *
+ * This class encapsulates context variables for a specific execution, allowing
+ * reentrancy and parallelism of executors
+ */
+export class ExecutionContext {
+  /** Execution frames; each frame is a stack of values */
+  private readonly frames: Value[][] = [[]];
+
+  /** Program counter */
+  pc = 0;
+
+  /** Constant counter */
+  cc = 0;
+
+  /** Last executed result value */
+  result: Result = [ResultCode.OK, NIL];
+
+  /** Open a new frame */
+  openFrame() {
+    this.frames.push([]);
+  }
+
+  /**
+   * Close the current frame
+   *
+   * @returns The closed frame
+   */
+  closeFrame() {
+    return this.frames.pop();
+  }
+
+  /** @returns Current frame */
+  frame() {
+    return this.frames[this.frames.length - 1];
+  }
+
+  /**
+   * Push value on current frame
+   *
+   * @param value - Value to push
+   */
+  push(value: Value) {
+    this.frame().push(value);
+  }
+
+  /**
+   * Pop last value on current frame
+   *
+   * @returns Popped value
+   */
+  pop() {
+    return this.frame().pop();
+  }
+
+  /** @returns Last value on current frame */
+  last() {
+    return this.frame()[this.frame().length - 1];
+  }
+
+  /** Expand last value in current frame */
+  expand() {
+    const last = this.last();
+    if (last && last.type == ValueType.TUPLE) {
+      this.frame().pop();
+      this.frame().push(...(last as TupleValue).values);
+    }
+  }
+}
+
+/**
  * Helena program executor
  *
  * This class executes compiled programs in a provided context
@@ -551,12 +622,6 @@ export class Executor {
 
   /** Selector resolver used during execution */
   private readonly selectorResolver: SelectorResolver;
-
-  /** Execution frames; each frame is a stack of values */
-  private readonly frames: Value[][] = [[]];
-
-  /** Last executed result value */
-  private result: Value = NIL;
 
   /**
    * @param variableResolver - Variable resolver
@@ -578,103 +643,107 @@ export class Executor {
    *
    * Runs a flat loop over the program opcodes
    *
-   * @param program - Program to execute
+   * By default a new context is created at each call. Passing a context object
+   * can be used to implement resumability, context switching, trampolines,
+   * coroutines, etc.
    *
-   * @returns         Last executed result
+   * @param program   - Program to execute
+   * @param [context] - Execution context
+   *
+   * @returns           Last executed result
    */
-  execute(program: Program): Result {
-    let constant = 0;
-    for (const opcode of program.opCodes) {
+  execute(program: Program, context = new ExecutionContext()): Result {
+    while (context.pc < program.opCodes.length) {
+      const opcode = program.opCodes[context.pc++];
       switch (opcode) {
         case OpCode.PUSH_NIL:
-          this.push(NIL);
+          context.push(NIL);
           break;
 
         case OpCode.PUSH_CONSTANT:
-          this.push(program.constants[constant++]);
+          context.push(program.constants[context.cc++]);
           break;
 
         case OpCode.OPEN_FRAME:
-          this.openFrame();
+          context.openFrame();
           break;
 
         case OpCode.CLOSE_FRAME:
           {
-            const values = this.closeFrame();
-            this.push(new TupleValue(values));
+            const values = context.closeFrame();
+            context.push(new TupleValue(values));
           }
           break;
 
         case OpCode.RESOLVE_VALUE:
           {
-            const source = this.pop();
-            this.push(this.resolveValue(source));
+            const source = context.pop();
+            context.push(this.resolveValue(source));
           }
           break;
 
         case OpCode.EXPAND_VALUE:
-          this.expand();
+          context.expand();
           break;
 
         case OpCode.SET_SOURCE:
           {
-            const source = this.pop();
-            this.push(new QualifiedValue(source, []));
+            const source = context.pop();
+            context.push(new QualifiedValue(source, []));
           }
           break;
 
         case OpCode.SELECT_INDEX:
           {
-            const index = this.pop();
+            const index = context.pop();
             const selector = new IndexedSelector(index);
-            const value = this.pop();
-            this.push(selector.apply(value));
+            const value = context.pop();
+            context.push(selector.apply(value));
           }
           break;
 
         case OpCode.SELECT_KEYS:
           {
-            const keys = this.pop() as TupleValue;
+            const keys = context.pop() as TupleValue;
             const selector = new KeyedSelector(keys.values);
-            const value = this.pop();
-            this.push(selector.apply(value));
+            const value = context.pop();
+            context.push(selector.apply(value));
           }
           break;
 
         case OpCode.SELECT_RULES:
           {
-            const rules = this.pop() as TupleValue;
+            const rules = context.pop() as TupleValue;
             const selector = this.resolveSelector(rules.values);
-            const value = this.pop();
+            const value = context.pop();
             if (value.select) {
-              this.push(value.select(selector));
+              context.push(value.select(selector));
             } else {
-              this.push(selector.apply(value));
+              context.push(selector.apply(value));
             }
           }
           break;
 
         case OpCode.EVALUATE_SENTENCE:
           {
-            const args = this.pop() as TupleValue;
+            const args = context.pop() as TupleValue;
             if (args.values.length) {
               const command = this.resolveCommand(args.values);
-              let code = ResultCode.OK;
-              [code, this.result] = command.execute(args.values);
-              if (code != ResultCode.OK) return [code, this.result];
+              context.result = command.execute(args.values);
+              if (context.result[0] != ResultCode.OK) return context.result;
             }
           }
           break;
 
         case OpCode.PUSH_RESULT:
-          this.push(this.result);
+          context.push(context.result[1]);
           break;
 
         case OpCode.JOIN_STRINGS:
           {
-            const tuple = this.pop() as TupleValue;
+            const tuple = context.pop() as TupleValue;
             const chunks = tuple.values.map((value) => value.asString());
-            this.push(new StringValue(chunks.join("")));
+            context.push(new StringValue(chunks.join("")));
           }
           break;
 
@@ -682,60 +751,19 @@ export class Executor {
           throw new Error("TODO");
       }
     }
-    if (this.frame().length) this.result = this.pop();
-    return [ResultCode.OK, this.result];
-  }
-
-  /** Open a new frame */
-  private openFrame() {
-    this.frames.push([]);
+    if (context.frame().length) context.result = [ResultCode.OK, context.pop()];
+    return context.result;
   }
 
   /**
-   * Close the current frame
+   * Resolve value
    *
-   * @returns The closed frame
-   */
-  private closeFrame() {
-    return this.frames.pop();
-  }
-
-  /** @returns Current frame */
-  private frame() {
-    return this.frames[this.frames.length - 1];
-  }
-
-  /**
-   * Push value on current frame
+   * - If source value is a tuple, resolve each of its elements recursively
+   * - Else, resolve variable from the source string value
    *
-   * @param value - Value to push
+   * @param source - Value(s) to resolve
+   * @returns        Resolved value(s)
    */
-  private push(value: Value) {
-    this.frame().push(value);
-  }
-
-  /**
-   * Pop last value on current frame
-   *
-   * @returns Popped value
-   */
-  private pop() {
-    return this.frame().pop();
-  }
-
-  /** @returns Last value on current frame */
-  private last() {
-    return this.frame()[this.frame().length - 1];
-  }
-
-  /** Expand last value in current frame */
-  private expand() {
-    const last = this.last();
-    if (last && last.type == ValueType.TUPLE) {
-      this.frame().pop();
-      this.frame().push(...(last as TupleValue).values);
-    }
-  }
   private resolveValue(source: Value) {
     if (source.type == ValueType.TUPLE) {
       return this.mapTuple(source as TupleValue, (element) =>

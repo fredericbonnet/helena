@@ -1,6 +1,12 @@
 import { expect } from "chai";
 import { Command, Result, ResultCode } from "./command";
-import { Compiler, OpCode, Executor, Program } from "./compiler";
+import {
+  Compiler,
+  OpCode,
+  Executor,
+  Program,
+  ExecutionContext,
+} from "./compiler";
 import {
   VariableResolver,
   CommandResolver,
@@ -2606,6 +2612,7 @@ describe("Compiler", () => {
       expect(program.opCodes).to.eql([]);
       expect(evaluate(program)).to.eql(NIL);
     });
+
     specify("conditional evaluation", () => {
       const script1 = parse("if true {cmd1 a} else {cmd2 b}");
       const program1 = compiler.compileScript(script1);
@@ -2717,6 +2724,70 @@ describe("Compiler", () => {
       expect(evaluate(program)).to.eql(new IntegerValue(9));
       expect(counter).to.eql(10);
       expect(acc).to.eql("foo".repeat(10));
+    });
+  });
+
+  describe("ExecutionContext", () => {
+    it("should resume execution", () => {
+      const script = parse("break 1; ok 2; break 3; break 4; ok 5; break 6");
+      const program = compiler.compileScript(script);
+
+      commandResolver.register("break", {
+        execute(args) {
+          return [ResultCode.BREAK, args[1]];
+        },
+      });
+      commandResolver.register("ok", {
+        execute(args) {
+          return [ResultCode.OK, args[1]];
+        },
+      });
+      const context = new ExecutionContext();
+      expect(executor.execute(program, context)).to.eql([
+        ResultCode.BREAK,
+        new StringValue("1"),
+      ]);
+      expect(executor.execute(program, context)).to.eql([
+        ResultCode.BREAK,
+        new StringValue("3"),
+      ]);
+      expect(executor.execute(program, context)).to.eql([
+        ResultCode.BREAK,
+        new StringValue("4"),
+      ]);
+      expect(executor.execute(program, context)).to.eql([
+        ResultCode.BREAK,
+        new StringValue("6"),
+      ]);
+      expect(executor.execute(program, context)).to.eql([
+        ResultCode.OK,
+        new StringValue("6"),
+      ]);
+    });
+    it("should support setting result", () => {
+      const script = parse("ok [break 1]");
+      const program = compiler.compileScript(script);
+
+      commandResolver.register("break", {
+        execute(args) {
+          return [ResultCode.BREAK, args[1]];
+        },
+      });
+      commandResolver.register("ok", {
+        execute(args) {
+          return [ResultCode.OK, args[1]];
+        },
+      });
+      const context = new ExecutionContext();
+      expect(executor.execute(program, context)).to.eql([
+        ResultCode.BREAK,
+        new StringValue("1"),
+      ]);
+      context.result = [ResultCode.OK, new StringValue("2")];
+      expect(executor.execute(program, context)).to.eql([
+        ResultCode.OK,
+        new StringValue("2"),
+      ]);
     });
   });
 });
