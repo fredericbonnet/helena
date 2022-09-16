@@ -121,7 +121,7 @@ export interface Evaluator {
  */
 class Interrupt extends Error {
   /** Encapsulated result */
-  result: Result;
+  readonly result: Result;
 
   /**
    * @param code  - Result code
@@ -141,16 +141,16 @@ class Interrupt extends Error {
  */
 export class InlineEvaluator implements Evaluator {
   /** Variable resolver used during evaluation */
-  private variableResolver: VariableResolver;
+  private readonly variableResolver: VariableResolver;
 
   /** Command resolver used during evaluation */
-  private commandResolver: CommandResolver;
+  private readonly commandResolver: CommandResolver;
 
   /** Selector resolver used during evaluation */
-  private selectorResolver: SelectorResolver;
+  private readonly selectorResolver: SelectorResolver;
 
   /** Syntax checker used during evaluation */
-  private syntaxChecker: SyntaxChecker = new SyntaxChecker();
+  private readonly syntaxChecker: SyntaxChecker = new SyntaxChecker();
 
   /**
    * @param variableResolver - Variable resolver
@@ -581,10 +581,10 @@ export class InlineEvaluator implements Evaluator {
  */
 export class CompilingEvaluator implements Evaluator {
   /** Compiler used for scripts */
-  private compiler: Compiler;
+  private readonly compiler: Compiler;
 
   /** Executor for compiled script programs */
-  private executor: Executor;
+  private readonly executor: Executor;
 
   /**
    * @param variableResolver - Variable resolver

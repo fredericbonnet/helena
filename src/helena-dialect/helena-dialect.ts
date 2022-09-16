@@ -23,7 +23,7 @@ export class Variable {
 }
 type ScopedCommand = (scope: Scope) => Command;
 export class CommandValue implements Value {
-  type: ValueType = ValueType.CUSTOM;
+  readonly type: ValueType = ValueType.CUSTOM;
   command: ScopedCommand;
 
   constructor(command: ScopedCommand) {
@@ -43,11 +43,11 @@ export class CommandValue implements Value {
   }
 }
 export class Scope {
-  parent?: Scope;
-  constants: Map<string, Value> = new Map();
-  variables: Map<string, Variable> = new Map();
-  commands: Map<string, ScopedCommand> = new Map();
-  evaluator: Evaluator;
+  readonly parent?: Scope;
+  readonly constants: Map<string, Value> = new Map();
+  readonly variables: Map<string, Variable> = new Map();
+  readonly commands: Map<string, ScopedCommand> = new Map();
+  readonly evaluator: Evaluator;
   constructor(parent?: Scope) {
     this.parent = parent;
     this.evaluator = new CompilingEvaluator(
@@ -168,15 +168,15 @@ type ArgSpec = {
 };
 
 class ScopeValue extends CommandValue {
-  scope: Scope;
+  readonly scope: Scope;
   constructor(scope: Scope) {
     super(() => new ScopeCommand(scope, this));
     this.scope = scope;
   }
 }
 class ScopeCommand implements Command {
-  scope: Scope;
-  value: ScopeValue;
+  readonly scope: Scope;
+  readonly value: ScopeValue;
   constructor(scope: Scope, value: ScopeValue) {
     this.scope = scope;
     this.value = value;
@@ -235,9 +235,9 @@ const scopeCmd = (scope: Scope): Command => ({
 });
 
 class MacroCommand implements Command {
-  scope: Scope;
-  argspecs: ArgSpec[];
-  body: ScriptValue;
+  readonly scope: Scope;
+  readonly argspecs: ArgSpec[];
+  readonly body: ScriptValue;
   constructor(scope: Scope, argspecs: ArgSpec[], body: ScriptValue) {
     this.scope = scope;
     this.argspecs = argspecs;
@@ -276,9 +276,9 @@ const macroCmd = (scope: Scope): Command => ({
 });
 
 class ClosureCommand implements Command {
-  scope: Scope;
-  argspecs: ArgSpec[];
-  body: ScriptValue;
+  readonly scope: Scope;
+  readonly argspecs: ArgSpec[];
+  readonly body: ScriptValue;
   constructor(scope: Scope, argspecs: ArgSpec[], body: ScriptValue) {
     this.scope = scope;
     this.argspecs = argspecs;

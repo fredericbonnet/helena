@@ -22,10 +22,10 @@ import {
 } from "../core/values";
 
 export class PicolScope {
-  parent?: PicolScope;
-  variables: Map<string, Value> = new Map();
-  commands: Map<string, (scope: PicolScope) => Command> = new Map();
-  evaluator: Evaluator;
+  readonly parent?: PicolScope;
+  readonly variables: Map<string, Value> = new Map();
+  readonly commands: Map<string, (scope: PicolScope) => Command> = new Map();
+  readonly evaluator: Evaluator;
   constructor(parent?: PicolScope) {
     this.parent = parent;
     this.evaluator = new CompilingEvaluator(
@@ -328,9 +328,9 @@ type ArgSpec = {
   default?: Value;
 };
 class ProcCommand implements Command {
-  scope: PicolScope;
-  argspecs: ArgSpec[];
-  body: ScriptValue;
+  readonly scope: PicolScope;
+  readonly argspecs: ArgSpec[];
+  readonly body: ScriptValue;
   constructor(scope: PicolScope, argspecs: ArgSpec[], body: ScriptValue) {
     this.scope = scope;
     this.argspecs = argspecs;

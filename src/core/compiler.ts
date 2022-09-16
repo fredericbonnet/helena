@@ -58,10 +58,10 @@ export enum OpCode {
  */
 export class Program {
   /** Sequence of opcodes the program is made of */
-  opCodes: OpCode[] = [];
+  readonly opCodes: OpCode[] = [];
 
   /** Constants the opcodes refer to */
-  constants: Value[] = [];
+  readonly constants: Value[] = [];
 
   /**
    * Push a new opcode
@@ -97,7 +97,7 @@ export class Program {
  */
 export class Compiler {
   /** Syntax checker used during compilation */
-  private syntaxChecker: SyntaxChecker = new SyntaxChecker();
+  private readonly syntaxChecker: SyntaxChecker = new SyntaxChecker();
 
   /*
    * Scripts
@@ -544,19 +544,19 @@ export class Compiler {
  */
 export class Executor {
   /** Variable resolver used during execution */
-  private variableResolver: VariableResolver;
+  private readonly variableResolver: VariableResolver;
 
   /** Command resolver used during execution */
-  private commandResolver: CommandResolver;
+  private readonly commandResolver: CommandResolver;
 
   /** Selector resolver used during execution */
-  private selectorResolver: SelectorResolver;
+  private readonly selectorResolver: SelectorResolver;
 
   /** Execution frames; each frame is a stack of values */
-  private frames: Value[][] = [[]];
+  private readonly frames: Value[][] = [[]];
 
   /** Last executed result value */
-  result: Value = NIL;
+  private result: Value = NIL;
 
   /**
    * @param variableResolver - Variable resolver

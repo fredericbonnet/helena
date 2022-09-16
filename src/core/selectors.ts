@@ -30,7 +30,7 @@ export interface Selector {
  */
 export class IndexedSelector implements Selector {
   /** Index to select */
-  index: Value;
+  readonly index: Value;
 
   /**
    * @param index - Index to select
@@ -55,7 +55,7 @@ export class IndexedSelector implements Selector {
  */
 export class KeyedSelector implements Selector {
   /** Keys to select in order */
-  keys: Value[];
+  readonly keys: Value[];
 
   /**
    * @param keys - Keys to select
@@ -82,7 +82,7 @@ export class KeyedSelector implements Selector {
  */
 export class GenericSelector implements Selector {
   /** Rules to apply */
-  rules: Value[];
+  readonly rules: Value[];
 
   /**
    * @param rules - Rules to apply

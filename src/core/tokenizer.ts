@@ -397,10 +397,10 @@ export class Tokenizer {
  */
 class StringStream {
   /** Source string */
-  source: string;
+  readonly source: string;
 
   /** Current position in stream */
-  position: Position = new Position();
+  readonly position: Position = new Position();
 
   /**
    * Create a new stream from a string

@@ -59,7 +59,7 @@ export interface Value {
  */
 class NilValue implements Value {
   /** @override */
-  type = ValueType.NIL;
+  readonly type = ValueType.NIL;
 
   /** @override */
   asString(): string {
@@ -90,10 +90,10 @@ export const NIL = new NilValue();
  */
 export class BooleanValue implements Value {
   /** @override */
-  type = ValueType.BOOLEAN;
+  readonly type = ValueType.BOOLEAN;
 
   /** Encapsulated value */
-  value: boolean;
+  readonly value: boolean;
 
   /**
    * @param value - Value to encapsulate
@@ -158,10 +158,10 @@ export const FALSE = new BooleanValue(false);
  */
 export class IntegerValue implements Value {
   /** @override */
-  type = ValueType.INTEGER;
+  readonly type = ValueType.INTEGER;
 
   /** Encapsulated value */
-  value: number;
+  readonly value: number;
 
   /**
    * @param value - Value to encapsulate
@@ -212,10 +212,10 @@ export class IntegerValue implements Value {
  */
 export class NumberValue implements Value {
   /** @override */
-  type = ValueType.NUMBER;
+  readonly type = ValueType.NUMBER;
 
   /** @override */
-  value: number;
+  readonly value: number;
 
   /**
    * @param value - Number value to encapsulate
@@ -266,10 +266,10 @@ export class NumberValue implements Value {
  */
 export class StringValue implements Value {
   /** @override */
-  type = ValueType.STRING;
+  readonly type = ValueType.STRING;
 
   /** Encapsulated value */
-  value: string;
+  readonly value: string;
 
   /**
    * @param value - Value to encapsulate
@@ -308,10 +308,10 @@ export class StringValue implements Value {
  */
 export class ListValue implements Value {
   /** @override */
-  type = ValueType.LIST;
+  readonly type = ValueType.LIST;
 
   /** Encapsulated values */
-  values: Value[];
+  readonly values: Value[];
 
   /**
    * @param value - Array of values to encapsulate
@@ -350,10 +350,10 @@ export class ListValue implements Value {
  */
 export class MapValue implements Value {
   /** @override */
-  type = ValueType.MAP;
+  readonly type = ValueType.MAP;
 
   /** Encapsulated key-value map */
-  map: Map<string, Value>;
+  readonly map: Map<string, Value>;
 
   /**
    * @param value - Key-value map to encapsulate
@@ -393,10 +393,10 @@ export class MapValue implements Value {
  */
 export class TupleValue implements Value {
   /** @override */
-  type = ValueType.TUPLE;
+  readonly type = ValueType.TUPLE;
 
   /** Encapsulated values */
-  values: Value[];
+  readonly values: Value[];
 
   /**
    * @param values - Array of values to encapsulate
@@ -438,13 +438,13 @@ export class TupleValue implements Value {
  */
 export class ScriptValue implements Value {
   /** @override */
-  type = ValueType.SCRIPT;
+  readonly type = ValueType.SCRIPT;
 
   /** Encapsulated script */
-  script: Script;
+  readonly script: Script;
 
   /** Script literal value */
-  value: string;
+  readonly value: string;
 
   /**
    * @param script - Script to encapsulate
@@ -483,13 +483,13 @@ export class ScriptValue implements Value {
  */
 export class QualifiedValue implements Value {
   /** @override */
-  type = ValueType.QUALIFIED;
+  readonly type = ValueType.QUALIFIED;
 
   /** Source */
-  source: Value;
+  readonly source: Value;
 
   /** Selectors */
-  selectors: Selector[];
+  readonly selectors: Selector[];
 
   /**
    * @param source    - Source

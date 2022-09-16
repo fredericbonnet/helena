@@ -29,10 +29,10 @@ import {
  */
 class Context {
   /** Node the context belongs to */
-  node: ContextualNode;
+  readonly node: ContextualNode;
 
   /** Current script */
-  script: Script;
+  readonly script: Script;
 
   /** Current sentence (if any) */
   sentence?: Sentence;
@@ -73,7 +73,7 @@ interface ContextualNode extends Morpheme {
 
 /** Literal morpheme AST node */
 class LiteralNode implements LiteralMorpheme {
-  type = MorphemeType.LITERAL;
+  readonly type = MorphemeType.LITERAL;
   value: string;
 
   constructor(value: string) {
@@ -83,15 +83,15 @@ class LiteralNode implements LiteralMorpheme {
 
 /** Tuple morpheme AST node */
 class TupleNode implements TupleMorpheme, ContextualNode {
-  type = MorphemeType.TUPLE;
-  subscript: Script = new Script();
+  readonly type = MorphemeType.TUPLE;
+  readonly subscript: Script = new Script();
   parentContext?: Context;
 }
 
 /** Block morpheme AST node */
 class BlockNode implements BlockMorpheme, ContextualNode {
-  type = MorphemeType.BLOCK;
-  subscript: Script = new Script();
+  readonly type = MorphemeType.BLOCK;
+  readonly subscript: Script = new Script();
   value: string;
   parentContext?: Context;
 
@@ -105,23 +105,23 @@ class BlockNode implements BlockMorpheme, ContextualNode {
 
 /** Expression morpheme AST node */
 class ExpressionNode implements ExpressionMorpheme, ContextualNode {
-  type = MorphemeType.EXPRESSION;
-  subscript: Script = new Script();
+  readonly type = MorphemeType.EXPRESSION;
+  readonly subscript: Script = new Script();
   parentContext?: Context;
 }
 
 /** String morpheme AST node */
 class StringNode implements StringMorpheme, ContextualNode {
-  type = MorphemeType.STRING;
-  morphemes: Morpheme[] = [];
+  readonly type = MorphemeType.STRING;
+  readonly morphemes: Morpheme[] = [];
   parentContext?: Context;
 }
 
 /** Here-string morpheme AST node */
 class HereStringNode implements HereStringMorpheme, ContextualNode {
-  type = MorphemeType.HERE_STRING;
+  readonly type = MorphemeType.HERE_STRING;
   value = "";
-  delimiterLength: number;
+  readonly delimiterLength: number;
   parentContext?: Context;
 
   constructor(delimiter: string) {
@@ -131,9 +131,9 @@ class HereStringNode implements HereStringMorpheme, ContextualNode {
 
 /** Tagged string morpheme AST node */
 class TaggedStringNode implements TaggedStringMorpheme, ContextualNode {
-  type = MorphemeType.TAGGED_STRING;
+  readonly type = MorphemeType.TAGGED_STRING;
   value = "";
-  tag: string;
+  readonly tag: string;
   parentContext?: Context;
 
   constructor(tag: string) {
@@ -143,9 +143,9 @@ class TaggedStringNode implements TaggedStringMorpheme, ContextualNode {
 
 /** Line comment morpheme AST node */
 class LineCommentNode implements LineCommentMorpheme, ContextualNode {
-  type = MorphemeType.LINE_COMMENT;
+  readonly type = MorphemeType.LINE_COMMENT;
   value = "";
-  delimiterLength: number;
+  readonly delimiterLength: number;
   parentContext?: Context;
 
   constructor(delimiter: string) {
@@ -155,9 +155,9 @@ class LineCommentNode implements LineCommentMorpheme, ContextualNode {
 
 /** Block comment morpheme AST node */
 class BlockCommentNode implements BlockCommentMorpheme, ContextualNode {
-  type = MorphemeType.BLOCK_COMMENT;
+  readonly type = MorphemeType.BLOCK_COMMENT;
   value = "";
-  delimiterLength: number;
+  readonly delimiterLength: number;
   parentContext?: Context;
 
   /** Nesting level, node is closed when it reaches zero */
@@ -170,7 +170,7 @@ class BlockCommentNode implements BlockCommentMorpheme, ContextualNode {
 
 /** Substitute Next morpheme AST node */
 class SubstituteNextNode implements SubstituteNextMorpheme {
-  type = MorphemeType.SUBSTITUTE_NEXT;
+  readonly type = MorphemeType.SUBSTITUTE_NEXT;
   expansion = false;
   levels = 1;
   value: string;
@@ -534,7 +534,7 @@ export class Parser {
    */
   private addLiteral(value: string) {
     if (this.context.currentMorpheme()?.type == MorphemeType.LITERAL) {
-      const morpheme = this.context.currentMorpheme() as LiteralMorpheme;
+      const morpheme = this.context.currentMorpheme() as LiteralNode;
       if (!this.withinSubstitution()) {
         morpheme.value += value;
         return;
@@ -808,7 +808,7 @@ export class Parser {
    * Attempt to open a block comment parsing context
    *
    * @param delimiter - Block comment delimiter
-   * @param nested    - Whether in block comment context
+   * @param [nested]  - Whether in block comment context
    *
    * @returns           Whether the context was open
    */

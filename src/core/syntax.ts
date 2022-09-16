@@ -9,7 +9,7 @@
  */
 export class Script {
   /** Sentences that compose the script */
-  sentences: Sentence[] = [];
+  readonly sentences: Sentence[] = [];
 }
 
 /**
@@ -19,7 +19,7 @@ export class Script {
  */
 export class Sentence {
   /** Words that compose the sentence */
-  words: Word[] = [];
+  readonly words: Word[] = [];
 }
 
 /**
@@ -29,7 +29,7 @@ export class Sentence {
  */
 export class Word {
   /** Morphemes that compose the word */
-  morphemes: Morpheme[] = [];
+  readonly morphemes: Morpheme[] = [];
 }
 
 /**
@@ -55,7 +55,7 @@ export enum MorphemeType {
  */
 export interface Morpheme {
   /** Type identifier */
-  type: MorphemeType;
+  readonly type: MorphemeType;
 }
 
 /**
@@ -65,7 +65,7 @@ export interface Morpheme {
  */
 export interface LiteralMorpheme extends Morpheme {
   /** Literal string value */
-  value: string;
+  readonly value: string;
 }
 
 /**
@@ -75,7 +75,7 @@ export interface LiteralMorpheme extends Morpheme {
  */
 export interface TupleMorpheme extends Morpheme {
   /** Tuple script content */
-  subscript: Script;
+  readonly subscript: Script;
 }
 
 /**
@@ -85,10 +85,10 @@ export interface TupleMorpheme extends Morpheme {
  */
 export interface BlockMorpheme extends Morpheme {
   /** Block script content */
-  subscript: Script;
+  readonly subscript: Script;
 
   /** Block string value */
-  value: string;
+  readonly value: string;
 }
 
 /**
@@ -98,7 +98,7 @@ export interface BlockMorpheme extends Morpheme {
  */
 export interface ExpressionMorpheme extends Morpheme {
   /** Expression script content */
-  subscript: Script;
+  readonly subscript: Script;
 }
 
 /**
@@ -108,7 +108,7 @@ export interface ExpressionMorpheme extends Morpheme {
  */
 export interface StringMorpheme extends Morpheme {
   /** String content */
-  morphemes: Morpheme[];
+  readonly morphemes: Morpheme[];
 }
 
 /**
@@ -118,10 +118,10 @@ export interface StringMorpheme extends Morpheme {
  */
 export interface HereStringMorpheme extends Morpheme {
   /** Here-string value */
-  value: string;
+  readonly value: string;
 
   /** Number of string delimiters around content */
-  delimiterLength: number;
+  readonly delimiterLength: number;
 }
 
 /**
@@ -132,10 +132,10 @@ export interface HereStringMorpheme extends Morpheme {
  */
 export interface TaggedStringMorpheme extends Morpheme {
   /** Tagged string value */
-  value: string;
+  readonly value: string;
 
   /** Tag */
-  tag: string;
+  readonly tag: string;
 }
 
 /**
@@ -143,10 +143,10 @@ export interface TaggedStringMorpheme extends Morpheme {
  */
 export interface LineCommentMorpheme extends Morpheme {
   /** Line comment content */
-  value: string;
+  readonly value: string;
 
   /** Number of comment characters before content  */
-  delimiterLength: number;
+  readonly delimiterLength: number;
 }
 
 /**
@@ -154,10 +154,10 @@ export interface LineCommentMorpheme extends Morpheme {
  */
 export interface BlockCommentMorpheme extends Morpheme {
   /** Block comment content */
-  value: string;
+  readonly value: string;
 
   /** Number of comment characters around content  */
-  delimiterLength: number;
+  readonly delimiterLength: number;
 }
 
 /**
@@ -169,13 +169,13 @@ export interface BlockCommentMorpheme extends Morpheme {
  */
 export interface SubstituteNextMorpheme extends Morpheme {
   /** Simple or expanded substitution flag */
-  expansion: boolean;
+  readonly expansion: boolean;
 
   /** Number of substitutions to perform */
-  levels: number;
+  readonly levels: number;
 
   /** Literal value; can be safely ignored */
-  value: string;
+  readonly value: string;
 }
 
 /**
