@@ -2,7 +2,7 @@
  * @file Helena script compilation
  */
 
-import { Result, ResultCode } from "./command";
+import { Command, Result, ResultCode } from "./command";
 import {
   CommandResolver,
   SelectorResolver,
@@ -553,6 +553,9 @@ export class ExecutionContext {
   /** Constant counter */
   cc = 0;
 
+  /** Last executed command */
+  command: Command;
+
   /** Last executed result value */
   result: Result = [ResultCode.OK, NIL];
 
@@ -653,6 +656,10 @@ export class Executor {
    * @returns           Last executed result
    */
   execute(program: Program, context = new ExecutionContext()): Result {
+    if (context.result[0] == ResultCode.YIELD && context.command?.resume) {
+      context.result = context.command.resume(context.result[1]);
+      if (context.result[0] != ResultCode.OK) return context.result;
+    }
     while (context.pc < program.opCodes.length) {
       const opcode = program.opCodes[context.pc++];
       switch (opcode) {
@@ -728,8 +735,8 @@ export class Executor {
           {
             const args = context.pop() as TupleValue;
             if (args.values.length) {
-              const command = this.resolveCommand(args.values);
-              context.result = command.execute(args.values);
+              context.command = this.resolveCommand(args.values);
+              context.result = context.command.execute(args.values);
               if (context.result[0] != ResultCode.OK) return context.result;
             }
           }

@@ -7,6 +7,7 @@ import { Value } from "./values";
 /** Supported command result codes */
 export enum ResultCode {
   OK,
+  YIELD,
   RETURN,
   BREAK,
   CONTINUE,
@@ -26,4 +27,13 @@ export interface Command {
    * @returns      Command result
    */
   execute(args: Value[]): Result;
+
+  /**
+   * Resume the previously yielded command
+   *
+   * @param value - Value to yield back
+   *
+   * @returns       Command result
+   */
+  resume?(value: Value): Result;
 }

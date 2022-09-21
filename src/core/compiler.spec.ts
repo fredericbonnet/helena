@@ -2789,5 +2789,51 @@ describe("Compiler", () => {
         new StringValue("2"),
       ]);
     });
+    it("should support resumable commands", () => {
+      const script = parse("ok [cmd]");
+      const program = compiler.compileScript(script);
+
+      commandResolver.register("cmd", {
+        execute(args) {
+          return [ResultCode.YIELD, new IntegerValue(1)];
+        },
+        resume(value) {
+          const i = (value as IntegerValue).value;
+          if (i == 5) return [ResultCode.OK, new StringValue("done")];
+          return [ResultCode.YIELD, new IntegerValue(i + 1)];
+        },
+      });
+      commandResolver.register("ok", {
+        execute(args) {
+          return [ResultCode.OK, args[1]];
+        },
+      });
+
+      const context = new ExecutionContext();
+      expect(executor.execute(program, context)).to.eql([
+        ResultCode.YIELD,
+        new IntegerValue(1),
+      ]);
+      expect(executor.execute(program, context)).to.eql([
+        ResultCode.YIELD,
+        new IntegerValue(2),
+      ]);
+      expect(executor.execute(program, context)).to.eql([
+        ResultCode.YIELD,
+        new IntegerValue(3),
+      ]);
+      expect(executor.execute(program, context)).to.eql([
+        ResultCode.YIELD,
+        new IntegerValue(4),
+      ]);
+      expect(executor.execute(program, context)).to.eql([
+        ResultCode.YIELD,
+        new IntegerValue(5),
+      ]);
+      expect(executor.execute(program, context)).to.eql([
+        ResultCode.OK,
+        new StringValue("done"),
+      ]);
+    });
   });
 });
