@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { Command, Result, ResultCode } from "./command";
+import { Command, Result, OK, YIELD, BREAK } from "./command";
 import {
   Compiler,
   OpCode,
@@ -47,7 +47,7 @@ class MockVariableResolver implements VariableResolver {
 
 class IntCommand implements Command {
   execute(args: Value[]): Result {
-    return [ResultCode.OK, args[0]];
+    return OK(args[0]);
   }
 }
 const INT_CMD = new IntCommand();
@@ -70,7 +70,7 @@ class FunctionCommand implements Command {
   }
 
   execute(args: Value[]): Result {
-    return [ResultCode.OK, this.fn(args)];
+    return OK(this.fn(args));
   }
 }
 
@@ -96,7 +96,7 @@ describe("Compiler", () => {
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
   const compileFirstWord = (script: Script) =>
     compiler.compileWord(script.sentences[0].words[0]);
-  const evaluate = (program: Program) => executor.execute(program)[1];
+  const evaluate = (program: Program) => executor.execute(program).value;
 
   beforeEach(() => {
     tokenizer = new Tokenizer();
@@ -2734,35 +2734,30 @@ describe("Compiler", () => {
 
       commandResolver.register("break", {
         execute(args) {
-          return [ResultCode.BREAK, args[1]];
+          return BREAK(args[1]);
         },
       });
       commandResolver.register("ok", {
         execute(args) {
-          return [ResultCode.OK, args[1]];
+          return OK(args[1]);
         },
       });
       const context = new ExecutionContext();
-      expect(executor.execute(program, context)).to.eql([
-        ResultCode.BREAK,
-        new StringValue("1"),
-      ]);
-      expect(executor.execute(program, context)).to.eql([
-        ResultCode.BREAK,
-        new StringValue("3"),
-      ]);
-      expect(executor.execute(program, context)).to.eql([
-        ResultCode.BREAK,
-        new StringValue("4"),
-      ]);
-      expect(executor.execute(program, context)).to.eql([
-        ResultCode.BREAK,
-        new StringValue("6"),
-      ]);
-      expect(executor.execute(program, context)).to.eql([
-        ResultCode.OK,
-        new StringValue("6"),
-      ]);
+      expect(executor.execute(program, context)).to.eql(
+        BREAK(new StringValue("1"))
+      );
+      expect(executor.execute(program, context)).to.eql(
+        BREAK(new StringValue("3"))
+      );
+      expect(executor.execute(program, context)).to.eql(
+        BREAK(new StringValue("4"))
+      );
+      expect(executor.execute(program, context)).to.eql(
+        BREAK(new StringValue("6"))
+      );
+      expect(executor.execute(program, context)).to.eql(
+        OK(new StringValue("6"))
+      );
     });
     it("should support setting result", () => {
       const script = parse("ok [break 1]");
@@ -2770,70 +2765,62 @@ describe("Compiler", () => {
 
       commandResolver.register("break", {
         execute(args) {
-          return [ResultCode.BREAK, args[1]];
+          return BREAK(args[1]);
         },
       });
       commandResolver.register("ok", {
         execute(args) {
-          return [ResultCode.OK, args[1]];
+          return OK(args[1]);
         },
       });
       const context = new ExecutionContext();
-      expect(executor.execute(program, context)).to.eql([
-        ResultCode.BREAK,
-        new StringValue("1"),
-      ]);
-      context.result = [ResultCode.OK, new StringValue("2")];
-      expect(executor.execute(program, context)).to.eql([
-        ResultCode.OK,
-        new StringValue("2"),
-      ]);
+      expect(executor.execute(program, context)).to.eql(
+        BREAK(new StringValue("1"))
+      );
+      context.result = OK(new StringValue("2"));
+      expect(executor.execute(program, context)).to.eql(
+        OK(new StringValue("2"))
+      );
     });
     it("should support resumable commands", () => {
       const script = parse("ok [cmd]");
       const program = compiler.compileScript(script);
 
       commandResolver.register("cmd", {
-        execute(args) {
-          return [ResultCode.YIELD, new IntegerValue(1)];
+        execute(_args) {
+          return YIELD(new IntegerValue(1));
         },
         resume(value) {
           const i = (value as IntegerValue).value;
-          if (i == 5) return [ResultCode.OK, new StringValue("done")];
-          return [ResultCode.YIELD, new IntegerValue(i + 1)];
+          if (i == 5) return OK(new StringValue("done"));
+          return YIELD(new IntegerValue(i + 1));
         },
       });
       commandResolver.register("ok", {
         execute(args) {
-          return [ResultCode.OK, args[1]];
+          return OK(args[1]);
         },
       });
 
       const context = new ExecutionContext();
-      expect(executor.execute(program, context)).to.eql([
-        ResultCode.YIELD,
-        new IntegerValue(1),
-      ]);
-      expect(executor.execute(program, context)).to.eql([
-        ResultCode.YIELD,
-        new IntegerValue(2),
-      ]);
-      expect(executor.execute(program, context)).to.eql([
-        ResultCode.YIELD,
-        new IntegerValue(3),
-      ]);
-      expect(executor.execute(program, context)).to.eql([
-        ResultCode.YIELD,
-        new IntegerValue(4),
-      ]);
-      expect(executor.execute(program, context)).to.eql([
-        ResultCode.YIELD,
-        new IntegerValue(5),
-      ]);
-      expect(executor.execute(program, context)).to.eql([
-        ResultCode.OK,
-        new StringValue("done"),
-      ]);
+      expect(executor.execute(program, context)).to.eql(
+        YIELD(new IntegerValue(1))
+      );
+      expect(executor.execute(program, context)).to.eql(
+        YIELD(new IntegerValue(2))
+      );
+      expect(executor.execute(program, context)).to.eql(
+        YIELD(new IntegerValue(3))
+      );
+      expect(executor.execute(program, context)).to.eql(
+        YIELD(new IntegerValue(4))
+      );
+      expect(executor.execute(program, context)).to.eql(
+        YIELD(new IntegerValue(5))
+      );
+      expect(executor.execute(program, context)).to.eql(
+        OK(new StringValue("done"))
+      );
     });
   });
 });

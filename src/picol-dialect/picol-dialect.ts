@@ -1,5 +1,14 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Command, Result, ResultCode } from "../core/command";
+import {
+  Command,
+  Result,
+  ResultCode,
+  OK,
+  RETURN,
+  BREAK,
+  CONTINUE,
+  ERROR,
+} from "../core/command";
 import {
   VariableResolver,
   CommandResolver,
@@ -58,12 +67,6 @@ export class PicolScope {
     return this.commands.get(name);
   }
 }
-
-const OK = (value: Value): Result => [ResultCode.OK, value];
-const RETURN = (value: Value): Result => [ResultCode.RETURN, value];
-const BREAK: Result = [ResultCode.BREAK, NIL];
-const CONTINUE: Result = [ResultCode.CONTINUE, NIL];
-const ERROR = (value: Value): Result => [ResultCode.ERROR, value];
 
 const EMPTY: Result = OK(new StringValue(""));
 
@@ -156,41 +159,41 @@ const leCmd = compareNumbersCmd("<=", (op1, op2) => op1 <= op2);
 const notCmd = (scope: PicolScope): Command => ({
   execute: (args) => {
     if (args.length != 2) return ARITY_ERROR("! arg");
-    const [code, v] = evaluateCondition(args[1], scope);
-    if (code != ResultCode.OK) return [code, v];
-    return (v as BooleanValue).value ? OK(FALSE) : OK(TRUE);
+    const result = evaluateCondition(args[1], scope);
+    if (result.code != ResultCode.OK) return result;
+    return (result.value as BooleanValue).value ? OK(FALSE) : OK(TRUE);
   },
 });
 const andCmd = (scope: PicolScope): Command => ({
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("&& arg ?arg ...?");
-    let result = true;
+    let r = true;
     for (let i = 1; i < args.length; i++) {
-      const [code, v] = evaluateCondition(args[i], scope);
-      if (code != ResultCode.OK) return [code, v];
-      if (!(v as BooleanValue).value) {
-        result = false;
+      const result = evaluateCondition(args[i], scope);
+      if (result.code != ResultCode.OK) return result;
+      if (!(result.value as BooleanValue).value) {
+        r = false;
         break;
       }
     }
 
-    return result ? OK(TRUE) : OK(FALSE);
+    return r ? OK(TRUE) : OK(FALSE);
   },
 });
 const orCmd = (scope: PicolScope): Command => ({
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("|| arg ?arg ...?");
-    let result = false;
+    let r = false;
     for (let i = 1; i < args.length; i++) {
-      const [code, v] = evaluateCondition(args[i], scope);
-      if (code != ResultCode.OK) return [code, v];
-      if ((v as BooleanValue).value) {
-        result = true;
+      const result = evaluateCondition(args[i], scope);
+      if (result.code != ResultCode.OK) return result;
+      if ((result.value as BooleanValue).value) {
+        r = true;
         break;
       }
     }
 
-    return result ? OK(TRUE) : OK(FALSE);
+    return r ? OK(TRUE) : OK(FALSE);
   },
 });
 
@@ -199,19 +202,19 @@ const ifCmd = (scope: PicolScope): Command => ({
     if (args.length != 3 && args.length != 5) {
       return ARITY_ERROR("if test script1 ?else script2?");
     }
-    const [testCode, test] = evaluateCondition(args[1], scope);
-    if (testCode != ResultCode.OK) return [testCode, test];
+    const testResult = evaluateCondition(args[1], scope);
+    if (testResult.code != ResultCode.OK) return testResult;
     let script: ScriptValue;
-    if ((test as BooleanValue).value) {
+    if ((testResult.value as BooleanValue).value) {
       script = args[2] as ScriptValue;
     } else if (args.length == 3) {
       return EMPTY;
     } else {
       script = args[4] as ScriptValue;
     }
-    const [code, result] = scope.evaluator.executeScript(script.script);
-    if (code != ResultCode.OK) return [code, result];
-    return result == NIL ? EMPTY : OK(result);
+    const result = scope.evaluator.executeScript(script.script);
+    if (result.code != ResultCode.OK) return result;
+    return result.value == NIL ? EMPTY : OK(result.value);
   },
 });
 const forCmd = (scope: PicolScope): Command => ({
@@ -223,24 +226,23 @@ const forCmd = (scope: PicolScope): Command => ({
     const test = args[2];
     const next = args[3] as ScriptValue;
     const script = args[4] as ScriptValue;
-    let code: ResultCode;
-    let value: Value;
-    [code, value] = scope.evaluator.executeScript(start.script);
-    if (code != ResultCode.OK) return [code, value];
+    let result: Result;
+    result = scope.evaluator.executeScript(start.script);
+    if (result.code != ResultCode.OK) return result;
     for (;;) {
-      [code, value] = evaluateCondition(test, scope);
-      if (code != ResultCode.OK) return [code, value];
-      if (!(value as BooleanValue).value) break;
-      [code, value] = scope.evaluator.executeScript(script.script);
-      if (code == ResultCode.BREAK) break;
-      if (code == ResultCode.CONTINUE) {
-        [code, value] = scope.evaluator.executeScript(next.script);
-        if (code != ResultCode.OK) return [code, value];
+      result = evaluateCondition(test, scope);
+      if (result.code != ResultCode.OK) return result;
+      if (!(result.value as BooleanValue).value) break;
+      result = scope.evaluator.executeScript(script.script);
+      if (result.code == ResultCode.BREAK) break;
+      if (result.code == ResultCode.CONTINUE) {
+        result = scope.evaluator.executeScript(next.script);
+        if (result.code != ResultCode.OK) return result;
         continue;
       }
-      if (code != ResultCode.OK) return [code, value];
-      [code, value] = scope.evaluator.executeScript(next.script);
-      if (code != ResultCode.OK) return [code, value];
+      if (result.code != ResultCode.OK) return result;
+      result = scope.evaluator.executeScript(next.script);
+      if (result.code != ResultCode.OK) return result;
     }
     return EMPTY;
   },
@@ -252,33 +254,27 @@ const whileCmd = (scope: PicolScope): Command => ({
     }
     const test = args[1];
     const script = args[2] as ScriptValue;
-    let code: ResultCode;
-    let value: Value;
+    let result: Result;
     for (;;) {
-      [code, value] = evaluateCondition(test, scope);
-      if (code != ResultCode.OK) return [code, value];
-      if (!(value as BooleanValue).value) break;
-      [code, value] = scope.evaluator.executeScript(script.script);
-      if (code == ResultCode.BREAK) break;
-      if (code == ResultCode.CONTINUE) continue;
-      if (code != ResultCode.OK) return [code, value];
+      result = evaluateCondition(test, scope);
+      if (result.code != ResultCode.OK) return result;
+      if (!(result.value as BooleanValue).value) break;
+      result = scope.evaluator.executeScript(script.script);
+      if (result.code == ResultCode.BREAK) break;
+      if (result.code == ResultCode.CONTINUE) continue;
+      if (result.code != ResultCode.OK) return result;
     }
     return EMPTY;
   },
 });
 
-function evaluateCondition(
-  value: Value,
-  scope: PicolScope
-): [ResultCode, Value] {
+function evaluateCondition(value: Value, scope: PicolScope): Result {
   if (value.type == ValueType.SCRIPT) {
-    const [code, result] = scope.evaluator.executeScript(
-      (value as ScriptValue).script
-    );
-    if (code != ResultCode.OK) return [code, result];
-    return [code, BooleanValue.fromValue(result)];
+    const result = scope.evaluator.executeScript((value as ScriptValue).script);
+    if (result.code != ResultCode.OK) return result;
+    return OK(BooleanValue.fromValue(result.value));
   } else {
-    return [ResultCode.OK, BooleanValue.fromValue(value)];
+    return OK(BooleanValue.fromValue(value));
   }
 }
 
@@ -353,9 +349,9 @@ class ProcCommand implements Command {
     if (a < args.length)
       return ARITY_ERROR(argspecsToSignature(args[0], this.argspecs));
 
-    const [code, value] = scope.evaluator.executeScript(this.body.script);
-    if (code == ResultCode.ERROR) return [code, value];
-    return value == NIL ? EMPTY : OK(value);
+    const result = scope.evaluator.executeScript(this.body.script);
+    if (result.code == ResultCode.ERROR) return result;
+    return result.value == NIL ? EMPTY : OK(result.value);
   }
 }
 
@@ -439,13 +435,13 @@ const returnCmd = (): Command => ({
 const breakCmd = (): Command => ({
   execute: (args) => {
     if (args.length != 1) return ARITY_ERROR("break");
-    return BREAK;
+    return BREAK();
   },
 });
 const continueCmd = (): Command => ({
   execute: (args) => {
     if (args.length != 1) return ARITY_ERROR("continue");
-    return CONTINUE;
+    return CONTINUE();
   },
 });
 const errorCmd = (): Command => ({

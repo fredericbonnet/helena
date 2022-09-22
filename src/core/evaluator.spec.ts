@@ -22,7 +22,7 @@ import {
   QualifiedValue,
   ValueType,
 } from "./values";
-import { Command, Result, ResultCode } from "./command";
+import { Command, Result, ResultCode, OK, RETURN } from "./command";
 import {
   GenericSelector,
   IndexedSelector,
@@ -90,7 +90,7 @@ class MockVariableResolver implements VariableResolver {
 
 class IntCommand implements Command {
   execute(args: Value[]): Result {
-    return [ResultCode.OK, args[0]];
+    return OK(args[0]);
   }
 }
 const INT_CMD = new IntCommand();
@@ -113,7 +113,7 @@ class FunctionCommand implements Command {
   }
 
   execute(args: Value[]): Result {
-    return [ResultCode.OK, this.fn(args)];
+    return OK(this.fn(args));
   }
 }
 
@@ -1693,19 +1693,19 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
         specify("empty string", () => {
           variableResolver.register("var", new StringValue(""));
           const sentence = firstSentence(parse("cmd $*var arg"));
-          const [, value] = evaluator.executeSentence(sentence);
+          const { value } = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "", "arg"]);
         });
         specify("scalar variable", () => {
           variableResolver.register("var", new StringValue("value"));
           const sentence = firstSentence(parse("cmd $*var arg"));
-          const [, value] = evaluator.executeSentence(sentence);
+          const { value } = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "value", "arg"]);
         });
         specify("empty tuple variable", () => {
           variableResolver.register("var", new TupleValue([]));
           const sentence = firstSentence(parse("cmd $*var arg"));
-          const [, value] = evaluator.executeSentence(sentence);
+          const { value } = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "arg"]);
         });
         specify("tuple variable", () => {
@@ -1717,14 +1717,14 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             ])
           );
           const sentence = firstSentence(parse("cmd $*var arg"));
-          const [, value] = evaluator.executeSentence(sentence);
+          const { value } = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "value1", "value2", "arg"]);
         });
         specify("multiple variables", () => {
           variableResolver.register("var1", new StringValue("value1"));
           variableResolver.register("var2", new StringValue("value2"));
           const sentence = firstSentence(parse("cmd $*(var1 var2) arg"));
-          const [, value] = evaluator.executeSentence(sentence);
+          const { value } = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "value1", "value2", "arg"]);
         });
         specify("scalar expression", () => {
@@ -1733,7 +1733,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             new FunctionCommand(() => new StringValue("value"))
           );
           const sentence = firstSentence(parse("cmd $*[cmd2] arg"));
-          const [, value] = evaluator.executeSentence(sentence);
+          const { value } = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "value", "arg"]);
         });
         specify("tuple expression", () => {
@@ -1748,7 +1748,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             )
           );
           const sentence = firstSentence(parse("cmd $*[cmd2] arg"));
-          const [, value] = evaluator.executeSentence(sentence);
+          const { value } = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "value1", "value2", "arg"]);
         });
       });
@@ -1758,7 +1758,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
       describe("line comments", () => {
         specify("empty sentence", () => {
           const sentence = firstSentence(parse("# this is a comment"));
-          const [, value] = evaluator.executeSentence(sentence);
+          const { value } = evaluator.executeSentence(sentence);
           expect(value).to.eql(NIL);
         });
         specify("command", () => {
@@ -1767,7 +1767,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             new FunctionCommand((args) => new TupleValue(args))
           );
           const sentence = firstSentence(parse("cmd arg # this is a comment"));
-          const [, value] = evaluator.executeSentence(sentence);
+          const { value } = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "arg"]);
         });
       });
@@ -1776,7 +1776,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           const sentence = firstSentence(
             parse("#{ this is\na\nblock comment }#")
           );
-          const [, value] = evaluator.executeSentence(sentence);
+          const { value } = evaluator.executeSentence(sentence);
           expect(value).to.eql(NIL);
         });
         specify("command", () => {
@@ -1787,7 +1787,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           const sentence = firstSentence(
             parse("cmd #{ this is\na\nblock comment }# arg")
           );
-          const [, value] = evaluator.executeSentence(sentence);
+          const { value } = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "arg"]);
         });
         specify("command", () => {
@@ -1798,7 +1798,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           const sentence = firstSentence(
             parse("cmd #{ this is\na\nblock comment }# arg")
           );
-          const [, value] = evaluator.executeSentence(sentence);
+          const { value } = evaluator.executeSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "arg"]);
         });
         specify("tuple", () => {
@@ -1829,11 +1829,11 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
         commandResolver.register("cmd1", fn);
         commandResolver.register("cmd2", fn);
         const script1 = parse("if true {cmd1 a} else {cmd2 b}");
-        const [, value1] = evaluator.executeScript(script1);
+        const { value: value1 } = evaluator.executeScript(script1);
         expect(mapValue(value1)).to.eql("a");
         expect(called).to.eql({ cmd1: 1 });
         const script2 = parse("if false {cmd1 a} else {cmd2 b}");
-        const [, value2] = evaluator.executeScript(script2);
+        const { value: value2 } = evaluator.executeScript(script2);
         expect(mapValue(value2)).to.eql("b");
         expect(called).to.eql({ cmd1: 1, cmd2: 1 });
       });
@@ -1845,9 +1845,9 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             const block = args[2];
             let value: Value = NIL;
             for (let i = 0; i < nb; i++) {
-              [, value] = evaluator.executeScript(
+              value = evaluator.executeScript(
                 (block as ScriptValue).script
-              );
+              ).value;
             }
             return value;
           })
@@ -1863,7 +1863,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           })
         );
         const script = parse("repeat 10 {cmd foo}");
-        const [, value] = evaluator.executeScript(script);
+        const { value } = evaluator.executeScript(script);
         expect(mapValue(value)).to.eql(9);
         expect(counter).to.eql(10);
         expect(acc).to.eql("foo".repeat(10));
@@ -1874,40 +1874,40 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
       describe("return", () => {
         it("should interrupt script evaluation", () => {
           commandResolver.register("return", {
-            execute: (args) => [ResultCode.RETURN, args[1]],
+            execute: (args) => RETURN(args[1]),
           });
           const script = parse("return a [return b]; return c");
-          const [code, value] = evaluator.executeScript(script);
+          const { code, value } = evaluator.executeScript(script);
           expect(code).to.eql(ResultCode.RETURN);
           expect(mapValue(value)).to.eql("b");
         });
         it("should interrupt sentence evaluation", () => {
           commandResolver.register("cmd", {
-            execute: () => [ResultCode.RETURN, new StringValue("value")],
+            execute: () => RETURN(new StringValue("value")),
           });
           commandResolver.register("return", {
-            execute: (args) => [ResultCode.RETURN, args[1]],
+            execute: (args) => RETURN(args[1]),
           });
           const script = parse("cmd [return a [return b]]");
-          const [code, value] = evaluator.executeScript(script);
+          const { code, value } = evaluator.executeScript(script);
           expect(code).to.eql(ResultCode.RETURN);
           expect(mapValue(value)).to.eql("b");
         });
         it("should interrupt tuple evaluation", () => {
           commandResolver.register("cmd", {
-            execute: () => [ResultCode.OK, new StringValue("value")],
+            execute: () => OK(new StringValue("value")),
           });
           commandResolver.register("return", {
-            execute: (args) => [ResultCode.RETURN, args[1]],
+            execute: (args) => RETURN(args[1]),
           });
           const script = parse("cmd ([return a [return b]])");
-          const [code, value] = evaluator.executeScript(script);
+          const { code, value } = evaluator.executeScript(script);
           expect(code).to.eql(ResultCode.RETURN);
           expect(mapValue(value)).to.eql("b");
         });
         it("should interrupt expression evaluation", () => {
           commandResolver.register("cmd", {
-            execute: () => [ResultCode.RETURN, new StringValue("value")],
+            execute: () => RETURN(new StringValue("value")),
           });
           commandResolver.register("cmd2", {
             execute: () => {
@@ -1915,35 +1915,35 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             },
           });
           commandResolver.register("return", {
-            execute: (args) => [ResultCode.RETURN, args[1]],
+            execute: (args) => RETURN(args[1]),
           });
           const script = parse("cmd [return a [return b]; cmd2] ");
-          const [code, value] = evaluator.executeScript(script);
+          const { code, value } = evaluator.executeScript(script);
           expect(code).to.eql(ResultCode.RETURN);
           expect(mapValue(value)).to.eql("b");
         });
         it("should interrupt keyed selector evaluation", () => {
           commandResolver.register("cmd", {
-            execute: () => [ResultCode.RETURN, new StringValue("value")],
+            execute: () => RETURN(new StringValue("value")),
           });
           commandResolver.register("return", {
-            execute: (args) => [ResultCode.RETURN, args[1]],
+            execute: (args) => RETURN(args[1]),
           });
           variableResolver.register(
             "var",
             new MapValue({ key: new StringValue("value") })
           );
           const script = parse("cmd $var([return a [return b]])");
-          const [code, value] = evaluator.executeScript(script);
+          const { code, value } = evaluator.executeScript(script);
           expect(code).to.eql(ResultCode.RETURN);
           expect(mapValue(value)).to.eql("b");
         });
         it("should interrupt indexed selector evaluation", () => {
           commandResolver.register("cmd", {
-            execute: () => [ResultCode.RETURN, new StringValue("value")],
+            execute: () => RETURN(new StringValue("value")),
           });
           commandResolver.register("return", {
-            execute: (args) => [ResultCode.RETURN, args[1]],
+            execute: (args) => RETURN(args[1]),
           });
           variableResolver.register(
             "var",
@@ -1953,20 +1953,20 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             ])
           );
           const script = parse("cmd $var[return a [return b]]");
-          const [code, value] = evaluator.executeScript(script);
+          const { code, value } = evaluator.executeScript(script);
           expect(code).to.eql(ResultCode.RETURN);
           expect(mapValue(value)).to.eql("b");
         });
         it("should interrupt generic selector evaluation", () => {
           commandResolver.register("cmd", {
-            execute: () => [ResultCode.RETURN, new StringValue("value")],
+            execute: () => RETURN(new StringValue("value")),
           });
           commandResolver.register("return", {
-            execute: (args) => [ResultCode.RETURN, args[1]],
+            execute: (args) => RETURN(args[1]),
           });
           variableResolver.register("var", new StringValue("value"));
           const script = parse("cmd $var{[return a [return b]]}");
-          const [code, value] = evaluator.executeScript(script);
+          const { code, value } = evaluator.executeScript(script);
           expect(code).to.eql(ResultCode.RETURN);
           expect(mapValue(value)).to.eql("b");
         });

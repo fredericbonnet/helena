@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ResultCode } from "../core/command";
+import { ERROR, ResultCode } from "../core/command";
 import {
   CompilingEvaluator,
   Evaluator,
@@ -30,9 +30,10 @@ describe("Picol dialect", () => {
       const execute = (script: string) =>
         evaluator.executeScript(parse(script));
       const evaluate = (script: string) => {
-        const [code, result] = execute(script);
-        if (code == ResultCode.ERROR) throw new Error(result.asString());
-        return result;
+        const result = execute(script);
+        if (result.code == ResultCode.ERROR)
+          throw new Error(result.value.asString());
+        return result.value;
       };
 
       beforeEach(() => {
@@ -683,19 +684,19 @@ describe("Picol dialect", () => {
               execute(
                 "for {set i 0} {< $i 10} {incr i} {set var before$i; error message; set var after$i}; set var"
               )
-            ).to.eql([ResultCode.ERROR, new StringValue("message")]);
+            ).to.eql(ERROR(new StringValue("message")));
           });
           it("should interrupt a while loop", () => {
             expect(
               execute(
                 "while true {set var before; error message; set var after}; set var"
               )
-            ).to.eql([ResultCode.ERROR, new StringValue("message")]);
+            ).to.eql(ERROR(new StringValue("message")));
           });
           it("should interrupt a proc", () => {
             expect(
               execute("proc cmd {} {error message; set var val}; cmd")
-            ).to.eql([ResultCode.ERROR, new StringValue("message")]);
+            ).to.eql(ERROR(new StringValue("message")));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {

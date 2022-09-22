@@ -1,14 +1,8 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Command, Result, ResultCode } from "../core/command";
+import { Command, Result, ResultCode, OK, ERROR } from "../core/command";
 import { Compiler, Executor } from "../core/compiler";
 import { VariableResolver, CommandResolver } from "../core/evaluator";
-import {
-  Value,
-  NIL,
-  StringValue,
-  ScriptValue,
-  ValueType,
-} from "../core/values";
+import { Value, StringValue, ScriptValue, ValueType } from "../core/values";
 
 export class Variable {
   value: Value;
@@ -85,15 +79,6 @@ export class Scope {
     return this.commands.get(name);
   }
 }
-
-const OK = (value: Value): Result => [ResultCode.OK, value];
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const RETURN = (value: Value): Result => [ResultCode.RETURN, value]; // TODO implement command
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const BREAK: Result = [ResultCode.BREAK, NIL]; // TODO implement command
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const CONTINUE: Result = [ResultCode.CONTINUE, NIL]; // TODO implement command
-const ERROR = (value: Value): Result => [ResultCode.ERROR, value];
 
 const ARITY_ERROR = (signature: string) =>
   ERROR(new StringValue(`wrong # args: should be "${signature}"`));
@@ -218,8 +203,8 @@ const scopeCmd = (scope: Scope): Command => ({
     }
 
     const subscope = new Scope(scope);
-    const [code, result] = subscope.executeScript(body as ScriptValue);
-    if (code != ResultCode.OK) return [code, result];
+    const result = subscope.executeScript(body as ScriptValue);
+    if (result.code != ResultCode.OK) return result;
 
     const value = new ScopeValue(subscope);
     if (name) {

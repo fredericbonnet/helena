@@ -24,9 +24,10 @@ describe("Helena dialect", () => {
       const execute = (script: string) =>
         evaluator.executeScript(parse(script));
       const evaluate = (script: string) => {
-        const [code, result] = execute(script);
-        if (code == ResultCode.ERROR) throw new Error(result.asString());
-        return result;
+        const result = execute(script);
+        if (result.code == ResultCode.ERROR)
+          throw new Error(result.value.asString());
+        return result.value;
       };
 
       beforeEach(() => {

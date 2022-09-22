@@ -2,7 +2,7 @@
  * @file Helena script compilation
  */
 
-import { Command, Result, ResultCode } from "./command";
+import { Command, OK, Result, ResultCode } from "./command";
 import {
   CommandResolver,
   SelectorResolver,
@@ -557,7 +557,7 @@ export class ExecutionContext {
   command: Command;
 
   /** Last executed result value */
-  result: Result = [ResultCode.OK, NIL];
+  result: Result = OK(NIL);
 
   /** Open a new frame */
   openFrame() {
@@ -656,9 +656,9 @@ export class Executor {
    * @returns           Last executed result
    */
   execute(program: Program, context = new ExecutionContext()): Result {
-    if (context.result[0] == ResultCode.YIELD && context.command?.resume) {
-      context.result = context.command.resume(context.result[1]);
-      if (context.result[0] != ResultCode.OK) return context.result;
+    if (context.result.code == ResultCode.YIELD && context.command?.resume) {
+      context.result = context.command.resume(context.result.value);
+      if (context.result.code != ResultCode.OK) return context.result;
     }
     while (context.pc < program.opCodes.length) {
       const opcode = program.opCodes[context.pc++];
@@ -737,13 +737,13 @@ export class Executor {
             if (args.values.length) {
               context.command = this.resolveCommand(args.values);
               context.result = context.command.execute(args.values);
-              if (context.result[0] != ResultCode.OK) return context.result;
+              if (context.result.code != ResultCode.OK) return context.result;
             }
           }
           break;
 
         case OpCode.PUSH_RESULT:
-          context.push(context.result[1]);
+          context.push(context.result.value);
           break;
 
         case OpCode.JOIN_STRINGS:
@@ -758,7 +758,7 @@ export class Executor {
           throw new Error("TODO");
       }
     }
-    if (context.frame().length) context.result = [ResultCode.OK, context.pop()];
+    if (context.frame().length) context.result = OK(context.pop());
     return context.result;
   }
 

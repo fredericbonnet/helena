@@ -29,7 +29,7 @@ import {
   ValueType,
   QualifiedValue,
 } from "./values";
-import { Command, Result, ResultCode } from "./command";
+import { Command, OK, Result, ResultCode } from "./command";
 import { Compiler, Executor } from "./compiler";
 
 /**
@@ -114,13 +114,12 @@ class Interrupt extends Error {
   readonly result: Result;
 
   /**
-   * @param code  - Result code
-   * @param value - Result value
+   * @param result - Result object
    */
-  constructor(code: ResultCode, value: Value) {
-    super(`code ${code}`);
+  constructor(result: Result) {
+    super(`code ${result.code}`);
     Object.setPrototypeOf(this, Interrupt.prototype);
-    this.result = [code, value];
+    this.result = result;
   }
 }
 
@@ -172,10 +171,10 @@ export class InlineEvaluator implements Evaluator {
    * @returns        Result of execution
    */
   executeScript(script: Script): Result {
-    let result: Result = [ResultCode.OK, NIL];
+    let result: Result = OK(NIL);
     for (const sentence of script.sentences) {
       result = this.executeSentence(sentence);
-      if (result[0] != ResultCode.OK) break;
+      if (result.code != ResultCode.OK) break;
     }
     return result;
   }
@@ -197,7 +196,7 @@ export class InlineEvaluator implements Evaluator {
   executeSentence(sentence: Sentence): Result {
     try {
       const values = this.getWordValues(sentence.words);
-      if (values.length == 0) return [ResultCode.OK, NIL];
+      if (values.length == 0) return OK(NIL);
       if (!this.commandResolver) throw new Error("no command resolver");
       const cmdname = values[0];
       const command = this.commandResolver.resolve(cmdname);
@@ -353,9 +352,9 @@ export class InlineEvaluator implements Evaluator {
 
   private evaluateExpression(expression: ExpressionMorpheme): Value {
     const script = (expression as ExpressionMorpheme).subscript;
-    const [code, value] = this.executeScript(script);
-    if (code != ResultCode.OK) throw new Interrupt(code, value);
-    return value;
+    const result = this.executeScript(script);
+    if (result.code != ResultCode.OK) throw new Interrupt(result);
+    return result.value;
   }
 
   /*
@@ -619,6 +618,6 @@ export class CompilingEvaluator implements Evaluator {
    */
   evaluateWord(word: Word): Value {
     const program = this.compiler.compileWord(word);
-    return this.executor.execute(program)[1];
+    return this.executor.execute(program).value;
   }
 }
