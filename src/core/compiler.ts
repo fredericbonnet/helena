@@ -657,7 +657,7 @@ export class Executor {
    */
   execute(program: Program, context = new ExecutionContext()): Result {
     if (context.result.code == ResultCode.YIELD && context.command?.resume) {
-      context.result = context.command.resume(context.result.value);
+      context.result = context.command.resume(context.result);
       if (context.result.code != ResultCode.OK) return context.result;
     }
     while (context.pc < program.opCodes.length) {

@@ -21,6 +21,9 @@ export type Result = {
 
   /** Result value */
   readonly value: Value;
+
+  /** Resumable state */
+  readonly state?: unknown;
 };
 
 /**
@@ -31,8 +34,8 @@ export type Result = {
 export const OK = (value: Value): Result => {
   return { code: ResultCode.OK, value };
 };
-export const YIELD = (value: Value): Result => {
-  return { code: ResultCode.YIELD, value };
+export const YIELD = (value: Value, state?): Result => {
+  return { code: ResultCode.YIELD, value, state };
 };
 export const RETURN = (value: Value): Result => {
   return { code: ResultCode.RETURN, value };
@@ -62,9 +65,9 @@ export interface Command {
   /**
    * Resume the previously yielded command
    *
-   * @param value - Value to yield back
+   * @param result - Result to yield back
    *
-   * @returns       Command result
+   * @returns        Command result
    */
-  resume?(value: Value): Result;
+  resume?(result: Result): Result;
 }

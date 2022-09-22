@@ -2790,8 +2790,8 @@ describe("Compiler", () => {
         execute(_args) {
           return YIELD(new IntegerValue(1));
         },
-        resume(value) {
-          const i = (value as IntegerValue).value;
+        resume(result) {
+          const i = (result.value as IntegerValue).value;
           if (i == 5) return OK(new StringValue("done"));
           return YIELD(new IntegerValue(i + 1));
         },
@@ -2820,6 +2820,51 @@ describe("Compiler", () => {
       );
       expect(executor.execute(program, context)).to.eql(
         OK(new StringValue("done"))
+      );
+    });
+    it("should support resumable command state", () => {
+      const script = parse("ok [cmd]");
+      const program = compiler.compileScript(script);
+
+      commandResolver.register("cmd", {
+        execute(_args) {
+          return YIELD(new StringValue("begin"), 1);
+        },
+        resume(result) {
+          const step = result.state as number;
+          switch (step) {
+            case 1:
+              return YIELD(new StringValue(`step one`), step + 1);
+            case 2:
+              return YIELD(new StringValue(`step two`), step + 1);
+            case 3:
+              return YIELD(new StringValue(`step three`), step + 1);
+            case 4:
+              return OK(new StringValue("end"));
+          }
+        },
+      });
+      commandResolver.register("ok", {
+        execute(args) {
+          return OK(args[1]);
+        },
+      });
+
+      const context = new ExecutionContext();
+      expect(executor.execute(program, context)).to.eql(
+        YIELD(new StringValue("begin"), 1)
+      );
+      expect(executor.execute(program, context)).to.eql(
+        YIELD(new StringValue("step one"), 2)
+      );
+      expect(executor.execute(program, context)).to.eql(
+        YIELD(new StringValue("step two"), 3)
+      );
+      expect(executor.execute(program, context)).to.eql(
+        YIELD(new StringValue("step three"), 4)
+      );
+      expect(executor.execute(program, context)).to.eql(
+        OK(new StringValue("end"))
       );
     });
   });
