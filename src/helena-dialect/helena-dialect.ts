@@ -1,11 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command, Result, ResultCode } from "../core/command";
-import {
-  VariableResolver,
-  CommandResolver,
-  CompilingEvaluator,
-  Evaluator,
-} from "../core/evaluator";
+import { Compiler, Executor } from "../core/compiler";
+import { VariableResolver, CommandResolver } from "../core/evaluator";
 import {
   Value,
   NIL,
@@ -46,14 +42,22 @@ export class Scope {
   readonly constants: Map<string, Value> = new Map();
   readonly variables: Map<string, Variable> = new Map();
   readonly commands: Map<string, ScopedCommand> = new Map();
-  readonly evaluator: Evaluator;
+  readonly compiler: Compiler;
+  readonly executor: Executor;
+
   constructor(parent?: Scope) {
     this.parent = parent;
-    this.evaluator = new CompilingEvaluator(
+    this.compiler = new Compiler();
+    this.executor = new Executor(
       this.variableResolver,
       this.commandResolver,
       null
     );
+  }
+
+  executeScript(script: ScriptValue): Result {
+    const program = this.compiler.compileScript(script.script);
+    return this.executor.execute(program);
   }
 
   variableResolver: VariableResolver = {
@@ -185,7 +189,7 @@ class ScopeCommand implements Command {
       case "eval": {
         if (args.length != 3) return ARITY_ERROR("scope eval body");
         const body = args[2] as ScriptValue;
-        return this.scope.evaluator.executeScript(body.script);
+        return this.scope.executeScript(body);
       }
       case "call": {
         if (args.length < 3) return ARITY_ERROR("scope call cmdname ?arg ...?");
@@ -214,9 +218,7 @@ const scopeCmd = (scope: Scope): Command => ({
     }
 
     const subscope = new Scope(scope);
-    const [code, result] = subscope.evaluator.executeScript(
-      (body as ScriptValue).script
-    );
+    const [code, result] = subscope.executeScript(body as ScriptValue);
     if (code != ResultCode.OK) return [code, result];
 
     const value = new ScopeValue(subscope);
@@ -241,7 +243,7 @@ class MacroCommand implements Command {
 
   execute(_args: Value[]): Result {
     // TODO args
-    return this.scope.evaluator.executeScript(this.body.script);
+    return this.scope.executeScript(this.body);
   }
 }
 const macroCmd = (scope: Scope): Command => ({
@@ -282,7 +284,7 @@ class ClosureCommand implements Command {
 
   execute(_args: Value[]): Result {
     // TODO args
-    return this.scope.evaluator.executeScript(this.body.script);
+    return this.scope.executeScript(this.body);
   }
 }
 const closureCmd = (scope: Scope): Command => ({
