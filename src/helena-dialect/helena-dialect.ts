@@ -1,8 +1,28 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Command, Result, ResultCode, OK, ERROR } from "../core/command";
-import { Compiler, Executor } from "../core/compiler";
+import {
+  Command,
+  Result,
+  ResultCode,
+  OK,
+  ERROR,
+  RETURN,
+  YIELD,
+} from "../core/command";
+import {
+  Compiler,
+  ExecutionContext,
+  Executor,
+  Program,
+} from "../core/compiler";
 import { VariableResolver, CommandResolver } from "../core/evaluator";
-import { Value, StringValue, ScriptValue, ValueType } from "../core/values";
+import { Script } from "../core/syntax";
+import {
+  Value,
+  StringValue,
+  ScriptValue,
+  ValueType,
+  NIL,
+} from "../core/values";
 
 export class Variable {
   value: Value;
@@ -50,8 +70,13 @@ export class Scope {
   }
 
   executeScript(script: ScriptValue): Result {
-    const program = this.compiler.compileScript(script.script);
-    return this.executor.execute(program);
+    return this.execute(this.compile(script.script));
+  }
+  compile(script: Script): Program {
+    return this.compiler.compileScript(script);
+  }
+  execute(program: Program, context?: ExecutionContext): Result {
+    return this.executor.execute(program, context);
   }
 
   variableResolver: VariableResolver = {
@@ -188,6 +213,13 @@ class ScopeCommand implements Command {
     }
   }
 }
+type ScopeBodyState = {
+  scope: Scope;
+  subscope: Scope;
+  program: Program;
+  context: ExecutionContext;
+  name?: Value;
+};
 const scopeCmd = (scope: Scope): Command => ({
   execute: (args) => {
     let name, body;
@@ -203,32 +235,55 @@ const scopeCmd = (scope: Scope): Command => ({
     }
 
     const subscope = new Scope(scope);
-    const result = subscope.executeScript(body as ScriptValue);
-    if (result.code != ResultCode.OK) return result;
+    const program = subscope.compile((body as ScriptValue).script);
+    const context = new ExecutionContext();
 
-    const value = new ScopeValue(subscope);
-    if (name) {
-      scope.commands.set(name.asString(), value.command);
-      scope.variables.set(name.asString(), new Variable(value));
-    }
-
-    return OK(value);
+    return executeScopeBody({ scope, subscope, program, context, name });
+  },
+  resume(result: Result): Result {
+    return executeScopeBody(result.state as ScopeBodyState);
   },
 });
+const executeScopeBody = (state: ScopeBodyState): Result => {
+  const result = state.subscope.execute(state.program, state.context);
+
+  if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
+  if (result.code != ResultCode.OK && result.code != ResultCode.RETURN)
+    return result;
+
+  const value = new ScopeValue(state.subscope);
+  if (state.name) {
+    state.scope.commands.set(state.name.asString(), value.command);
+    state.scope.variables.set(state.name.asString(), new Variable(value));
+  }
+
+  if (result.code == ResultCode.RETURN) return OK(result.value);
+  return OK(value);
+};
 
 class MacroCommand implements Command {
   readonly scope: Scope;
   readonly argspecs: ArgSpec[];
   readonly body: ScriptValue;
+  readonly program: Program;
   constructor(scope: Scope, argspecs: ArgSpec[], body: ScriptValue) {
     this.scope = scope;
     this.argspecs = argspecs;
     this.body = body;
+    this.program = this.scope.compile(this.body.script);
   }
 
   execute(_args: Value[]): Result {
     // TODO args
-    return this.scope.executeScript(this.body);
+    return this.run(new ExecutionContext());
+  }
+  resume(result: Result): Result {
+    return this.run(result.state as ExecutionContext);
+  }
+  run(context: ExecutionContext) {
+    const result = this.scope.execute(this.program, context);
+    if (result.code == ResultCode.YIELD) return YIELD(result.value, context);
+    return result;
   }
 }
 const macroCmd = (scope: Scope): Command => ({
@@ -261,15 +316,25 @@ class ClosureCommand implements Command {
   readonly scope: Scope;
   readonly argspecs: ArgSpec[];
   readonly body: ScriptValue;
+  readonly program: Program;
   constructor(scope: Scope, argspecs: ArgSpec[], body: ScriptValue) {
     this.scope = scope;
     this.argspecs = argspecs;
     this.body = body;
+    this.program = this.scope.compile(this.body.script);
   }
 
   execute(_args: Value[]): Result {
     // TODO args
-    return this.scope.executeScript(this.body);
+    return this.run(new ExecutionContext());
+  }
+  resume(result: Result): Result {
+    return this.run(result.state as ExecutionContext);
+  }
+  run(context: ExecutionContext) {
+    const result = this.scope.execute(this.program, context);
+    if (result.code == ResultCode.YIELD) return YIELD(result.value, context);
+    return result;
   }
 }
 const closureCmd = (scope: Scope): Command => ({
@@ -298,6 +363,20 @@ const closureCmd = (scope: Scope): Command => ({
   },
 });
 
+const returnCmd = (): Command => ({
+  execute: (args) => {
+    if (args.length > 2) return ARITY_ERROR("return ?result?");
+    return args.length == 2 ? RETURN(args[1]) : RETURN(NIL);
+  },
+});
+
+const yieldCmd = (): Command => ({
+  execute: (args) => {
+    if (args.length > 2) return ARITY_ERROR("yield ?result?");
+    return args.length == 2 ? YIELD(args[1]) : YIELD(NIL);
+  },
+});
+
 function valueToArgspecs(_value: Value): ArgSpec[] {
   // TODO
   return [];
@@ -314,4 +393,7 @@ export function initCommands(scope: Scope) {
 
   scope.commands.set("macro", macroCmd);
   scope.commands.set("closure", closureCmd);
+
+  scope.commands.set("return", returnCmd);
+  scope.commands.set("yield", yieldCmd);
 }

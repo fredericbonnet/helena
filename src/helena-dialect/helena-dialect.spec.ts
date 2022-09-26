@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ResultCode } from "../core/command";
+import { ResultCode, OK, RETURN } from "../core/command";
 import {
   CompilingEvaluator,
   Evaluator,
@@ -9,6 +9,7 @@ import { Parser } from "../core/parser";
 import { Scope, initCommands, Variable, CommandValue } from "./helena-dialect";
 import { Tokenizer } from "../core/tokenizer";
 import { NIL, StringValue, TupleValue } from "../core/values";
+import { ExecutionContext } from "../core/compiler";
 
 describe("Helena dialect", () => {
   for (const klass of [InlineEvaluator, CompilingEvaluator]) {
@@ -176,7 +177,7 @@ describe("Helena dialect", () => {
       describe("scope", () => {
         it("should define a new command", () => {
           evaluate("scope cmd {}");
-          expect(rootScope.commands.has("cmd"));
+          expect(rootScope.commands.has("cmd")).to.be.true;
         });
         it("should replace existing commands", () => {
           evaluate("scope cmd {}");
@@ -231,6 +232,70 @@ describe("Helena dialect", () => {
             expect(evaluate("cmd eval {get cst}")).to.eql(
               new StringValue("val3")
             );
+          });
+        });
+        describe("control flow", () => {
+          describe("return", () => {
+            it("should interrupt the body with OK code", () => {
+              evaluate("closure cmd1 {} {set var val1}");
+              evaluate("closure cmd2 {} {set var val2}");
+              expect(execute("scope {cmd1; return; cmd2}").code).to.eql(
+                ResultCode.OK
+              );
+              expect(evaluate("get var")).to.eql(new StringValue("val1"));
+            });
+            it("should still define the scope command and variable", () => {
+              evaluate("scope cmd {return}");
+              expect(rootScope.commands.has("cmd")).to.be.true;
+              expect(rootScope.variables.has("cmd")).to.be.true;
+            });
+            it("should return passed value instead of scope command value", () => {
+              expect(execute("scope {return val}")).to.eql(
+                OK(new StringValue("val"))
+              );
+            });
+          });
+          describe("yield", () => {
+            it("should interrupt the body with YIELD code", () => {
+              evaluate("closure cmd1 {} {set var val1}");
+              evaluate("closure cmd2 {} {set var val2}");
+              expect(execute("scope cmd {cmd1; yield; cmd2}").code).to.eql(
+                ResultCode.YIELD
+              );
+              expect(evaluate("get var")).to.eql(new StringValue("val1"));
+            });
+            it("should provide a resumable state", () => {
+              evaluate("closure cmd1 {} {set var val1}");
+              evaluate("closure cmd2 {} {set var val2}");
+              const context = new ExecutionContext();
+              const program = rootScope.compile(
+                parse("scope cmd {cmd1; yield val3; cmd2}")
+              );
+
+              let result = rootScope.execute(program, context);
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("val3"));
+              expect(result.state).to.exist;
+
+              result = rootScope.execute(program, context);
+              expect(result.code).to.eql(ResultCode.OK);
+              expect(result.value).to.be.instanceof(CommandValue);
+              expect(evaluate("get var")).to.eql(new StringValue("val2"));
+            });
+            it("should delay the definition of scope command and variable until resumed", () => {
+              const context = new ExecutionContext();
+              const program = rootScope.compile(parse("scope cmd {yield}"));
+
+              let result = rootScope.execute(program, context);
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(rootScope.commands.has("cmd")).to.be.false;
+              expect(rootScope.variables.has("cmd")).to.be.false;
+
+              result = rootScope.execute(program, context);
+              expect(result.code).to.eql(ResultCode.OK);
+              expect(rootScope.commands.has("cmd")).to.be.true;
+              expect(rootScope.variables.has("cmd")).to.be.true;
+            });
           });
         });
         describe("methods", () => {
@@ -332,7 +397,7 @@ describe("Helena dialect", () => {
         describe("macro", () => {
           it("should define a new command", () => {
             evaluate("macro cmd {} {}");
-            expect(rootScope.commands.has("cmd"));
+            expect(rootScope.commands.has("cmd")).to.be.true;
           });
           it("should replace existing commands", () => {
             evaluate("macro cmd {} {}");
@@ -353,7 +418,7 @@ describe("Helena dialect", () => {
             });
             it("should return the result of the last command", () => {
               evaluate("macro cmd {} {idem val1; idem val2}");
-              expect(evaluate("cmd")).to.eql(new StringValue("val2"));
+              expect(execute("cmd")).to.eql(OK(new StringValue("val2")));
             });
             it("should be callable by value", () => {
               evaluate("set cmd [macro {} {idem val}]");
@@ -433,6 +498,60 @@ describe("Helena dialect", () => {
               expect(evaluate("get var")).to.eql(new StringValue("val"));
             });
           });
+          describe("control flow", () => {
+            describe("return", () => {
+              it("should interrupt a macro with RESULT code", () => {
+                evaluate("macro cmd {} {return val1; idem val2}");
+                expect(execute("cmd")).to.eql(RETURN(new StringValue("val1")));
+              });
+            });
+            describe("yield", () => {
+              it("should interrupt a macro with YIELD code", () => {
+                evaluate("macro cmd {} {yield val1; idem val2}");
+                const result = execute("cmd");
+                expect(result.code).to.eql(ResultCode.YIELD);
+                expect(result.value).to.eql(new StringValue("val1"));
+              });
+              it("should provide a resumable state", () => {
+                evaluate("macro cmd {} {yield val1; idem val2}");
+                const context = new ExecutionContext();
+                const program = rootScope.compile(parse("cmd"));
+
+                let result = rootScope.execute(program, context);
+                expect(result.state).to.exist;
+
+                result = rootScope.execute(program, context);
+                expect(result).to.eql(OK(new StringValue("val2")));
+              });
+              it("should work recursively", () => {
+                evaluate("macro cmd1 {} {yield [cmd2]; idem val5}");
+                evaluate("macro cmd2 {} {yield [cmd3]; idem [cmd4]}");
+                evaluate("macro cmd3 {} {yield val1; idem val2}");
+                evaluate("macro cmd4 {} {yield val3; idem val4}");
+                const context = new ExecutionContext();
+                const program = rootScope.compile(parse("cmd1"));
+
+                let result = rootScope.execute(program, context);
+                expect(result.code).to.eql(ResultCode.YIELD);
+                expect(result.value).to.eql(new StringValue("val1"));
+
+                result = rootScope.execute(program, context);
+                expect(result.code).to.eql(ResultCode.YIELD);
+                expect(result.value).to.eql(new StringValue("val2"));
+
+                result = rootScope.execute(program, context);
+                expect(result.code).to.eql(ResultCode.YIELD);
+                expect(result.value).to.eql(new StringValue("val3"));
+
+                result = rootScope.execute(program, context);
+                expect(result.code).to.eql(ResultCode.YIELD);
+                expect(result.value).to.eql(new StringValue("val4"));
+
+                result = rootScope.execute(program, context);
+                expect(result).to.eql(OK(new StringValue("val5")));
+              });
+            });
+          });
           describe("exceptions", () => {
             specify("wrong arity", () => {
               expect(() => evaluate("macro")).to.throw(
@@ -451,7 +570,7 @@ describe("Helena dialect", () => {
         describe("closure", () => {
           it("should define a new command", () => {
             evaluate("closure cmd {} {}");
-            expect(rootScope.commands.has("cmd"));
+            expect(rootScope.commands.has("cmd")).to.be.true;
           });
           it("should replace existing commands", () => {
             evaluate("closure cmd {} {}");
@@ -474,7 +593,7 @@ describe("Helena dialect", () => {
             });
             it("should return the result of the last command", () => {
               evaluate("closure cmd {} {idem val1; idem val2}");
-              expect(evaluate("cmd")).to.eql(new StringValue("val2"));
+              expect(execute("cmd")).to.eql(OK(new StringValue("val2")));
             });
             it("should be callable by value", () => {
               evaluate("set cmd [closure {} {idem val}]");
@@ -531,6 +650,60 @@ describe("Helena dialect", () => {
               });
             });
           });
+          describe("control flow", () => {
+            describe("return", () => {
+              it("should interrupt a closure with RESULT code", () => {
+                evaluate("closure cmd {} {return val1; idem val2}");
+                expect(execute("cmd")).to.eql(RETURN(new StringValue("val1")));
+              });
+            });
+            describe("yield", () => {
+              it("should interrupt a closure with YIELD code", () => {
+                evaluate("closure cmd {} {yield val1; idem val2}");
+                const result = execute("cmd");
+                expect(result.code).to.eql(ResultCode.YIELD);
+                expect(result.value).to.eql(new StringValue("val1"));
+              });
+              it("should provide a resumable state", () => {
+                evaluate("closure cmd {} {yield val1; idem val2}");
+                const context = new ExecutionContext();
+                const program = rootScope.compile(parse("cmd"));
+
+                let result = rootScope.execute(program, context);
+                expect(result.state).to.exist;
+
+                result = rootScope.execute(program, context);
+                expect(result).to.eql(OK(new StringValue("val2")));
+              });
+              it("should work recursively", () => {
+                evaluate("closure cmd1 {} {yield [cmd2]; idem val5}");
+                evaluate("closure cmd2 {} {yield [cmd3]; idem [cmd4]}");
+                evaluate("closure cmd3 {} {yield val1; idem val2}");
+                evaluate("closure cmd4 {} {yield val3; idem val4}");
+                const context = new ExecutionContext();
+                const program = rootScope.compile(parse("cmd1"));
+
+                let result = rootScope.execute(program, context);
+                expect(result.code).to.eql(ResultCode.YIELD);
+                expect(result.value).to.eql(new StringValue("val1"));
+
+                result = rootScope.execute(program, context);
+                expect(result.code).to.eql(ResultCode.YIELD);
+                expect(result.value).to.eql(new StringValue("val2"));
+
+                result = rootScope.execute(program, context);
+                expect(result.code).to.eql(ResultCode.YIELD);
+                expect(result.value).to.eql(new StringValue("val3"));
+
+                result = rootScope.execute(program, context);
+                expect(result.code).to.eql(ResultCode.YIELD);
+                expect(result.value).to.eql(new StringValue("val4"));
+
+                result = rootScope.execute(program, context);
+                expect(result).to.eql(OK(new StringValue("val5")));
+              });
+            });
+          });
           describe("exceptions", () => {
             specify("wrong arity", () => {
               expect(() => evaluate("closure")).to.throw(
@@ -541,6 +714,45 @@ describe("Helena dialect", () => {
               );
               expect(() => evaluate("closure a b c d")).to.throw(
                 'wrong # args: should be "closure ?name? args body"'
+              );
+            });
+          });
+        });
+      });
+
+      describe("control flow", () => {
+        describe("return", () => {
+          specify("result code should be RETURN", () => {
+            expect(execute("return").code).to.eql(ResultCode.RETURN);
+          });
+          it("should return nil by default", () => {
+            expect(evaluate("return")).to.eql(NIL);
+          });
+          it("should return an optional result", () => {
+            expect(evaluate("return val")).to.eql(new StringValue("val"));
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("return a b")).to.throw(
+                'wrong # args: should be "return ?result?"'
+              );
+            });
+          });
+        });
+        describe("yield", () => {
+          specify("result code should be YIELD", () => {
+            expect(execute("yield").code).to.eql(ResultCode.YIELD);
+          });
+          it("should yield nil by default", () => {
+            expect(evaluate("yield")).to.eql(NIL);
+          });
+          it("should yield an optional result", () => {
+            expect(evaluate("yield val")).to.eql(new StringValue("val"));
+          });
+          describe("exceptions", () => {
+            specify("wrong arity", () => {
+              expect(() => evaluate("yield a b")).to.throw(
+                'wrong # args: should be "yield ?result?"'
               );
             });
           });

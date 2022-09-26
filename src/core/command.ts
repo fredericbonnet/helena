@@ -34,10 +34,10 @@ export type Result = {
 export const OK = (value: Value): Result => {
   return { code: ResultCode.OK, value };
 };
-export const YIELD = (value: Value, state?): Result => {
+export const YIELD = (value: Value = NIL, state?): Result => {
   return { code: ResultCode.YIELD, value, state };
 };
-export const RETURN = (value: Value): Result => {
+export const RETURN = (value: Value = NIL): Result => {
   return { code: ResultCode.RETURN, value };
 };
 export const BREAK = (value: Value = NIL): Result => {
