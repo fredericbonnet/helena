@@ -3,7 +3,7 @@ import { Command, Result, ResultCode, YIELD, OK } from "../core/command";
 import { Program, ExecutionContext } from "../core/compiler";
 import { ScriptValue, Value } from "../core/values";
 import { ArgSpec, ARITY_ERROR, valueToArgspecs } from "./arguments";
-import { Scope, CommandValue, Variable } from "./core";
+import { Scope, CommandValue } from "./core";
 
 class ClosureCommand implements Command {
   readonly scope: Scope;
@@ -47,11 +47,7 @@ export const closureCmd = (scope: Scope): Command => ({
     const command = () =>
       new ClosureCommand(scope, valueToArgspecs(argspecs), body as ScriptValue);
     const value = new CommandValue(command);
-    if (name) {
-      scope.commands.set(name.asString(), command);
-      scope.variables.set(name.asString(), new Variable(value));
-    }
-
+    if (name) return scope.setNamedCommand(name, value);
     return OK(value);
   },
 });

@@ -9,16 +9,16 @@ import { closureCmd } from "./closures";
 export { Scope, Variable, CommandValue } from "./core";
 
 export function initCommands(scope: Scope) {
-  scope.commands.set("idem", idemCmd);
-  scope.commands.set("return", returnCmd);
-  scope.commands.set("yield", yieldCmd);
+  scope.registerCommand("idem", idemCmd);
+  scope.registerCommand("return", returnCmd);
+  scope.registerCommand("yield", yieldCmd);
 
-  scope.commands.set("let", letCmd);
-  scope.commands.set("set", setCmd);
-  scope.commands.set("get", getCmd);
+  scope.registerCommand("let", letCmd);
+  scope.registerCommand("set", setCmd);
+  scope.registerCommand("get", getCmd);
 
-  scope.commands.set("scope", scopeCmd);
+  scope.registerCommand("scope", scopeCmd);
 
-  scope.commands.set("macro", macroCmd);
-  scope.commands.set("closure", closureCmd);
+  scope.registerCommand("macro", macroCmd);
+  scope.registerCommand("closure", closureCmd);
 }

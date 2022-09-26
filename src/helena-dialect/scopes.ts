@@ -3,7 +3,7 @@ import { Command, Result, OK, ERROR, ResultCode, YIELD } from "../core/command";
 import { Program, ExecutionContext } from "../core/compiler";
 import { Value, ScriptValue, StringValue } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { CommandValue, Scope, Variable } from "./core";
+import { CommandValue, Scope } from "./core";
 
 class ScopeValue extends CommandValue {
   readonly scope: Scope;
@@ -82,8 +82,8 @@ const executeScopeBody = (state: ScopeBodyState): Result => {
 
   const value = new ScopeValue(state.subscope);
   if (state.name) {
-    state.scope.commands.set(state.name.asString(), value.command);
-    state.scope.variables.set(state.name.asString(), new Variable(value));
+    const result2 = state.scope.setNamedCommand(state.name, value);
+    if (result2.code != ResultCode.OK) return result2;
   }
 
   if (result.code == ResultCode.RETURN) return OK(result.value);

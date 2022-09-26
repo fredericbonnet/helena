@@ -1,5 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Command, Result } from "../core/command";
+import { Command, ERROR, OK, Result } from "../core/command";
 import {
   Compiler,
   Executor,
@@ -8,7 +8,7 @@ import {
 } from "../core/compiler";
 import { VariableResolver, CommandResolver } from "../core/evaluator";
 import { Script } from "../core/syntax";
-import { Value, ValueType, ScriptValue } from "../core/values";
+import { Value, ValueType, ScriptValue, StringValue } from "../core/values";
 
 export class Variable {
   value: Value;
@@ -19,7 +19,7 @@ export class Variable {
 type ScopedCommand = (scope: Scope) => Command;
 export class CommandValue implements Value {
   readonly type: ValueType = ValueType.CUSTOM;
-  command: ScopedCommand;
+  readonly command: ScopedCommand;
 
   constructor(command: ScopedCommand) {
     this.command = command;
@@ -89,5 +89,43 @@ export class Scope {
       return this.parent.resolveScopedCommand(name, recurse);
     }
     return this.commands.get(name);
+  }
+
+  setConstant(name: string, value: Value): Result {
+    if (this.constants.has(name)) {
+      return ERROR(new StringValue(`cannot redefine constant "${name}"`));
+    }
+    if (this.variables.has(name)) {
+      return ERROR(
+        new StringValue(
+          `cannot define constant "${name}": variable already exists`
+        )
+      );
+    }
+
+    this.constants.set(name, value);
+    return OK(value);
+  }
+  setVariable(name: string, value: Value): Result {
+    if (this.constants.has(name)) {
+      return ERROR(new StringValue(`cannot redefine constant "${name}"`));
+    }
+    if (this.variables.has(name)) {
+      this.variables.get(name).value = value;
+    } else {
+      this.variables.set(name, new Variable(value));
+    }
+    return OK(value);
+  }
+  getVariable(name: string): Result {
+    return OK(this.resolveVariable(name));
+  }
+
+  registerCommand(name: string, command: ScopedCommand) {
+    this.commands.set(name, command);
+  }
+  setNamedCommand(name: Value, command: CommandValue): Result {
+    this.commands.set(name.asString(), command.command);
+    return this.setVariable(name.asString(), command);
   }
 }
