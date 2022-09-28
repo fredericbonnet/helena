@@ -54,6 +54,10 @@ describe("Helena scopes", () => {
       const value = evaluate("scope cmd {}");
       expect(evaluate("cmd")).to.eql(value);
     });
+    specify("command value should return self", () => {
+      const value = evaluate("set cmd [scope {}]");
+      expect(evaluate("$cmd")).to.eql(value);
+    });
     describe("body", () => {
       it("should be executed", () => {
         evaluate("closure cmd {} {let var val}");
@@ -180,7 +184,7 @@ describe("Helena scopes", () => {
       });
       describe("call", () => {
         it("should call scope commands", () => {
-          evaluate('scope cmd {macro mac {} {idem "val"}}');
+          evaluate("scope cmd {macro mac {} {idem val}}");
           expect(evaluate("cmd call mac")).to.eql(new StringValue("val"));
         });
         it("should evaluate macros in scope", () => {

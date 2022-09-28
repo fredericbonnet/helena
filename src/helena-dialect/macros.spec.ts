@@ -50,6 +50,10 @@ describe("Helena macros", () => {
       expect(evaluate("macro {} {}")).to.be.instanceof(CommandValue);
       expect(evaluate("macro cmd {} {}")).to.be.instanceof(CommandValue);
     });
+    specify("command value should return self", () => {
+      const value = evaluate("set cmd [macro {} {}]");
+      expect(evaluate("$cmd")).to.eql(value);
+    });
     describe("calls", () => {
       it("should return nil for empty body", () => {
         evaluate("macro cmd {} {}");
@@ -58,10 +62,6 @@ describe("Helena macros", () => {
       it("should return the result of the last command", () => {
         evaluate("macro cmd {} {idem val1; idem val2}");
         expect(execute("cmd")).to.eql(OK(new StringValue("val2")));
-      });
-      it("should be callable by value", () => {
-        evaluate("set cmd [macro {} {idem val}]");
-        expect(evaluate("$cmd")).to.eql(new StringValue("val"));
       });
       describe("should evaluate in the caller scope", () => {
         specify("global scope", () => {
@@ -95,9 +95,9 @@ describe("Helena macros", () => {
         });
         specify("scoped macro", () => {
           evaluate(
-            "scope scp1 {set cmd [macro cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}]}"
+            "scope scp1 {set cmd [macro {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}]}"
           );
-          evaluate("scope scp2 {[scp1 eval {get cmd}]}");
+          evaluate("scope scp2 {[scp1 eval {get cmd}] call}");
           expect(() => evaluate("scp1 eval {get cst}")).to.throw();
           expect(() => evaluate("scp1 eval {get var}")).to.throw();
           expect(() => evaluate("scp1 eval {cmd2}")).to.throw();
@@ -180,6 +180,21 @@ describe("Helena macros", () => {
 
           result = rootScope.execute(program, context);
           expect(result).to.eql(OK(new StringValue("val5")));
+        });
+      });
+    });
+    describe("methods", () => {
+      describe("call", () => {
+        it("should call macro", () => {
+          evaluate("set cmd [macro {} {idem val}]");
+          expect(evaluate("$cmd call")).to.eql(new StringValue("val"));
+        });
+      });
+      describe("exceptions", () => {
+        specify("non-existing method", () => {
+          expect(() => evaluate("[macro {} {}] unknownMethod")).to.throw(
+            'invalid method name "unknownMethod"'
+          );
         });
       });
     });

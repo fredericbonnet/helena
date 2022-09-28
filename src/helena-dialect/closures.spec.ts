@@ -8,7 +8,7 @@ import { NIL, StringValue } from "../core/values";
 import { CommandValue, Scope, Variable } from "./core";
 import { initCommands } from "./helena-dialect";
 
-describe("Helena macros", () => {
+describe("Helena closures", () => {
   let rootScope: Scope;
 
   let tokenizer: Tokenizer;
@@ -50,6 +50,10 @@ describe("Helena macros", () => {
       expect(evaluate("closure {} {}")).to.be.instanceof(CommandValue);
       expect(evaluate("closure cmd {} {}")).to.be.instanceof(CommandValue);
     });
+    specify("command value should return self", () => {
+      const value = evaluate("set cmd [closure {} {}]");
+      expect(evaluate("$cmd")).to.eql(value);
+    });
     describe("calls", () => {
       it("should return nil for empty body", () => {
         evaluate("closure cmd {} {}");
@@ -58,10 +62,6 @@ describe("Helena macros", () => {
       it("should return the result of the last command", () => {
         evaluate("closure cmd {} {idem val1; idem val2}");
         expect(execute("cmd")).to.eql(OK(new StringValue("val2")));
-      });
-      it("should be callable by value", () => {
-        evaluate("set cmd [closure {} {idem val}]");
-        expect(evaluate("$cmd")).to.eql(new StringValue("val"));
       });
       describe("should evaluate in the parent scope", () => {
         specify("global scope", () => {
@@ -92,9 +92,9 @@ describe("Helena macros", () => {
         });
         specify("scoped closure", () => {
           evaluate(
-            "scope scp1 {set cmd [closure cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}]}"
+            "scope scp1 {set cmd [closure {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}]}"
           );
-          evaluate("scope scp2 {[scp1 eval {get cmd}]}");
+          evaluate("scope scp2 {[scp1 eval {get cmd}] call}");
           expect(evaluate("scp1 eval {get cst}")).to.eql(
             new StringValue("val1")
           );
@@ -159,6 +159,21 @@ describe("Helena macros", () => {
 
           result = rootScope.execute(program, context);
           expect(result).to.eql(OK(new StringValue("val5")));
+        });
+      });
+    });
+    describe("methods", () => {
+      describe("call", () => {
+        it("should call closure", () => {
+          evaluate("set cmd [closure {} {idem val}]");
+          expect(evaluate("$cmd call")).to.eql(new StringValue("val"));
+        });
+      });
+      describe("exceptions", () => {
+        specify("non-existing method", () => {
+          expect(() => evaluate("[closure {} {}] unknownMethod")).to.throw(
+            'invalid method name "unknownMethod"'
+          );
         });
       });
     });

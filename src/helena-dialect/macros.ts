@@ -1,20 +1,53 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Command, Result, ResultCode, YIELD, OK } from "../core/command";
+import { Command, Result, ResultCode, YIELD, OK, ERROR } from "../core/command";
 import { Program, ExecutionContext } from "../core/compiler";
-import { ScriptValue, Value } from "../core/values";
+import { ScriptValue, StringValue, Value } from "../core/values";
 import { ArgSpec, ARITY_ERROR, valueToArgspecs } from "./arguments";
 import { Scope, CommandValue } from "./core";
 
-class MacroCommand implements Command {
-  readonly scope: Scope;
+class MacroValue extends CommandValue {
   readonly argspecs: ArgSpec[];
   readonly body: ScriptValue;
-  readonly program: Program;
-  constructor(scope: Scope, argspecs: ArgSpec[], body: ScriptValue) {
-    this.scope = scope;
+  constructor(argspecs: ArgSpec[], body: ScriptValue) {
+    super((scope) => new MacroValueCommand(scope, this));
     this.argspecs = argspecs;
     this.body = body;
-    this.program = this.scope.compile(this.body.script);
+  }
+}
+class MacroValueCommand implements Command {
+  readonly scope: Scope;
+  readonly value: MacroValue;
+  constructor(scope: Scope, value: MacroValue) {
+    this.scope = scope;
+    this.value = value;
+  }
+
+  execute(args: Value[]): Result {
+    if (args.length == 1) return OK(this.value);
+    if (args.length < 2) return ARITY_ERROR("macro method ?arg ...?");
+    const method = args[1];
+    switch (method.asString()) {
+      case "call": {
+        if (args.length < 2) return ARITY_ERROR("macro call ?arg ...?");
+        const cmdline = [this.value, ...args.slice(1)];
+        return new MacroCommand(this.scope, this.value).execute(cmdline);
+      }
+      default:
+        return ERROR(
+          new StringValue(`invalid method name "${method.asString()}"`)
+        );
+    }
+  }
+}
+
+class MacroCommand implements Command {
+  readonly scope: Scope;
+  readonly value: MacroValue;
+  readonly program: Program;
+  constructor(scope: Scope, value: MacroValue) {
+    this.scope = scope;
+    this.value = value;
+    this.program = this.scope.compile(this.value.body.script);
   }
 
   execute(_args: Value[]): Result {
@@ -44,10 +77,16 @@ export const macroCmd = (scope: Scope): Command => ({
         return ARITY_ERROR("macro ?name? args body");
     }
 
-    const command = (scope: Scope) =>
-      new MacroCommand(scope, valueToArgspecs(argspecs), body as ScriptValue);
-    const value = new CommandValue(command);
-    if (name) scope.registerCommand(name.asString(), command);
+    const value = new MacroValue(
+      valueToArgspecs(argspecs),
+      body as ScriptValue
+    );
+    if (name) {
+      scope.registerCommand(
+        name.asString(),
+        (scope: Scope) => new MacroCommand(scope, value)
+      );
+    }
     return OK(value);
   },
 });
