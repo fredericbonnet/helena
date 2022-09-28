@@ -126,8 +126,4 @@ export class Scope {
   registerCommand(name: string, command: ScopedCommand) {
     this.commands.set(name, command);
   }
-  setNamedCommand(name: Value, command: CommandValue): Result {
-    this.commands.set(name.asString(), command.command);
-    return this.setVariable(name.asString(), command);
-  }
 }

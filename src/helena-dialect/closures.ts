@@ -47,7 +47,7 @@ export const closureCmd = (scope: Scope): Command => ({
     const command = () =>
       new ClosureCommand(scope, valueToArgspecs(argspecs), body as ScriptValue);
     const value = new CommandValue(command);
-    if (name) return scope.setNamedCommand(name, value);
+    if (name) scope.registerCommand(name.asString(), command);
     return OK(value);
   },
 });

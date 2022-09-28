@@ -8,15 +8,13 @@ import { CommandValue, Scope } from "./core";
 class ScopeValue extends CommandValue {
   readonly scope: Scope;
   constructor(scope: Scope) {
-    super(() => new ScopeCommand(scope, this));
+    super(() => new ScopeCommand(this));
     this.scope = scope;
   }
 }
 class ScopeCommand implements Command {
-  readonly scope: Scope;
   readonly value: ScopeValue;
-  constructor(scope: Scope, value: ScopeValue) {
-    this.scope = scope;
+  constructor(value: ScopeValue) {
     this.value = value;
   }
 
@@ -28,12 +26,14 @@ class ScopeCommand implements Command {
       case "eval": {
         if (args.length != 3) return ARITY_ERROR("scope eval body");
         const body = args[2] as ScriptValue;
-        return this.scope.executeScript(body);
+        return this.value.scope.executeScript(body);
       }
       case "call": {
         if (args.length < 3) return ARITY_ERROR("scope call cmdname ?arg ...?");
         const cmdline = args.slice(2);
-        return this.scope.resolveCommand(cmdline[0], false).execute(cmdline);
+        return this.value.scope
+          .resolveCommand(cmdline[0], false)
+          .execute(cmdline);
       }
       default:
         return ERROR(
@@ -81,10 +81,8 @@ const executeScopeBody = (state: ScopeBodyState): Result => {
     return result;
 
   const value = new ScopeValue(state.subscope);
-  if (state.name) {
-    const result2 = state.scope.setNamedCommand(state.name, value);
-    if (result2.code != ResultCode.OK) return result2;
-  }
+  if (state.name)
+    state.scope.registerCommand(state.name.asString(), value.command);
 
   if (result.code == ResultCode.RETURN) return OK(result.value);
   return OK(value);

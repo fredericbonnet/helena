@@ -50,10 +50,6 @@ describe("Helena macros", () => {
       expect(evaluate("macro {} {}")).to.be.instanceof(CommandValue);
       expect(evaluate("macro cmd {} {}")).to.be.instanceof(CommandValue);
     });
-    it("should define a variable with command value when given a name", () => {
-      const value = evaluate("macro cmd {} {}");
-      expect(evaluate("get cmd")).to.eql(value);
-    });
     describe("calls", () => {
       it("should return nil for empty body", () => {
         evaluate("macro cmd {} {}");
@@ -65,10 +61,6 @@ describe("Helena macros", () => {
       });
       it("should be callable by value", () => {
         evaluate("set cmd [macro {} {idem val}]");
-        expect(evaluate("$cmd")).to.eql(new StringValue("val"));
-      });
-      it("should be callable by variable", () => {
-        evaluate("macro cmd {} {idem val}");
         expect(evaluate("$cmd")).to.eql(new StringValue("val"));
       });
       describe("should evaluate in the caller scope", () => {
@@ -103,7 +95,7 @@ describe("Helena macros", () => {
         });
         specify("scoped macro", () => {
           evaluate(
-            "scope scp1 {macro cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}}"
+            "scope scp1 {set cmd [macro cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}]}"
           );
           evaluate("scope scp2 {[scp1 eval {get cmd}]}");
           expect(() => evaluate("scp1 eval {get cst}")).to.throw();

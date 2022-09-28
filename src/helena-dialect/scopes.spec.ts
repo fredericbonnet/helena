@@ -50,10 +50,6 @@ describe("Helena scopes", () => {
       expect(evaluate("scope {}")).to.be.instanceof(CommandValue);
       expect(evaluate("scope cmd  {}")).to.be.instanceof(CommandValue);
     });
-    it("should define a variable with command value when given a name", () => {
-      const value = evaluate("scope cmd {}");
-      expect(evaluate("get cmd")).to.eql(value);
-    });
     specify("command should return self", () => {
       const value = evaluate("scope cmd {}");
       expect(evaluate("cmd")).to.eql(value);
@@ -101,10 +97,9 @@ describe("Helena scopes", () => {
           );
           expect(evaluate("get var")).to.eql(new StringValue("val1"));
         });
-        it("should still define the scope command and variable", () => {
+        it("should still define the scope command", () => {
           evaluate("scope cmd {return}");
           expect(rootScope.commands.has("cmd")).to.be.true;
-          expect(rootScope.variables.has("cmd")).to.be.true;
         });
         it("should return passed value instead of scope command value", () => {
           expect(execute("scope {return val}")).to.eql(
@@ -139,19 +134,17 @@ describe("Helena scopes", () => {
           expect(result.value).to.be.instanceof(CommandValue);
           expect(evaluate("get var")).to.eql(new StringValue("val2"));
         });
-        it("should delay the definition of scope command and variable until resumed", () => {
+        it("should delay the definition of scope command until resumed", () => {
           const context = new ExecutionContext();
           const program = rootScope.compile(parse("scope cmd {yield}"));
 
           let result = rootScope.execute(program, context);
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(rootScope.commands.has("cmd")).to.be.false;
-          expect(rootScope.variables.has("cmd")).to.be.false;
 
           result = rootScope.execute(program, context);
           expect(result.code).to.eql(ResultCode.OK);
           expect(rootScope.commands.has("cmd")).to.be.true;
-          expect(rootScope.variables.has("cmd")).to.be.true;
         });
       });
     });

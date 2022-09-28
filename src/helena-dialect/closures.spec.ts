@@ -50,10 +50,6 @@ describe("Helena macros", () => {
       expect(evaluate("closure {} {}")).to.be.instanceof(CommandValue);
       expect(evaluate("closure cmd {} {}")).to.be.instanceof(CommandValue);
     });
-    it("should define a variable with command value when given a name", () => {
-      const value = evaluate("closure cmd {} {}");
-      expect(evaluate("get cmd")).to.eql(value);
-    });
     describe("calls", () => {
       it("should return nil for empty body", () => {
         evaluate("closure cmd {} {}");
@@ -65,10 +61,6 @@ describe("Helena macros", () => {
       });
       it("should be callable by value", () => {
         evaluate("set cmd [closure {} {idem val}]");
-        expect(evaluate("$cmd")).to.eql(new StringValue("val"));
-      });
-      it("should be callable by variable", () => {
-        evaluate("closure cmd {} {idem val}");
         expect(evaluate("$cmd")).to.eql(new StringValue("val"));
       });
       describe("should evaluate in the parent scope", () => {
@@ -100,7 +92,7 @@ describe("Helena macros", () => {
         });
         specify("scoped closure", () => {
           evaluate(
-            "scope scp1 {closure cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}}"
+            "scope scp1 {set cmd [closure cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}]}"
           );
           evaluate("scope scp2 {[scp1 eval {get cmd}]}");
           expect(evaluate("scp1 eval {get cst}")).to.eql(
