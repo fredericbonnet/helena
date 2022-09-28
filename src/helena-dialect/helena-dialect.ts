@@ -5,6 +5,7 @@ import { Scope } from "./core";
 import { letCmd, setCmd, getCmd } from "./variables";
 import { scopeCmd } from "./scopes";
 import { closureCmd } from "./closures";
+import { registerMathCommands } from "./math";
 
 export { Scope, Variable, CommandValue } from "./core";
 
@@ -12,6 +13,8 @@ export function initCommands(scope: Scope) {
   scope.registerCommand("idem", idemCmd);
   scope.registerCommand("return", returnCmd);
   scope.registerCommand("yield", yieldCmd);
+
+  registerMathCommands(scope);
 
   scope.registerCommand("let", letCmd);
   scope.registerCommand("set", setCmd);
