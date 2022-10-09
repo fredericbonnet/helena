@@ -1,31 +1,28 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Command, Result, OK, ERROR, ResultCode } from "../core/command";
+import { Command, Result, OK, ERROR } from "../core/command";
 import {
   Value,
   StringValue,
   ValueType,
   ListValue,
-  TupleValue,
   ScriptValue,
   NIL,
 } from "../core/values";
-import { ARITY_ERROR } from "./arguments";
+import {
+  Argument,
+  ARITY_ERROR,
+  buildArguments,
+  valueToList,
+} from "./arguments";
 import { CommandValue, Scope } from "./core";
 
-type Argument = {
-  name: string;
-  type: "required" | "optional" | "remainder";
-  default?: Value;
-};
-
-export class ArgspecValue extends CommandValue {
+export class Argspec {
   readonly args: Argument[];
   readonly help: StringValue;
   readonly nbRequired: number = 0;
   readonly nbOptional: number = 0;
   readonly hasRemainder: boolean = false;
   constructor(args: Argument[]) {
-    super((scope) => new ArgspecCommand(scope, this));
     this.args = args;
     this.help = new StringValue(buildHelp(args));
     for (const arg of args) {
@@ -43,6 +40,14 @@ export class ArgspecValue extends CommandValue {
     }
   }
 }
+
+export class ArgspecValue extends CommandValue {
+  readonly argspec: Argspec;
+  constructor(argspec: Argspec) {
+    super((scope) => new ArgspecCommand(scope, this));
+    this.argspec = argspec;
+  }
+}
 class ArgspecCommand implements Command {
   readonly scope: Scope;
   readonly value: ArgspecValue;
@@ -58,13 +63,13 @@ class ArgspecCommand implements Command {
     switch (method.asString()) {
       case "help": {
         if (args.length != 2) return ARITY_ERROR("argspec help");
-        return OK(this.value.help);
+        return OK(this.value.argspec.help);
       }
       case "set": {
         if (args.length != 3) return ARITY_ERROR("argspec set values");
         setArguments(
           this.scope,
-          this.value,
+          this.value.argspec,
           valueToList(this.scope, args[2]).values
         );
         return OK(NIL);
@@ -90,80 +95,14 @@ export const argspecCmd = (scope: Scope): Command => ({
         return ARITY_ERROR("argspec ?name? specs");
     }
 
-    const value = new ArgspecValue(buildArgspec(scope, specs));
+    const argspec = valueToArgspec(scope, specs);
+    const value = new ArgspecValue(argspec);
     if (name) {
       scope.registerCommand(name.asString(), value.command);
     }
     return OK(value);
   },
 });
-
-function buildArgspec(scope, specs: ListValue): Argument[] {
-  const args: Argument[] = [];
-  const argnames = new Set<string>();
-  let hasRemainder = false;
-  for (const value of valueToList(scope, specs).values) {
-    const arg = buildArgument(scope, value);
-    if (arg.type == "remainder" && hasRemainder)
-      throw new Error("only one remainder argument is allowed");
-    if (argnames.has(arg.name))
-      throw new Error(`duplicate argument "${arg.name}"`);
-    hasRemainder = arg.type == "remainder";
-    argnames.add(arg.name);
-    args.push(arg);
-  }
-  return args;
-}
-function buildArgument(scope: Scope, value: Value): Argument {
-  switch (value.type) {
-    case ValueType.LIST:
-    case ValueType.TUPLE:
-    case ValueType.SCRIPT: {
-      const specs = valueToList(scope, value).values;
-      if (specs.length == 0) throw new Error("empty argument specifier");
-      const name = specs[0].asString();
-      if (name == "" || name == "?") throw new Error("empty argument name");
-      if (specs.length > 2)
-        throw new Error(`too many specifiers for argument "${name}"`);
-      if (specs.length == 2) {
-        const def = specs[1];
-        if (name[0] == "?") {
-          return {
-            name: name.substring(1),
-            type: "optional",
-            default: def,
-          };
-        } else {
-          return { name, type: "optional", default: def };
-        }
-      } else {
-        if (name[0] == "?") {
-          return {
-            name: name.substring(1),
-            type: "optional",
-          };
-        } else {
-          return { name, type: "required" };
-        }
-      }
-    }
-    default: {
-      const name = value.asString();
-      if (name == "" || name == "?") throw new Error("empty argument name");
-      if (name[0] == "*") {
-        if (name.length == 1) {
-          return { name, type: "remainder" };
-        } else {
-          return { name: name.substring(1), type: "remainder" };
-        }
-      } else if (name[0] == "?") {
-        return { name: name.substring(1), type: "optional" };
-      } else {
-        return { name, type: "required" };
-      }
-    }
-  }
-}
 
 function buildHelp(args: Argument[]) {
   const parts = [];
@@ -183,33 +122,7 @@ function buildHelp(args: Argument[]) {
   return parts.join(" ");
 }
 
-function valueToList(scope: Scope, value: Value): ListValue {
-  switch (value.type) {
-    case ValueType.LIST:
-      return value as ListValue;
-    case ValueType.TUPLE:
-      return new ListValue((value as TupleValue).values);
-    case ValueType.SCRIPT: {
-      return scriptToList(scope, value as ScriptValue);
-    }
-    default:
-      return new ListValue([value]);
-  }
-}
-function scriptToList(scope: Scope, script: ScriptValue) {
-  const values = [];
-  for (const sentence of script.script.sentences) {
-    for (const word of sentence.words) {
-      const result = scope.executeWord(word);
-      if (result.code != ResultCode.OK)
-        throw new Error(result.value.asString());
-      values.push(result.value);
-    }
-  }
-  return new ListValue(values);
-}
-
-function setArguments(scope: Scope, argspec: ArgspecValue, values: Value[]) {
+export function setArguments(scope: Scope, argspec: Argspec, values: Value[]) {
   if (
     values.length < argspec.nbRequired ||
     (!argspec.hasRemainder &&
@@ -251,4 +164,9 @@ function setArguments(scope: Scope, argspec: ArgspecValue, values: Value[]) {
         i += setRemainder;
     }
   }
+}
+
+export function valueToArgspec(scope: Scope, value: Value): Argspec {
+  if (value instanceof ArgspecValue) return value.argspec;
+  return new Argspec(buildArguments(scope, value));
 }

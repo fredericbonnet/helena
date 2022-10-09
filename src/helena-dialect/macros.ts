@@ -2,15 +2,16 @@
 import { Command, Result, ResultCode, YIELD, OK, ERROR } from "../core/command";
 import { Program, ExecutionContext } from "../core/compiler";
 import { ScriptValue, StringValue, Value } from "../core/values";
-import { ArgSpec, ARITY_ERROR, valueToArgspecs } from "./arguments";
+import { Argspec, valueToArgspec } from "./argspecs";
+import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue } from "./core";
 
 class MacroValue extends CommandValue {
-  readonly argspecs: ArgSpec[];
+  readonly argspec: Argspec;
   readonly body: ScriptValue;
-  constructor(argspecs: ArgSpec[], body: ScriptValue) {
+  constructor(argspec: Argspec, body: ScriptValue) {
     super((scope) => new MacroValueCommand(scope, this));
-    this.argspecs = argspecs;
+    this.argspec = argspec;
     this.body = body;
   }
 }
@@ -29,7 +30,7 @@ class MacroValueCommand implements Command {
     switch (method.asString()) {
       case "call": {
         if (args.length < 2) return ARITY_ERROR("macro call ?arg ...?");
-        const cmdline = [this.value, ...args.slice(1)];
+        const cmdline = [this.value, ...args.slice(2)];
         return new MacroCommand(this.scope, this.value).execute(cmdline);
       }
       default:
@@ -65,22 +66,20 @@ class MacroCommand implements Command {
 }
 export const macroCmd = (scope: Scope): Command => ({
   execute: (args) => {
-    let name, argspecs, body;
+    let name, specs, body;
     switch (args.length) {
       case 3:
-        [, argspecs, body] = args;
+        [, specs, body] = args;
         break;
       case 4:
-        [, name, argspecs, body] = args;
+        [, name, specs, body] = args;
         break;
       default:
-        return ARITY_ERROR("macro ?name? args body");
+        return ARITY_ERROR("macro ?name? argspec body");
     }
 
-    const value = new MacroValue(
-      valueToArgspecs(argspecs),
-      body as ScriptValue
-    );
+    const argspec = valueToArgspec(scope, specs);
+    const value = new MacroValue(argspec, body as ScriptValue);
     if (name) {
       scope.registerCommand(
         name.asString(),

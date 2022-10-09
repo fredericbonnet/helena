@@ -174,13 +174,13 @@ describe("Helena closures", () => {
     describe("exceptions", () => {
       specify("wrong arity", () => {
         expect(() => evaluate("closure")).to.throw(
-          'wrong # args: should be "closure ?name? args body"'
+          'wrong # args: should be "closure ?name? argspec body"'
         );
         expect(() => evaluate("closure a")).to.throw(
-          'wrong # args: should be "closure ?name? args body"'
+          'wrong # args: should be "closure ?name? argspec body"'
         );
         expect(() => evaluate("closure a b c d")).to.throw(
-          'wrong # args: should be "closure ?name? args body"'
+          'wrong # args: should be "closure ?name? argspec body"'
         );
       });
     });

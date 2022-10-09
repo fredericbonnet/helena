@@ -2,18 +2,19 @@
 import { Command, Result, ResultCode, YIELD, OK, ERROR } from "../core/command";
 import { Program, ExecutionContext } from "../core/compiler";
 import { ScriptValue, StringValue, Value } from "../core/values";
-import { ArgSpec, ARITY_ERROR, valueToArgspecs } from "./arguments";
+import { Argspec, valueToArgspec } from "./argspecs";
+import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue } from "./core";
 
 class ClosureValue extends CommandValue {
   readonly scope: Scope;
-  readonly argspecs: ArgSpec[];
+  readonly argspec: Argspec;
   readonly body: ScriptValue;
   readonly program: Program;
-  constructor(scope: Scope, argspecs: ArgSpec[], body: ScriptValue) {
+  constructor(scope: Scope, argspec: Argspec, body: ScriptValue) {
     super(() => new ClosureValueCommand(this));
     this.scope = scope;
-    this.argspecs = argspecs;
+    this.argspec = argspec;
     this.body = body;
     this.program = this.scope.compile(this.body.script);
   }
@@ -30,7 +31,7 @@ class ClosureValueCommand implements Command {
     switch (method.asString()) {
       case "call": {
         if (args.length < 2) return ARITY_ERROR("closure call ?arg ...?");
-        const cmdline = [this.value, ...args.slice(1)];
+        const cmdline = [this.value, ...args.slice(2)];
         return new ClosureCommand(this.value).execute(cmdline);
       }
       default:
@@ -61,23 +62,20 @@ class ClosureCommand implements Command {
 }
 export const closureCmd = (scope: Scope): Command => ({
   execute: (args) => {
-    let name, argspecs, body;
+    let name, specs, body;
     switch (args.length) {
       case 3:
-        [, argspecs, body] = args;
+        [, specs, body] = args;
         break;
       case 4:
-        [, name, argspecs, body] = args;
+        [, name, specs, body] = args;
         break;
       default:
-        return ARITY_ERROR("closure ?name? args body");
+        return ARITY_ERROR("closure ?name? argspec body");
     }
 
-    const value = new ClosureValue(
-      scope,
-      valueToArgspecs(argspecs),
-      body as ScriptValue
-    );
+    const argspec = valueToArgspec(scope, specs);
+    const value = new ClosureValue(scope, argspec, body as ScriptValue);
     if (name) {
       scope.registerCommand(name.asString(), () => new ClosureCommand(value));
     }

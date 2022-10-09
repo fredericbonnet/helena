@@ -67,12 +67,12 @@ describe("Helena argument handling", () => {
         specify("value", () => {
           const value = evaluate("argspec ()") as ArgspecValue;
           expect(evaluate("argspec {}")).to.be.like(value);
-          expect(value).to.include({
+          expect(value.argspec).to.include({
             nbRequired: 0,
             nbOptional: 0,
             hasRemainder: false,
           });
-          expect(value.args).to.be.empty;
+          expect(value.argspec.args).to.be.empty;
         });
         specify("help", () => {
           expect(evaluate("[argspec ()] help")).to.eql(new StringValue(""));
@@ -88,12 +88,12 @@ describe("Helena argument handling", () => {
           const value = evaluate("argspec a") as ArgspecValue;
           expect(evaluate("argspec (a)")).to.be.like(value);
           expect(evaluate("argspec {a}")).to.be.like(value);
-          expect(value).to.include({
+          expect(value.argspec).to.include({
             nbRequired: 1,
             nbOptional: 0,
             hasRemainder: false,
           });
-          expect(value.args).to.eql([{ name: "a", type: "required" }]);
+          expect(value.argspec.args).to.eql([{ name: "a", type: "required" }]);
         });
         specify("help", () => {
           expect(evaluate("[argspec a] help")).to.eql(new StringValue("a"));
@@ -110,12 +110,12 @@ describe("Helena argument handling", () => {
         specify("value", () => {
           const value = evaluate("argspec (a b)") as ArgspecValue;
           expect(evaluate("argspec {a b}")).to.be.like(value);
-          expect(value).to.include({
+          expect(value.argspec).to.include({
             nbRequired: 2,
             nbOptional: 0,
             hasRemainder: false,
           });
-          expect(value.args).to.eql([
+          expect(value.argspec.args).to.eql([
             { name: "a", type: "required" },
             { name: "b", type: "required" },
           ]);
@@ -138,12 +138,14 @@ describe("Helena argument handling", () => {
             const value = evaluate("argspec *") as ArgspecValue;
             expect(evaluate("argspec (*)")).to.be.like(value);
             expect(evaluate("argspec {*}")).to.be.like(value);
-            expect(value).to.include({
+            expect(value.argspec).to.include({
               nbRequired: 0,
               nbOptional: 0,
               hasRemainder: true,
             });
-            expect(value.args).to.eql([{ name: "*", type: "remainder" }]);
+            expect(value.argspec.args).to.eql([
+              { name: "*", type: "remainder" },
+            ]);
           });
           specify("help", () => {
             expect(evaluate("[argspec *] help")).to.eql(
@@ -178,12 +180,14 @@ describe("Helena argument handling", () => {
             const value = evaluate("argspec *args") as ArgspecValue;
             expect(evaluate("argspec (*args)")).to.be.like(value);
             expect(evaluate("argspec {*args}")).to.be.like(value);
-            expect(value).to.include({
+            expect(value.argspec).to.include({
               nbRequired: 0,
               nbOptional: 0,
               hasRemainder: true,
             });
-            expect(value.args).to.eql([{ name: "args", type: "remainder" }]);
+            expect(value.argspec.args).to.eql([
+              { name: "args", type: "remainder" },
+            ]);
           });
           specify("help", () => {
             expect(evaluate("[argspec *remainder] help")).to.eql(
@@ -301,12 +305,14 @@ describe("Helena argument handling", () => {
             expect(evaluate("argspec {(?a)}")).to.be.like(value);
             expect(evaluate("argspec ({?a})")).to.be.like(value);
             expect(evaluate("argspec {{?a}}")).to.be.like(value);
-            expect(value).to.include({
+            expect(value.argspec).to.include({
               nbRequired: 0,
               nbOptional: 1,
               hasRemainder: false,
             });
-            expect(value.args).to.eql([{ name: "a", type: "optional" }]);
+            expect(value.argspec.args).to.eql([
+              { name: "a", type: "optional" },
+            ]);
           });
           specify("help", () => {
             expect(evaluate("[argspec ?a] help")).to.eql(
@@ -330,12 +336,12 @@ describe("Helena argument handling", () => {
           specify("value", () => {
             const value = evaluate("argspec {?a ?b}") as ArgspecValue;
             expect(evaluate("argspec (?a ?b)")).to.be.like(value);
-            expect(value).to.include({
+            expect(value.argspec).to.include({
               nbRequired: 0,
               nbOptional: 2,
               hasRemainder: false,
             });
-            expect(value.args).to.eql([
+            expect(value.argspec.args).to.eql([
               { name: "a", type: "optional" },
               { name: "b", type: "optional" },
             ]);
@@ -422,12 +428,12 @@ describe("Helena argument handling", () => {
           expect(evaluate("argspec {(?a val)}")).to.be.like(value);
           expect(evaluate("argspec ({?a val})")).to.be.like(value);
           expect(evaluate("argspec {{?a val}}")).to.be.like(value);
-          expect(value).to.include({
+          expect(value.argspec).to.include({
             nbRequired: 0,
             nbOptional: 1,
             hasRemainder: false,
           });
-          expect(value.args).to.eql([
+          expect(value.argspec.args).to.eql([
             { name: "a", type: "optional", default: new StringValue("val") },
           ]);
         });

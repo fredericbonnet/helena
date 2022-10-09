@@ -195,13 +195,13 @@ describe("Helena macros", () => {
     describe("exceptions", () => {
       specify("wrong arity", () => {
         expect(() => evaluate("macro")).to.throw(
-          'wrong # args: should be "macro ?name? args body"'
+          'wrong # args: should be "macro ?name? argspec body"'
         );
         expect(() => evaluate("macro a")).to.throw(
-          'wrong # args: should be "macro ?name? args body"'
+          'wrong # args: should be "macro ?name? argspec body"'
         );
         expect(() => evaluate("macro a b c d")).to.throw(
-          'wrong # args: should be "macro ?name? args body"'
+          'wrong # args: should be "macro ?name? argspec body"'
         );
       });
     });
