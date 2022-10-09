@@ -48,7 +48,7 @@ describe("Helena argument handling", () => {
   describe("argspec", () => {
     it("should define a new command", () => {
       evaluate("argspec cmd {}");
-      expect(rootScope.commands.has("cmd")).to.be.true;
+      expect(rootScope.context.commands.has("cmd")).to.be.true;
     });
     it("should replace existing commands", () => {
       evaluate("argspec cmd {}");
@@ -79,7 +79,7 @@ describe("Helena argument handling", () => {
         });
         specify("set", () => {
           evaluate("[argspec ()] set ()");
-          expect(rootScope.variables).to.be.empty;
+          expect(rootScope.context.variables).to.be.empty;
         });
       });
 

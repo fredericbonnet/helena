@@ -34,7 +34,7 @@ describe("Helena scopes", () => {
   describe("scope", () => {
     it("should define a new command", () => {
       evaluate("scope cmd {}");
-      expect(rootScope.commands.has("cmd")).to.be.true;
+      expect(rootScope.context.commands.has("cmd")).to.be.true;
     });
     it("should replace existing commands", () => {
       evaluate("scope cmd {}");
@@ -55,9 +55,11 @@ describe("Helena scopes", () => {
     describe("body", () => {
       it("should be executed", () => {
         evaluate("closure cmd {} {let var val}");
-        expect(rootScope.constants.has("var")).to.be.false;
+        expect(rootScope.context.constants.has("var")).to.be.false;
         evaluate("scope {cmd}");
-        expect(rootScope.constants.get("var")).to.eql(new StringValue("val"));
+        expect(rootScope.context.constants.get("var")).to.eql(
+          new StringValue("val")
+        );
       });
       it("should access global commands", () => {
         expect(() => evaluate("scope {idem val}")).to.not.throw();
@@ -69,18 +71,18 @@ describe("Helena scopes", () => {
       it("should not set global variables", () => {
         evaluate("set var val");
         evaluate("scope {set var val2; let cst val3}");
-        expect(rootScope.variables.get("var")).to.eql(
+        expect(rootScope.context.variables.get("var")).to.eql(
           new Variable(new StringValue("val"))
         );
-        expect(rootScope.constants.has("cst")).to.be.false;
+        expect(rootScope.context.constants.has("cst")).to.be.false;
       });
       it("should set scope variables", () => {
         evaluate("set var val");
         evaluate("scope cmd {set var val2; let cst val3}");
-        expect(rootScope.variables.get("var")).to.eql(
+        expect(rootScope.context.variables.get("var")).to.eql(
           new Variable(new StringValue("val"))
         );
-        expect(rootScope.constants.has("cst")).to.be.false;
+        expect(rootScope.context.constants.has("cst")).to.be.false;
         expect(evaluate("cmd eval {get var}")).to.eql(new StringValue("val2"));
         expect(evaluate("cmd eval {get cst}")).to.eql(new StringValue("val3"));
       });
@@ -97,7 +99,7 @@ describe("Helena scopes", () => {
         });
         it("should still define the scope command", () => {
           evaluate("scope cmd {return}");
-          expect(rootScope.commands.has("cmd")).to.be.true;
+          expect(rootScope.context.commands.has("cmd")).to.be.true;
         });
         it("should return passed value instead of scope command value", () => {
           expect(execute("scope {return val}")).to.eql(
@@ -138,11 +140,11 @@ describe("Helena scopes", () => {
 
           let result = rootScope.execute(program, context);
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(rootScope.commands.has("cmd")).to.be.false;
+          expect(rootScope.context.commands.has("cmd")).to.be.false;
 
           result = rootScope.execute(program, context);
           expect(result.code).to.eql(ResultCode.OK);
-          expect(rootScope.commands.has("cmd")).to.be.true;
+          expect(rootScope.context.commands.has("cmd")).to.be.true;
         });
       });
     });
@@ -155,14 +157,16 @@ describe("Helena scopes", () => {
         it("should evaluate macros in scope", () => {
           evaluate("scope cmd {macro mac {} {let cst val}}");
           evaluate("cmd eval {mac}");
-          expect(rootScope.constants.has("cst")).to.be.false;
+          expect(rootScope.context.constants.has("cst")).to.be.false;
           expect(evaluate("cmd eval {get cst}")).to.eql(new StringValue("val"));
         });
         it("should evaluate closures in their scope", () => {
           evaluate("closure cls {} {let cst val}");
           evaluate("scope cmd {}");
           evaluate("cmd eval {cls}");
-          expect(rootScope.constants.get("cst")).to.eql(new StringValue("val"));
+          expect(rootScope.context.constants.get("cst")).to.eql(
+            new StringValue("val")
+          );
           expect(() => evaluate("cmd eval {get cst}")).to.throw();
         });
         describe("exceptions", () => {
@@ -184,13 +188,13 @@ describe("Helena scopes", () => {
         it("should evaluate macros in scope", () => {
           evaluate("scope cmd {macro mac {} {let cst val}}");
           evaluate("cmd call mac");
-          expect(rootScope.constants.has("cst")).to.be.false;
+          expect(rootScope.context.constants.has("cst")).to.be.false;
           expect(evaluate("cmd eval {get cst}")).to.eql(new StringValue("val"));
         });
         it("should evaluate closures in scope", () => {
           evaluate("scope cmd {closure cls {} {let cst val}}");
           evaluate("cmd call cls");
-          expect(rootScope.constants.has("cst")).to.be.false;
+          expect(rootScope.context.constants.has("cst")).to.be.false;
           expect(evaluate("cmd eval {get cst}")).to.eql(new StringValue("val"));
         });
         describe("exceptions", () => {

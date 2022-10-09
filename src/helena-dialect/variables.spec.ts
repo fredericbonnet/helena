@@ -33,20 +33,25 @@ describe("Helena constants and variables", () => {
   describe("let", () => {
     it("should define the value of a new constant", () => {
       evaluate("let cst val");
-      expect(rootScope.constants.get("cst")).to.eql(new StringValue("val"));
+      expect(rootScope.context.constants.get("cst")).to.eql(
+        new StringValue("val")
+      );
     });
     it("should return the constant value", () => {
       expect(evaluate("let cst val")).to.eql(new StringValue("val"));
     });
     describe("exceptions", () => {
       it("existing constant", () => {
-        rootScope.constants.set("cst", new StringValue("old"));
+        rootScope.context.constants.set("cst", new StringValue("old"));
         expect(() => evaluate("let cst val")).to.throw(
           'cannot redefine constant "cst"'
         );
       });
       it("existing variable", () => {
-        rootScope.variables.set("var", new Variable(new StringValue("old")));
+        rootScope.context.variables.set(
+          "var",
+          new Variable(new StringValue("old"))
+        );
         expect(() => evaluate("let var val")).to.throw(
           'cannot define constant "var": variable already exists'
         );
@@ -67,14 +72,17 @@ describe("Helena constants and variables", () => {
   describe("set", () => {
     it("should set the value of a new variable", () => {
       evaluate("set var val");
-      expect(rootScope.variables.get("var")).to.eql(
+      expect(rootScope.context.variables.get("var")).to.eql(
         new Variable(new StringValue("val"))
       );
     });
     it("should overwrite the value of an existing variable", () => {
-      rootScope.variables.set("var", new Variable(new StringValue("old")));
+      rootScope.context.variables.set(
+        "var",
+        new Variable(new StringValue("old"))
+      );
       evaluate("set var val");
-      expect(rootScope.variables.get("var")).to.eql(
+      expect(rootScope.context.variables.get("var")).to.eql(
         new Variable(new StringValue("val"))
       );
     });
@@ -83,7 +91,7 @@ describe("Helena constants and variables", () => {
     });
     describe("exceptions", () => {
       it("existing constant", () => {
-        rootScope.constants.set("cst", new StringValue("old"));
+        rootScope.context.constants.set("cst", new StringValue("old"));
         expect(() => evaluate("set cst val")).to.throw(
           'cannot redefine constant "cst"'
         );

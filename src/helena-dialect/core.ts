@@ -39,16 +39,26 @@ export class CommandValue implements Value {
   }
 }
 
+export class ScopeContext {
+  readonly constants: Map<string, Value>;
+  readonly variables: Map<string, Variable>;
+  readonly commands: Map<string, ScopedCommand>;
+  constructor(context?: Partial<ScopeContext>) {
+    this.constants = context?.constants ?? new Map();
+    this.variables = context?.variables ?? new Map();
+    this.commands = context?.commands ?? new Map();
+  }
+}
+
 export class Scope {
   readonly parent?: Scope;
-  readonly constants: Map<string, Value> = new Map();
-  readonly variables: Map<string, Variable> = new Map();
-  readonly commands: Map<string, ScopedCommand> = new Map();
+  readonly context: ScopeContext;
   private readonly compiler: Compiler;
   private readonly executor: Executor;
 
-  constructor(parent?: Scope) {
+  constructor(parent?: Scope, context = new ScopeContext()) {
     this.parent = parent;
+    this.context = context;
     this.compiler = new Compiler();
     const variableResolver: VariableResolver = {
       resolve: (name) => this.resolveVariable(name),
@@ -74,8 +84,10 @@ export class Scope {
   }
 
   resolveVariable(name: string): Value {
-    if (this.constants.has(name)) return this.constants.get(name);
-    if (this.variables.has(name)) return this.variables.get(name).value;
+    if (this.context.constants.has(name))
+      return this.context.constants.get(name);
+    if (this.context.variables.has(name))
+      return this.context.variables.get(name).value;
     throw new Error(`can't read "${name}": no such variable`);
   }
   resolveCommand(value: Value, recurse = true): Command {
@@ -84,19 +96,19 @@ export class Scope {
     return this.resolveScopedCommand(value.asString(), recurse)(this);
   }
   private resolveScopedCommand(name: string, recurse: boolean): ScopedCommand {
-    if (!this.commands.has(name)) {
+    if (!this.context.commands.has(name)) {
       if (!recurse || !this.parent)
         throw new Error(`invalid command name "${name}"`);
       return this.parent.resolveScopedCommand(name, recurse);
     }
-    return this.commands.get(name);
+    return this.context.commands.get(name);
   }
 
   setConstant(name: string, value: Value): Result {
-    if (this.constants.has(name)) {
+    if (this.context.constants.has(name)) {
       return ERROR(new StringValue(`cannot redefine constant "${name}"`));
     }
-    if (this.variables.has(name)) {
+    if (this.context.variables.has(name)) {
       return ERROR(
         new StringValue(
           `cannot define constant "${name}": variable already exists`
@@ -104,17 +116,17 @@ export class Scope {
       );
     }
 
-    this.constants.set(name, value);
+    this.context.constants.set(name, value);
     return OK(value);
   }
   setVariable(name: string, value: Value): Result {
-    if (this.constants.has(name)) {
+    if (this.context.constants.has(name)) {
       return ERROR(new StringValue(`cannot redefine constant "${name}"`));
     }
-    if (this.variables.has(name)) {
-      this.variables.get(name).value = value;
+    if (this.context.variables.has(name)) {
+      this.context.variables.get(name).value = value;
     } else {
-      this.variables.set(name, new Variable(value));
+      this.context.variables.set(name, new Variable(value));
     }
     return OK(value);
   }
@@ -123,6 +135,6 @@ export class Scope {
   }
 
   registerCommand(name: string, command: ScopedCommand) {
-    this.commands.set(name, command);
+    this.context.commands.set(name, command);
   }
 }

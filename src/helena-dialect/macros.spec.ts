@@ -34,7 +34,7 @@ describe("Helena macros", () => {
   describe("macro", () => {
     it("should define a new command", () => {
       evaluate("macro cmd {} {}");
-      expect(rootScope.commands.has("cmd")).to.be.true;
+      expect(rootScope.context.commands.has("cmd")).to.be.true;
     });
     it("should replace existing commands", () => {
       evaluate("macro cmd {} {}");
@@ -63,22 +63,22 @@ describe("Helena macros", () => {
             "macro cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}"
           );
           evaluate("cmd");
-          expect(rootScope.constants.get("cst")).to.eql(
+          expect(rootScope.context.constants.get("cst")).to.eql(
             new StringValue("val1")
           );
-          expect(rootScope.variables.get("var")).to.eql(
+          expect(rootScope.context.variables.get("var")).to.eql(
             new Variable(new StringValue("val2"))
           );
-          expect(rootScope.commands.has("cmd2")).to.be.true;
+          expect(rootScope.context.commands.has("cmd2")).to.be.true;
         });
         specify("child scope", () => {
           evaluate(
             "macro cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}"
           );
           evaluate("scope scp {cmd}");
-          expect(rootScope.constants.has("cst")).to.be.false;
-          expect(rootScope.variables.has("var")).to.be.false;
-          expect(rootScope.commands.has("cmd2")).to.be.false;
+          expect(rootScope.context.constants.has("cst")).to.be.false;
+          expect(rootScope.context.variables.has("var")).to.be.false;
+          expect(rootScope.context.commands.has("cmd2")).to.be.false;
           expect(evaluate("scp eval {get cst}")).to.eql(
             new StringValue("val1")
           );
