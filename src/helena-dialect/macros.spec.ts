@@ -1,7 +1,6 @@
 import { expect } from "chai";
 import { OK, ResultCode, RETURN } from "../core/command";
 import { ExecutionContext } from "../core/compiler";
-import { CompilingEvaluator, Evaluator } from "../core/evaluator";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { NIL, StringValue } from "../core/values";
@@ -13,10 +12,10 @@ describe("Helena macros", () => {
 
   let tokenizer: Tokenizer;
   let parser: Parser;
-  let evaluator: Evaluator;
 
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
-  const execute = (script: string) => evaluator.executeScript(parse(script));
+  const execute = (script: string) =>
+    rootScope.execute(rootScope.compile(parse(script)));
   const evaluate = (script: string) => {
     const result = execute(script);
     if (result.code == ResultCode.ERROR)
@@ -30,11 +29,6 @@ describe("Helena macros", () => {
 
     tokenizer = new Tokenizer();
     parser = new Parser();
-    evaluator = new CompilingEvaluator(
-      rootScope.variableResolver,
-      rootScope.commandResolver,
-      null
-    );
   });
 
   describe("macro", () => {

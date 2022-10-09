@@ -7,7 +7,7 @@ import {
   ExecutionContext,
 } from "../core/compiler";
 import { VariableResolver, CommandResolver } from "../core/evaluator";
-import { Script } from "../core/syntax";
+import { Script, Word } from "../core/syntax";
 import { Value, ValueType, ScriptValue, StringValue } from "../core/values";
 import { isNumberValue, numberCmd } from "./math";
 
@@ -44,21 +44,27 @@ export class Scope {
   readonly constants: Map<string, Value> = new Map();
   readonly variables: Map<string, Variable> = new Map();
   readonly commands: Map<string, ScopedCommand> = new Map();
-  readonly compiler: Compiler;
-  readonly executor: Executor;
+  private readonly compiler: Compiler;
+  private readonly executor: Executor;
 
   constructor(parent?: Scope) {
     this.parent = parent;
     this.compiler = new Compiler();
-    this.executor = new Executor(
-      this.variableResolver,
-      this.commandResolver,
-      null
-    );
+    const variableResolver: VariableResolver = {
+      resolve: (name) => this.resolveVariable(name),
+    };
+    const commandResolver: CommandResolver = {
+      resolve: (name) => this.resolveCommand(name),
+    };
+    this.executor = new Executor(variableResolver, commandResolver, null);
   }
 
   executeScript(script: ScriptValue): Result {
     return this.execute(this.compile(script.script));
+  }
+  executeWord(word: Word): Result {
+    const program = this.compiler.compileWord(word);
+    return this.execute(program);
   }
   compile(script: Script): Program {
     return this.compiler.compileScript(script);
@@ -66,13 +72,6 @@ export class Scope {
   execute(program: Program, context?: ExecutionContext): Result {
     return this.executor.execute(program, context);
   }
-
-  variableResolver: VariableResolver = {
-    resolve: (name) => this.resolveVariable(name),
-  };
-  commandResolver: CommandResolver = {
-    resolve: (name) => this.resolveCommand(name),
-  };
 
   resolveVariable(name: string): Value {
     if (this.constants.has(name)) return this.constants.get(name);
@@ -84,7 +83,7 @@ export class Scope {
     if (isNumberValue(value)) return numberCmd;
     return this.resolveScopedCommand(value.asString(), recurse)(this);
   }
-  resolveScopedCommand(name: string, recurse: boolean): ScopedCommand {
+  private resolveScopedCommand(name: string, recurse: boolean): ScopedCommand {
     if (!this.commands.has(name)) {
       if (!recurse || !this.parent)
         throw new Error(`invalid command name "${name}"`);

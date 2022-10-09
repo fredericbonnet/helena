@@ -1,9 +1,5 @@
 import { ResultCode } from "../core/command";
-import {
-  CompilingEvaluator,
-  Evaluator,
-  InlineEvaluator,
-} from "../core/evaluator";
+import { CompilingEvaluator, InlineEvaluator } from "../core/evaluator";
 import { Parser } from "../core/parser";
 import { Scope, initCommands } from "./helena-dialect";
 import { Tokenizer } from "../core/tokenizer";
@@ -15,12 +11,11 @@ describe("Helena dialect", () => {
 
       let tokenizer: Tokenizer;
       let parser: Parser;
-      let evaluator: Evaluator;
 
       const parse = (script: string) =>
         parser.parse(tokenizer.tokenize(script));
       const execute = (script: string) =>
-        evaluator.executeScript(parse(script));
+        rootScope.execute(rootScope.compile(parse(script)));
       const evaluate = (script: string) => {
         const result = execute(script);
         if (result.code == ResultCode.ERROR)
@@ -34,11 +29,6 @@ describe("Helena dialect", () => {
 
         tokenizer = new Tokenizer();
         parser = new Parser();
-        evaluator = new klass(
-          rootScope.variableResolver,
-          rootScope.commandResolver,
-          null
-        );
       });
 
       // TODO example scripts

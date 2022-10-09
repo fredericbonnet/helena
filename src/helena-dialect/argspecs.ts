@@ -200,8 +200,7 @@ function scriptToList(scope: Scope, script: ScriptValue) {
   const values = [];
   for (const sentence of script.script.sentences) {
     for (const word of sentence.words) {
-      const program = scope.compiler.compileWord(word);
-      const result = scope.execute(program);
+      const result = scope.executeWord(word);
       if (result.code != ResultCode.OK)
         throw new Error(result.value.asString());
       values.push(result.value);

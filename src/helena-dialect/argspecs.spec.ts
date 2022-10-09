@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import { ResultCode } from "../core/command";
-import { CompilingEvaluator, Evaluator } from "../core/evaluator";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { IntegerValue, ListValue, NIL, StringValue } from "../core/values";
@@ -27,10 +26,10 @@ describe("Helena argument handling", () => {
 
   let tokenizer: Tokenizer;
   let parser: Parser;
-  let evaluator: Evaluator;
 
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
-  const execute = (script: string) => evaluator.executeScript(parse(script));
+  const execute = (script: string) =>
+    rootScope.execute(rootScope.compile(parse(script)));
   const evaluate = (script: string) => {
     const result = execute(script);
     if (result.code == ResultCode.ERROR)
@@ -44,11 +43,6 @@ describe("Helena argument handling", () => {
 
     tokenizer = new Tokenizer();
     parser = new Parser();
-    evaluator = new CompilingEvaluator(
-      rootScope.variableResolver,
-      rootScope.commandResolver,
-      null
-    );
   });
 
   describe("argspec", () => {
