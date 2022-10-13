@@ -102,6 +102,29 @@ describe("Helena closures", () => {
         });
       });
     });
+    describe("arguments", () => {
+      it("should shadow scope variables", () => {
+        evaluate("set var val");
+        evaluate("closure cmd {var} {idem $var}");
+        expect(evaluate("cmd val2")).to.eql(new StringValue("val2"));
+      });
+      it("should be closure-local", () => {
+        evaluate("set var val");
+        evaluate("closure cmd {var} {[closure {} {idem $var}] call}");
+        expect(evaluate("cmd val2")).to.eql(new StringValue("val"));
+      });
+      describe("exceptions", () => {
+        specify("wrong arity", () => {
+          evaluate("closure cmd {a} {}");
+          expect(() => evaluate("cmd")).to.throw(
+            'wrong # args: should be "cmd a"'
+          );
+          expect(() => evaluate("cmd 1 2")).to.throw(
+            'wrong # args: should be "cmd a"'
+          );
+        });
+      });
+    });
     describe("control flow", () => {
       describe("return", () => {
         it("should interrupt a closure with RESULT code", () => {

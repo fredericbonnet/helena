@@ -122,45 +122,60 @@ function buildHelp(args: Argument[]) {
   return parts.join(" ");
 }
 
-export function setArguments(scope: Scope, argspec: Argspec, values: Value[]) {
-  if (
-    values.length < argspec.nbRequired ||
-    (!argspec.hasRemainder &&
-      values.length > argspec.nbRequired + argspec.nbOptional)
-  )
+function setArguments(
+  scope: Scope,
+  argspec: Argspec,
+  values: Value[],
+  skip = 0
+) {
+  if (!checkArity(argspec, values, skip))
     throw new Error(`wrong # values: should be "${argspec.help.asString()}"`);
-
+  applyArguments(scope, argspec, values, skip, (name, value) =>
+    scope.setVariable(name, value)
+  );
+}
+export function checkArity(argspec: Argspec, values: Value[], skip) {
+  return (
+    values.length - skip >= argspec.nbRequired &&
+    (argspec.hasRemainder ||
+      values.length - skip <= argspec.nbRequired + argspec.nbOptional)
+  );
+}
+export function applyArguments(
+  scope: Scope,
+  argspec: Argspec,
+  values: Value[],
+  skip: number,
+  setArgument: (name: string, value: Value) => Result
+) {
   let setOptionals = Math.min(
     argspec.nbOptional,
     values.length - argspec.nbRequired
   );
   const setRemainder = values.length - argspec.nbRequired - setOptionals;
-  let i = 0;
+  let i = skip;
   for (const arg of argspec.args) {
     switch (arg.type) {
       case "required":
-        scope.setVariable(arg.name, values[i++]);
+        setArgument(arg.name, values[i++]);
         break;
       case "optional":
         if (setOptionals > 0) {
           setOptionals--;
-          scope.setVariable(arg.name, values[i++]);
+          setArgument(arg.name, values[i++]);
         } else if (arg.default) {
           if (arg.default.type == ValueType.SCRIPT) {
             const body = arg.default as ScriptValue;
             const result = scope.executeScript(body);
             // TODO propagate result codes
-            scope.setVariable(arg.name, result.value);
+            setArgument(arg.name, result.value);
           } else {
-            scope.setVariable(arg.name, arg.default);
+            setArgument(arg.name, arg.default);
           }
         }
         break;
       case "remainder":
-        scope.setVariable(
-          arg.name,
-          new ListValue(values.slice(i, i + setRemainder))
-        );
+        setArgument(arg.name, new ListValue(values.slice(i, i + setRemainder)));
         i += setRemainder;
     }
   }

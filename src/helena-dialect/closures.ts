@@ -2,9 +2,14 @@
 import { Command, Result, ResultCode, YIELD, OK, ERROR } from "../core/command";
 import { Program, ExecutionContext } from "../core/compiler";
 import { ScriptValue, StringValue, Value } from "../core/values";
-import { Argspec, valueToArgspec } from "./argspecs";
+import {
+  applyArguments,
+  Argspec,
+  checkArity,
+  valueToArgspec,
+} from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, CommandValue } from "./core";
+import { Scope, CommandValue, ScopeContext } from "./core";
 
 class ClosureValue extends CommandValue {
   readonly scope: Scope;
@@ -41,22 +46,42 @@ class ClosureValueCommand implements Command {
     }
   }
 }
+
+type ClosureState = {
+  scope: Scope;
+  context: ExecutionContext;
+};
 class ClosureCommand implements Command {
   readonly value: ClosureValue;
   constructor(value: ClosureValue) {
     this.value = value;
   }
 
-  execute(_args: Value[]): Result {
-    // TODO args
-    return this.run(new ExecutionContext());
+  execute(args: Value[]): Result {
+    if (!checkArity(this.value.argspec, args, 1)) {
+      throw new Error(
+        `wrong # args: should be "${args[0].asString()} ${this.value.argspec.help.asString()}"`
+      );
+    }
+    const locals: Map<string, Value> = new Map();
+    const setarg = (name, value) => {
+      locals.set(name, value);
+      return OK(value);
+    };
+    applyArguments(this.value.scope, this.value.argspec, args, 1, setarg);
+    const scope = new Scope(
+      this.value.scope,
+      new ScopeContext(this.value.scope.context, locals)
+    );
+    const context = new ExecutionContext();
+    return this.run({ scope, context });
   }
   resume(result: Result): Result {
-    return this.run(result.state as ExecutionContext);
+    return this.run(result.state as ClosureState);
   }
-  run(context: ExecutionContext) {
-    const result = this.value.scope.execute(this.value.program, context);
-    if (result.code == ResultCode.YIELD) return YIELD(result.value, context);
+  run(state: ClosureState) {
+    const result = state.scope.execute(this.value.program, state.context);
+    if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
     return result;
   }
 }

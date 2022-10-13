@@ -2,9 +2,14 @@
 import { Command, Result, ResultCode, YIELD, OK, ERROR } from "../core/command";
 import { Program, ExecutionContext } from "../core/compiler";
 import { ScriptValue, StringValue, Value } from "../core/values";
-import { Argspec, valueToArgspec } from "./argspecs";
+import {
+  applyArguments,
+  Argspec,
+  checkArity,
+  valueToArgspec,
+} from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, CommandValue } from "./core";
+import { Scope, CommandValue, ScopeContext } from "./core";
 
 class MacroValue extends CommandValue {
   readonly argspec: Argspec;
@@ -41,6 +46,10 @@ class MacroValueCommand implements Command {
   }
 }
 
+type MacroState = {
+  scope: Scope;
+  context: ExecutionContext;
+};
 class MacroCommand implements Command {
   readonly scope: Scope;
   readonly value: MacroValue;
@@ -51,16 +60,31 @@ class MacroCommand implements Command {
     this.program = this.scope.compile(this.value.body.script);
   }
 
-  execute(_args: Value[]): Result {
-    // TODO args
-    return this.run(new ExecutionContext());
+  execute(args: Value[]): Result {
+    if (!checkArity(this.value.argspec, args, 1)) {
+      throw new Error(
+        `wrong # args: should be "${args[0].asString()} ${this.value.argspec.help.asString()}"`
+      );
+    }
+    const locals: Map<string, Value> = new Map();
+    const setarg = (name, value) => {
+      locals.set(name, value);
+      return OK(value);
+    };
+    applyArguments(this.scope, this.value.argspec, args, 1, setarg);
+    const scope = new Scope(
+      this.scope,
+      new ScopeContext(this.scope.context, locals)
+    );
+    const context = new ExecutionContext();
+    return this.run({ scope, context });
   }
   resume(result: Result): Result {
-    return this.run(result.state as ExecutionContext);
+    return this.run(result.state as MacroState);
   }
-  run(context: ExecutionContext) {
-    const result = this.scope.execute(this.program, context);
-    if (result.code == ResultCode.YIELD) return YIELD(result.value, context);
+  run(state: MacroState) {
+    const result = state.scope.execute(this.program, state.context);
+    if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
     return result;
   }
 }

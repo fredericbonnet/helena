@@ -123,6 +123,29 @@ describe("Helena macros", () => {
         expect(evaluate("get var")).to.eql(new StringValue("val"));
       });
     });
+    describe("arguments", () => {
+      it("should shadow scope variables", () => {
+        evaluate("set var val");
+        evaluate("macro cmd {var} {idem $var}");
+        expect(evaluate("cmd val2")).to.eql(new StringValue("val2"));
+      });
+      it("should be macro-local", () => {
+        evaluate("set var val");
+        evaluate("macro cmd {var} {[macro {} {idem $var}] call}");
+        expect(evaluate("cmd val2")).to.eql(new StringValue("val"));
+      });
+      describe("exceptions", () => {
+        specify("wrong arity", () => {
+          evaluate("macro cmd {a} {}");
+          expect(() => evaluate("cmd")).to.throw(
+            'wrong # args: should be "cmd a"'
+          );
+          expect(() => evaluate("cmd 1 2")).to.throw(
+            'wrong # args: should be "cmd a"'
+          );
+        });
+      });
+    });
     describe("control flow", () => {
       describe("return", () => {
         it("should interrupt a macro with RESULT code", () => {

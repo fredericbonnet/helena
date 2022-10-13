@@ -43,10 +43,12 @@ export class ScopeContext {
   readonly constants: Map<string, Value>;
   readonly variables: Map<string, Variable>;
   readonly commands: Map<string, ScopedCommand>;
-  constructor(context?: Partial<ScopeContext>) {
+  readonly locals: Map<string, Value>;
+  constructor(context?: ScopeContext, locals?: Map<string, Value>) {
     this.constants = context?.constants ?? new Map();
     this.variables = context?.variables ?? new Map();
     this.commands = context?.commands ?? new Map();
+    this.locals = locals;
   }
 }
 
@@ -84,6 +86,7 @@ export class Scope {
   }
 
   resolveVariable(name: string): Value {
+    if (this.context.locals?.has(name)) return this.context.locals.get(name);
     if (this.context.constants.has(name))
       return this.context.constants.get(name);
     if (this.context.variables.has(name))
@@ -105,6 +108,9 @@ export class Scope {
   }
 
   setConstant(name: string, value: Value): Result {
+    if (this.context.locals?.has(name)) {
+      return ERROR(new StringValue(`cannot redefine local "${name}"`));
+    }
     if (this.context.constants.has(name)) {
       return ERROR(new StringValue(`cannot redefine constant "${name}"`));
     }
@@ -120,6 +126,9 @@ export class Scope {
     return OK(value);
   }
   setVariable(name: string, value: Value): Result {
+    if (this.context.locals?.has(name)) {
+      return ERROR(new StringValue(`cannot redefine local "${name}"`));
+    }
     if (this.context.constants.has(name)) {
       return ERROR(new StringValue(`cannot redefine constant "${name}"`));
     }
