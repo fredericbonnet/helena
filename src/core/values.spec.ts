@@ -48,25 +48,26 @@ describe("values", () => {
         expect(BooleanValue.fromValue(TRUE)).to.equal(TRUE);
         expect(BooleanValue.fromValue(FALSE)).to.equal(FALSE);
       });
-      it("should accept integer values", () => {
-        expect(BooleanValue.fromValue(new IntegerValue(0))).to.equal(FALSE);
-        expect(BooleanValue.fromValue(new IntegerValue(4567))).to.equal(TRUE);
-      });
-      it("should accept integer strings", () => {
-        expect(BooleanValue.fromValue(new StringValue("0"))).to.equal(FALSE);
-        expect(BooleanValue.fromValue(new StringValue("1234"))).to.equal(TRUE);
-      });
       it("should accept boolean strings", () => {
         expect(BooleanValue.fromValue(new StringValue("false"))).to.equal(
           FALSE
         );
-        expect(BooleanValue.fromValue(new StringValue("no"))).to.equal(FALSE);
         expect(BooleanValue.fromValue(new StringValue("true"))).to.equal(TRUE);
-        expect(BooleanValue.fromValue(new StringValue("yes"))).to.equal(TRUE);
       });
       it("should reject non-boolean strings", () => {
-        const value = new StringValue("a");
-        expect(() => BooleanValue.fromValue(value)).to.throw(
+        expect(() => BooleanValue.fromValue(new IntegerValue(0))).to.throw(
+          'invalid boolean "0"'
+        );
+        expect(() => BooleanValue.fromValue(new StringValue("1"))).to.throw(
+          'invalid boolean "1"'
+        );
+        expect(() => BooleanValue.fromValue(new StringValue("no"))).to.throw(
+          'invalid boolean "no"'
+        );
+        expect(() => BooleanValue.fromValue(new StringValue("yes"))).to.throw(
+          'invalid boolean "yes"'
+        );
+        expect(() => BooleanValue.fromValue(new StringValue("a"))).to.throw(
           'invalid boolean "a"'
         );
       });

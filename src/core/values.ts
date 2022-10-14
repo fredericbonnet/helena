@@ -104,26 +104,18 @@ export class BooleanValue implements Value {
 
   /**
    * Convert value to boolean:
-   * - Integers: C semantics (non-zero = true, zero = false)
-   * - Strings: true/yes/1 = true, false/no/0 = false
+   * - Strings: true, false
    *
    * @param value - Value to convert
    *
    * @returns       Converted value
    */
   static fromValue(value: Value): BooleanValue {
-    switch (value.type) {
-      case ValueType.BOOLEAN:
-        return value as BooleanValue;
-      case ValueType.INTEGER:
-        return (value as IntegerValue).value ? TRUE : FALSE;
-    }
+    if (value.type == ValueType.BOOLEAN) return value as BooleanValue;
     const s = value.asString();
-    if (s == "true" || s == "yes" || s == "1") return TRUE;
-    if (s == "false" || s == "no" || s == "0") return FALSE;
-    const i = parseInt(s);
-    if (isNaN(i)) throw new Error(`invalid boolean "${s}"`);
-    return i ? TRUE : FALSE;
+    if (s == "true") return TRUE;
+    if (s == "false") return FALSE;
+    throw new Error(`invalid boolean "${s}"`);
   }
 
   /** @override */

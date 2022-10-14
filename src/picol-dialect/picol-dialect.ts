@@ -27,6 +27,7 @@ import {
   FALSE,
   TRUE,
   BooleanValue,
+  IntegerValue,
 } from "../core/values";
 
 export class PicolScope {
@@ -269,13 +270,20 @@ const whileCmd = (scope: PicolScope): Command => ({
 });
 
 function evaluateCondition(value: Value, scope: PicolScope): Result {
+  if (value.type == ValueType.BOOLEAN) return OK(value);
+  if (value.type == ValueType.INTEGER)
+    return OK((value as IntegerValue) ? TRUE : FALSE);
   if (value.type == ValueType.SCRIPT) {
     const result = scope.evaluator.executeScript((value as ScriptValue).script);
     if (result.code != ResultCode.OK) return result;
     return OK(BooleanValue.fromValue(result.value));
-  } else {
-    return OK(BooleanValue.fromValue(value));
   }
+  const s = value.asString();
+  if (s == "true" || s == "yes" || s == "1") return OK(TRUE);
+  if (s == "false" || s == "no" || s == "0") return OK(FALSE);
+  const i = parseInt(s);
+  if (isNaN(i)) throw new Error(`invalid boolean "${s}"`);
+  return OK(i ? TRUE : FALSE);
 }
 
 const setCmd = (scope: PicolScope): Command => ({
