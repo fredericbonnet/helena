@@ -2697,7 +2697,7 @@ describe("Compiler", () => {
       commandResolver.register(
         "repeat",
         new FunctionCommand((args) => {
-          const nb = IntegerValue.fromValue(args[1]).value;
+          const nb = IntegerValue.toInteger(args[1]);
           const block = args[2];
           const script =
             block.type == ValueType.SCRIPT

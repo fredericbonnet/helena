@@ -79,7 +79,7 @@ const addCmd = (): Command => ({
     if (args.length < 2) return ARITY_ERROR("+ arg ?arg ...?");
     const result = args.reduce((total, arg, i) => {
       if (i == 0) return 0;
-      const v = NumberValue.fromValue(arg).value;
+      const v = NumberValue.toNumber(arg);
       return total + v;
     }, 0);
     return OK(new NumberValue(result));
@@ -89,12 +89,12 @@ const subtractCmd = (): Command => ({
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("- arg ?arg ...?");
     if (args.length == 2) {
-      const v = NumberValue.fromValue(args[1]).value;
+      const v = NumberValue.toNumber(args[1]);
       return OK(new NumberValue(-v));
     }
     const result = args.reduce((total, arg, i) => {
       if (i == 0) return 0;
-      const v = NumberValue.fromValue(arg).value;
+      const v = NumberValue.toNumber(arg);
       if (i == 1) return v;
       return total - v;
     }, 0);
@@ -107,7 +107,7 @@ const multiplyCmd = (): Command => ({
     if (args.length < 2) return ARITY_ERROR("* arg ?arg ...?");
     const result = args.reduce((total, arg, i) => {
       if (i == 0) return 1;
-      const v = NumberValue.fromValue(arg).value;
+      const v = NumberValue.toNumber(arg);
       return total * v;
     }, 1);
     return OK(new NumberValue(result));
@@ -118,7 +118,7 @@ const divideCmd = (): Command => ({
     if (args.length < 3) return ARITY_ERROR("/ arg arg ?arg ...?");
     const result = args.reduce((total, arg, i) => {
       if (i == 0) return 1;
-      const v = NumberValue.fromValue(arg).value;
+      const v = NumberValue.toNumber(arg);
       if (i == 1) return v;
       return total / v;
     }, 0);
@@ -146,8 +146,8 @@ const compareNumbersCmd =
   (name: string, fn: (op1, op2) => boolean) => (): Command => ({
     execute: (args) => {
       if (args.length != 3) return ARITY_ERROR(`${name} arg arg`);
-      const op1 = NumberValue.fromValue(args[1]).value;
-      const op2 = NumberValue.fromValue(args[2]).value;
+      const op1 = NumberValue.toNumber(args[1]);
+      const op2 = NumberValue.toNumber(args[2]);
       return fn(op1, op2) ? OK(TRUE) : OK(FALSE);
     },
   });
@@ -307,7 +307,7 @@ const incrCmd = (scope: PicolScope): Command => ({
         increment = 1;
         break;
       case 3:
-        increment = NumberValue.fromValue(args[2]).value;
+        increment = NumberValue.toNumber(args[2]);
         break;
       default:
         return ARITY_ERROR("incr varName ?increment?");
@@ -315,7 +315,7 @@ const incrCmd = (scope: PicolScope): Command => ({
     const varName = args[1].asString();
     const value = scope.variables.get(varName);
     const result = new NumberValue(
-      (value ? NumberValue.fromValue(value).value : 0) + increment
+      (value ? NumberValue.toNumber(value) : 0) + increment
     );
     scope.variables.set(varName, result);
     return OK(result);

@@ -1841,7 +1841,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
         commandResolver.register(
           "repeat",
           new FunctionCommand((args) => {
-            const nb = IntegerValue.fromValue(args[1]).value;
+            const nb = IntegerValue.toInteger(args[1]);
             const block = args[2];
             let value: Value = NIL;
             for (let i = 0; i < nb; i++) {

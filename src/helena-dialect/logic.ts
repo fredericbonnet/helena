@@ -1,15 +1,19 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Result, OK, Command, ResultCode } from "../core/command";
+import { Result, OK, Command, ResultCode, ERROR } from "../core/command";
 import {
   BooleanValue,
   FALSE,
   ScriptValue,
+  StringValue,
   TRUE,
   Value,
   ValueType,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Scope } from "./core";
+
+const BOOLEAN_ERROR = (value: Value) =>
+  ERROR(new StringValue(`invalid boolean "${value.asString()}"`));
 
 export const trueCmd = (): Command => ({
   execute(args: Value[]): Result {
@@ -69,10 +73,10 @@ function executeCondition(scope: Scope, value: Value): Result {
   if (value.type == ValueType.SCRIPT) {
     const result = scope.executeScript(value as ScriptValue);
     if (result.code != ResultCode.OK) return result;
-    return OK(BooleanValue.fromValue(result.value));
-  } else {
-    return OK(BooleanValue.fromValue(value));
+    value = result.value;
   }
+  if (!BooleanValue.isBoolean(value)) return BOOLEAN_ERROR(value);
+  return OK(BooleanValue.fromValue(value));
 }
 
 export function registerLogicCommands(scope: Scope) {

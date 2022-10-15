@@ -8,8 +8,14 @@ import {
 } from "../core/compiler";
 import { VariableResolver, CommandResolver } from "../core/evaluator";
 import { Script, Word } from "../core/syntax";
-import { Value, ValueType, ScriptValue, StringValue } from "../core/values";
-import { isNumberValue, numberCmd } from "./math";
+import {
+  Value,
+  ValueType,
+  ScriptValue,
+  StringValue,
+  NumberValue,
+} from "../core/values";
+import { numberCmd } from "./math";
 
 export class Variable {
   value: Value;
@@ -95,7 +101,7 @@ export class Scope {
   }
   resolveCommand(value: Value, recurse = true): Command {
     if (value instanceof CommandValue) return value.command(this);
-    if (isNumberValue(value)) return numberCmd;
+    if (NumberValue.isNumber(value)) return numberCmd;
     return this.resolveScopedCommand(value.asString(), recurse)(this);
   }
   private resolveScopedCommand(name: string, recurse: boolean): ScopedCommand {

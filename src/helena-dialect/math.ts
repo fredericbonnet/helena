@@ -1,12 +1,15 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Result, OK, Command } from "../core/command";
-import { Value, ValueType, IntegerValue, NumberValue } from "../core/values";
+import { Result, OK, Command, ERROR } from "../core/command";
+import { Value, IntegerValue, NumberValue, StringValue } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Scope } from "./core";
 
+const NUMBER_ERROR = (value: Value) =>
+  ERROR(new StringValue(`invalid number "${value.asString()}"`));
+
 export const numberCmd = {
   execute(args: Value[]): Result {
-    const operand1 = valueToNumber(args[0]);
+    const operand1 = NumberValue.toNumber(args[0]);
     if (args.length == 1) return OK(numberToValue(operand1));
     throw new Error("TODO implement infix operators"); // TODO
   },
@@ -15,76 +18,67 @@ export const numberCmd = {
 export const addCmd = (): Command => ({
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("+ arg ?arg ...?");
-    const result = args.reduce((total, arg, i) => {
-      if (i == 0) return 0;
-      const v = NumberValue.fromValue(arg).value;
-      return total + v;
-    }, 0);
-    return OK(numberToValue(result));
+    let total = 0;
+    for (let i = 1; i < args.length; i++) {
+      const arg = args[i];
+      if (!NumberValue.isNumber(arg)) return NUMBER_ERROR(arg);
+      total += NumberValue.toNumber(arg);
+    }
+    return OK(numberToValue(total));
   },
 });
 
 export const subtractCmd = (): Command => ({
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("- arg ?arg ...?");
+    if (!NumberValue.isNumber(args[1])) return NUMBER_ERROR(args[1]);
+    const first = NumberValue.toNumber(args[1]);
     if (args.length == 2) {
-      const v = NumberValue.fromValue(args[1]).value;
-      return OK(numberToValue(-v));
+      return OK(numberToValue(-first));
     }
-    const result = args.reduce((total, arg, i) => {
-      if (i == 0) return 0;
-      const v = NumberValue.fromValue(arg).value;
-      if (i == 1) return v;
-      return total - v;
-    }, 0);
-    return OK(numberToValue(result));
+    let total = first;
+    for (let i = 2; i < args.length; i++) {
+      const arg = args[i];
+      if (!NumberValue.isNumber(arg)) return NUMBER_ERROR(arg);
+      total -= NumberValue.toNumber(arg);
+    }
+    return OK(numberToValue(total));
   },
 });
 
 export const multiplyCmd = (): Command => ({
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("* arg ?arg ...?");
-    const result = args.reduce((total, arg, i) => {
-      if (i == 0) return 1;
-      const v = NumberValue.fromValue(arg).value;
-      return total * v;
-    }, 1);
-    return OK(numberToValue(result));
+    if (!NumberValue.isNumber(args[1])) return NUMBER_ERROR(args[1]);
+    const first = NumberValue.toNumber(args[1]);
+    if (args.length == 2) {
+      return OK(numberToValue(first));
+    }
+    let total = first;
+    for (let i = 2; i < args.length; i++) {
+      const arg = args[i];
+      if (!NumberValue.isNumber(arg)) return NUMBER_ERROR(arg);
+      total *= NumberValue.toNumber(arg);
+    }
+    return OK(numberToValue(total));
   },
 });
 
 export const divideCmd = (): Command => ({
   execute: (args) => {
     if (args.length < 3) return ARITY_ERROR("/ arg arg ?arg ...?");
-    const result = args.reduce((total, arg, i) => {
-      if (i == 0) return 1;
-      const v = NumberValue.fromValue(arg).value;
-      if (i == 1) return v;
-      return total / v;
-    }, 0);
-    return OK(numberToValue(result));
+    if (!NumberValue.isNumber(args[1])) return NUMBER_ERROR(args[1]);
+    const first = NumberValue.toNumber(args[1]);
+    let total = first;
+    for (let i = 2; i < args.length; i++) {
+      const arg = args[i];
+      if (!NumberValue.isNumber(arg)) return NUMBER_ERROR(arg);
+      total /= NumberValue.toNumber(arg);
+    }
+    return OK(numberToValue(total));
   },
 });
 
-export function isNumberValue(value: Value) {
-  switch (value.type) {
-    case ValueType.INTEGER:
-    case ValueType.NUMBER:
-      return true;
-    default:
-      return !isNaN(Number(value.asString()));
-  }
-}
-function valueToNumber(value: Value) {
-  switch (value.type) {
-    case ValueType.INTEGER:
-      return (value as IntegerValue).value;
-    case ValueType.NUMBER:
-      return (value as NumberValue).value;
-    default:
-      return Number(value.asString());
-  }
-}
 function numberToValue(num: number) {
   return Number.isSafeInteger(num)
     ? new IntegerValue(num)

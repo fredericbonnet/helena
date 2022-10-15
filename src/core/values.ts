@@ -103,18 +103,54 @@ export class BooleanValue implements Value {
   }
 
   /**
+   * Convert Value to BooleanValue
+   *
+   * @param value - Value to convert
+   *
+   * @returns       Converted value
+   *
+   * @see {@link isBoolean}
+   * @see {@link toBoolean}
+   */
+  static fromValue(value: Value): BooleanValue {
+    if (value.type == ValueType.BOOLEAN) return value as BooleanValue;
+    return this.toBoolean(value) ? TRUE : FALSE;
+  }
+
+  /**
+   * Test if value is convertible to integer
+   * - Integers
+   * - Strings: any Number()-accepted string
+   *
+   * @param value - Value to convert
+   *
+   * @returns       True if value is convertible
+   */
+  static isBoolean(value: Value): boolean {
+    switch (value.type) {
+      case ValueType.INTEGER:
+        return true;
+      default: {
+        const s = value.asString();
+        return s == "true" || s == "false";
+      }
+    }
+  }
+
+  /**
    * Convert value to boolean:
+   * - Booleans: use boolean value
    * - Strings: true, false
    *
    * @param value - Value to convert
    *
    * @returns       Converted value
    */
-  static fromValue(value: Value): BooleanValue {
-    if (value.type == ValueType.BOOLEAN) return value as BooleanValue;
+  static toBoolean(value: Value): boolean {
+    if (value.type == ValueType.BOOLEAN) return (value as BooleanValue).value;
     const s = value.asString();
-    if (s == "true") return TRUE;
-    if (s == "false") return FALSE;
+    if (s == "true") return true;
+    if (s == "false") return false;
     throw new Error(`invalid boolean "${s}"`);
   }
 
@@ -163,19 +199,56 @@ export class IntegerValue implements Value {
   }
 
   /**
+   * Convert Value to IntegerValue
+   *
+   * @param value - Value to convert
+   *
+   * @returns       Converted value
+   *
+   * @see {@link isInteger}
+   * @see {@link toInteger}
+   */
+  static fromValue(value: Value): IntegerValue {
+    if (value.type == ValueType.INTEGER) return value as IntegerValue;
+    return new IntegerValue(this.toInteger(value));
+  }
+
+  /**
+   * Test if value is convertible to integer
+   * - Integers
+   * - Strings: any Number()-accepted string
+   *
+   * @param value - Value to convert
+   *
+   * @returns       True if value is convertible
+   */
+  static isInteger(value: Value): boolean {
+    switch (value.type) {
+      case ValueType.INTEGER:
+        return true;
+      default: {
+        const n = Number(value.asString());
+        return !isNaN(n) && Number.isSafeInteger(n);
+      }
+    }
+  }
+
+  /**
    * Convert value to integer:
-   * - Strings: any parseInt-accepted integer string
+   * - Integers: use integer value
+   * - Strings: any integer Number()-accepted string
    *
    * @param value - Value to convert
    *
    * @returns       Converted value
    */
-  static fromValue(value: Value): IntegerValue {
-    if (value.type == ValueType.INTEGER) return value as IntegerValue;
+  static toInteger(value: Value): number {
+    if (value.type == ValueType.INTEGER) return (value as IntegerValue).value;
     const s = value.asString();
-    const i = parseInt(s);
-    if (isNaN(i)) throw new Error(`invalid integer "${s}"`);
-    return new IntegerValue(i);
+    const n = Number(s);
+    if (isNaN(n) || !Number.isSafeInteger(n))
+      throw new Error(`invalid integer "${s}"`);
+    return n;
   }
 
   /** @override */
@@ -217,19 +290,60 @@ export class NumberValue implements Value {
   }
 
   /**
+   * Convert Value to NumberValue
+   *
+   * @param value - Value to convert
+   *
+   * @returns       Converted value
+   *
+   * @see {@link isNumber}
+   * @see {@link toNumber}
+   */
+  static fromValue(value: Value): NumberValue {
+    if (value.type == ValueType.NUMBER) return value as NumberValue;
+    return new NumberValue(this.toNumber(value));
+  }
+
+  /**
+   * Test if value is convertible to number
+   * - Numbers
+   * - Integers
+   * - Strings: any Number()-accepted string
+   *
+   * @param value - Value to convert
+   *
+   * @returns       True if value is convertible
+   */
+  static isNumber(value: Value): boolean {
+    switch (value.type) {
+      case ValueType.INTEGER:
+      case ValueType.NUMBER:
+        return true;
+      default: {
+        const s = value.asString();
+        const n = Number(s);
+        return !isNaN(n);
+      }
+    }
+  }
+
+  /**
    * Convert value to number:
-   * - Strings: any parseFloat-accepted number string
+   * - Numbers: use number value
+   * - Integers: use integer value
+   * - Strings: any Number()-accepted string
    *
    * @param value - Value to convert
    *
    * @returns       Converted value
    */
-  static fromValue(value: Value): NumberValue {
-    if (value.type == ValueType.NUMBER) return value as NumberValue;
+  static toNumber(value: Value): number {
+    if (value.type == ValueType.NUMBER) return (value as NumberValue).value;
+    if (value.type == ValueType.INTEGER) return (value as IntegerValue).value;
     const s = value.asString();
-    const n = parseFloat(s);
+    const n = Number(s);
     if (isNaN(n)) throw new Error(`invalid number "${s}"`);
-    return new NumberValue(n);
+    return n;
   }
 
   /** @override */
@@ -277,7 +391,7 @@ export class StringValue implements Value {
 
   /** @override */
   selectIndex(index: Value): Value {
-    const i = IntegerValue.fromValue(index).value;
+    const i = IntegerValue.toInteger(index);
     if (i < 0 || i >= this.value.length) throw new Error("index out of range");
     return new StringValue(this.value[i]);
   }
@@ -319,7 +433,7 @@ export class ListValue implements Value {
 
   /** @override */
   selectIndex(index: Value): Value {
-    const i = IntegerValue.fromValue(index).value;
+    const i = IntegerValue.toInteger(index);
     if (i < 0 || i >= this.values.length) throw new Error("index out of range");
     return this.values[i];
   }
