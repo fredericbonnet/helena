@@ -1,8 +1,9 @@
 import { expect } from "chai";
-import { ResultCode } from "../core/command";
+import { OK, ResultCode, RETURN } from "../core/command";
+import { ExecutionContext } from "../core/compiler";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, TRUE } from "../core/values";
+import { FALSE, TRUE, StringValue } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -52,6 +53,37 @@ describe("Helena logic operations", () => {
           expect(evaluate("! {idem true}")).to.eql(FALSE);
           expect(evaluate("! {idem false}")).to.eql(TRUE);
         });
+        describe("control flow", () => {
+          describe("return", () => {
+            it("should interrupt expression with RESULT code", () => {
+              expect(execute("! {return value; error}")).to.eql(
+                RETURN(new StringValue("value"))
+              );
+            });
+          });
+          describe("yield", () => {
+            it("should interrupt expression with YIELD code", () => {
+              const result = execute("! {yield value; true}");
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("value"));
+            });
+            it("should provide a resumable state", () => {
+              const context = new ExecutionContext();
+              const program = rootScope.compile(
+                parse("! {yield val1; yield val2; true}")
+              );
+
+              let result = rootScope.execute(program, context);
+              expect(result.state).to.exist;
+
+              result = rootScope.execute(program, context);
+              expect(result.state).to.exist;
+
+              result = rootScope.execute(program, context);
+              expect(result).to.eql(OK(FALSE));
+            });
+          });
+        });
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(() => evaluate("!")).to.throw(
@@ -87,6 +119,37 @@ describe("Helena logic operations", () => {
         it("should short-circuit on false", () => {
           expect(evaluate("&& false {error}")).to.eql(FALSE);
         });
+        describe("control flow", () => {
+          describe("return", () => {
+            it("should interrupt expression with RESULT code", () => {
+              expect(execute("&& true {return value; error} false")).to.eql(
+                RETURN(new StringValue("value"))
+              );
+            });
+          });
+          describe("yield", () => {
+            it("should interrupt expression with YIELD code", () => {
+              const result = execute("&& true {yield value; true}");
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("value"));
+            });
+            it("should provide a resumable state", () => {
+              const context = new ExecutionContext();
+              const program = rootScope.compile(
+                parse("&& {yield val1; true} {yield val2; false} ")
+              );
+
+              let result = rootScope.execute(program, context);
+              expect(result.state).to.exist;
+
+              result = rootScope.execute(program, context);
+              expect(result.state).to.exist;
+
+              result = rootScope.execute(program, context);
+              expect(result).to.eql(OK(FALSE));
+            });
+          });
+        });
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(() => evaluate("&&")).to.throw(
@@ -119,6 +182,37 @@ describe("Helena logic operations", () => {
         });
         it("should short-circuit on true", () => {
           expect(evaluate("|| true {error}")).to.eql(TRUE);
+        });
+        describe("control flow", () => {
+          describe("return", () => {
+            it("should interrupt expression with RESULT code", () => {
+              expect(execute("|| false {return value; error} true")).to.eql(
+                RETURN(new StringValue("value"))
+              );
+            });
+          });
+          describe("yield", () => {
+            it("should interrupt expression with YIELD code", () => {
+              const result = execute("|| false {yield value; false}");
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("value"));
+            });
+            it("should provide a resumable state", () => {
+              const context = new ExecutionContext();
+              const program = rootScope.compile(
+                parse("|| {yield val1; false} {yield val2; true} ")
+              );
+
+              let result = rootScope.execute(program, context);
+              expect(result.state).to.exist;
+
+              result = rootScope.execute(program, context);
+              expect(result.state).to.exist;
+
+              result = rootScope.execute(program, context);
+              expect(result).to.eql(OK(TRUE));
+            });
+          });
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {

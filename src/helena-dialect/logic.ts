@@ -1,5 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Result, OK, Command, ResultCode, ERROR } from "../core/command";
+import { Result, OK, Command, ResultCode, ERROR, YIELD } from "../core/command";
+import { ExecutionContext, Program } from "../core/compiler";
 import {
   BooleanValue,
   FALSE,
@@ -35,48 +36,115 @@ export const notCmd = (scope: Scope): Command => ({
     if (result.code != ResultCode.OK) return result;
     return (result.value as BooleanValue).value ? OK(FALSE) : OK(TRUE);
   },
+  resume(result: Result) {
+    result = runCondition(scope, result.state as ConditionState);
+    if (result.code != ResultCode.OK) return result;
+    return (result.value as BooleanValue).value ? OK(FALSE) : OK(TRUE);
+  },
 });
-const andCmd = (scope: Scope): Command => ({
-  execute: (args) => {
+
+type AndCommandState = {
+  args: Value[];
+  i: number;
+  conditionState?: ConditionState;
+};
+class AndCommand implements Command {
+  readonly scope: Scope;
+  constructor(scope: Scope) {
+    this.scope = scope;
+  }
+  execute(args) {
     if (args.length < 2) return ARITY_ERROR("&& arg ?arg ...?");
-    let r = true;
-    for (let i = 1; i < args.length; i++) {
-      const result = executeCondition(scope, args[i]);
+    return this.run({ args, i: 1 });
+  }
+  resume(result: Result): Result {
+    return this.run(result.state as AndCommandState);
+  }
+  run(state: AndCommandState) {
+    let r = TRUE;
+    while (state.i < state.args.length) {
+      const result = state.conditionState
+        ? runCondition(this.scope, state.conditionState)
+        : executeCondition(this.scope, state.args[state.i]);
+      if (result.code == ResultCode.YIELD) {
+        state.conditionState = result.state as ConditionState;
+        return YIELD(result.value, state);
+      }
+      delete state.conditionState;
       if (result.code != ResultCode.OK) return result;
       if (!(result.value as BooleanValue).value) {
-        r = false;
+        r = FALSE;
         break;
       }
+      state.i++;
     }
 
-    return r ? OK(TRUE) : OK(FALSE);
-  },
-});
-const orCmd = (scope: Scope): Command => ({
-  execute: (args) => {
+    return OK(r);
+  }
+}
+const andCmd = (scope: Scope): Command => new AndCommand(scope);
+
+type OrCommandState = {
+  args: Value[];
+  i: number;
+  conditionState?: ConditionState;
+};
+class OrCommand implements Command {
+  readonly scope: Scope;
+  constructor(scope: Scope) {
+    this.scope = scope;
+  }
+  execute(args) {
     if (args.length < 2) return ARITY_ERROR("|| arg ?arg ...?");
-    let r = false;
-    for (let i = 1; i < args.length; i++) {
-      const result = executeCondition(scope, args[i]);
+    return this.run({ args, i: 1 });
+  }
+  resume(result: Result): Result {
+    return this.run(result.state as OrCommandState);
+  }
+  run(state: OrCommandState) {
+    let r = FALSE;
+    while (state.i < state.args.length) {
+      const result = state.conditionState
+        ? runCondition(this.scope, state.conditionState)
+        : executeCondition(this.scope, state.args[state.i]);
+      if (result.code == ResultCode.YIELD) {
+        state.conditionState = result.state as ConditionState;
+        return YIELD(result.value, state);
+      }
+      delete state.conditionState;
       if (result.code != ResultCode.OK) return result;
       if ((result.value as BooleanValue).value) {
-        r = true;
+        r = TRUE;
         break;
       }
+      state.i++;
     }
 
-    return r ? OK(TRUE) : OK(FALSE);
-  },
-});
+    return OK(r);
+  }
+}
+const orCmd = (scope: Scope): Command => new OrCommand(scope);
 
+type ConditionState = {
+  program: Program;
+  context: ExecutionContext;
+};
 function executeCondition(scope: Scope, value: Value): Result {
   if (value.type == ValueType.SCRIPT) {
-    const result = scope.executeScript(value as ScriptValue);
-    if (result.code != ResultCode.OK) return result;
-    value = result.value;
+    const script = (value as ScriptValue).script;
+    const program = scope.compile(script);
+    const context = new ExecutionContext();
+    return runCondition(scope, { program, context });
   }
   if (!BooleanValue.isBoolean(value)) return BOOLEAN_ERROR(value);
   return OK(BooleanValue.fromValue(value));
+}
+function runCondition(scope: Scope, state: ConditionState) {
+  const result = scope.execute(state.program, state.context);
+  if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
+  if (result.code != ResultCode.OK) return result;
+  if (!BooleanValue.isBoolean(result.value)) return BOOLEAN_ERROR(result.value);
+  return OK(BooleanValue.fromValue(result.value));
 }
 
 export function registerLogicCommands(scope: Scope) {
