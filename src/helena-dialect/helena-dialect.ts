@@ -7,6 +7,7 @@ import { scopeCmd } from "./scopes";
 import { closureCmd } from "./closures";
 import { coroutineCmd } from "./coroutines";
 import { registerMathCommands } from "./math";
+import { registerLogicCommands } from "./logic";
 import { argspecCmd } from "./argspecs";
 
 export { Scope, Variable, CommandValue } from "./core";
@@ -17,6 +18,7 @@ export function initCommands(scope: Scope) {
   scope.registerCommand("yield", yieldCmd);
 
   registerMathCommands(scope);
+  registerLogicCommands(scope);
 
   scope.registerCommand("let", letCmd);
   scope.registerCommand("set", setCmd);

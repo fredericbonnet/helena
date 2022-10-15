@@ -67,12 +67,23 @@ export const divideCmd = (): Command => ({
 });
 
 export function isNumberValue(value: Value) {
-  return !isNaN(Number(value.asString()));
+  switch (value.type) {
+    case ValueType.INTEGER:
+    case ValueType.NUMBER:
+      return true;
+    default:
+      return !isNaN(Number(value.asString()));
+  }
 }
 function valueToNumber(value: Value) {
-  if (value.type == ValueType.INTEGER) return (value as IntegerValue).value;
-  if (value.type == ValueType.NUMBER) return (value as NumberValue).value;
-  return Number(value.asString());
+  switch (value.type) {
+    case ValueType.INTEGER:
+      return (value as IntegerValue).value;
+    case ValueType.NUMBER:
+      return (value as NumberValue).value;
+    default:
+      return Number(value.asString());
+  }
 }
 function numberToValue(num: number) {
   return Number.isSafeInteger(num)
