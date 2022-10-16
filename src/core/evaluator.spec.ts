@@ -1972,5 +1972,73 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
         });
       });
     });
+
+    describe("command context", () => {
+      specify("executeScript", () => {
+        const script = parse("cmd");
+
+        let commandContext;
+        commandResolver.register("cmd", {
+          execute: (_args, context) => {
+            commandContext = context;
+            return OK(NIL);
+          },
+        });
+
+        const context = Symbol();
+        evaluator = new klass(
+          variableResolver,
+          commandResolver,
+          selectorResolver,
+          context
+        );
+        evaluator.executeScript(script);
+        expect(commandContext).to.equal(context);
+      });
+      specify("executeSentence", () => {
+        const script = parse("cmd");
+        const sentence = firstSentence(script);
+
+        let commandContext;
+        commandResolver.register("cmd", {
+          execute: (_args, context) => {
+            commandContext = context;
+            return OK(NIL);
+          },
+        });
+
+        const context = Symbol();
+        evaluator = new klass(
+          variableResolver,
+          commandResolver,
+          selectorResolver,
+          context
+        );
+        evaluator.executeSentence(sentence);
+        expect(commandContext).to.equal(context);
+      });
+      specify("evaluateWord", () => {
+        const script = parse("[cmd]");
+        const word = firstWord(script);
+
+        let commandContext;
+        commandResolver.register("cmd", {
+          execute: (_args, context) => {
+            commandContext = context;
+            return OK(NIL);
+          },
+        });
+
+        const context = Symbol();
+        evaluator = new klass(
+          variableResolver,
+          commandResolver,
+          selectorResolver,
+          context
+        );
+        evaluator.evaluateWord(word);
+        expect(commandContext).to.equal(context);
+      });
+    });
   });
 }

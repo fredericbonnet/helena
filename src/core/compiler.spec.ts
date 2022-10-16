@@ -2721,6 +2721,31 @@ describe("Compiler", () => {
     });
   });
 
+  describe("Executor", () => {
+    it("should pass opaque context to commands", () => {
+      const script = parse("cmd");
+      const program = compiler.compileScript(script);
+
+      let commandContext;
+      commandResolver.register("cmd", {
+        execute: (_args, context) => {
+          commandContext = context;
+          return OK(NIL);
+        },
+      });
+
+      const context = Symbol();
+      executor = new Executor(
+        variableResolver,
+        commandResolver,
+        selectorResolver,
+        context
+      );
+      executor.execute(program);
+      expect(commandContext).to.equal(context);
+    });
+  });
+
   describe("Process", () => {
     it("should be resumable", () => {
       const script = parse("break 1; ok 2; break 3; break 4; ok 5; break 6");

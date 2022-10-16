@@ -138,6 +138,9 @@ export class InlineEvaluator implements Evaluator {
   /** Selector resolver used during evaluation */
   private readonly selectorResolver: SelectorResolver;
 
+  /** Opaque context passed to commands */
+  private readonly context: unknown;
+
   /** Syntax checker used during evaluation */
   private readonly syntaxChecker: SyntaxChecker = new SyntaxChecker();
 
@@ -145,15 +148,18 @@ export class InlineEvaluator implements Evaluator {
    * @param variableResolver - Variable resolver
    * @param commandResolver  - Command resolver
    * @param selectorResolver - Selector resolver
+   * @param [context]        - Opaque context
    */
   constructor(
     variableResolver: VariableResolver,
     commandResolver: CommandResolver,
-    selectorResolver: SelectorResolver
+    selectorResolver: SelectorResolver,
+    context?: unknown
   ) {
     this.variableResolver = variableResolver;
     this.commandResolver = commandResolver;
     this.selectorResolver = selectorResolver;
+    this.context = context;
   }
 
   /*
@@ -202,7 +208,7 @@ export class InlineEvaluator implements Evaluator {
       const command = this.commandResolver.resolve(cmdname);
       if (!command)
         throw new Error(`cannot resolve command ${cmdname.asString()}`);
-      return command.execute(values);
+      return command.execute(values, this.context);
     } catch (e) {
       if (e instanceof Interrupt) return e.result;
       throw e;
@@ -563,17 +569,20 @@ export class CompilingEvaluator implements Evaluator {
    * @param variableResolver - Variable resolver
    * @param commandResolver  - Command resolver
    * @param selectorResolver - Selector resolver
+   * @param [context]        - Opaque context
    */
   constructor(
     variableResolver: VariableResolver,
     commandResolver: CommandResolver,
-    selectorResolver: SelectorResolver
+    selectorResolver: SelectorResolver,
+    context?: unknown
   ) {
     this.compiler = new Compiler();
     this.executor = new Executor(
       variableResolver,
       commandResolver,
-      selectorResolver
+      selectorResolver,
+      context
     );
   }
 

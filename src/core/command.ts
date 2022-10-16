@@ -56,18 +56,20 @@ export interface Command {
   /**
    * Execute the command
    *
-   * @param args - Argument values
+   * @param args      - Argument values
+   * @param [context] - Opaque context
    *
-   * @returns      Command result
+   * @returns           Command result
    */
-  execute(args: Value[]): Result;
+  execute(args: Value[], context?: unknown): Result;
 
   /**
    * Resume the previously yielded command
    *
-   * @param result - Result to yield back
+   * @param result    - Result to yield back
+   * @param [context] - Opaque context
    *
-   * @returns        Command result
+   * @returns           Command result
    */
-  resume?(result: Result): Result;
+  resume?(result: Result, context?: unknown): Result;
 }

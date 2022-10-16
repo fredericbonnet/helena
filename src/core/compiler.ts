@@ -626,19 +626,25 @@ export class Executor {
   /** Selector resolver used during execution */
   private readonly selectorResolver: SelectorResolver;
 
+  /** Opaque context passed to commands */
+  private readonly context: unknown;
+
   /**
    * @param variableResolver - Variable resolver
    * @param commandResolver  - Command resolver
    * @param selectorResolver - Selector resolver
+   * @param [context]        - Opaque context
    */
   constructor(
     variableResolver: VariableResolver,
     commandResolver: CommandResolver,
-    selectorResolver: SelectorResolver
+    selectorResolver: SelectorResolver,
+    context?: unknown
   ) {
     this.variableResolver = variableResolver;
     this.commandResolver = commandResolver;
     this.selectorResolver = selectorResolver;
+    this.context = context;
   }
 
   /**
@@ -657,7 +663,7 @@ export class Executor {
    */
   execute(program: Program, process = new Process()): Result {
     if (process.result.code == ResultCode.YIELD && process.command?.resume) {
-      process.result = process.command.resume(process.result);
+      process.result = process.command.resume(process.result, this.context);
       if (process.result.code != ResultCode.OK) return process.result;
     }
     while (process.pc < program.opCodes.length) {
@@ -736,7 +742,10 @@ export class Executor {
             const args = process.pop() as TupleValue;
             if (args.values.length) {
               process.command = this.resolveCommand(args.values);
-              process.result = process.command.execute(args.values);
+              process.result = process.command.execute(
+                args.values,
+                this.context
+              );
               if (process.result.code != ResultCode.OK) return process.result;
             }
           }
