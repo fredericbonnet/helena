@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ResultCode } from "../core/command";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { IntegerValue, NumberValue } from "../core/values";
+import { FALSE, IntegerValue, NumberValue, TRUE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -37,6 +37,16 @@ describe("Helena math operations", () => {
     it("are idempotent", () => {
       expect(evaluate("[1]")).to.eql(new IntegerValue(1));
     });
+    it("can be expressed as strings", () => {
+      expect(evaluate('"123"')).to.eql(new IntegerValue(123));
+    });
+    describe("exceptions", () => {
+      specify("non-existing method", () => {
+        expect(() => evaluate("1 unknownMethod")).to.throw(
+          'invalid method name "unknownMethod"'
+        );
+      });
+    });
   });
 
   describe("numbers", () => {
@@ -46,10 +56,145 @@ describe("Helena math operations", () => {
     it("are idempotent", () => {
       expect(evaluate("[1.25]")).to.eql(new NumberValue(1.25));
     });
+    it("can be expressed as strings", () => {
+      expect(evaluate('"0.5"')).to.eql(new NumberValue(0.5));
+    });
+    describe("exceptions", () => {
+      specify("non-existing method", () => {
+        expect(() => evaluate("1.23 unknownMethod")).to.throw(
+          'invalid method name "unknownMethod"'
+        );
+      });
+    });
   });
 
-  describe("prefix operations", () => {
-    describe("math", () => {
+  describe("infix operators", () => {
+    describe("comparisons", () => {
+      describe("==", () => {
+        it("should compare two numbers", () => {
+          expect(evaluate('"123" == -34')).to.equal(FALSE);
+          expect(evaluate('56 == "56.0"')).to.equal(TRUE);
+          expect(evaluate("set var 1; $var == $var")).to.equal(TRUE);
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(() => evaluate("1 ==")).to.throw(
+              'wrong # operands: should be "operand1 == operand2"'
+            );
+            expect(() => evaluate("1 == 2 3")).to.throw(
+              'wrong # operands: should be "operand1 == operand2"'
+            );
+          });
+          specify("invalid value", () => {
+            expect(() => evaluate("1 == a")).to.throw('invalid number "a"');
+          });
+        });
+      });
+      describe("!=", () => {
+        it("should compare two values", () => {
+          expect(evaluate('"123" != -34')).to.equal(TRUE);
+          expect(evaluate('56 != "56.0"')).to.equal(FALSE);
+          expect(evaluate("set var 1; $var != $var")).to.equal(FALSE);
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(() => evaluate("1 !=")).to.throw(
+              'wrong # operands: should be "operand1 != operand2"'
+            );
+            expect(() => evaluate("1 != 2 3")).to.throw(
+              'wrong # operands: should be "operand1 != operand2"'
+            );
+          });
+          specify("invalid value", () => {
+            expect(() => evaluate("1 != a")).to.throw('invalid number "a"');
+          });
+        });
+      });
+      describe(">", () => {
+        it("should compare two numbers", () => {
+          expect(evaluate("12 > -34")).to.equal(TRUE);
+          expect(evaluate('56 > "56.0"')).to.equal(FALSE);
+          expect(evaluate("set var 1; $var > $var")).to.equal(FALSE);
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(() => evaluate("1 >")).to.throw(
+              'wrong # operands: should be "operand1 > operand2"'
+            );
+            expect(() => evaluate("1 > 2 3")).to.throw(
+              'wrong # operands: should be "operand1 > operand2"'
+            );
+          });
+          specify("invalid value", () => {
+            expect(() => evaluate("1 > a")).to.throw('invalid number "a"');
+          });
+        });
+      });
+      describe(">=", () => {
+        it("should compare two numbers", () => {
+          expect(evaluate("12 >= -34")).to.equal(TRUE);
+          expect(evaluate('56 >= "56.0"')).to.equal(TRUE);
+          expect(evaluate("set var 1; $var >= $var")).to.equal(TRUE);
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(() => evaluate("1 >=")).to.throw(
+              'wrong # operands: should be "operand1 >= operand2"'
+            );
+            expect(() => evaluate("1 >= 2 3")).to.throw(
+              'wrong # operands: should be "operand1 >= operand2"'
+            );
+          });
+          specify("invalid value", () => {
+            expect(() => evaluate("1 >= a")).to.throw('invalid number "a"');
+          });
+        });
+      });
+      describe("<", () => {
+        it("should compare two numbers", () => {
+          expect(evaluate("12 < -34")).to.equal(FALSE);
+          expect(evaluate('56 < "56.0"')).to.equal(FALSE);
+          expect(evaluate("set var 1; $var < $var")).to.equal(FALSE);
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(() => evaluate("1 <")).to.throw(
+              'wrong # operands: should be "operand1 < operand2"'
+            );
+            expect(() => evaluate("1 < 2 3")).to.throw(
+              'wrong # operands: should be "operand1 < operand2"'
+            );
+          });
+          specify("invalid value", () => {
+            expect(() => evaluate("1 < a")).to.throw('invalid number "a"');
+          });
+        });
+      });
+      describe("<=", () => {
+        it("should compare two numbers", () => {
+          expect(evaluate("12 <= -34")).to.equal(FALSE);
+          expect(evaluate('56 <= "56.0"')).to.equal(TRUE);
+          expect(evaluate("set var 1; $var <= $var")).to.equal(TRUE);
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(() => evaluate("1 <=")).to.throw(
+              'wrong # operands: should be "operand1 <= operand2"'
+            );
+            expect(() => evaluate("1 <= 2 3")).to.throw(
+              'wrong # operands: should be "operand1 <= operand2"'
+            );
+          });
+          specify("invalid value", () => {
+            expect(() => evaluate("1 <= a")).to.throw('invalid number "a"');
+          });
+        });
+      });
+    });
+  });
+
+  describe("prefix operators", () => {
+    describe("arithmetic", () => {
       describe("+", () => {
         it("should accept one number", () => {
           expect(evaluate("+ 3")).to.eql(new IntegerValue(3));

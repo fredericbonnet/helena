@@ -216,8 +216,6 @@ describe("Picol dialect", () => {
               expect(() => evaluate("!=")).to.throw(
                 'wrong # args: should be "!= arg arg"'
               );
-            });
-            specify("wrong arity", () => {
               expect(() => evaluate("!= a")).to.throw(
                 'wrong # args: should be "!= arg arg"'
               );
