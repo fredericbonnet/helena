@@ -7,20 +7,6 @@ import { ArgspecValue } from "./argspecs";
 import { CommandValue, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
-import * as chai from "chai";
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Chai {
-    interface Assertion {
-      like(value): Promise<void>;
-    }
-  }
-}
-chai.Assertion.addMethod("like", function (value) {
-  const obj = chai.util.flag(this, "object");
-  new chai.Assertion(JSON.stringify(obj)).to.be.equal(JSON.stringify(value));
-});
-
 describe("Helena argument handling", () => {
   let rootScope: Scope;
 
@@ -66,7 +52,7 @@ describe("Helena argument handling", () => {
       describe("empty", () => {
         specify("value", () => {
           const value = evaluate("argspec ()") as ArgspecValue;
-          expect(evaluate("argspec {}")).to.be.like(value);
+          expect(evaluate("argspec {}")).to.eql(value);
           expect(value.argspec).to.include({
             nbRequired: 0,
             nbOptional: 0,
@@ -86,8 +72,8 @@ describe("Helena argument handling", () => {
       describe("one parameter", () => {
         specify("value", () => {
           const value = evaluate("argspec a") as ArgspecValue;
-          expect(evaluate("argspec (a)")).to.be.like(value);
-          expect(evaluate("argspec {a}")).to.be.like(value);
+          expect(evaluate("argspec (a)")).to.eql(value);
+          expect(evaluate("argspec {a}")).to.eql(value);
           expect(value.argspec).to.include({
             nbRequired: 1,
             nbOptional: 0,
@@ -109,7 +95,7 @@ describe("Helena argument handling", () => {
       describe("two parameters", () => {
         specify("value", () => {
           const value = evaluate("argspec (a b)") as ArgspecValue;
-          expect(evaluate("argspec {a b}")).to.be.like(value);
+          expect(evaluate("argspec {a b}")).to.eql(value);
           expect(value.argspec).to.include({
             nbRequired: 2,
             nbOptional: 0,
@@ -136,8 +122,8 @@ describe("Helena argument handling", () => {
         describe("anonymous", () => {
           specify("value", () => {
             const value = evaluate("argspec *") as ArgspecValue;
-            expect(evaluate("argspec (*)")).to.be.like(value);
-            expect(evaluate("argspec {*}")).to.be.like(value);
+            expect(evaluate("argspec (*)")).to.eql(value);
+            expect(evaluate("argspec {*}")).to.eql(value);
             expect(value.argspec).to.include({
               nbRequired: 0,
               nbOptional: 0,
@@ -178,8 +164,8 @@ describe("Helena argument handling", () => {
         describe("named", () => {
           specify("value", () => {
             const value = evaluate("argspec *args") as ArgspecValue;
-            expect(evaluate("argspec (*args)")).to.be.like(value);
-            expect(evaluate("argspec {*args}")).to.be.like(value);
+            expect(evaluate("argspec (*args)")).to.eql(value);
+            expect(evaluate("argspec {*args}")).to.eql(value);
             expect(value.argspec).to.include({
               nbRequired: 0,
               nbOptional: 0,
@@ -299,12 +285,12 @@ describe("Helena argument handling", () => {
         describe("single", () => {
           specify("value", () => {
             const value = evaluate("argspec ?a") as ArgspecValue;
-            expect(evaluate("argspec (?a)")).to.be.like(value);
-            expect(evaluate("argspec {?a}")).to.be.like(value);
-            expect(evaluate("argspec ((?a))")).to.be.like(value);
-            expect(evaluate("argspec {(?a)}")).to.be.like(value);
-            expect(evaluate("argspec ({?a})")).to.be.like(value);
-            expect(evaluate("argspec {{?a}}")).to.be.like(value);
+            expect(evaluate("argspec (?a)")).to.eql(value);
+            expect(evaluate("argspec {?a}")).to.eql(value);
+            expect(evaluate("argspec ((?a))")).to.eql(value);
+            expect(evaluate("argspec {(?a)}")).to.eql(value);
+            expect(evaluate("argspec ({?a})")).to.eql(value);
+            expect(evaluate("argspec {{?a}}")).to.eql(value);
             expect(value.argspec).to.include({
               nbRequired: 0,
               nbOptional: 1,
@@ -335,7 +321,7 @@ describe("Helena argument handling", () => {
         describe("multiple", () => {
           specify("value", () => {
             const value = evaluate("argspec {?a ?b}") as ArgspecValue;
-            expect(evaluate("argspec (?a ?b)")).to.be.like(value);
+            expect(evaluate("argspec (?a ?b)")).to.eql(value);
             expect(value.argspec).to.include({
               nbRequired: 0,
               nbOptional: 2,
@@ -425,9 +411,9 @@ describe("Helena argument handling", () => {
       describe("default value", () => {
         specify("value", () => {
           const value = evaluate("argspec ((?a val))") as ArgspecValue;
-          expect(evaluate("argspec {(?a val)}")).to.be.like(value);
-          expect(evaluate("argspec ({?a val})")).to.be.like(value);
-          expect(evaluate("argspec {{?a val}}")).to.be.like(value);
+          expect(evaluate("argspec {(?a val)}")).to.eql(value);
+          expect(evaluate("argspec ({?a val})")).to.eql(value);
+          expect(evaluate("argspec {{?a val}}")).to.eql(value);
           expect(value.argspec).to.include({
             nbRequired: 0,
             nbOptional: 1,

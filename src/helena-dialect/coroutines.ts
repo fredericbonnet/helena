@@ -11,8 +11,8 @@ class CoroutineValue extends CommandValue {
   state: "inactive" | "active" | "done";
   program: Program;
   process: Process;
-  constructor(scope: Scope, body: ScriptValue) {
-    super(() => new CoroutineCommand(this));
+  constructor(command: Command, scope: Scope, body: ScriptValue) {
+    super(command);
     this.scope = scope;
     this.body = body;
     this.state = "inactive";
@@ -20,8 +20,8 @@ class CoroutineValue extends CommandValue {
 }
 class CoroutineCommand implements Command {
   readonly value: CoroutineValue;
-  constructor(value: CoroutineValue) {
-    this.value = value;
+  constructor(scope: Scope, body: ScriptValue) {
+    this.value = new CoroutineValue(this, scope, body);
   }
 
   execute(args: Value[]): Result {
@@ -90,8 +90,8 @@ class CoroutineCommand implements Command {
     }
   }
 }
-export const coroutineCmd = (scope: Scope): Command => ({
-  execute: (args) => {
+export const coroutineCmd: Command = {
+  execute: (args, scope: Scope) => {
     let body;
     switch (args.length) {
       case 2:
@@ -101,7 +101,7 @@ export const coroutineCmd = (scope: Scope): Command => ({
         return ARITY_ERROR("coroutine body");
     }
 
-    const value = new CoroutineValue(scope, body as ScriptValue);
-    return OK(value);
+    const command = new CoroutineCommand(scope, body as ScriptValue);
+    return OK(command.value);
   },
-});
+};

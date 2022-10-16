@@ -16,18 +16,25 @@ class ClosureValue extends CommandValue {
   readonly argspec: Argspec;
   readonly body: ScriptValue;
   readonly program: Program;
-  constructor(scope: Scope, argspec: Argspec, body: ScriptValue) {
-    super(() => new ClosureValueCommand(this));
+  readonly closure: Command;
+  constructor(
+    command: Command,
+    scope: Scope,
+    argspec: Argspec,
+    body: ScriptValue
+  ) {
+    super(command);
     this.scope = scope;
     this.argspec = argspec;
     this.body = body;
     this.program = this.scope.compile(this.body.script);
+    this.closure = new ClosureCommand(this);
   }
 }
 class ClosureValueCommand implements Command {
   readonly value: ClosureValue;
-  constructor(value: ClosureValue) {
-    this.value = value;
+  constructor(scope: Scope, argspec: Argspec, body: ScriptValue) {
+    this.value = new ClosureValue(this, scope, argspec, body);
   }
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.value);
@@ -37,7 +44,7 @@ class ClosureValueCommand implements Command {
       case "call": {
         if (args.length < 2) return ARITY_ERROR("closure call ?arg ...?");
         const cmdline = [this.value, ...args.slice(2)];
-        return new ClosureCommand(this.value).execute(cmdline);
+        return this.value.closure.execute(cmdline);
       }
       default:
         return ERROR(
@@ -85,8 +92,8 @@ class ClosureCommand implements Command {
     return result;
   }
 }
-export const closureCmd = (scope: Scope): Command => ({
-  execute: (args) => {
+export const closureCmd: Command = {
+  execute: (args, scope: Scope) => {
     let name, specs, body;
     switch (args.length) {
       case 3:
@@ -100,10 +107,14 @@ export const closureCmd = (scope: Scope): Command => ({
     }
 
     const argspec = valueToArgspec(scope, specs);
-    const value = new ClosureValue(scope, argspec, body as ScriptValue);
+    const command = new ClosureValueCommand(
+      scope,
+      argspec,
+      body as ScriptValue
+    );
     if (name) {
-      scope.registerCommand(name.asString(), () => new ClosureCommand(value));
+      scope.registerCommand(name.asString(), command.value.closure);
     }
-    return OK(value);
+    return OK(command.value);
   },
-});
+};

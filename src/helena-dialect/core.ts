@@ -18,12 +18,11 @@ export class Variable {
     this.value = value;
   }
 }
-type ScopedCommand = (scope: Scope) => Command;
 export class CommandValue implements Value {
   readonly type: ValueType = ValueType.CUSTOM;
-  readonly command: ScopedCommand;
+  readonly command: Command;
 
-  constructor(command: ScopedCommand) {
+  constructor(command: Command) {
     this.command = command;
   }
   asString(): string {
@@ -43,7 +42,7 @@ export class CommandValue implements Value {
 export class ScopeContext {
   readonly constants: Map<string, Value>;
   readonly variables: Map<string, Variable>;
-  readonly commands: Map<string, ScopedCommand>;
+  readonly commands: Map<string, Command>;
   readonly locals: Map<string, Value>;
   constructor(context?: ScopeContext, locals?: Map<string, Value>) {
     this.constants = context?.constants ?? new Map();
@@ -69,7 +68,7 @@ export class Scope {
     const commandResolver: CommandResolver = {
       resolve: (name) => this.resolveCommand(name),
     };
-    this.executor = new Executor(variableResolver, commandResolver, null);
+    this.executor = new Executor(variableResolver, commandResolver, null, this);
   }
 
   executeScript(script: ScriptValue): Result {
@@ -95,11 +94,11 @@ export class Scope {
     throw new Error(`can't read "${name}": no such variable`);
   }
   resolveCommand(value: Value, recurse = true): Command {
-    if (value instanceof CommandValue) return value.command(this);
+    if (value instanceof CommandValue) return value.command;
     if (NumberValue.isNumber(value)) return numberCmd;
-    return this.resolveScopedCommand(value.asString(), recurse)(this);
+    return this.resolveScopedCommand(value.asString(), recurse);
   }
-  private resolveScopedCommand(name: string, recurse: boolean): ScopedCommand {
+  private resolveScopedCommand(name: string, recurse: boolean): Command {
     if (!this.context.commands.has(name)) {
       if (!recurse || !this.parent)
         throw new Error(`invalid command name "${name}"`);
@@ -144,7 +143,7 @@ export class Scope {
     return OK(this.resolveVariable(name));
   }
 
-  registerCommand(name: string, command: ScopedCommand) {
+  registerCommand(name: string, command: Command) {
     this.context.commands.set(name, command);
   }
 }

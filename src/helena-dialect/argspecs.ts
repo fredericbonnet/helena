@@ -43,20 +43,18 @@ export class Argspec {
 
 export class ArgspecValue extends CommandValue {
   readonly argspec: Argspec;
-  constructor(argspec: Argspec) {
-    super((scope) => new ArgspecCommand(scope, this));
+  constructor(command: Command, argspec: Argspec) {
+    super(command);
     this.argspec = argspec;
   }
 }
 class ArgspecCommand implements Command {
-  readonly scope: Scope;
   readonly value: ArgspecValue;
-  constructor(scope: Scope, value: ArgspecValue) {
-    this.scope = scope;
-    this.value = value;
+  constructor(argspec: Argspec) {
+    this.value = new ArgspecValue(this, argspec);
   }
 
-  execute(args: Value[]): Result {
+  execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this.value);
     if (args.length < 2) return ARITY_ERROR("argspec method ?arg ...?");
     const method = args[1];
@@ -68,9 +66,9 @@ class ArgspecCommand implements Command {
       case "set": {
         if (args.length != 3) return ARITY_ERROR("argspec set values");
         setArguments(
-          this.scope,
+          scope,
           this.value.argspec,
-          valueToList(this.scope, args[2]).values
+          valueToList(scope, args[2]).values
         );
         return OK(NIL);
       }
@@ -81,8 +79,8 @@ class ArgspecCommand implements Command {
     }
   }
 }
-export const argspecCmd = (scope: Scope): Command => ({
-  execute: (args) => {
+export const argspecCmd: Command = {
+  execute: (args, scope: Scope) => {
     let name, specs;
     switch (args.length) {
       case 2:
@@ -96,13 +94,13 @@ export const argspecCmd = (scope: Scope): Command => ({
     }
 
     const argspec = valueToArgspec(scope, specs);
-    const value = new ArgspecValue(argspec);
+    const command = new ArgspecCommand(argspec);
     if (name) {
-      scope.registerCommand(name.asString(), value.command);
+      scope.registerCommand(name.asString(), command);
     }
-    return OK(value);
+    return OK(command.value);
   },
-});
+};
 
 function buildHelp(args: Argument[]) {
   const parts = [];

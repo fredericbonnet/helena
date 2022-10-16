@@ -16,32 +16,32 @@ import { Scope } from "./core";
 const BOOLEAN_ERROR = (value: Value) =>
   ERROR(new StringValue(`invalid boolean "${value.asString()}"`));
 
-export const trueCmd = (): Command => ({
+export const trueCmd: Command = {
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(TRUE);
     throw new Error("TODO implement infix operators"); // TODO
   },
-});
-export const falseCmd = (): Command => ({
+};
+export const falseCmd: Command = {
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(FALSE);
     throw new Error("TODO implement infix operators"); // TODO
   },
-});
+};
 
-export const notCmd = (scope: Scope): Command => ({
-  execute(args: Value[]): Result {
+export const notCmd: Command = {
+  execute(args: Value[], scope: Scope): Result {
     if (args.length != 2) return ARITY_ERROR("! arg");
     const result = executeCondition(scope, args[1]);
     if (result.code != ResultCode.OK) return result;
     return (result.value as BooleanValue).value ? OK(FALSE) : OK(TRUE);
   },
-  resume(result: Result) {
+  resume(result: Result, scope: Scope) {
     result = runCondition(scope, result.state as ConditionState);
     if (result.code != ResultCode.OK) return result;
     return (result.value as BooleanValue).value ? OK(FALSE) : OK(TRUE);
   },
-});
+};
 
 type AndCommandState = {
   args: Value[];
@@ -49,23 +49,19 @@ type AndCommandState = {
   conditionState?: ConditionState;
 };
 class AndCommand implements Command {
-  readonly scope: Scope;
-  constructor(scope: Scope) {
-    this.scope = scope;
-  }
-  execute(args) {
+  execute(args, scope: Scope) {
     if (args.length < 2) return ARITY_ERROR("&& arg ?arg ...?");
-    return this.run({ args, i: 1 });
+    return this.run({ args, i: 1 }, scope);
   }
-  resume(result: Result): Result {
-    return this.run(result.state as AndCommandState);
+  resume(result: Result, scope: Scope): Result {
+    return this.run(result.state as AndCommandState, scope);
   }
-  run(state: AndCommandState) {
+  run(state: AndCommandState, scope: Scope) {
     let r = TRUE;
     while (state.i < state.args.length) {
       const result = state.conditionState
-        ? runCondition(this.scope, state.conditionState)
-        : executeCondition(this.scope, state.args[state.i]);
+        ? runCondition(scope, state.conditionState)
+        : executeCondition(scope, state.args[state.i]);
       if (result.code == ResultCode.YIELD) {
         state.conditionState = result.state as ConditionState;
         return YIELD(result.value, state);
@@ -82,7 +78,7 @@ class AndCommand implements Command {
     return OK(r);
   }
 }
-const andCmd = (scope: Scope): Command => new AndCommand(scope);
+const andCmd: Command = new AndCommand();
 
 type OrCommandState = {
   args: Value[];
@@ -90,23 +86,19 @@ type OrCommandState = {
   conditionState?: ConditionState;
 };
 class OrCommand implements Command {
-  readonly scope: Scope;
-  constructor(scope: Scope) {
-    this.scope = scope;
-  }
-  execute(args) {
+  execute(args, scope: Scope) {
     if (args.length < 2) return ARITY_ERROR("|| arg ?arg ...?");
-    return this.run({ args, i: 1 });
+    return this.run({ args, i: 1 }, scope);
   }
-  resume(result: Result): Result {
-    return this.run(result.state as OrCommandState);
+  resume(result: Result, scope: Scope): Result {
+    return this.run(result.state as OrCommandState, scope);
   }
-  run(state: OrCommandState) {
+  run(state: OrCommandState, scope: Scope) {
     let r = FALSE;
     while (state.i < state.args.length) {
       const result = state.conditionState
-        ? runCondition(this.scope, state.conditionState)
-        : executeCondition(this.scope, state.args[state.i]);
+        ? runCondition(scope, state.conditionState)
+        : executeCondition(scope, state.args[state.i]);
       if (result.code == ResultCode.YIELD) {
         state.conditionState = result.state as ConditionState;
         return YIELD(result.value, state);
@@ -123,7 +115,7 @@ class OrCommand implements Command {
     return OK(r);
   }
 }
-const orCmd = (scope: Scope): Command => new OrCommand(scope);
+const orCmd: Command = new OrCommand();
 
 type ConditionState = {
   program: Program;

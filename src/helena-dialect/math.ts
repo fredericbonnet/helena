@@ -66,7 +66,7 @@ const geOp = binaryOp(">=", true, (op1, op2) => op1 >= op2);
 const ltOp = binaryOp("<", false, (op1, op2) => op1 < op2);
 const leOp = binaryOp("<=", true, (op1, op2) => op1 <= op2);
 
-export const addCmd = (): Command => ({
+export const addCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("+ arg ?arg ...?");
     let total = 0;
@@ -77,9 +77,9 @@ export const addCmd = (): Command => ({
     }
     return OK(numberToValue(total));
   },
-});
+};
 
-export const subtractCmd = (): Command => ({
+export const subtractCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("- arg ?arg ...?");
     if (!NumberValue.isNumber(args[1])) return NUMBER_ERROR(args[1]);
@@ -95,9 +95,9 @@ export const subtractCmd = (): Command => ({
     }
     return OK(numberToValue(total));
   },
-});
+};
 
-export const multiplyCmd = (): Command => ({
+export const multiplyCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("* arg ?arg ...?");
     if (!NumberValue.isNumber(args[1])) return NUMBER_ERROR(args[1]);
@@ -113,9 +113,9 @@ export const multiplyCmd = (): Command => ({
     }
     return OK(numberToValue(total));
   },
-});
+};
 
-export const divideCmd = (): Command => ({
+export const divideCmd: Command = {
   execute: (args) => {
     if (args.length < 3) return ARITY_ERROR("/ arg arg ?arg ...?");
     if (!NumberValue.isNumber(args[1])) return NUMBER_ERROR(args[1]);
@@ -128,7 +128,7 @@ export const divideCmd = (): Command => ({
     }
     return OK(numberToValue(total));
   },
-});
+};
 
 function numberToValue(num: number) {
   return Number.isSafeInteger(num)

@@ -14,21 +14,28 @@ import { Scope, CommandValue, ScopeContext } from "./core";
 class MacroValue extends CommandValue {
   readonly argspec: Argspec;
   readonly body: ScriptValue;
-  constructor(argspec: Argspec, body: ScriptValue) {
-    super((scope) => new MacroValueCommand(scope, this));
+  readonly program: Program;
+  readonly macro: Command;
+  constructor(
+    command: Command,
+    scope: Scope,
+    argspec: Argspec,
+    body: ScriptValue
+  ) {
+    super(command);
     this.argspec = argspec;
     this.body = body;
+    this.program = scope.compile(this.body.script);
+    this.macro = new MacroCommand(this);
   }
 }
 class MacroValueCommand implements Command {
-  readonly scope: Scope;
   readonly value: MacroValue;
-  constructor(scope: Scope, value: MacroValue) {
-    this.scope = scope;
-    this.value = value;
+  constructor(scope: Scope, argspec: Argspec, body: ScriptValue) {
+    this.value = new MacroValue(this, scope, argspec, body);
   }
 
-  execute(args: Value[]): Result {
+  execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this.value);
     if (args.length < 2) return ARITY_ERROR("macro method ?arg ...?");
     const method = args[1];
@@ -36,7 +43,7 @@ class MacroValueCommand implements Command {
       case "call": {
         if (args.length < 2) return ARITY_ERROR("macro call ?arg ...?");
         const cmdline = [this.value, ...args.slice(2)];
-        return new MacroCommand(this.scope, this.value).execute(cmdline);
+        return this.value.macro.execute(cmdline, scope);
       }
       default:
         return ERROR(
@@ -51,16 +58,12 @@ type MacroState = {
   process: Process;
 };
 class MacroCommand implements Command {
-  readonly scope: Scope;
   readonly value: MacroValue;
-  readonly program: Program;
-  constructor(scope: Scope, value: MacroValue) {
-    this.scope = scope;
+  constructor(value: MacroValue) {
     this.value = value;
-    this.program = this.scope.compile(this.value.body.script);
   }
 
-  execute(args: Value[]): Result {
+  execute(args: Value[], scope: Scope): Result {
     if (!checkArity(this.value.argspec, args, 1)) {
       throw new Error(
         `wrong # args: should be "${args[0].asString()} ${this.value.argspec.help.asString()}"`
@@ -71,25 +74,22 @@ class MacroCommand implements Command {
       locals.set(name, value);
       return OK(value);
     };
-    applyArguments(this.scope, this.value.argspec, args, 1, setarg);
-    const scope = new Scope(
-      this.scope,
-      new ScopeContext(this.scope.context, locals)
-    );
+    applyArguments(scope, this.value.argspec, args, 1, setarg);
+    const subscope = new Scope(scope, new ScopeContext(scope.context, locals));
     const process = new Process();
-    return this.run({ scope, process });
+    return this.run({ scope: subscope, process });
   }
   resume(result: Result): Result {
     return this.run(result.state as MacroState);
   }
   run(state: MacroState) {
-    const result = state.scope.execute(this.program, state.process);
+    const result = state.scope.execute(this.value.program, state.process);
     if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
     return result;
   }
 }
-export const macroCmd = (scope: Scope): Command => ({
-  execute: (args) => {
+export const macroCmd: Command = {
+  execute: (args, scope: Scope) => {
     let name, specs, body;
     switch (args.length) {
       case 3:
@@ -103,13 +103,10 @@ export const macroCmd = (scope: Scope): Command => ({
     }
 
     const argspec = valueToArgspec(scope, specs);
-    const value = new MacroValue(argspec, body as ScriptValue);
+    const command = new MacroValueCommand(scope, argspec, body as ScriptValue);
     if (name) {
-      scope.registerCommand(
-        name.asString(),
-        (scope: Scope) => new MacroCommand(scope, value)
-      );
+      scope.registerCommand(name.asString(), command.value.macro);
     }
-    return OK(value);
+    return OK(command.value);
   },
-});
+};

@@ -7,15 +7,15 @@ import { CommandValue, Scope } from "./core";
 
 class ScopeValue extends CommandValue {
   readonly scope: Scope;
-  constructor(scope: Scope) {
-    super(() => new ScopeCommand(this));
+  constructor(command: Command, scope: Scope) {
+    super(command);
     this.scope = scope;
   }
 }
 class ScopeCommand implements Command {
   readonly value: ScopeValue;
-  constructor(value: ScopeValue) {
-    this.value = value;
+  constructor(scope: Scope) {
+    this.value = new ScopeValue(this, scope);
   }
 
   execute(args: Value[]): Result {
@@ -33,7 +33,7 @@ class ScopeCommand implements Command {
         const cmdline = args.slice(2);
         return this.value.scope
           .resolveCommand(cmdline[0], false)
-          .execute(cmdline);
+          .execute(cmdline, this.value.scope);
       }
       default:
         return ERROR(
@@ -49,8 +49,8 @@ type ScopeBodyState = {
   process: Process;
   name?: Value;
 };
-export const scopeCmd = (scope: Scope): Command => ({
-  execute: (args) => {
+export const scopeCmd: Command = {
+  execute: (args, scope: Scope) => {
     let name, body;
     switch (args.length) {
       case 2:
@@ -72,7 +72,7 @@ export const scopeCmd = (scope: Scope): Command => ({
   resume(result: Result): Result {
     return executeScopeBody(result.state as ScopeBodyState);
   },
-});
+};
 const executeScopeBody = (state: ScopeBodyState): Result => {
   const result = state.subscope.execute(state.program, state.process);
 
@@ -80,11 +80,11 @@ const executeScopeBody = (state: ScopeBodyState): Result => {
   if (result.code != ResultCode.OK && result.code != ResultCode.RETURN)
     return result;
 
-  const value = new ScopeValue(state.subscope);
+  const command = new ScopeCommand(state.subscope);
   if (state.name) {
-    state.scope.registerCommand(state.name.asString(), value.command);
+    state.scope.registerCommand(state.name.asString(), command);
   }
 
   if (result.code == ResultCode.RETURN) return OK(result.value);
-  return OK(value);
+  return OK(command.value);
 };
