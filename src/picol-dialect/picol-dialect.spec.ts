@@ -45,7 +45,8 @@ describe("Picol dialect", () => {
         evaluator = new klass(
           rootScope.variableResolver,
           rootScope.commandResolver,
-          null
+          null,
+          rootScope
         );
       });
 
