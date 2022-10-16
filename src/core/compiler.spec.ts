@@ -1,12 +1,6 @@
 import { expect } from "chai";
 import { Command, Result, OK, YIELD, BREAK } from "./command";
-import {
-  Compiler,
-  OpCode,
-  Executor,
-  Program,
-  ExecutionContext,
-} from "./compiler";
+import { Compiler, OpCode, Executor, Program, Process } from "./compiler";
 import {
   VariableResolver,
   CommandResolver,
@@ -2727,8 +2721,8 @@ describe("Compiler", () => {
     });
   });
 
-  describe("ExecutionContext", () => {
-    it("should resume execution", () => {
+  describe("Process", () => {
+    it("should be resumable", () => {
       const script = parse("break 1; ok 2; break 3; break 4; ok 5; break 6");
       const program = compiler.compileScript(script);
 
@@ -2742,24 +2736,24 @@ describe("Compiler", () => {
           return OK(args[1]);
         },
       });
-      const context = new ExecutionContext();
-      expect(executor.execute(program, context)).to.eql(
+      const process = new Process();
+      expect(executor.execute(program, process)).to.eql(
         BREAK(new StringValue("1"))
       );
-      expect(executor.execute(program, context)).to.eql(
+      expect(executor.execute(program, process)).to.eql(
         BREAK(new StringValue("3"))
       );
-      expect(executor.execute(program, context)).to.eql(
+      expect(executor.execute(program, process)).to.eql(
         BREAK(new StringValue("4"))
       );
-      expect(executor.execute(program, context)).to.eql(
+      expect(executor.execute(program, process)).to.eql(
         BREAK(new StringValue("6"))
       );
-      expect(executor.execute(program, context)).to.eql(
+      expect(executor.execute(program, process)).to.eql(
         OK(new StringValue("6"))
       );
     });
-    it("should support setting result", () => {
+    it("result should be settable", () => {
       const script = parse("ok [break 1]");
       const program = compiler.compileScript(script);
 
@@ -2773,12 +2767,12 @@ describe("Compiler", () => {
           return OK(args[1]);
         },
       });
-      const context = new ExecutionContext();
-      expect(executor.execute(program, context)).to.eql(
+      const process = new Process();
+      expect(executor.execute(program, process)).to.eql(
         BREAK(new StringValue("1"))
       );
-      context.result = OK(new StringValue("2"));
-      expect(executor.execute(program, context)).to.eql(
+      process.result = OK(new StringValue("2"));
+      expect(executor.execute(program, process)).to.eql(
         OK(new StringValue("2"))
       );
     });
@@ -2802,23 +2796,23 @@ describe("Compiler", () => {
         },
       });
 
-      const context = new ExecutionContext();
-      expect(executor.execute(program, context)).to.eql(
+      const process = new Process();
+      expect(executor.execute(program, process)).to.eql(
         YIELD(new IntegerValue(1))
       );
-      expect(executor.execute(program, context)).to.eql(
+      expect(executor.execute(program, process)).to.eql(
         YIELD(new IntegerValue(2))
       );
-      expect(executor.execute(program, context)).to.eql(
+      expect(executor.execute(program, process)).to.eql(
         YIELD(new IntegerValue(3))
       );
-      expect(executor.execute(program, context)).to.eql(
+      expect(executor.execute(program, process)).to.eql(
         YIELD(new IntegerValue(4))
       );
-      expect(executor.execute(program, context)).to.eql(
+      expect(executor.execute(program, process)).to.eql(
         YIELD(new IntegerValue(5))
       );
-      expect(executor.execute(program, context)).to.eql(
+      expect(executor.execute(program, process)).to.eql(
         OK(new StringValue("done"))
       );
     });
@@ -2850,20 +2844,20 @@ describe("Compiler", () => {
         },
       });
 
-      const context = new ExecutionContext();
-      expect(executor.execute(program, context)).to.eql(
+      const process = new Process();
+      expect(executor.execute(program, process)).to.eql(
         YIELD(new StringValue("begin"), 1)
       );
-      expect(executor.execute(program, context)).to.eql(
+      expect(executor.execute(program, process)).to.eql(
         YIELD(new StringValue("step one"), 2)
       );
-      expect(executor.execute(program, context)).to.eql(
+      expect(executor.execute(program, process)).to.eql(
         YIELD(new StringValue("step two"), 3)
       );
-      expect(executor.execute(program, context)).to.eql(
+      expect(executor.execute(program, process)).to.eql(
         YIELD(new StringValue("step three"), 4)
       );
-      expect(executor.execute(program, context)).to.eql(
+      expect(executor.execute(program, process)).to.eql(
         OK(new StringValue("end"))
       );
     });

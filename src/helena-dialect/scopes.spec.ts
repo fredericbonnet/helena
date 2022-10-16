@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { OK, ResultCode } from "../core/command";
-import { ExecutionContext } from "../core/compiler";
+import { Process } from "../core/compiler";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { StringValue } from "../core/values";
@@ -119,30 +119,30 @@ describe("Helena scopes", () => {
         it("should provide a resumable state", () => {
           evaluate("closure cmd1 {} {set var val1}");
           evaluate("closure cmd2 {} {set var val2}");
-          const context = new ExecutionContext();
+          const process = new Process();
           const program = rootScope.compile(
             parse("scope cmd {cmd1; yield val3; cmd2}")
           );
 
-          let result = rootScope.execute(program, context);
+          let result = rootScope.execute(program, process);
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val3"));
           expect(result.state).to.exist;
 
-          result = rootScope.execute(program, context);
+          result = rootScope.execute(program, process);
           expect(result.code).to.eql(ResultCode.OK);
           expect(result.value).to.be.instanceof(CommandValue);
           expect(evaluate("get var")).to.eql(new StringValue("val2"));
         });
         it("should delay the definition of scope command until resumed", () => {
-          const context = new ExecutionContext();
+          const process = new Process();
           const program = rootScope.compile(parse("scope cmd {yield}"));
 
-          let result = rootScope.execute(program, context);
+          let result = rootScope.execute(program, process);
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(rootScope.context.commands.has("cmd")).to.be.false;
 
-          result = rootScope.execute(program, context);
+          result = rootScope.execute(program, process);
           expect(result.code).to.eql(ResultCode.OK);
           expect(rootScope.context.commands.has("cmd")).to.be.true;
         });

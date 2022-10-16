@@ -1,6 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command, Result, ResultCode, YIELD, OK, ERROR } from "../core/command";
-import { Program, ExecutionContext } from "../core/compiler";
+import { Program, Process } from "../core/compiler";
 import { ScriptValue, StringValue, Value } from "../core/values";
 import {
   applyArguments,
@@ -48,7 +48,7 @@ class MacroValueCommand implements Command {
 
 type MacroState = {
   scope: Scope;
-  context: ExecutionContext;
+  process: Process;
 };
 class MacroCommand implements Command {
   readonly scope: Scope;
@@ -76,14 +76,14 @@ class MacroCommand implements Command {
       this.scope,
       new ScopeContext(this.scope.context, locals)
     );
-    const context = new ExecutionContext();
-    return this.run({ scope, context });
+    const process = new Process();
+    return this.run({ scope, process });
   }
   resume(result: Result): Result {
     return this.run(result.state as MacroState);
   }
   run(state: MacroState) {
-    const result = state.scope.execute(this.program, state.context);
+    const result = state.scope.execute(this.program, state.process);
     if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
     return result;
   }

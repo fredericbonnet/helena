@@ -1,6 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Result, OK, Command, ResultCode, ERROR, YIELD } from "../core/command";
-import { ExecutionContext, Program } from "../core/compiler";
+import { Process, Program } from "../core/compiler";
 import {
   BooleanValue,
   FALSE,
@@ -127,20 +127,20 @@ const orCmd = (scope: Scope): Command => new OrCommand(scope);
 
 type ConditionState = {
   program: Program;
-  context: ExecutionContext;
+  process: Process;
 };
 function executeCondition(scope: Scope, value: Value): Result {
   if (value.type == ValueType.SCRIPT) {
     const script = (value as ScriptValue).script;
     const program = scope.compile(script);
-    const context = new ExecutionContext();
-    return runCondition(scope, { program, context });
+    const process = new Process();
+    return runCondition(scope, { program, process });
   }
   if (!BooleanValue.isBoolean(value)) return BOOLEAN_ERROR(value);
   return OK(BooleanValue.fromValue(value));
 }
 function runCondition(scope: Scope, state: ConditionState) {
-  const result = scope.execute(state.program, state.context);
+  const result = scope.execute(state.program, state.process);
   if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
   if (result.code != ResultCode.OK) return result;
   if (!BooleanValue.isBoolean(result.value)) return BOOLEAN_ERROR(result.value);

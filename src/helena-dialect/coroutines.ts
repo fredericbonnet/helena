@@ -1,6 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command, ERROR, OK, Result, ResultCode, YIELD } from "../core/command";
-import { Program, ExecutionContext } from "../core/compiler";
+import { Program, Process } from "../core/compiler";
 import { Value, ScriptValue, StringValue, FALSE, TRUE } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { CommandValue, Scope } from "./core";
@@ -10,7 +10,7 @@ class CoroutineValue extends CommandValue {
   readonly body: ScriptValue;
   state: "inactive" | "active" | "done";
   program: Program;
-  context: ExecutionContext;
+  process: Process;
   constructor(scope: Scope, body: ScriptValue) {
     super(() => new CoroutineCommand(this));
     this.scope = scope;
@@ -34,11 +34,11 @@ class CoroutineCommand implements Command {
         if (this.value.state == "inactive") {
           this.value.state = "active";
           this.value.program = this.value.scope.compile(this.value.body.script);
-          this.value.context = new ExecutionContext();
+          this.value.process = new Process();
         }
         const result = this.value.scope.execute(
           this.value.program,
-          this.value.context
+          this.value.process
         );
         if (result.code == ResultCode.OK || result.code == ResultCode.RETURN) {
           this.value.state = "done";
@@ -65,14 +65,14 @@ class CoroutineCommand implements Command {
         if (this.value.state == "done")
           return ERROR(new StringValue("coroutine is done"));
         if (args.length == 3) {
-          this.value.context.result = YIELD(
+          this.value.process.result = YIELD(
             args[2],
-            this.value.context.result.state
+            this.value.process.result.state
           );
         }
         const result = this.value.scope.execute(
           this.value.program,
-          this.value.context
+          this.value.process
         );
         if (result.code == ResultCode.OK || result.code == ResultCode.RETURN) {
           this.value.state = "done";

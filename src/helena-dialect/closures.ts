@@ -1,6 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command, Result, ResultCode, YIELD, OK, ERROR } from "../core/command";
-import { Program, ExecutionContext } from "../core/compiler";
+import { Program, Process } from "../core/compiler";
 import { ScriptValue, StringValue, Value } from "../core/values";
 import {
   applyArguments,
@@ -49,7 +49,7 @@ class ClosureValueCommand implements Command {
 
 type ClosureState = {
   scope: Scope;
-  context: ExecutionContext;
+  process: Process;
 };
 class ClosureCommand implements Command {
   readonly value: ClosureValue;
@@ -73,14 +73,14 @@ class ClosureCommand implements Command {
       this.value.scope,
       new ScopeContext(this.value.scope.context, locals)
     );
-    const context = new ExecutionContext();
-    return this.run({ scope, context });
+    const process = new Process();
+    return this.run({ scope, process });
   }
   resume(result: Result): Result {
     return this.run(result.state as ClosureState);
   }
   run(state: ClosureState) {
-    const result = state.scope.execute(this.value.program, state.context);
+    const result = state.scope.execute(this.value.program, state.process);
     if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
     return result;
   }

@@ -538,12 +538,12 @@ export class Compiler {
 }
 
 /**
- * Helena program execution context
+ * Helena process
  *
- * This class encapsulates context variables for a specific execution, allowing
+ * This class encapsulates the state of a program being executed, allowing
  * reentrancy and parallelism of executors
  */
-export class ExecutionContext {
+export class Process {
   /** Execution frames; each frame is a stack of values */
   private readonly frames: Value[][] = [[]];
 
@@ -614,7 +614,7 @@ export class ExecutionContext {
 /**
  * Helena program executor
  *
- * This class executes compiled programs in a provided context
+ * This class executes compiled programs in a provided process
  */
 export class Executor {
   /** Variable resolver used during execution */
@@ -646,111 +646,111 @@ export class Executor {
    *
    * Runs a flat loop over the program opcodes
    *
-   * By default a new context is created at each call. Passing a context object
+   * By default a new process is created at each call. Passing a process object
    * can be used to implement resumability, context switching, trampolines,
    * coroutines, etc.
    *
    * @param program   - Program to execute
-   * @param [context] - Execution context
+   * @param [process] - Program execution process (defaults to new)
    *
    * @returns           Last executed result
    */
-  execute(program: Program, context = new ExecutionContext()): Result {
-    if (context.result.code == ResultCode.YIELD && context.command?.resume) {
-      context.result = context.command.resume(context.result);
-      if (context.result.code != ResultCode.OK) return context.result;
+  execute(program: Program, process = new Process()): Result {
+    if (process.result.code == ResultCode.YIELD && process.command?.resume) {
+      process.result = process.command.resume(process.result);
+      if (process.result.code != ResultCode.OK) return process.result;
     }
-    while (context.pc < program.opCodes.length) {
-      const opcode = program.opCodes[context.pc++];
+    while (process.pc < program.opCodes.length) {
+      const opcode = program.opCodes[process.pc++];
       switch (opcode) {
         case OpCode.PUSH_NIL:
-          context.push(NIL);
+          process.push(NIL);
           break;
 
         case OpCode.PUSH_CONSTANT:
-          context.push(program.constants[context.cc++]);
+          process.push(program.constants[process.cc++]);
           break;
 
         case OpCode.OPEN_FRAME:
-          context.openFrame();
+          process.openFrame();
           break;
 
         case OpCode.CLOSE_FRAME:
           {
-            const values = context.closeFrame();
-            context.push(new TupleValue(values));
+            const values = process.closeFrame();
+            process.push(new TupleValue(values));
           }
           break;
 
         case OpCode.RESOLVE_VALUE:
           {
-            const source = context.pop();
-            context.push(this.resolveValue(source));
+            const source = process.pop();
+            process.push(this.resolveValue(source));
           }
           break;
 
         case OpCode.EXPAND_VALUE:
-          context.expand();
+          process.expand();
           break;
 
         case OpCode.SET_SOURCE:
           {
-            const source = context.pop();
-            context.push(new QualifiedValue(source, []));
+            const source = process.pop();
+            process.push(new QualifiedValue(source, []));
           }
           break;
 
         case OpCode.SELECT_INDEX:
           {
-            const index = context.pop();
+            const index = process.pop();
             const selector = new IndexedSelector(index);
-            const value = context.pop();
-            context.push(selector.apply(value));
+            const value = process.pop();
+            process.push(selector.apply(value));
           }
           break;
 
         case OpCode.SELECT_KEYS:
           {
-            const keys = context.pop() as TupleValue;
+            const keys = process.pop() as TupleValue;
             const selector = new KeyedSelector(keys.values);
-            const value = context.pop();
-            context.push(selector.apply(value));
+            const value = process.pop();
+            process.push(selector.apply(value));
           }
           break;
 
         case OpCode.SELECT_RULES:
           {
-            const rules = context.pop() as TupleValue;
+            const rules = process.pop() as TupleValue;
             const selector = this.resolveSelector(rules.values);
-            const value = context.pop();
+            const value = process.pop();
             if (value.select) {
-              context.push(value.select(selector));
+              process.push(value.select(selector));
             } else {
-              context.push(selector.apply(value));
+              process.push(selector.apply(value));
             }
           }
           break;
 
         case OpCode.EVALUATE_SENTENCE:
           {
-            const args = context.pop() as TupleValue;
+            const args = process.pop() as TupleValue;
             if (args.values.length) {
-              context.command = this.resolveCommand(args.values);
-              context.result = context.command.execute(args.values);
-              if (context.result.code != ResultCode.OK) return context.result;
+              process.command = this.resolveCommand(args.values);
+              process.result = process.command.execute(args.values);
+              if (process.result.code != ResultCode.OK) return process.result;
             }
           }
           break;
 
         case OpCode.PUSH_RESULT:
-          context.push(context.result.value);
+          process.push(process.result.value);
           break;
 
         case OpCode.JOIN_STRINGS:
           {
-            const tuple = context.pop() as TupleValue;
+            const tuple = process.pop() as TupleValue;
             const chunks = tuple.values.map((value) => value.asString());
-            context.push(new StringValue(chunks.join("")));
+            process.push(new StringValue(chunks.join("")));
           }
           break;
 
@@ -758,8 +758,8 @@ export class Executor {
           throw new Error("TODO");
       }
     }
-    if (context.frame().length) context.result = OK(context.pop());
-    return context.result;
+    if (process.frame().length) process.result = OK(process.pop());
+    return process.result;
   }
 
   /**

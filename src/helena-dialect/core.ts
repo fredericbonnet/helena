@@ -1,11 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command, ERROR, OK, Result } from "../core/command";
-import {
-  Compiler,
-  Executor,
-  Program,
-  ExecutionContext,
-} from "../core/compiler";
+import { Compiler, Executor, Program, Process } from "../core/compiler";
 import { VariableResolver, CommandResolver } from "../core/evaluator";
 import { Script, Word } from "../core/syntax";
 import {
@@ -87,8 +82,8 @@ export class Scope {
   compile(script: Script): Program {
     return this.compiler.compileScript(script);
   }
-  execute(program: Program, context?: ExecutionContext): Result {
-    return this.executor.execute(program, context);
+  execute(program: Program, process?: Process): Result {
+    return this.executor.execute(program, process);
   }
 
   resolveVariable(name: string): Value {

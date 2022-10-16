@@ -1,6 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command, Result, OK, ERROR, ResultCode, YIELD } from "../core/command";
-import { Program, ExecutionContext } from "../core/compiler";
+import { Program, Process } from "../core/compiler";
 import { Value, ScriptValue, StringValue } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { CommandValue, Scope } from "./core";
@@ -46,7 +46,7 @@ type ScopeBodyState = {
   scope: Scope;
   subscope: Scope;
   program: Program;
-  context: ExecutionContext;
+  process: Process;
   name?: Value;
 };
 export const scopeCmd = (scope: Scope): Command => ({
@@ -65,16 +65,16 @@ export const scopeCmd = (scope: Scope): Command => ({
 
     const subscope = new Scope(scope);
     const program = subscope.compile((body as ScriptValue).script);
-    const context = new ExecutionContext();
+    const process = new Process();
 
-    return executeScopeBody({ scope, subscope, program, context, name });
+    return executeScopeBody({ scope, subscope, program, process, name });
   },
   resume(result: Result): Result {
     return executeScopeBody(result.state as ScopeBodyState);
   },
 });
 const executeScopeBody = (state: ScopeBodyState): Result => {
-  const result = state.subscope.execute(state.program, state.context);
+  const result = state.subscope.execute(state.program, state.process);
 
   if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
   if (result.code != ResultCode.OK && result.code != ResultCode.RETURN)

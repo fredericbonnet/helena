@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { OK, ResultCode, RETURN } from "../core/command";
-import { ExecutionContext } from "../core/compiler";
+import { Process } from "../core/compiler";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { FALSE, TRUE, StringValue } from "../core/values";
@@ -68,18 +68,18 @@ describe("Helena logic operations", () => {
               expect(result.value).to.eql(new StringValue("value"));
             });
             it("should provide a resumable state", () => {
-              const context = new ExecutionContext();
+              const process = new Process();
               const program = rootScope.compile(
                 parse("! {yield val1; yield val2; true}")
               );
 
-              let result = rootScope.execute(program, context);
+              let result = rootScope.execute(program, process);
               expect(result.state).to.exist;
 
-              result = rootScope.execute(program, context);
+              result = rootScope.execute(program, process);
               expect(result.state).to.exist;
 
-              result = rootScope.execute(program, context);
+              result = rootScope.execute(program, process);
               expect(result).to.eql(OK(FALSE));
             });
           });
@@ -134,18 +134,18 @@ describe("Helena logic operations", () => {
               expect(result.value).to.eql(new StringValue("value"));
             });
             it("should provide a resumable state", () => {
-              const context = new ExecutionContext();
+              const process = new Process();
               const program = rootScope.compile(
                 parse("&& {yield val1; true} {yield val2; false} ")
               );
 
-              let result = rootScope.execute(program, context);
+              let result = rootScope.execute(program, process);
               expect(result.state).to.exist;
 
-              result = rootScope.execute(program, context);
+              result = rootScope.execute(program, process);
               expect(result.state).to.exist;
 
-              result = rootScope.execute(program, context);
+              result = rootScope.execute(program, process);
               expect(result).to.eql(OK(FALSE));
             });
           });
@@ -198,18 +198,18 @@ describe("Helena logic operations", () => {
               expect(result.value).to.eql(new StringValue("value"));
             });
             it("should provide a resumable state", () => {
-              const context = new ExecutionContext();
+              const process = new Process();
               const program = rootScope.compile(
                 parse("|| {yield val1; false} {yield val2; true} ")
               );
 
-              let result = rootScope.execute(program, context);
+              let result = rootScope.execute(program, process);
               expect(result.state).to.exist;
 
-              result = rootScope.execute(program, context);
+              result = rootScope.execute(program, process);
               expect(result.state).to.exist;
 
-              result = rootScope.execute(program, context);
+              result = rootScope.execute(program, process);
               expect(result).to.eql(OK(TRUE));
             });
           });
