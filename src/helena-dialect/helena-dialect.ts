@@ -1,5 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { idemCmd, returnCmd, yieldCmd } from "./basic-commands";
+import { evalCmd, idemCmd, returnCmd, yieldCmd } from "./basic-commands";
 import { macroCmd } from "./macros";
 import { Scope } from "./core";
 import { letCmd, setCmd, getCmd } from "./variables";
@@ -16,6 +16,7 @@ export function initCommands(scope: Scope) {
   scope.registerCommand("idem", idemCmd);
   scope.registerCommand("return", returnCmd);
   scope.registerCommand("yield", yieldCmd);
+  scope.registerCommand("eval", evalCmd);
 
   registerMathCommands(scope);
   registerLogicCommands(scope);

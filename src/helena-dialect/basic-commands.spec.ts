@@ -1,5 +1,6 @@
 import { expect } from "chai";
-import { ResultCode } from "../core/command";
+import { OK, ResultCode, RETURN } from "../core/command";
+import { Process } from "../core/compiler";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { NIL, StringValue, TupleValue } from "../core/values";
@@ -86,6 +87,96 @@ describe("Helena basic commands", () => {
       specify("wrong arity", () => {
         expect(() => evaluate("yield a b")).to.throw(
           'wrong # args: should be "yield ?result?"'
+        );
+      });
+    });
+  });
+
+  describe("eval", () => {
+    it("should return nil for empty body", () => {
+      expect(evaluate("eval {}")).to.eql(NIL);
+    });
+    it("should return the result of the last command", () => {
+      expect(execute("eval {idem val1; idem val2}")).to.eql(
+        OK(new StringValue("val2"))
+      );
+    });
+    it("should evaluate the body", () => {
+      evaluate("eval {let var val}");
+      expect(evaluate("get var")).to.eql(new StringValue("val"));
+    });
+    describe("control flow", () => {
+      describe("return", () => {
+        it("should interrupt the body with RETURN code", () => {
+          expect(
+            execute("eval {set var val1; return; set var val2}").code
+          ).to.eql(ResultCode.RETURN);
+          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+        });
+        it("should return passed value", () => {
+          expect(execute("eval {return val}")).to.eql(
+            RETURN(new StringValue("val"))
+          );
+        });
+      });
+      describe("yield", () => {
+        it("should interrupt the body with YIELD code", () => {
+          expect(
+            execute("eval {set var val1; yield; set var val2}").code
+          ).to.eql(ResultCode.YIELD);
+          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+        });
+        it("should provide a resumable state", () => {
+          const process = new Process();
+          const program = rootScope.compile(
+            parse("eval {set var val1; yield val2; set var val3}")
+          );
+
+          let result = rootScope.execute(program, process);
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(new StringValue("val2"));
+          expect(result.state).to.exist;
+          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+
+          result = rootScope.execute(program, process);
+          expect(result.code).to.eql(ResultCode.OK);
+          expect(result.value).to.eql(new StringValue("val3"));
+          expect(evaluate("get var")).to.eql(new StringValue("val3"));
+        });
+      });
+      it("should work recursively", () => {
+        const process = new Process();
+        const program = rootScope.compile(
+          parse("eval {eval {yield val1}; yield val2; eval {yield val3}}")
+        );
+
+        let result = rootScope.execute(program, process);
+        expect(result.code).to.eql(ResultCode.YIELD);
+        expect(result.value).to.eql(new StringValue("val1"));
+        expect(result.state).to.exist;
+
+        result = rootScope.execute(program, process);
+        expect(result.code).to.eql(ResultCode.YIELD);
+        expect(result.value).to.eql(new StringValue("val2"));
+        expect(result.state).to.exist;
+
+        result = rootScope.execute(program, process);
+        expect(result.code).to.eql(ResultCode.YIELD);
+        expect(result.value).to.eql(new StringValue("val3"));
+        expect(result.state).to.exist;
+
+        result = rootScope.execute(program, process);
+        expect(result.code).to.eql(ResultCode.OK);
+        expect(result.value).to.eql(new StringValue("val3"));
+      });
+    });
+    describe("exceptions", () => {
+      specify("wrong arity", () => {
+        expect(() => evaluate("eval")).to.throw(
+          'wrong # args: should be "eval body"'
+        );
+        expect(() => evaluate("eval a b")).to.throw(
+          'wrong # args: should be "eval body"'
         );
       });
     });
