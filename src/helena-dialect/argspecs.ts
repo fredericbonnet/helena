@@ -4,15 +4,15 @@ import {
   Value,
   StringValue,
   ValueType,
-  ListValue,
   ScriptValue,
   NIL,
+  TupleValue,
 } from "../core/values";
 import {
   Argument,
   ARITY_ERROR,
   buildArguments,
-  valueToList,
+  valueToArray,
 } from "./arguments";
 import { CommandValue, Scope } from "./core";
 
@@ -65,11 +65,7 @@ class ArgspecCommand implements Command {
       }
       case "set": {
         if (args.length != 3) return ARITY_ERROR("argspec set values");
-        setArguments(
-          scope,
-          this.value.argspec,
-          valueToList(scope, args[2]).values
-        );
+        setArguments(scope, this.value.argspec, valueToArray(scope, args[2]));
         return OK(NIL);
       }
       default:
@@ -173,7 +169,10 @@ export function applyArguments(
         }
         break;
       case "remainder":
-        setArgument(arg.name, new ListValue(values.slice(i, i + setRemainder)));
+        setArgument(
+          arg.name,
+          new TupleValue(values.slice(i, i + setRemainder))
+        );
         i += setRemainder;
     }
   }

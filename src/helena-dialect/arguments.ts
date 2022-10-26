@@ -23,7 +23,7 @@ export function buildArguments(scope: Scope, specs: Value): Argument[] {
   const args: Argument[] = [];
   const argnames = new Set<string>();
   let hasRemainder = false;
-  for (const value of valueToList(scope, specs).values) {
+  for (const value of valueToArray(scope, specs)) {
     const arg = buildArgument(scope, value);
     if (arg.type == "remainder" && hasRemainder)
       throw new Error("only one remainder argument is allowed");
@@ -40,7 +40,7 @@ function buildArgument(scope: Scope, value: Value): Argument {
     case ValueType.LIST:
     case ValueType.TUPLE:
     case ValueType.SCRIPT: {
-      const specs = valueToList(scope, value).values;
+      const specs = valueToArray(scope, value);
       if (specs.length == 0) throw new Error("empty argument specifier");
       const name = specs[0].asString();
       if (name == "" || name == "?") throw new Error("empty argument name");
@@ -86,15 +86,7 @@ function buildArgument(scope: Scope, value: Value): Argument {
   }
 }
 
-export function valueToList(scope: Scope, value: Value): ListValue {
-  switch (value.type) {
-    case ValueType.LIST:
-      return value as ListValue;
-    default:
-      return new ListValue(valueToArray(scope, value));
-  }
-}
-function valueToArray(scope: Scope, value: Value): Value[] {
+export function valueToArray(scope: Scope, value: Value): Value[] {
   switch (value.type) {
     case ValueType.LIST:
       return (value as ListValue).values;
