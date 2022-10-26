@@ -4,6 +4,7 @@ import { Process, Program } from "../core/compiler";
 import {
   BooleanValue,
   FALSE,
+  NIL,
   ScriptValue,
   StringValue,
   TRUE,
@@ -19,13 +20,37 @@ const BOOLEAN_ERROR = (value: Value) =>
 export const trueCmd: Command = {
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(TRUE);
-    throw new Error("TODO implement infix operators"); // TODO
+    const method = args[1].asString();
+    switch (method) {
+      case "?":
+        if (args.length < 3 || args.length > 4)
+          return ARITY_ERROR("true ? arg ?arg?");
+        return OK(args[2]);
+      case "!?":
+        if (args.length < 3 || args.length > 4)
+          return ARITY_ERROR("true !? arg ?arg?");
+        return OK(args.length == 4 ? args[3] : NIL);
+      default:
+        return ERROR(new StringValue(`invalid method name "${method}"`));
+    }
   },
 };
 export const falseCmd: Command = {
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(FALSE);
-    throw new Error("TODO implement infix operators"); // TODO
+    const method = args[1].asString();
+    switch (method) {
+      case "?":
+        if (args.length < 3 || args.length > 4)
+          return ARITY_ERROR("false ? arg ?arg?");
+        return OK(args.length == 4 ? args[3] : NIL);
+      case "!?":
+        if (args.length < 3 || args.length > 4)
+          return ARITY_ERROR("false !? arg ?arg?");
+        return OK(args[2]);
+      default:
+        return ERROR(new StringValue(`invalid method name "${method}"`));
+    }
   },
 };
 

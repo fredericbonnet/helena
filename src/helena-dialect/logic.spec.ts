@@ -3,7 +3,7 @@ import { OK, ResultCode, RETURN } from "../core/command";
 import { Process } from "../core/compiler";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, TRUE, StringValue } from "../core/values";
+import { FALSE, TRUE, StringValue, NIL } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -39,6 +39,68 @@ describe("Helena logic operations", () => {
     it("are idempotent", () => {
       expect(evaluate("[true]")).to.eql(TRUE);
       expect(evaluate("[false]")).to.eql(FALSE);
+    });
+    describe("methods", () => {
+      describe("?", () => {
+        describe("true", () => {
+          it("should return first argument", () => {
+            expect(evaluate("true ? a b")).to.eql(new StringValue("a"));
+          });
+        });
+        describe("false", () => {
+          it("should return nil if not second argument is given", () => {
+            expect(evaluate("false ? a")).to.eql(NIL);
+          });
+          it("should return second argument", () => {
+            expect(evaluate("false ? a b")).to.eql(new StringValue("b"));
+          });
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(() => evaluate("true ?")).to.throw(
+              'wrong # args: should be "true ? arg ?arg?'
+            );
+            expect(() => evaluate("false ?")).to.throw(
+              'wrong # args: should be "false ? arg ?arg?'
+            );
+          });
+        });
+      });
+      describe("!?", () => {
+        describe("true", () => {
+          it("should return nil if not second argument is given", () => {
+            expect(evaluate("true !? a")).to.eql(NIL);
+          });
+          it("should return second argument", () => {
+            expect(evaluate("true !? a b")).to.eql(new StringValue("b"));
+          });
+        });
+        describe("false", () => {
+          it("should return first argument", () => {
+            expect(evaluate("false !? a b")).to.eql(new StringValue("a"));
+          });
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(() => evaluate("true !?")).to.throw(
+              'wrong # args: should be "true !? arg ?arg?'
+            );
+            expect(() => evaluate("false !?")).to.throw(
+              'wrong # args: should be "false !? arg ?arg?'
+            );
+          });
+        });
+      });
+    });
+    describe("exceptions", () => {
+      specify("non-existing method", () => {
+        expect(() => evaluate("true unknownMethod")).to.throw(
+          'invalid method name "unknownMethod"'
+        );
+        expect(() => evaluate("false unknownMethod")).to.throw(
+          'invalid method name "unknownMethod"'
+        );
+      });
     });
   });
 
