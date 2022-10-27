@@ -1,5 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Command, ERROR, OK, Result } from "../core/command";
+import { Command, ERROR, OK, Result, ResultCode, YIELD } from "../core/command";
 import { Compiler, Executor, Program, Process } from "../core/compiler";
 import { VariableResolver, CommandResolver } from "../core/evaluator";
 import { Script, Word } from "../core/syntax";
@@ -9,6 +9,8 @@ import {
   ScriptValue,
   StringValue,
   NumberValue,
+  TupleValue,
+  NIL,
 } from "../core/values";
 import { numberCmd } from "./math";
 
@@ -94,15 +96,16 @@ export class Scope {
     throw new Error(`can't read "${name}": no such variable`);
   }
   resolveCommand(value: Value, recurse = true): Command {
+    if (value.type == ValueType.TUPLE) return tupleCmd;
     if (value instanceof CommandValue) return value.command;
     if (NumberValue.isNumber(value)) return numberCmd;
-    return this.resolveScopedCommand(value.asString(), recurse);
+    return this.resolveNamedCommand(value.asString(), recurse);
   }
-  private resolveScopedCommand(name: string, recurse: boolean): Command {
+  private resolveNamedCommand(name: string, recurse: boolean): Command {
     if (!this.context.commands.has(name)) {
       if (!recurse || !this.parent)
         throw new Error(`invalid command name "${name}"`);
-      return this.parent.resolveScopedCommand(name, recurse);
+      return this.parent.resolveNamedCommand(name, recurse);
     }
     return this.context.commands.get(name);
   }
@@ -146,4 +149,38 @@ export class Scope {
   registerCommand(name: string, command: Command) {
     this.context.commands.set(name, command);
   }
+}
+
+type TupleState = {
+  command: Command;
+  result: Result;
+};
+const tupleCmd: Command = {
+  execute(args: Value[], scope: Scope): Result {
+    const [command, args2] = resolveTuple(args, scope);
+    if (!command) return OK(NIL);
+    const result = command.execute(args2, scope);
+    if (result.code == ResultCode.YIELD)
+      return YIELD(result.value, { command, result });
+    return result;
+  },
+  resume(result: Result, scope: Scope): Result {
+    const { command, result: commandResult } = result.state as TupleState;
+    if (!command.resume) return commandResult;
+    const result2 = command.resume(commandResult, scope);
+    if (result2.code == ResultCode.YIELD)
+      return YIELD(result2.value, { command, result: result2 });
+    return result2;
+  },
+};
+
+function resolveTuple(args: Value[], scope: Scope): [Command, Value[]] {
+  if (args.length == 0) return [null, null];
+  const [lead, ...rest] = args;
+  if (lead.type != ValueType.TUPLE) {
+    const command = scope.resolveCommand(lead);
+    return [command, args];
+  }
+  const tuple = lead as TupleValue;
+  return resolveTuple([...tuple.values, ...rest], scope);
 }
