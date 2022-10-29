@@ -546,7 +546,9 @@ export class InlineEvaluator implements Evaluator {
   }
   private applySelectors(value: Value, selectors: Selector[]): Value {
     for (const selector of selectors) {
-      value = selector.apply(value);
+      const result = selector.apply(value);
+      if (result.code != ResultCode.OK) throw new Interrupt(result);
+      value = result.value;
     }
     return value;
   }

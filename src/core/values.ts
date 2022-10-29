@@ -9,6 +9,7 @@ import {
   KeyedSelector,
   Selector,
 } from "./selectors";
+import { ERROR, OK, Result, ResultCode } from "./command";
 
 /**
  * Helena value types
@@ -42,16 +43,16 @@ export interface Value {
   asString(): string;
 
   /** Select value at index */
-  selectIndex(index: Value): Value;
+  selectIndex(index: Value): Result;
 
   /** Select value at key */
-  selectKey(key: Value): Value;
+  selectKey(key: Value): Result;
 
   /** Select value from rules */
-  selectRules(rules: Value[]): Value;
+  selectRules(rules: Value[]): Result;
 
   /** Select value with selector */
-  select?(selector: Selector): Value;
+  select?(selector: Selector): Result;
 }
 
 /**
@@ -67,17 +68,17 @@ class NilValue implements Value {
   }
 
   /** @override */
-  selectIndex(_index: Value): Value {
+  selectIndex(_index: Value): Result {
     throw new Error("nil is not index-selectable");
   }
 
   /** @override */
-  selectKey(_key: Value): Value {
+  selectKey(_key: Value): Result {
     throw new Error("nil is not key-selectable");
   }
 
   /** @override */
-  selectRules(_rules: Value[]): Value {
+  selectRules(_rules: Value[]): Result {
     throw new Error("nil is not selectable");
   }
 }
@@ -160,17 +161,17 @@ export class BooleanValue implements Value {
   }
 
   /** @override */
-  selectIndex(_index: Value): Value {
+  selectIndex(_index: Value): Result {
     throw new Error("value is not index-selectable");
   }
 
   /** @override */
-  selectKey(_key: Value): Value {
+  selectKey(_key: Value): Result {
     throw new Error("value is not key-selectable");
   }
 
   /** @override */
-  selectRules(_rules: Value[]): Value {
+  selectRules(_rules: Value[]): Result {
     throw new Error("value is not selectable");
   }
 }
@@ -257,17 +258,17 @@ export class IntegerValue implements Value {
   }
 
   /** @override */
-  selectIndex(_index: Value): Value {
+  selectIndex(_index: Value): Result {
     throw new Error("value is not index-selectable");
   }
 
   /** @override */
-  selectKey(_key: Value): Value {
+  selectKey(_key: Value): Result {
     throw new Error("value is not key-selectable");
   }
 
   /** @override */
-  selectRules(_rules: Value[]): Value {
+  selectRules(_rules: Value[]): Result {
     throw new Error("value is not selectable");
   }
 }
@@ -352,17 +353,17 @@ export class NumberValue implements Value {
   }
 
   /** @override */
-  selectIndex(_index: Value): Value {
+  selectIndex(_index: Value): Result {
     throw new Error("value is not index-selectable");
   }
 
   /** @override */
-  selectKey(_key: Value): Value {
+  selectKey(_key: Value): Result {
     throw new Error("value is not key-selectable");
   }
 
   /** @override */
-  selectRules(_rules: Value[]): Value {
+  selectRules(_rules: Value[]): Result {
     throw new Error("value is not selectable");
   }
 }
@@ -390,19 +391,19 @@ export class StringValue implements Value {
   }
 
   /** @override */
-  selectIndex(index: Value): Value {
+  selectIndex(index: Value): Result {
     const i = IntegerValue.toInteger(index);
-    if (i < 0 || i >= this.value.length) throw new Error("index out of range");
-    return new StringValue(this.value[i]);
+    if (i < 0 || i >= this.value.length) return ERROR("index out of range");
+    return OK(new StringValue(this.value[i]));
   }
 
   /** @override */
-  selectKey(_key: Value): Value {
+  selectKey(_key: Value): Result {
     throw new Error("value is not key-selectable");
   }
 
   /** @override */
-  selectRules(_rules: Value[]): Value {
+  selectRules(_rules: Value[]): Result {
     throw new Error("value is not selectable");
   }
 }
@@ -432,19 +433,19 @@ export class ListValue implements Value {
   }
 
   /** @override */
-  selectIndex(index: Value): Value {
+  selectIndex(index: Value): Result {
     const i = IntegerValue.toInteger(index);
-    if (i < 0 || i >= this.values.length) throw new Error("index out of range");
-    return this.values[i];
+    if (i < 0 || i >= this.values.length) return ERROR("index out of range");
+    return OK(this.values[i]);
   }
 
   /** @override */
-  selectKey(_key: Value): Value {
+  selectKey(_key: Value): Result {
     throw new Error("value is not key-selectable");
   }
 
   /** @override */
-  selectRules(_rules: Value[]): Value {
+  selectRules(_rules: Value[]): Result {
     throw new Error("value is not selectable");
   }
 }
@@ -474,19 +475,19 @@ export class MapValue implements Value {
   }
 
   /** @override */
-  selectIndex(_index: Value): Value {
+  selectIndex(_index: Value): Result {
     throw new Error("value is not index-selectable");
   }
 
   /** @override */
-  selectKey(key: Value): Value {
+  selectKey(key: Value): Result {
     const k = key.asString();
-    if (!this.map.has(k)) throw new Error("unknown key");
-    return this.map.get(k);
+    if (!this.map.has(k)) return ERROR("unknown key");
+    return OK(this.map.get(k));
   }
 
   /** @override */
-  selectRules(_rules: Value[]): Value {
+  selectRules(_rules: Value[]): Result {
     throw new Error("value is not selectable");
   }
 }
@@ -517,23 +518,41 @@ export class TupleValue implements Value {
   }
 
   /** @override */
-  selectIndex(index: Value): Value {
-    return new TupleValue(this.values.map((value) => value.selectIndex(index)));
+  selectIndex(index: Value): Result {
+    const values = [];
+    for (const value of this.values) {
+      const result = value.selectIndex(index);
+      if (result.code != ResultCode.OK) return result;
+      values.push(result.value);
+    }
+    return OK(new TupleValue(values));
   }
 
   /** @override */
-  selectKey(key: Value): Value {
-    return new TupleValue(this.values.map((value) => value.selectKey(key)));
+  selectKey(key: Value): Result {
+    const values = [];
+    for (const value of this.values) {
+      const result = value.selectKey(key);
+      if (result.code != ResultCode.OK) return result;
+      values.push(result.value);
+    }
+    return OK(new TupleValue(values));
   }
 
   /** @override */
-  selectRules(_rules: Value[]): Value {
+  selectRules(_rules: Value[]): Result {
     throw new Error("value is not selectable");
   }
 
   /** @override */
-  select(selector: Selector): Value {
-    return new TupleValue(this.values.map((value) => selector.apply(value)));
+  select(selector: Selector): Result {
+    const values = [];
+    for (const value of this.values) {
+      const result = selector.apply(value);
+      if (result.code != ResultCode.OK) return result;
+      values.push(result.value);
+    }
+    return OK(new TupleValue(values));
   }
 }
 
@@ -567,20 +586,21 @@ export class ScriptValue implements Value {
   }
 
   /** @override */
-  selectIndex(_index: Value): Value {
+  selectIndex(_index: Value): Result {
     throw new Error("value is not index-selectable");
   }
 
   /** @override */
-  selectKey(_key: Value): Value {
+  selectKey(_key: Value): Result {
     throw new Error("value is not key-selectable");
   }
 
   /** @override */
-  selectRules(_rules: Value[]): Value {
+  selectRules(_rules: Value[]): Result {
     throw new Error("value is not selectable");
   }
 }
+
 /**
  * Qualified value
  *
@@ -612,33 +632,35 @@ export class QualifiedValue implements Value {
   }
 
   /** @override */
-  selectIndex(index: Value): Value {
+  selectIndex(index: Value): Result {
     return this.select(new IndexedSelector(index));
   }
 
   /** @override */
-  selectKey(key: Value): Value {
+  selectKey(key: Value): Result {
     if (
       this.selectors.length > 0 &&
       this.selectors[this.selectors.length - 1] instanceof KeyedSelector
     ) {
       // Merge successive keys
       const last = this.selectors[this.selectors.length - 1] as KeyedSelector;
-      return new QualifiedValue(this.source, [
-        ...this.selectors.slice(0, -1),
-        new KeyedSelector([...last.keys, key]),
-      ]);
+      return OK(
+        new QualifiedValue(this.source, [
+          ...this.selectors.slice(0, -1),
+          new KeyedSelector([...last.keys, key]),
+        ])
+      );
     }
     return this.select(new KeyedSelector([key]));
   }
 
   /** @override */
-  selectRules(rules: Value[]): Value {
+  selectRules(rules: Value[]): Result {
     return this.select(new GenericSelector(rules));
   }
 
   /** @override */
-  select(selector: Selector): Value {
-    return new QualifiedValue(this.source, [...this.selectors, selector]);
+  select(selector: Selector): Result {
+    return OK(new QualifiedValue(this.source, [...this.selectors, selector]));
   }
 }

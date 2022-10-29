@@ -1599,9 +1599,9 @@ describe("Compiler", () => {
       describe("custom selectors", () => {
         beforeEach(() => {
           const lastSelector = {
-            apply(value: Value): Value {
+            apply(value: Value): Result {
               const list = value as ListValue;
-              return list.values[list.values.length - 1];
+              return OK(list.values[list.values.length - 1]);
             },
           };
           selectorResolver.register(() => lastSelector);
@@ -1726,9 +1726,9 @@ describe("Compiler", () => {
           );
           variableResolver.register("var2", new StringValue("last"));
           selectorResolver.register(() => ({
-            apply(value: Value): Value {
+            apply(value: Value): Result {
               const list = value as ListValue;
-              return list.values[list.values.length - 1];
+              return OK(list.values[list.values.length - 1]);
             },
           }));
           expect(evaluate(program)).to.eql(new StringValue("value3"));

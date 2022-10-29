@@ -711,7 +711,9 @@ export class Executor {
             const index = process.pop();
             const selector = new IndexedSelector(index);
             const value = process.pop();
-            process.push(selector.apply(value));
+            const result = selector.apply(value);
+            if (result.code != ResultCode.OK) return result;
+            process.push(result.value);
           }
           break;
 
@@ -720,7 +722,9 @@ export class Executor {
             const keys = process.pop() as TupleValue;
             const selector = new KeyedSelector(keys.values);
             const value = process.pop();
-            process.push(selector.apply(value));
+            const result = selector.apply(value);
+            if (result.code != ResultCode.OK) return result;
+            process.push(result.value);
           }
           break;
 
@@ -729,11 +733,11 @@ export class Executor {
             const rules = process.pop() as TupleValue;
             const selector = this.resolveSelector(rules.values);
             const value = process.pop();
-            if (value.select) {
-              process.push(value.select(selector));
-            } else {
-              process.push(selector.apply(value));
-            }
+            const result = value.select
+              ? value.select(selector)
+              : selector.apply(value);
+            if (result.code != ResultCode.OK) return result;
+            process.push(result.value);
           }
           break;
 

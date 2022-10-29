@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { OK, Result } from "./command";
 import {
   GenericSelector,
   IndexedSelector,
@@ -22,17 +23,17 @@ class MockValue implements Value {
   asString(): string {
     throw new Error("Method not implemented.");
   }
-  selectIndex(index: Value): Value {
+  selectIndex(index: Value): Result {
     this.selectedIndex = index;
-    return this;
+    return OK(this);
   }
-  selectKey(key: Value): Value {
+  selectKey(key: Value): Result {
     this.selectedKeys.push(key);
-    return this;
+    return OK(this);
   }
-  selectRules(rules: []): Value {
+  selectRules(rules: []): Result {
     this.selectedRules = rules;
-    return this;
+    return OK(this);
   }
 }
 
@@ -41,7 +42,7 @@ describe("IndexedSelector", () => {
     const index = new StringValue("index");
     const selector = new IndexedSelector(index);
     const value = new MockValue();
-    expect(selector.apply(value)).to.eql(value);
+    expect(selector.apply(value)).to.eql(OK(value));
     expect(value.selectedIndex).to.eql(index);
   });
   describe("exceptions", () => {
@@ -56,14 +57,14 @@ describe("KeyedSelector", () => {
     const keys = [new StringValue("key")];
     const selector = new KeyedSelector(keys);
     const value = new MockValue();
-    expect(selector.apply(value)).to.eql(value);
+    expect(selector.apply(value)).to.eql(OK(value));
     expect(value.selectedKeys).to.eql(keys);
   });
   specify("multiple keys", () => {
     const keys = [new StringValue("key1"), new StringValue("key2")];
     const selector = new KeyedSelector(keys);
     const value = new MockValue();
-    expect(selector.apply(value)).to.eql(value);
+    expect(selector.apply(value)).to.eql(OK(value));
     expect(value.selectedKeys).to.eql(keys);
   });
   describe("exceptions", () => {
@@ -78,7 +79,7 @@ describe("GenericSelector", () => {
     const rules = [new StringValue("rule")];
     const selector = new GenericSelector(rules);
     const value = new MockValue();
-    expect(selector.apply(value)).to.eql(value);
+    expect(selector.apply(value)).to.eql(OK(value));
     expect(value.selectedRules).to.eql(rules);
   });
   specify("tuple rule", () => {
@@ -87,7 +88,7 @@ describe("GenericSelector", () => {
     ];
     const selector = new GenericSelector(rules);
     const value = new MockValue();
-    expect(selector.apply(value)).to.eql(value);
+    expect(selector.apply(value)).to.eql(OK(value));
     expect(value.selectedRules).to.eql(rules);
   });
   specify("multiple rules", () => {
@@ -97,7 +98,7 @@ describe("GenericSelector", () => {
     ];
     const selector = new GenericSelector(rules);
     const value = new MockValue();
-    expect(selector.apply(value)).to.eql(value);
+    expect(selector.apply(value)).to.eql(OK(value));
     expect(value.selectedRules).to.eql(rules);
   });
   describe("exceptions", () => {
@@ -113,14 +114,14 @@ specify("custom selectors", () => {
     constructor(name: string) {
       this.name = name;
     }
-    apply(value: Value): Value {
-      return new TupleValue([new StringValue(this.name), value]);
+    apply(value: Value): Result {
+      return OK(new TupleValue([new StringValue(this.name), value]));
     }
   }
 
   const selector = new CustomSelector("custom");
   const value = new MockValue();
   expect(selector.apply(value)).to.eql(
-    new TupleValue([new StringValue("custom"), value])
+    OK(new TupleValue([new StringValue("custom"), value]))
   );
 });

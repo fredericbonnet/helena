@@ -22,7 +22,7 @@ import {
   QualifiedValue,
   ValueType,
 } from "./values";
-import { Command, Result, ResultCode, OK, RETURN } from "./command";
+import { Command, Result, ResultCode, OK, RETURN, ERROR } from "./command";
 import {
   GenericSelector,
   IndexedSelector,
@@ -550,14 +550,14 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             describe("custom selectors", () => {
               beforeEach(() => {
                 const lastSelector = {
-                  apply(value: Value): Value {
+                  apply(value: Value): Result {
                     if (value.select) {
                       return value.select(this);
                     }
                     if (!(value instanceof ListValue))
-                      throw new Error("value is not a list");
+                      return ERROR("value is not a list");
                     const list = value as ListValue;
-                    return list.values[list.values.length - 1];
+                    return OK(list.values[list.values.length - 1]);
                   },
                 };
                 selectorResolver.register(() => lastSelector);
@@ -805,11 +805,11 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             let lastSelector;
             beforeEach(() => {
               lastSelector = {
-                apply(value: Value): Value {
+                apply(value: Value): Result {
                   if (!(value instanceof ListValue))
-                    throw new Error("value is not a list");
+                    return ERROR("value is not a list");
                   const list = value as ListValue;
-                  return list.values[list.values.length - 1];
+                  return OK(list.values[list.values.length - 1]);
                 },
               };
               selectorResolver.register(() => lastSelector);
@@ -1439,14 +1439,14 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
         describe("custom selectors", () => {
           beforeEach(() => {
             const lastSelector = {
-              apply(value: Value): Value {
+              apply(value: Value): Result {
                 if (value.select) {
                   return value.select(this);
                 }
                 if (!(value instanceof ListValue))
-                  throw new Error("value is not a list");
+                  return ERROR("value is not a list");
                 const list = value as ListValue;
-                return list.values[list.values.length - 1];
+                return OK(list.values[list.values.length - 1]);
               },
             };
             selectorResolver.register(() => lastSelector);

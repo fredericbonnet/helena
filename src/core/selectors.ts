@@ -2,6 +2,7 @@
  * @file Helena value selectors
  */
 
+import { OK, Result, ResultCode } from "./command";
 import { NIL, Value } from "./values";
 
 /**
@@ -17,7 +18,7 @@ export interface Selector {
    *
    * @returns       Selected subvalue
    */
-  apply(value: Value): Value;
+  apply(value: Value): Result;
 }
 
 /**
@@ -41,7 +42,7 @@ export class IndexedSelector implements Selector {
   }
 
   /** @override */
-  apply(value: Value): Value {
+  apply(value: Value): Result {
     return value.selectIndex(this.index);
   }
 }
@@ -66,11 +67,13 @@ export class KeyedSelector implements Selector {
   }
 
   /** @override */
-  apply(value: Value): Value {
+  apply(value: Value): Result {
     for (const key of this.keys) {
-      value = value.selectKey(key);
+      const result = value.selectKey(key);
+      if (result.code != ResultCode.OK) return result;
+      value = result.value;
     }
-    return value;
+    return OK(value);
   }
 }
 
@@ -93,7 +96,7 @@ export class GenericSelector implements Selector {
   }
 
   /** @override */
-  apply(value: Value): Value {
+  apply(value: Value): Result {
     return value.selectRules(this.rules);
   }
 }

@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { ERROR, OK } from "./command";
 import { GenericSelector, IndexedSelector, KeyedSelector } from "./selectors";
 import { Script } from "./syntax";
 import {
@@ -14,10 +15,14 @@ import {
   BooleanValue,
   FALSE,
   TRUE,
+  ValueType,
 } from "./values";
 
 describe("values", () => {
   describe("NIL", () => {
+    specify("type should be NIL", () => {
+      expect(NIL.type).to.eql(ValueType.NIL);
+    });
     it("should have no string representation", () => {
       expect(() => NIL.asString()).to.throw("nil has no string representation");
     });
@@ -37,6 +42,10 @@ describe("values", () => {
   });
 
   describe("BooleanValue", () => {
+    specify("type should be BOOLEAN", () => {
+      expect(TRUE.type).to.eql(ValueType.BOOLEAN);
+      expect(FALSE.type).to.eql(ValueType.BOOLEAN);
+    });
     specify("string representation should be true or false", () => {
       expect(TRUE.asString()).to.eql("true");
       expect(FALSE.asString()).to.eql("false");
@@ -91,6 +100,10 @@ describe("values", () => {
   });
 
   describe("IntegerValue", () => {
+    specify("type should be INTEGER", () => {
+      const value = new IntegerValue(123);
+      expect(value.type).to.eql(ValueType.INTEGER);
+    });
     specify(
       "string representation should be the decimal representation of its value",
       () => {
@@ -134,6 +147,10 @@ describe("values", () => {
   });
 
   describe("NumberValue", () => {
+    specify("type should be NUMBER", () => {
+      const value = new NumberValue(12.3);
+      expect(value.type).to.eql(ValueType.NUMBER);
+    });
     specify(
       "string representation should be the decimal representation of its value",
       () => {
@@ -181,6 +198,10 @@ describe("values", () => {
   });
 
   describe("StringValue", () => {
+    specify("type should be STRING", () => {
+      const value = new StringValue("some string");
+      expect(value.type).to.eql(ValueType.STRING);
+    });
     specify("string representation should be its value", () => {
       const string = "some string";
       const value = new StringValue(string);
@@ -191,13 +212,13 @@ describe("values", () => {
         const string = "some string";
         const value = new StringValue(string);
         const index = new IntegerValue(2);
-        expect(value.selectIndex(index)).to.eql(new StringValue(string[2]));
+        expect(value.selectIndex(index)).to.eql(OK(new StringValue(string[2])));
       });
       it("should accept integer strings", () => {
         const string = "some string";
         const value = new StringValue(string);
         const index = new StringValue("2");
-        expect(value.selectIndex(index)).to.eql(new StringValue(string[2]));
+        expect(value.selectIndex(index)).to.eql(OK(new StringValue(string[2])));
       });
       describe("exceptions", () => {
         specify("invalid index type", () => {
@@ -214,12 +235,12 @@ describe("values", () => {
         specify("index out of range", () => {
           const string = "some string";
           const value = new StringValue(string);
-          expect(() => value.selectIndex(new IntegerValue(-1))).to.throw(
-            "index out of range"
+          expect(value.selectIndex(new IntegerValue(-1))).to.eql(
+            ERROR("index out of range")
           );
-          expect(() =>
-            value.selectIndex(new IntegerValue(string.length))
-          ).to.throw("index out of range");
+          expect(value.selectIndex(new IntegerValue(string.length))).to.eql(
+            ERROR("index out of range")
+          );
         });
       });
     });
@@ -236,6 +257,10 @@ describe("values", () => {
   });
 
   describe("ListValue", () => {
+    specify("type should be LIST", () => {
+      const value = new ListValue([]);
+      expect(value.type).to.eql(ValueType.LIST);
+    });
     it("should have no string representation", () => {
       const value = new ListValue([]);
       expect(() => value.asString()).to.throw(
@@ -247,13 +272,13 @@ describe("values", () => {
         const values = [new StringValue("value1"), new StringValue("value2")];
         const value = new ListValue(values);
         const index = new IntegerValue(1);
-        expect(value.selectIndex(index)).to.eql(values[1]);
+        expect(value.selectIndex(index)).to.eql(OK(values[1]));
       });
       it("should accept integer strings", () => {
         const values = [new StringValue("value1"), new StringValue("value2")];
         const value = new ListValue(values);
         const index = new StringValue("0");
-        expect(value.selectIndex(index)).to.eql(values[0]);
+        expect(value.selectIndex(index)).to.eql(OK(values[0]));
       });
       describe("exceptions", () => {
         specify("invalid index type", () => {
@@ -270,12 +295,12 @@ describe("values", () => {
         specify("index out of range", () => {
           const values = [new StringValue("value1"), new StringValue("value2")];
           const value = new ListValue(values);
-          expect(() => value.selectIndex(new IntegerValue(-1))).to.throw(
-            "index out of range"
+          expect(value.selectIndex(new IntegerValue(-1))).to.eql(
+            ERROR("index out of range")
           );
-          expect(() =>
-            value.selectIndex(new IntegerValue(values.length))
-          ).to.throw("index out of range");
+          expect(value.selectIndex(new IntegerValue(values.length))).to.eql(
+            ERROR("index out of range")
+          );
         });
       });
     });
@@ -292,6 +317,10 @@ describe("values", () => {
   });
 
   describe("MapValue", () => {
+    specify("type should be MAP", () => {
+      const value = new MapValue({});
+      expect(value.type).to.eql(ValueType.MAP);
+    });
     it("should have no string representation", () => {
       const value = new MapValue({});
       expect(() => value.asString()).to.throw(
@@ -312,7 +341,7 @@ describe("values", () => {
         };
         const value = new MapValue(values);
         const key = new StringValue("key1");
-        expect(value.selectKey(key)).to.eql(values["key1"]);
+        expect(value.selectKey(key)).to.eql(OK(values["key1"]));
       });
       describe("exceptions", () => {
         specify("invalid key type", () => {
@@ -324,7 +353,7 @@ describe("values", () => {
         specify("unknown key value", () => {
           const value = new MapValue({});
           const index = new StringValue("foo");
-          expect(() => value.selectKey(index)).to.throw("unknown key");
+          expect(value.selectKey(index)).to.eql(ERROR("unknown key"));
         });
       });
     });
@@ -335,6 +364,10 @@ describe("values", () => {
   });
 
   describe("TupleValue", () => {
+    specify("type should be TUPLE", () => {
+      const value = new TupleValue([]);
+      expect(value.type).to.eql(ValueType.TUPLE);
+    });
     it("should have no string representation", () => {
       const value = new TupleValue([]);
       expect(() => value.asString()).to.throw(
@@ -350,7 +383,7 @@ describe("values", () => {
         const value = new TupleValue(values);
         const index = new IntegerValue(1);
         expect(value.selectIndex(index)).to.eql(
-          new TupleValue([new StringValue("value2"), new StringValue("2")])
+          OK(new TupleValue([new StringValue("value2"), new StringValue("2")]))
         );
       });
       it("should recurse into tuples", () => {
@@ -361,10 +394,12 @@ describe("values", () => {
         const value = new TupleValue(values);
         const index = new IntegerValue(1);
         expect(value.selectIndex(index)).to.eql(
-          new TupleValue([
-            new StringValue("value2"),
-            new TupleValue([new StringValue("2"), new StringValue("7")]),
-          ])
+          OK(
+            new TupleValue([
+              new StringValue("value2"),
+              new TupleValue([new StringValue("2"), new StringValue("7")]),
+            ])
+          )
         );
       });
     });
@@ -383,7 +418,12 @@ describe("values", () => {
         const value = new TupleValue(values);
         const key = new StringValue("key2");
         expect(value.selectKey(key)).to.eql(
-          new TupleValue([new StringValue("value2"), new StringValue("value3")])
+          OK(
+            new TupleValue([
+              new StringValue("value2"),
+              new StringValue("value3"),
+            ])
+          )
         );
       });
       it("should recurse into tuples", () => {
@@ -406,13 +446,15 @@ describe("values", () => {
         const value = new TupleValue(values);
         const key = new StringValue("key2");
         expect(value.selectKey(key)).to.eql(
-          new TupleValue([
-            new StringValue("value2"),
+          OK(
             new TupleValue([
-              new StringValue("value3"),
-              new StringValue("value5"),
-            ]),
-          ])
+              new StringValue("value2"),
+              new TupleValue([
+                new StringValue("value3"),
+                new StringValue("value5"),
+              ]),
+            ])
+          )
         );
       });
     });
@@ -429,7 +471,7 @@ describe("values", () => {
         const value = new TupleValue(values);
         const index = new IntegerValue(1);
         expect(value.select(new IndexedSelector(index))).to.eql(
-          new TupleValue([new StringValue("value2"), new StringValue("2")])
+          OK(new TupleValue([new StringValue("value2"), new StringValue("2")]))
         );
       });
       it("should recurse into tuples", () => {
@@ -452,19 +494,25 @@ describe("values", () => {
         const value = new TupleValue(values);
         const key = new StringValue("key2");
         expect(value.select(new KeyedSelector([key]))).to.eql(
-          new TupleValue([
-            new StringValue("value2"),
+          OK(
             new TupleValue([
-              new StringValue("value3"),
-              new StringValue("value5"),
-            ]),
-          ])
+              new StringValue("value2"),
+              new TupleValue([
+                new StringValue("value3"),
+                new StringValue("value5"),
+              ]),
+            ])
+          )
         );
       });
     });
   });
 
   describe("ScriptValue", () => {
+    specify("type should be SCRIPT", () => {
+      const value = new ScriptValue(new Script(), "");
+      expect(value.type).to.eql(ValueType.SCRIPT);
+    });
     specify("script representation should be its value", () => {
       const script = "cmd arg1 arg2";
       const value = new ScriptValue(new Script(), script);
@@ -489,6 +537,10 @@ describe("values", () => {
   });
 
   describe("QualifiedValue", () => {
+    specify("type should be QUALIFIED", () => {
+      const value = new QualifiedValue(new StringValue("name"), []);
+      expect(value.type).to.eql(ValueType.QUALIFIED);
+    });
     it("should have no string representation", () => {
       const value = new QualifiedValue(new StringValue("name"), []);
       expect(() => value.asString()).to.throw(
@@ -499,9 +551,11 @@ describe("values", () => {
       it("should return a new qualified value", () => {
         const value = new QualifiedValue(new StringValue("name"), []);
         expect(value.selectIndex(new StringValue("index"))).to.eql(
-          new QualifiedValue(new StringValue("name"), [
-            new IndexedSelector(new StringValue("index")),
-          ])
+          OK(
+            new QualifiedValue(new StringValue("name"), [
+              new IndexedSelector(new StringValue("index")),
+            ])
+          )
         );
       });
     });
@@ -509,9 +563,11 @@ describe("values", () => {
       it("should return a new qualified value", () => {
         const value = new QualifiedValue(new StringValue("name"), []);
         expect(value.selectKey(new StringValue("key"))).to.eql(
-          new QualifiedValue(new StringValue("name"), [
-            new KeyedSelector([new StringValue("key")]),
-          ])
+          OK(
+            new QualifiedValue(new StringValue("name"), [
+              new KeyedSelector([new StringValue("key")]),
+            ])
+          )
         );
       });
       it("should aggregate keys", () => {
@@ -521,18 +577,20 @@ describe("values", () => {
           new KeyedSelector([new StringValue("key3"), new StringValue("key4")]),
         ]);
         expect(value.selectKey(new StringValue("key5"))).to.eql(
-          new QualifiedValue(new StringValue("name"), [
-            new KeyedSelector([
-              new StringValue("key1"),
-              new StringValue("key2"),
-            ]),
-            new IndexedSelector(new StringValue("index")),
-            new KeyedSelector([
-              new StringValue("key3"),
-              new StringValue("key4"),
-              new StringValue("key5"),
-            ]),
-          ])
+          OK(
+            new QualifiedValue(new StringValue("name"), [
+              new KeyedSelector([
+                new StringValue("key1"),
+                new StringValue("key2"),
+              ]),
+              new IndexedSelector(new StringValue("index")),
+              new KeyedSelector([
+                new StringValue("key3"),
+                new StringValue("key4"),
+                new StringValue("key5"),
+              ]),
+            ])
+          )
         );
       });
     });
@@ -540,9 +598,11 @@ describe("values", () => {
       it("should return a new qualified value", () => {
         const value = new QualifiedValue(new StringValue("name"), []);
         expect(value.selectRules([new StringValue("rule")])).to.eql(
-          new QualifiedValue(new StringValue("name"), [
-            new GenericSelector([new StringValue("rule")]),
-          ])
+          OK(
+            new QualifiedValue(new StringValue("name"), [
+              new GenericSelector([new StringValue("rule")]),
+            ])
+          )
         );
       });
     });
@@ -551,11 +611,11 @@ describe("values", () => {
         const value = new QualifiedValue(new StringValue("name"), []);
         const selector = {
           apply() {
-            return new StringValue("value");
+            return OK(new StringValue("value"));
           },
         };
         expect(value.select(selector)).to.eql(
-          new QualifiedValue(new StringValue("name"), [selector])
+          OK(new QualifiedValue(new StringValue("name"), [selector]))
         );
       });
     });
