@@ -6,7 +6,6 @@ import {
   FALSE,
   NIL,
   ScriptValue,
-  StringValue,
   TRUE,
   Value,
   ValueType,
@@ -15,7 +14,7 @@ import { ARITY_ERROR } from "./arguments";
 import { Scope } from "./core";
 
 const BOOLEAN_ERROR = (value: Value) =>
-  ERROR(new StringValue(`invalid boolean "${value.asString()}"`));
+  ERROR(`invalid boolean "${value.asString()}"`);
 
 export const trueCmd: Command = {
   execute(args: Value[]): Result {
@@ -31,7 +30,7 @@ export const trueCmd: Command = {
           return ARITY_ERROR("true !? arg ?arg?");
         return OK(args.length == 4 ? args[3] : NIL);
       default:
-        return ERROR(new StringValue(`invalid method name "${method}"`));
+        return ERROR(`invalid method name "${method}"`);
     }
   },
 };
@@ -49,7 +48,7 @@ export const falseCmd: Command = {
           return ARITY_ERROR("false !? arg ?arg?");
         return OK(args[2]);
       default:
-        return ERROR(new StringValue(`invalid method name "${method}"`));
+        return ERROR(`invalid method name "${method}"`);
     }
   },
 };

@@ -73,7 +73,7 @@ export class PicolScope {
 const EMPTY: Result = OK(new StringValue(""));
 
 const ARITY_ERROR = (signature: string) =>
-  ERROR(new StringValue(`wrong # args: should be "${signature}"`));
+  ERROR(`wrong # args: should be "${signature}"`);
 
 const addCmd: Command = {
   execute: (args) => {
@@ -457,7 +457,7 @@ const continueCmd: Command = {
 const errorCmd: Command = {
   execute: (args) => {
     if (args.length != 2) return ARITY_ERROR("error message");
-    return ERROR(args[1]);
+    return { code: ResultCode.ERROR, value: args[1] };
   },
 };
 

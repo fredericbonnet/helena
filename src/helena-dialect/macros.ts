@@ -1,7 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command, Result, ResultCode, YIELD, OK, ERROR } from "../core/command";
 import { Program, Process } from "../core/compiler";
-import { ScriptValue, StringValue, Value } from "../core/values";
+import { ScriptValue, Value } from "../core/values";
 import {
   applyArguments,
   Argspec,
@@ -46,9 +46,7 @@ class MacroValueCommand implements Command {
         return this.value.macro.execute(cmdline, scope);
       }
       default:
-        return ERROR(
-          new StringValue(`invalid method name "${method.asString()}"`)
-        );
+        return ERROR(`invalid method name "${method.asString()}"`);
     }
   }
 }

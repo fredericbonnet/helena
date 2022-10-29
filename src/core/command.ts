@@ -2,7 +2,7 @@
  * @file Helena commands
  */
 
-import { NIL, Value } from "./values";
+import { NIL, StringValue, Value } from "./values";
 
 /** Supported command result codes */
 export enum ResultCode {
@@ -46,8 +46,8 @@ export const BREAK = (value: Value = NIL): Result => {
 export const CONTINUE = (value: Value = NIL): Result => {
   return { code: ResultCode.CONTINUE, value };
 };
-export const ERROR = (value: Value): Result => {
-  return { code: ResultCode.ERROR, value };
+export const ERROR = (message: string): Result => {
+  return { code: ResultCode.ERROR, value: new StringValue(message) };
 };
 /* eslint-enable jsdoc/require-jsdoc */
 

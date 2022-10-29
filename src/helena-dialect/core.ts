@@ -7,7 +7,6 @@ import {
   Value,
   ValueType,
   ScriptValue,
-  StringValue,
   NumberValue,
   TupleValue,
   NIL,
@@ -112,17 +111,13 @@ export class Scope {
 
   setConstant(name: string, value: Value): Result {
     if (this.context.locals?.has(name)) {
-      return ERROR(new StringValue(`cannot redefine local "${name}"`));
+      return ERROR(`cannot redefine local "${name}"`);
     }
     if (this.context.constants.has(name)) {
-      return ERROR(new StringValue(`cannot redefine constant "${name}"`));
+      return ERROR(`cannot redefine constant "${name}"`);
     }
     if (this.context.variables.has(name)) {
-      return ERROR(
-        new StringValue(
-          `cannot define constant "${name}": variable already exists`
-        )
-      );
+      return ERROR(`cannot define constant "${name}": variable already exists`);
     }
 
     this.context.constants.set(name, value);
@@ -130,10 +125,10 @@ export class Scope {
   }
   setVariable(name: string, value: Value): Result {
     if (this.context.locals?.has(name)) {
-      return ERROR(new StringValue(`cannot redefine local "${name}"`));
+      return ERROR(`cannot redefine local "${name}"`);
     }
     if (this.context.constants.has(name)) {
-      return ERROR(new StringValue(`cannot redefine constant "${name}"`));
+      return ERROR(`cannot redefine constant "${name}"`);
     }
     if (this.context.variables.has(name)) {
       this.context.variables.get(name).value = value;

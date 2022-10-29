@@ -3,7 +3,6 @@ import { ERROR, ResultCode } from "../core/command";
 import {
   ListValue,
   ScriptValue,
-  StringValue,
   TupleValue,
   Value,
   ValueType,
@@ -11,7 +10,7 @@ import {
 import { Scope } from "./core";
 
 export const ARITY_ERROR = (signature: string) =>
-  ERROR(new StringValue(`wrong # args: should be "${signature}"`));
+  ERROR(`wrong # args: should be "${signature}"`);
 
 export type Argument = {
   name: string;

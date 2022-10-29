@@ -1,25 +1,14 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Result, OK, Command, ERROR } from "../core/command";
-import {
-  Value,
-  IntegerValue,
-  NumberValue,
-  StringValue,
-  TRUE,
-  FALSE,
-} from "../core/values";
+import { Value, IntegerValue, NumberValue, TRUE, FALSE } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Scope } from "./core";
 
 const NUMBER_ERROR = (value: Value) =>
-  ERROR(new StringValue(`invalid number "${value.asString()}"`));
+  ERROR(`invalid number "${value.asString()}"`);
 
 const OPERATOR_ARITY_ERROR = (operator: string) =>
-  ERROR(
-    new StringValue(
-      `wrong # operands: should be "operand1 ${operator} operand2"`
-    )
-  );
+  ERROR(`wrong # operands: should be "operand1 ${operator} operand2"`);
 
 export const numberCmd = {
   execute(args: Value[]): Result {
@@ -41,7 +30,7 @@ export const numberCmd = {
         return leOp(args, operand1);
       // TODO arithmetic operators
       default:
-        return ERROR(new StringValue(`invalid method name "${method}"`));
+        return ERROR(`invalid method name "${method}"`);
     }
   },
 };

@@ -683,19 +683,19 @@ describe("Picol dialect", () => {
               execute(
                 "for {set i 0} {< $i 10} {incr i} {set var before$i; error message; set var after$i}; set var"
               )
-            ).to.eql(ERROR(new StringValue("message")));
+            ).to.eql(ERROR("message"));
           });
           it("should interrupt a while loop", () => {
             expect(
               execute(
                 "while true {set var before; error message; set var after}; set var"
               )
-            ).to.eql(ERROR(new StringValue("message")));
+            ).to.eql(ERROR("message"));
           });
           it("should interrupt a proc", () => {
             expect(
               execute("proc cmd {} {error message; set var val}; cmd")
-            ).to.eql(ERROR(new StringValue("message")));
+            ).to.eql(ERROR("message"));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {

@@ -1,7 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command, ERROR, OK, Result, ResultCode, YIELD } from "../core/command";
 import { Program, Process } from "../core/compiler";
-import { Value, ScriptValue, StringValue, FALSE, TRUE } from "../core/values";
+import { Value, ScriptValue, FALSE, TRUE } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { CommandValue, Scope } from "./core";
 
@@ -61,9 +61,8 @@ class CoroutineCommand implements Command {
         if (args.length != 2 && args.length != 3)
           return ARITY_ERROR("coroutine yield ?value?");
         if (this.value.state == "inactive")
-          return ERROR(new StringValue("coroutine is inactive"));
-        if (this.value.state == "done")
-          return ERROR(new StringValue("coroutine is done"));
+          return ERROR("coroutine is inactive");
+        if (this.value.state == "done") return ERROR("coroutine is done");
         if (args.length == 3) {
           this.value.process.result = YIELD(
             args[2],
@@ -84,9 +83,7 @@ class CoroutineCommand implements Command {
         return result;
       }
       default:
-        return ERROR(
-          new StringValue(`invalid method name "${method.asString()}"`)
-        );
+        return ERROR(`invalid method name "${method.asString()}"`);
     }
   }
 }

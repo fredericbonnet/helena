@@ -69,9 +69,7 @@ class ArgspecCommand implements Command {
         return OK(NIL);
       }
       default:
-        return ERROR(
-          new StringValue(`invalid method name "${method.asString()}"`)
-        );
+        return ERROR(`invalid method name "${method.asString()}"`);
     }
   }
 }

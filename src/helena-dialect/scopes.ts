@@ -1,7 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command, Result, OK, ERROR, ResultCode, YIELD } from "../core/command";
 import { Program, Process } from "../core/compiler";
-import { Value, ScriptValue, StringValue } from "../core/values";
+import { Value, ScriptValue } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { CommandValue, Scope } from "./core";
 
@@ -36,9 +36,7 @@ class ScopeCommand implements Command {
           .execute(cmdline, this.value.scope);
       }
       default:
-        return ERROR(
-          new StringValue(`invalid method name "${method.asString()}"`)
-        );
+        return ERROR(`invalid method name "${method.asString()}"`);
     }
   }
 }
