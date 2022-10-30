@@ -59,12 +59,12 @@ export class PicolScope {
     return this.variables.get(name);
   }
   resolveCommand(name: Value): Command {
-    return this.resolveScopedCommand(name.asString());
+    return this.resolveNamedCommand(name.asString());
   }
-  resolveScopedCommand(name: string): Command {
+  private resolveNamedCommand(name: string): Command {
     if (!this.commands.has(name)) {
-      if (!this.parent) throw new Error(`invalid command name "${name}"`);
-      return this.parent.resolveScopedCommand(name);
+      if (!this.parent) return;
+      return this.parent.resolveNamedCommand(name);
     }
     return this.commands.get(name);
   }
@@ -78,52 +78,68 @@ const ARITY_ERROR = (signature: string) =>
 const addCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("+ arg ?arg ...?");
-    const result = args.reduce((total, arg, i) => {
-      if (i == 0) return 0;
-      const v = NumberValue.toNumber(arg);
-      return total + v;
-    }, 0);
-    return OK(new NumberValue(result));
+    try {
+      const result = args.reduce((total, arg, i) => {
+        if (i == 0) return 0;
+        const v = NumberValue.toNumber(arg);
+        return total + v;
+      }, 0);
+      return OK(new NumberValue(result));
+    } catch (e) {
+      return ERROR(e.message);
+    }
   },
 };
 const subtractCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("- arg ?arg ...?");
-    if (args.length == 2) {
-      const v = NumberValue.toNumber(args[1]);
-      return OK(new NumberValue(-v));
+    try {
+      if (args.length == 2) {
+        const v = NumberValue.toNumber(args[1]);
+        return OK(new NumberValue(-v));
+      }
+      const result = args.reduce((total, arg, i) => {
+        if (i == 0) return 0;
+        const v = NumberValue.toNumber(arg);
+        if (i == 1) return v;
+        return total - v;
+      }, 0);
+      return OK(new NumberValue(result));
+    } catch (e) {
+      return ERROR(e.message);
     }
-    const result = args.reduce((total, arg, i) => {
-      if (i == 0) return 0;
-      const v = NumberValue.toNumber(arg);
-      if (i == 1) return v;
-      return total - v;
-    }, 0);
-    return OK(new NumberValue(result));
   },
 };
 
 const multiplyCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("* arg ?arg ...?");
-    const result = args.reduce((total, arg, i) => {
-      if (i == 0) return 1;
-      const v = NumberValue.toNumber(arg);
-      return total * v;
-    }, 1);
-    return OK(new NumberValue(result));
+    try {
+      const result = args.reduce((total, arg, i) => {
+        if (i == 0) return 1;
+        const v = NumberValue.toNumber(arg);
+        return total * v;
+      }, 1);
+      return OK(new NumberValue(result));
+    } catch (e) {
+      return ERROR(e.message);
+    }
   },
 };
 const divideCmd: Command = {
   execute: (args) => {
     if (args.length < 3) return ARITY_ERROR("/ arg arg ?arg ...?");
-    const result = args.reduce((total, arg, i) => {
-      if (i == 0) return 1;
-      const v = NumberValue.toNumber(arg);
-      if (i == 1) return v;
-      return total / v;
-    }, 0);
-    return OK(new NumberValue(result));
+    try {
+      const result = args.reduce((total, arg, i) => {
+        if (i == 0) return 1;
+        const v = NumberValue.toNumber(arg);
+        if (i == 1) return v;
+        return total / v;
+      }, 0);
+      return OK(new NumberValue(result));
+    } catch (e) {
+      return ERROR(e.message);
+    }
   },
 };
 
@@ -133,7 +149,11 @@ const compareValuesCmd = (
 ): Command => ({
   execute: (args) => {
     if (args.length != 3) return ARITY_ERROR(`${name} arg arg`);
-    return fn(args[1], args[2]) ? OK(TRUE) : OK(FALSE);
+    try {
+      return fn(args[1], args[2]) ? OK(TRUE) : OK(FALSE);
+    } catch (e) {
+      return ERROR(e.message);
+    }
   },
 });
 const eqCmd = compareValuesCmd(
@@ -151,9 +171,13 @@ const compareNumbersCmd = (
 ): Command => ({
   execute: (args) => {
     if (args.length != 3) return ARITY_ERROR(`${name} arg arg`);
-    const op1 = NumberValue.toNumber(args[1]);
-    const op2 = NumberValue.toNumber(args[2]);
-    return fn(op1, op2) ? OK(TRUE) : OK(FALSE);
+    try {
+      const op1 = NumberValue.toNumber(args[1]);
+      const op2 = NumberValue.toNumber(args[2]);
+      return fn(op1, op2) ? OK(TRUE) : OK(FALSE);
+    } catch (e) {
+      return ERROR(e.message);
+    }
   },
 });
 
@@ -287,7 +311,7 @@ function evaluateCondition(value: Value, scope: PicolScope): Result {
   if (s == "true" || s == "yes" || s == "1") return OK(TRUE);
   if (s == "false" || s == "no" || s == "0") return OK(FALSE);
   const i = parseInt(s);
-  if (isNaN(i)) throw new Error(`invalid boolean "${s}"`);
+  if (isNaN(i)) return ERROR(`invalid boolean "${s}"`);
   return OK(i ? TRUE : FALSE);
 }
 
@@ -295,7 +319,11 @@ const setCmd: Command = {
   execute: (args, scope: PicolScope) => {
     switch (args.length) {
       case 2:
-        return OK(scope.variableResolver.resolve(args[1].asString()));
+        try {
+          return OK(scope.variableResolver.resolve(args[1].asString()));
+        } catch (e) {
+          return ERROR(e.message);
+        }
       case 3:
         scope.variables.set(args[1].asString(), args[2]);
         return OK(args[2]);
@@ -306,24 +334,28 @@ const setCmd: Command = {
 };
 const incrCmd: Command = {
   execute: (args, scope: PicolScope) => {
-    let increment: number;
-    switch (args.length) {
-      case 2:
-        increment = 1;
-        break;
-      case 3:
-        increment = NumberValue.toNumber(args[2]);
-        break;
-      default:
-        return ARITY_ERROR("incr varName ?increment?");
+    try {
+      let increment: number;
+      switch (args.length) {
+        case 2:
+          increment = 1;
+          break;
+        case 3:
+          increment = NumberValue.toNumber(args[2]);
+          break;
+        default:
+          return ARITY_ERROR("incr varName ?increment?");
+      }
+      const varName = args[1].asString();
+      const value = scope.variables.get(varName);
+      const result = new NumberValue(
+        (value ? NumberValue.toNumber(value) : 0) + increment
+      );
+      scope.variables.set(varName, result);
+      return OK(result);
+    } catch (e) {
+      return ERROR(e.message);
     }
-    const varName = args[1].asString();
-    const value = scope.variables.get(varName);
-    const result = new NumberValue(
-      (value ? NumberValue.toNumber(value) : 0) + increment
-    );
-    scope.variables.set(varName, result);
-    return OK(result);
   },
 };
 
@@ -427,12 +459,16 @@ const procCmd: Command = {
   execute: (args, scope: PicolScope) => {
     if (args.length != 4) return ARITY_ERROR("proc name args body");
     const [, name, _argspecs, body] = args;
-    const argspecs = valueToArgspecs(_argspecs);
-    scope.commands.set(
-      name.asString(),
-      new ProcCommand(argspecs, body as ScriptValue)
-    );
-    return EMPTY;
+    try {
+      const argspecs = valueToArgspecs(_argspecs);
+      scope.commands.set(
+        name.asString(),
+        new ProcCommand(argspecs, body as ScriptValue)
+      );
+      return EMPTY;
+    } catch (e) {
+      return ERROR(e.message);
+    }
   },
 };
 

@@ -92,41 +92,31 @@ describe("SyntaxChecker", () => {
           const script = parse(value + LITERAL);
           const word = firstWord(script);
           expect(word.morphemes).to.have.length(2);
-          expect(() => checker.checkWord(word)).to.throw(
-            "invalid word structure"
-          );
+          expect(checker.checkWord(word)).to.eql(WordType.INVALID);
         });
         specify(type + "/substitution", () => {
           const script = parse(value + "$" + LITERAL);
           const word = firstWord(script);
           expect(word.morphemes).to.have.length(3);
-          expect(() => checker.checkWord(word)).to.throw(
-            "invalid word structure"
-          );
+          expect(checker.checkWord(word)).to.eql(WordType.INVALID);
         });
         specify("expression/" + type, () => {
           const script = parse(EXPRESSION + value);
           const word = firstWord(script);
           expect(word.morphemes).to.have.length(2);
-          expect(() => checker.checkWord(word)).to.throw(
-            "invalid word structure"
-          );
+          expect(checker.checkWord(word)).to.eql(WordType.INVALID);
         });
         specify("literal/" + type + "/literal", () => {
           const script = parse(LITERAL + value + LITERAL);
           const word = firstWord(script);
           expect(word.morphemes).to.have.length(3);
-          expect(() => checker.checkWord(word)).to.throw(
-            "invalid word structure"
-          );
+          expect(checker.checkWord(word)).to.eql(WordType.INVALID);
         });
         specify("literal/" + type + "/substitution", () => {
           const script = parse(LITERAL + value + "$" + LITERAL);
           const word = firstWord(script);
           expect(word.morphemes).to.have.length(4);
-          expect(() => checker.checkWord(word)).to.throw(
-            "invalid word structure"
-          );
+          expect(checker.checkWord(word)).to.eql(WordType.INVALID);
         });
       }
     });
@@ -213,9 +203,7 @@ describe("SyntaxChecker", () => {
         );
         const word = firstWord(script);
         expect(word.morphemes).to.have.length(7);
-        expect(() => checker.checkWord(word)).to.throw(
-          "invalid word structure"
-        );
+        expect(checker.checkWord(word)).to.eql(WordType.INVALID);
       });
     });
   });
@@ -232,12 +220,12 @@ describe("SyntaxChecker", () => {
   describe("impossible cases", () => {
     specify("empty word", () => {
       const word = new Word();
-      expect(() => checker.checkWord(word)).to.throw("empty word");
+      expect(checker.checkWord(word)).to.eql(WordType.INVALID);
     });
     specify("empty substitution", () => {
       const word = new Word();
       word.morphemes.push({ type: MorphemeType.SUBSTITUTE_NEXT });
-      expect(() => checker.checkWord(word)).to.throw("invalid word structure");
+      expect(checker.checkWord(word)).to.eql(WordType.INVALID);
     });
     describe("incompatible morphemes", () => {
       for (const [type1, value1] of [...monomorphemes, ...ignored]) {
@@ -246,17 +234,13 @@ describe("SyntaxChecker", () => {
             const word = new Word();
             word.morphemes.push(firstWord(parse(value1)).morphemes[0]);
             word.morphemes.push(firstWord(parse(value2)).morphemes[0]);
-            expect(() => checker.checkWord(word)).to.throw(
-              "invalid word structure"
-            );
+            expect(checker.checkWord(word)).to.eql(WordType.INVALID);
           });
           specify(type2 + "/" + type1, () => {
             const word = new Word();
             word.morphemes.push(firstWord(parse(value2)).morphemes[0]);
             word.morphemes.push(firstWord(parse(value1)).morphemes[0]);
-            expect(() => checker.checkWord(word)).to.throw(
-              "invalid word structure"
-            );
+            expect(checker.checkWord(word)).to.eql(WordType.INVALID);
           });
         }
       }
@@ -264,9 +248,7 @@ describe("SyntaxChecker", () => {
         const word = new Word();
         word.morphemes.push({ type: MorphemeType.SUBSTITUTE_NEXT });
         word.morphemes.push({ type: MorphemeType.BLOCK_COMMENT });
-        expect(() => checker.checkWord(word)).to.throw(
-          "invalid word structure"
-        );
+        expect(checker.checkWord(word)).to.eql(WordType.INVALID);
       });
     });
   });

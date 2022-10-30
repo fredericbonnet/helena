@@ -63,7 +63,7 @@ class MacroCommand implements Command {
 
   execute(args: Value[], scope: Scope): Result {
     if (!checkArity(this.value.argspec, args, 1)) {
-      throw new Error(
+      return ERROR(
         `wrong # args: should be "${args[0].asString()} ${this.value.argspec.help.asString()}"`
       );
     }
@@ -72,7 +72,9 @@ class MacroCommand implements Command {
       locals.set(name, value);
       return OK(value);
     };
-    applyArguments(scope, this.value.argspec, args, 1, setarg);
+    // TODO handle YIELD?
+    const result = applyArguments(scope, this.value.argspec, args, 1, setarg);
+    if (result.code != ResultCode.OK) return result;
     const subscope = new Scope(scope, new ScopeContext(scope.context, locals));
     const process = new Process();
     return this.run({ scope: subscope, process });

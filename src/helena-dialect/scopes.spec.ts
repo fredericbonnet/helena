@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { OK, ResultCode } from "../core/command";
+import { ERROR, OK, ResultCode } from "../core/command";
 import { Process } from "../core/compiler";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
@@ -16,12 +16,7 @@ describe("Helena scopes", () => {
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
   const execute = (script: string) =>
     rootScope.execute(rootScope.compile(parse(script)));
-  const evaluate = (script: string) => {
-    const result = execute(script);
-    if (result.code == ResultCode.ERROR)
-      throw new Error(result.value.asString());
-    return result.value;
-  };
+  const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
     rootScope = new Scope();
@@ -38,7 +33,7 @@ describe("Helena scopes", () => {
     });
     it("should replace existing commands", () => {
       evaluate("scope cmd {}");
-      expect(() => evaluate("scope cmd {}")).to.not.throw();
+      expect(execute("scope cmd {}").code).to.eql(ResultCode.OK);
     });
     it("should return a command value", () => {
       expect(evaluate("scope {}")).to.be.instanceof(CommandValue);
@@ -62,11 +57,11 @@ describe("Helena scopes", () => {
         );
       });
       it("should access global commands", () => {
-        expect(() => evaluate("scope {idem val}")).to.not.throw();
+        expect(execute("scope {idem val}").code).to.eql(ResultCode.OK);
       });
       it("should not access global variables", () => {
         evaluate("set var val");
-        expect(() => evaluate("scope {get var}")).to.throw();
+        expect(execute("scope {get var}").code).to.eql(ResultCode.ERROR);
       });
       it("should not set global variables", () => {
         evaluate("set var val");
@@ -167,15 +162,15 @@ describe("Helena scopes", () => {
           expect(rootScope.context.constants.get("cst")).to.eql(
             new StringValue("val")
           );
-          expect(() => evaluate("cmd eval {get cst}")).to.throw();
+          expect(execute("cmd eval {get cst}").code).to.eql(ResultCode.ERROR);
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("[scope {}] eval")).to.throw(
-              'wrong # args: should be "scope eval body'
+            expect(execute("[scope {}] eval")).to.eql(
+              ERROR('wrong # args: should be "scope eval body"')
             );
-            expect(() => evaluate("[scope {}] eval a b")).to.throw(
-              'wrong # args: should be "scope eval body'
+            expect(execute("[scope {}] eval a b")).to.eql(
+              ERROR('wrong # args: should be "scope eval body"')
             );
           });
         });
@@ -199,37 +194,37 @@ describe("Helena scopes", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("[scope {}] call")).to.throw(
-              'wrong # args: should be "scope call cmdname ?arg ...?"'
+            expect(execute("[scope {}] call")).to.eql(
+              ERROR('wrong # args: should be "scope call cmdname ?arg ...?"')
             );
           });
           specify("non-existing command", () => {
-            expect(() => evaluate("[scope {}] call unknownCommand")).to.throw(
-              'invalid command name "unknownCommand"'
+            expect(execute("[scope {}] call unknownCommand")).to.eql(
+              ERROR('invalid command name "unknownCommand"')
             );
           });
           specify("out-of-scope command", () => {
-            expect(() =>
-              evaluate("macro cmd {} {}; [scope {}] call cmd")
-            ).to.throw('invalid command name "cmd"');
+            expect(execute("macro cmd {} {}; [scope {}] call cmd")).to.eql(
+              ERROR('invalid command name "cmd"')
+            );
           });
         });
       });
       describe("exceptions", () => {
         specify("non-existing method", () => {
-          expect(() => evaluate("[scope {}] unknownMethod")).to.throw(
-            'invalid method name "unknownMethod"'
+          expect(execute("[scope {}] unknownMethod")).to.eql(
+            ERROR('invalid method name "unknownMethod"')
           );
         });
       });
     });
     describe("exceptions", () => {
       specify("wrong arity", () => {
-        expect(() => evaluate("scope")).to.throw(
-          'wrong # args: should be "scope ?name? body"'
+        expect(execute("scope")).to.eql(
+          ERROR('wrong # args: should be "scope ?name? body"')
         );
-        expect(() => evaluate("scope a b c")).to.throw(
-          'wrong # args: should be "scope ?name? body"'
+        expect(execute("scope a b c")).to.eql(
+          ERROR('wrong # args: should be "scope ?name? body"')
         );
       });
     });

@@ -64,7 +64,7 @@ class ClosureCommand implements Command {
 
   execute(args: Value[]): Result {
     if (!checkArity(this.value.argspec, args, 1)) {
-      throw new Error(
+      return ERROR(
         `wrong # args: should be "${args[0].asString()} ${this.value.argspec.help.asString()}"`
       );
     }
@@ -73,13 +73,21 @@ class ClosureCommand implements Command {
       locals.set(name, value);
       return OK(value);
     };
-    applyArguments(this.value.scope, this.value.argspec, args, 1, setarg);
-    const scope = new Scope(
+    // TODO handle YIELD?
+    const result = applyArguments(
+      this.value.scope,
+      this.value.argspec,
+      args,
+      1,
+      setarg
+    );
+    if (result.code != ResultCode.OK) return result;
+    const subscope = new Scope(
       this.value.scope,
       new ScopeContext(this.value.scope.context, locals)
     );
     const process = new Process();
-    return this.run({ scope, process });
+    return this.run({ scope: subscope, process });
   }
   resume(result: Result): Result {
     return this.run(result.state as ClosureState);

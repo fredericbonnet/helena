@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { OK, ResultCode } from "../core/command";
+import { ERROR, OK, ResultCode } from "../core/command";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { FALSE, StringValue, TRUE } from "../core/values";
@@ -15,12 +15,7 @@ describe("Helena coroutines", () => {
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
   const execute = (script: string) =>
     rootScope.execute(rootScope.compile(parse(script)));
-  const evaluate = (script: string) => {
-    const result = execute(script);
-    if (result.code == ResultCode.ERROR)
-      throw new Error(result.value.asString());
-    return result.value;
-  };
+  const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
     rootScope = new Scope();
@@ -122,8 +117,8 @@ describe("Helena coroutines", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("[coroutine {}] wait a")).to.throw(
-              'wrong # args: should be "coroutine wait'
+            expect(execute("[coroutine {}] wait a")).to.eql(
+              ERROR('wrong # args: should be "coroutine wait"')
             );
           });
         });
@@ -151,8 +146,8 @@ describe("Helena coroutines", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("[coroutine {}] active a")).to.throw(
-              'wrong # args: should be "coroutine active'
+            expect(execute("[coroutine {}] active a")).to.eql(
+              ERROR('wrong # args: should be "coroutine active"')
             );
           });
         });
@@ -180,8 +175,8 @@ describe("Helena coroutines", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("[coroutine {}] done a")).to.throw(
-              'wrong # args: should be "coroutine done'
+            expect(execute("[coroutine {}] done a")).to.eql(
+              ERROR('wrong # args: should be "coroutine done"')
             );
           });
         });
@@ -201,37 +196,37 @@ describe("Helena coroutines", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("[coroutine {}] yield a b")).to.throw(
-              'wrong # args: should be "coroutine yield ?value?'
+            expect(execute("[coroutine {}] yield a b")).to.eql(
+              ERROR('wrong # args: should be "coroutine yield ?value?"')
             );
           });
           specify("inactive coroutine", () => {
             evaluate("set cr [coroutine {}]");
-            expect(() => evaluate("[coroutine {}] yield")).to.throw(
-              "coroutine is inactive"
+            expect(execute("[coroutine {}] yield")).to.eql(
+              ERROR("coroutine is inactive")
             );
           });
           specify("completed coroutine", () => {
             evaluate("set cr [coroutine {}]; $cr wait");
-            expect(() => evaluate("$cr yield")).to.throw("coroutine is done");
+            expect(execute("$cr yield")).to.eql(ERROR("coroutine is done"));
           });
         });
       });
       describe("exceptions", () => {
         specify("non-existing method", () => {
-          expect(() => evaluate("[coroutine {}] unknownMethod")).to.throw(
-            'invalid method name "unknownMethod"'
+          expect(execute("[coroutine {}] unknownMethod")).to.eql(
+            ERROR('invalid method name "unknownMethod"')
           );
         });
       });
     });
     describe("exceptions", () => {
       specify("wrong arity", () => {
-        expect(() => evaluate("coroutine")).to.throw(
-          'wrong # args: should be "coroutine body"'
+        expect(execute("coroutine")).to.eql(
+          ERROR('wrong # args: should be "coroutine body"')
         );
-        expect(() => evaluate("coroutine a b")).to.throw(
-          'wrong # args: should be "coroutine body"'
+        expect(execute("coroutine a b")).to.eql(
+          ERROR('wrong # args: should be "coroutine body"')
         );
       });
     });

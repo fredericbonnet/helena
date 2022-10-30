@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { OK, ResultCode, RETURN } from "../core/command";
+import { ERROR, OK, ResultCode, RETURN } from "../core/command";
 import { Process } from "../core/compiler";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
@@ -16,12 +16,7 @@ describe("Helena logic operations", () => {
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
   const execute = (script: string) =>
     rootScope.execute(rootScope.compile(parse(script)));
-  const evaluate = (script: string) => {
-    const result = execute(script);
-    if (result.code == ResultCode.ERROR)
-      throw new Error(result.value.asString());
-    return result.value;
-  };
+  const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
     rootScope = new Scope();
@@ -57,11 +52,11 @@ describe("Helena logic operations", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("true ?")).to.throw(
-              'wrong # args: should be "true ? arg ?arg?'
+            expect(execute("true ?")).to.eql(
+              ERROR('wrong # args: should be "true ? arg ?arg?"')
             );
-            expect(() => evaluate("false ?")).to.throw(
-              'wrong # args: should be "false ? arg ?arg?'
+            expect(execute("false ?")).to.eql(
+              ERROR('wrong # args: should be "false ? arg ?arg?"')
             );
           });
         });
@@ -82,11 +77,11 @@ describe("Helena logic operations", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("true !?")).to.throw(
-              'wrong # args: should be "true !? arg ?arg?'
+            expect(execute("true !?")).to.eql(
+              ERROR('wrong # args: should be "true !? arg ?arg?"')
             );
-            expect(() => evaluate("false !?")).to.throw(
-              'wrong # args: should be "false !? arg ?arg?'
+            expect(execute("false !?")).to.eql(
+              ERROR('wrong # args: should be "false !? arg ?arg?"')
             );
           });
         });
@@ -94,11 +89,11 @@ describe("Helena logic operations", () => {
     });
     describe("exceptions", () => {
       specify("non-existing method", () => {
-        expect(() => evaluate("true unknownMethod")).to.throw(
-          'invalid method name "unknownMethod"'
+        expect(execute("true unknownMethod")).to.eql(
+          ERROR('invalid method name "unknownMethod"')
         );
-        expect(() => evaluate("false unknownMethod")).to.throw(
-          'invalid method name "unknownMethod"'
+        expect(execute("false unknownMethod")).to.eql(
+          ERROR('invalid method name "unknownMethod"')
         );
       });
     });
@@ -148,14 +143,14 @@ describe("Helena logic operations", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("!")).to.throw(
-              'wrong # args: should be "! arg"'
+            expect(execute("!")).to.eql(
+              ERROR('wrong # args: should be "! arg"')
             );
           });
           specify("invalid value", () => {
-            expect(() => evaluate("! 1")).to.throw('invalid boolean "1"');
-            expect(() => evaluate("! 1.23")).to.throw('invalid boolean "1.23"');
-            expect(() => evaluate("! a")).to.throw('invalid boolean "a"');
+            expect(execute("! 1")).to.eql(ERROR('invalid boolean "1"'));
+            expect(execute("! 1.23")).to.eql(ERROR('invalid boolean "1.23"'));
+            expect(execute("! a")).to.eql(ERROR('invalid boolean "a"'));
           });
         });
       });
@@ -214,12 +209,12 @@ describe("Helena logic operations", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("&&")).to.throw(
-              'wrong # args: should be "&& arg ?arg ...?"'
+            expect(execute("&&")).to.eql(
+              ERROR('wrong # args: should be "&& arg ?arg ...?"')
             );
           });
           specify("invalid value", () => {
-            expect(() => evaluate("&& a")).to.throw('invalid boolean "a"');
+            expect(execute("&& a")).to.eql(ERROR('invalid boolean "a"'));
           });
         });
       });
@@ -278,12 +273,12 @@ describe("Helena logic operations", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("||")).to.throw(
-              'wrong # args: should be "|| arg ?arg ...?"'
+            expect(execute("||")).to.eql(
+              ERROR('wrong # args: should be "|| arg ?arg ...?"')
             );
           });
           specify("invalid value", () => {
-            expect(() => evaluate("|| a")).to.throw('invalid boolean "a"');
+            expect(execute("|| a")).to.eql(ERROR('invalid boolean "a"'));
           });
         });
       });

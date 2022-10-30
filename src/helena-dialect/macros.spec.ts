@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { OK, ResultCode, RETURN } from "../core/command";
+import { ERROR, OK, ResultCode, RETURN } from "../core/command";
 import { Process } from "../core/compiler";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
@@ -16,12 +16,7 @@ describe("Helena macros", () => {
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
   const execute = (script: string) =>
     rootScope.execute(rootScope.compile(parse(script)));
-  const evaluate = (script: string) => {
-    const result = execute(script);
-    if (result.code == ResultCode.ERROR)
-      throw new Error(result.value.asString());
-    return result.value;
-  };
+  const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
     rootScope = new Scope();
@@ -38,7 +33,7 @@ describe("Helena macros", () => {
     });
     it("should replace existing commands", () => {
       evaluate("macro cmd {} {}");
-      expect(() => evaluate("macro cmd {} {}")).to.not.throw();
+      expect(execute("macro cmd {} {}").code).to.eql(ResultCode.OK);
     });
     it("should return a command value", () => {
       expect(evaluate("macro {} {}")).to.be.instanceof(CommandValue);
@@ -92,9 +87,9 @@ describe("Helena macros", () => {
             "scope scp1 {set cmd [macro {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}]}"
           );
           evaluate("scope scp2 {[scp1 eval {get cmd}] call}");
-          expect(() => evaluate("scp1 eval {get cst}")).to.throw();
-          expect(() => evaluate("scp1 eval {get var}")).to.throw();
-          expect(() => evaluate("scp1 eval {cmd2}")).to.throw();
+          expect(execute("scp1 eval {get cst}").code).to.eql(ResultCode.ERROR);
+          expect(execute("scp1 eval {get var}").code).to.eql(ResultCode.ERROR);
+          expect(execute("scp1 eval {cmd2}").code).to.eql(ResultCode.ERROR);
           expect(evaluate("scp2 eval {get cst}")).to.eql(
             new StringValue("val1")
           );
@@ -137,11 +132,11 @@ describe("Helena macros", () => {
       describe("exceptions", () => {
         specify("wrong arity", () => {
           evaluate("macro cmd {a} {}");
-          expect(() => evaluate("cmd")).to.throw(
-            'wrong # args: should be "cmd a"'
+          expect(execute("cmd")).to.eql(
+            ERROR('wrong # args: should be "cmd a"')
           );
-          expect(() => evaluate("cmd 1 2")).to.throw(
-            'wrong # args: should be "cmd a"'
+          expect(execute("cmd 1 2")).to.eql(
+            ERROR('wrong # args: should be "cmd a"')
           );
         });
       });
@@ -209,22 +204,22 @@ describe("Helena macros", () => {
       });
       describe("exceptions", () => {
         specify("non-existing method", () => {
-          expect(() => evaluate("[macro {} {}] unknownMethod")).to.throw(
-            'invalid method name "unknownMethod"'
+          expect(execute("[macro {} {}] unknownMethod")).to.eql(
+            ERROR('invalid method name "unknownMethod"')
           );
         });
       });
     });
     describe("exceptions", () => {
       specify("wrong arity", () => {
-        expect(() => evaluate("macro")).to.throw(
-          'wrong # args: should be "macro ?name? argspec body"'
+        expect(execute("macro")).to.eql(
+          ERROR('wrong # args: should be "macro ?name? argspec body"')
         );
-        expect(() => evaluate("macro a")).to.throw(
-          'wrong # args: should be "macro ?name? argspec body"'
+        expect(execute("macro a")).to.eql(
+          ERROR('wrong # args: should be "macro ?name? argspec body"')
         );
-        expect(() => evaluate("macro a b c d")).to.throw(
-          'wrong # args: should be "macro ?name? argspec body"'
+        expect(execute("macro a b c d")).to.eql(
+          ERROR('wrong # args: should be "macro ?name? argspec body"')
         );
       });
     });

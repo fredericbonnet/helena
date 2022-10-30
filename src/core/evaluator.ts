@@ -29,7 +29,7 @@ import {
   ValueType,
   QualifiedValue,
 } from "./values";
-import { Command, OK, Result, ResultCode } from "./command";
+import { Command, ERROR, OK, Result, ResultCode } from "./command";
 import { Compiler, Executor } from "./compiler";
 
 /**
@@ -207,7 +207,7 @@ export class InlineEvaluator implements Evaluator {
       const cmdname = values[0];
       const command = this.commandResolver.resolve(cmdname);
       if (!command)
-        throw new Error(`cannot resolve command ${cmdname.asString()}`);
+        return ERROR(`cannot resolve command ${cmdname.asString()}`);
       return command.execute(values, this.context);
     } catch (e) {
       if (e instanceof Interrupt) return e.result;
@@ -222,7 +222,14 @@ export class InlineEvaluator implements Evaluator {
   /** @override */
   evaluateWord(word: Word): Value {
     const type = this.syntaxChecker.checkWord(word);
-    return this.getWordValue(word, type);
+    if (type == WordType.INVALID) throw new Error("invalid word structure");
+    try {
+      return this.getWordValue(word, type);
+    } catch (e) {
+      if (e instanceof Interrupt && e.result.code == ResultCode.ERROR)
+        throw new Error(e.result.value.asString());
+      throw e;
+    }
   }
   private getWordValue(word: Word, type: WordType): Value {
     switch (type) {
@@ -265,6 +272,7 @@ export class InlineEvaluator implements Evaluator {
     const values: Value[] = [];
     for (const word of words) {
       const type = this.syntaxChecker.checkWord(word);
+      if (type == WordType.INVALID) throw new Error("invalid word structure");
       const value = this.getWordValue(word, type);
       if (value == NIL) continue;
       if (
@@ -473,7 +481,8 @@ export class InlineEvaluator implements Evaluator {
 
   private resolveVariable(varname: string): Value {
     const value = this.variableResolver.resolve(varname);
-    if (!value) throw new Error(`cannot resolve variable ${varname}`);
+    if (!value)
+      throw new Interrupt(ERROR(`cannot resolve variable ${varname}`));
     return value;
   }
   private resolveVariables(tuple: TupleValue): TupleValue {
@@ -629,6 +638,9 @@ export class CompilingEvaluator implements Evaluator {
    */
   evaluateWord(word: Word): Value {
     const program = this.compiler.compileWord(word);
-    return this.executor.execute(program).value;
+    const result = this.executor.execute(program);
+    if (result.code == ResultCode.ERROR)
+      throw new Error(result.value.asString());
+    return result.value;
   }
 }

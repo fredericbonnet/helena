@@ -198,6 +198,9 @@ export enum WordType {
 
   /** Ignored words are line and block comments */
   IGNORED,
+
+  /** Invalid word structure */
+  INVALID,
 }
 
 /**
@@ -214,14 +217,12 @@ export class SyntaxChecker {
    * @returns      Checked word type
    */
   checkWord(word: Word): WordType {
-    if (word.morphemes.length == 0) throw new Error("empty word");
+    if (word.morphemes.length == 0) return WordType.INVALID;
     switch (word.morphemes[0].type) {
-      case MorphemeType.LITERAL:
-        try {
-          return this.checkQualifiedWord(word);
-        } catch {
-          return this.checkCompoundWord(word);
-        }
+      case MorphemeType.LITERAL: {
+        const type = this.checkQualifiedWord(word);
+        return type == WordType.INVALID ? this.checkCompoundWord(word) : type;
+      }
       case MorphemeType.EXPRESSION:
         return this.checkCompoundWord(word);
       case MorphemeType.TUPLE:
@@ -240,7 +241,7 @@ export class SyntaxChecker {
   }
 
   private checkRootWord(word: Word): WordType {
-    if (word.morphemes.length != 1) throw new Error("invalid word structure");
+    if (word.morphemes.length != 1) return WordType.INVALID;
     return WordType.ROOT;
   }
 
@@ -248,7 +249,7 @@ export class SyntaxChecker {
     /* Lone morphemes are roots */
     if (word.morphemes.length == 1) return WordType.ROOT;
 
-    this.checkStems(word.morphemes);
+    if (this.checkStems(word.morphemes) < 0) return WordType.INVALID;
     return WordType.COMPOUND;
   }
 
@@ -257,19 +258,22 @@ export class SyntaxChecker {
     if (word.morphemes.length == 1) return WordType.ROOT;
 
     const selectors = this.skipSelectors(word.morphemes, 1);
-    if (selectors != word.morphemes.length)
-      throw new Error("invalid word structure");
+    if (selectors != word.morphemes.length) return WordType.INVALID;
     return WordType.QUALIFIED;
   }
 
   private checkSubstitutionWord(word: Word): WordType {
-    if (word.morphemes.length < 2) throw new Error("invalid word structure");
+    if (word.morphemes.length < 2) return WordType.INVALID;
     const nbStems = this.checkStems(word.morphemes);
-    return nbStems > 1 ? WordType.COMPOUND : WordType.SUBSTITUTION;
+    return nbStems < 0
+      ? WordType.INVALID
+      : nbStems > 1
+      ? WordType.COMPOUND
+      : WordType.SUBSTITUTION;
   }
 
   private checkIgnoredWord(word: Word): WordType {
-    if (word.morphemes.length != 1) throw new Error("invalid word structure");
+    if (word.morphemes.length != 1) return WordType.INVALID;
     return WordType.IGNORED;
   }
 
@@ -278,7 +282,7 @@ export class SyntaxChecker {
    *
    * @param morphemes - Morphemes to check
    *
-   * @returns           Number of stems
+   * @returns           Number of stems, or < 0 if error
    */
   private checkStems(morphemes: Morpheme[]): number {
     let nbStems = 0;
@@ -297,7 +301,7 @@ export class SyntaxChecker {
             break;
 
           default:
-            throw new Error("invalid word structure");
+            return -1;
         }
       } else {
         switch (morpheme.type) {
@@ -313,7 +317,7 @@ export class SyntaxChecker {
             break;
 
           default:
-            throw new Error("invalid word structure");
+            return -1;
         }
       }
     }

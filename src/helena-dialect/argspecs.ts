@@ -1,5 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Command, Result, OK, ERROR } from "../core/command";
+import { Command, Result, OK, ERROR, ResultCode } from "../core/command";
 import {
   Value,
   StringValue,
@@ -65,8 +65,12 @@ class ArgspecCommand implements Command {
       }
       case "set": {
         if (args.length != 3) return ARITY_ERROR("argspec set values");
-        setArguments(scope, this.value.argspec, valueToArray(scope, args[2]));
-        return OK(NIL);
+        // TODO handle YIELD?
+        return setArguments(
+          scope,
+          this.value.argspec,
+          valueToArray(scope, args[2])
+        );
       }
       default:
         return ERROR(`invalid method name "${method.asString()}"`);
@@ -87,12 +91,16 @@ export const argspecCmd: Command = {
         return ARITY_ERROR("argspec ?name? specs");
     }
 
-    const argspec = valueToArgspec(scope, specs);
-    const command = new ArgspecCommand(argspec);
-    if (name) {
-      scope.registerCommand(name.asString(), command);
+    try {
+      const argspec = valueToArgspec(scope, specs);
+      const command = new ArgspecCommand(argspec);
+      if (name) {
+        scope.registerCommand(name.asString(), command);
+      }
+      return OK(command.value);
+    } catch (e) {
+      return ERROR(e.message);
     }
-    return OK(command.value);
   },
 };
 
@@ -119,10 +127,10 @@ function setArguments(
   argspec: Argspec,
   values: Value[],
   skip = 0
-) {
+): Result {
   if (!checkArity(argspec, values, skip))
-    throw new Error(`wrong # values: should be "${argspec.help.asString()}"`);
-  applyArguments(scope, argspec, values, skip, (name, value) =>
+    return ERROR(`wrong # values: should be "${argspec.help.asString()}"`);
+  return applyArguments(scope, argspec, values, skip, (name, value) =>
     scope.setVariable(name, value)
   );
 }
@@ -139,7 +147,7 @@ export function applyArguments(
   values: Value[],
   skip: number,
   setArgument: (name: string, value: Value) => Result
-) {
+): Result {
   let setOptionals = Math.min(
     argspec.nbOptional,
     values.length - argspec.nbRequired
@@ -147,33 +155,37 @@ export function applyArguments(
   const setRemainder = values.length - argspec.nbRequired - setOptionals;
   let i = skip;
   for (const arg of argspec.args) {
+    let value: Value;
     switch (arg.type) {
       case "required":
-        setArgument(arg.name, values[i++]);
+        value = values[i++];
         break;
       case "optional":
         if (setOptionals > 0) {
           setOptionals--;
-          setArgument(arg.name, values[i++]);
+          value = values[i++];
         } else if (arg.default) {
           if (arg.default.type == ValueType.SCRIPT) {
             const body = arg.default as ScriptValue;
             const result = scope.executeScript(body);
-            // TODO propagate result codes
-            setArgument(arg.name, result.value);
+            // TODO handle YIELD?
+            if (result.code != ResultCode.OK) return result;
+            value = result.value;
           } else {
-            setArgument(arg.name, arg.default);
+            value = arg.default;
           }
-        }
+        } else continue; // Skip missing optional
         break;
       case "remainder":
-        setArgument(
-          arg.name,
-          new TupleValue(values.slice(i, i + setRemainder))
-        );
+        value = new TupleValue(values.slice(i, i + setRemainder));
         i += setRemainder;
+        break;
     }
+    const result = setArgument(arg.name, value);
+    // TODO handle YIELD?
+    if (result.code != ResultCode.OK) return result;
   }
+  return OK(NIL);
 }
 
 export function valueToArgspec(scope: Scope, value: Value): Argspec {

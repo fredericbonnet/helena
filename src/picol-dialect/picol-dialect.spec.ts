@@ -29,12 +29,7 @@ describe("Picol dialect", () => {
         parser.parse(tokenizer.tokenize(script));
       const execute = (script: string) =>
         evaluator.executeScript(parse(script));
-      const evaluate = (script: string) => {
-        const result = execute(script);
-        if (result.code == ResultCode.ERROR)
-          throw new Error(result.value.asString());
-        return result.value;
-      };
+      const evaluate = (script: string) => execute(script).value;
 
       beforeEach(() => {
         rootScope = new PicolScope();
@@ -74,12 +69,12 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("+")).to.throw(
-                'wrong # args: should be "+ arg ?arg ...?"'
+              expect(execute("+")).to.eql(
+                ERROR('wrong # args: should be "+ arg ?arg ...?"')
               );
             });
             specify("invalid value", () => {
-              expect(() => evaluate("+ a")).to.throw('invalid number "a"');
+              expect(execute("+ a")).to.eql(ERROR('invalid number "a"'));
             });
           });
         });
@@ -109,12 +104,12 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("-")).to.throw(
-                'wrong # args: should be "- arg ?arg ...?"'
+              expect(execute("-")).to.eql(
+                ERROR('wrong # args: should be "- arg ?arg ...?"')
               );
             });
             specify("invalid value", () => {
-              expect(() => evaluate("- a")).to.throw('invalid number "a"');
+              expect(execute("- a")).to.eql(ERROR('invalid number "a"'));
             });
           });
         });
@@ -143,12 +138,12 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("*")).to.throw(
-                'wrong # args: should be "* arg ?arg ...?"'
+              expect(execute("*")).to.eql(
+                ERROR('wrong # args: should be "* arg ?arg ...?"')
               );
             });
             specify("invalid value", () => {
-              expect(() => evaluate("* a")).to.throw('invalid number "a"');
+              expect(execute("* a")).to.eql(ERROR('invalid number "a"'));
             });
           });
         });
@@ -174,16 +169,16 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("/")).to.throw(
-                'wrong # args: should be "/ arg arg ?arg ...?"'
+              expect(execute("/")).to.eql(
+                ERROR('wrong # args: should be "/ arg arg ?arg ...?"')
               );
-              expect(() => evaluate("/ 1")).to.throw(
-                'wrong # args: should be "/ arg arg ?arg ...?"'
+              expect(execute("/ 1")).to.eql(
+                ERROR('wrong # args: should be "/ arg arg ?arg ...?"')
               );
             });
             specify("invalid value", () => {
-              expect(() => evaluate("/ a 1")).to.throw('invalid number "a"');
-              expect(() => evaluate("/ 2 b")).to.throw('invalid number "b"');
+              expect(execute("/ a 1")).to.eql(ERROR('invalid number "a"'));
+              expect(execute("/ 2 b")).to.eql(ERROR('invalid number "b"'));
             });
           });
         });
@@ -197,11 +192,11 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("==")).to.throw(
-                'wrong # args: should be "== arg arg"'
+              expect(execute("==")).to.eql(
+                ERROR('wrong # args: should be "== arg arg"')
               );
-              expect(() => evaluate("== a")).to.throw(
-                'wrong # args: should be "== arg arg"'
+              expect(execute("== a")).to.eql(
+                ERROR('wrong # args: should be "== arg arg"')
               );
             });
           });
@@ -214,11 +209,11 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("!=")).to.throw(
-                'wrong # args: should be "!= arg arg"'
+              expect(execute("!=")).to.eql(
+                ERROR('wrong # args: should be "!= arg arg"')
               );
-              expect(() => evaluate("!= a")).to.throw(
-                'wrong # args: should be "!= arg arg"'
+              expect(execute("!= a")).to.eql(
+                ERROR('wrong # args: should be "!= arg arg"')
               );
             });
           });
@@ -231,16 +226,16 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate(">")).to.throw(
-                'wrong # args: should be "> arg arg"'
+              expect(execute(">")).to.eql(
+                ERROR('wrong # args: should be "> arg arg"')
               );
-              expect(() => evaluate("> a")).to.throw(
-                'wrong # args: should be "> arg arg"'
+              expect(execute("> a")).to.eql(
+                ERROR('wrong # args: should be "> arg arg"')
               );
             });
             specify("invalid value", () => {
-              expect(() => evaluate("> a 1")).to.throw('invalid number "a"');
-              expect(() => evaluate("> 2 b")).to.throw('invalid number "b"');
+              expect(execute("> a 1")).to.eql(ERROR('invalid number "a"'));
+              expect(execute("> 2 b")).to.eql(ERROR('invalid number "b"'));
             });
           });
         });
@@ -252,16 +247,16 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate(">=")).to.throw(
-                'wrong # args: should be ">= arg arg"'
+              expect(execute(">=")).to.eql(
+                ERROR('wrong # args: should be ">= arg arg"')
               );
-              expect(() => evaluate(">= a")).to.throw(
-                'wrong # args: should be ">= arg arg"'
+              expect(execute(">= a")).to.eql(
+                ERROR('wrong # args: should be ">= arg arg"')
               );
             });
             specify("invalid value", () => {
-              expect(() => evaluate(">= a 1")).to.throw('invalid number "a"');
-              expect(() => evaluate(">= 2 b")).to.throw('invalid number "b"');
+              expect(execute(">= a 1")).to.eql(ERROR('invalid number "a"'));
+              expect(execute(">= 2 b")).to.eql(ERROR('invalid number "b"'));
             });
           });
         });
@@ -273,16 +268,16 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("<")).to.throw(
-                'wrong # args: should be "< arg arg"'
+              expect(execute("<")).to.eql(
+                ERROR('wrong # args: should be "< arg arg"')
               );
-              expect(() => evaluate("< a")).to.throw(
-                'wrong # args: should be "< arg arg"'
+              expect(execute("< a")).to.eql(
+                ERROR('wrong # args: should be "< arg arg"')
               );
             });
             specify("invalid value", () => {
-              expect(() => evaluate("< a 1")).to.throw('invalid number "a"');
-              expect(() => evaluate("< 2 b")).to.throw('invalid number "b"');
+              expect(execute("< a 1")).to.eql(ERROR('invalid number "a"'));
+              expect(execute("< 2 b")).to.eql(ERROR('invalid number "b"'));
             });
           });
         });
@@ -294,16 +289,16 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("<=")).to.throw(
-                'wrong # args: should be "<= arg arg"'
+              expect(execute("<=")).to.eql(
+                ERROR('wrong # args: should be "<= arg arg"')
               );
-              expect(() => evaluate("<= a")).to.throw(
-                'wrong # args: should be "<= arg arg"'
+              expect(execute("<= a")).to.eql(
+                ERROR('wrong # args: should be "<= arg arg"')
               );
             });
             specify("invalid value", () => {
-              expect(() => evaluate("<= a 1")).to.throw('invalid number "a"');
-              expect(() => evaluate("<= 2 b")).to.throw('invalid number "b"');
+              expect(execute("<= a 1")).to.eql(ERROR('invalid number "a"'));
+              expect(execute("<= 2 b")).to.eql(ERROR('invalid number "b"'));
             });
           });
         });
@@ -330,12 +325,12 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("!")).to.throw(
-                'wrong # args: should be "! arg"'
+              expect(execute("!")).to.eql(
+                ERROR('wrong # args: should be "! arg"')
               );
             });
             specify("invalid value", () => {
-              expect(() => evaluate("! a")).to.throw('invalid boolean "a"');
+              expect(execute("! a")).to.eql(ERROR('invalid boolean "a"'));
             });
           });
         });
@@ -368,12 +363,12 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("&&")).to.throw(
-                'wrong # args: should be "&& arg ?arg ...?"'
+              expect(execute("&&")).to.eql(
+                ERROR('wrong # args: should be "&& arg ?arg ...?"')
               );
             });
             specify("invalid value", () => {
-              expect(() => evaluate("&& a")).to.throw('invalid boolean "a"');
+              expect(execute("&& a")).to.eql(ERROR('invalid boolean "a"'));
             });
           });
         });
@@ -402,12 +397,12 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("||")).to.throw(
-                'wrong # args: should be "|| arg ?arg ...?"'
+              expect(execute("||")).to.eql(
+                ERROR('wrong # args: should be "|| arg ?arg ...?"')
               );
             });
             specify("invalid value", () => {
-              expect(() => evaluate("|| a")).to.throw('invalid boolean "a"');
+              expect(execute("|| a")).to.eql(ERROR('invalid boolean "a"'));
             });
           });
         });
@@ -456,21 +451,29 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("if")).to.throw(
-                'wrong # args: should be "if test script1 ?else script2?"'
+              expect(execute("if")).to.eql(
+                ERROR(
+                  'wrong # args: should be "if test script1 ?else script2?"'
+                )
               );
-              expect(() => evaluate("if true")).to.throw(
-                'wrong # args: should be "if test script1 ?else script2?"'
+              expect(execute("if true")).to.eql(
+                ERROR(
+                  'wrong # args: should be "if test script1 ?else script2?"'
+                )
               );
-              expect(() => evaluate("if true {} else")).to.throw(
-                'wrong # args: should be "if test script1 ?else script2?"'
+              expect(execute("if true {} else")).to.eql(
+                ERROR(
+                  'wrong # args: should be "if test script1 ?else script2?"'
+                )
               );
-              expect(() => evaluate("if true {} else {} {}")).to.throw(
-                'wrong # args: should be "if test script1 ?else script2?"'
+              expect(execute("if true {} else {} {}")).to.eql(
+                ERROR(
+                  'wrong # args: should be "if test script1 ?else script2?"'
+                )
               );
             });
             specify("invalid condition", () => {
-              expect(() => evaluate("if a {}")).to.throw('invalid boolean "a"');
+              expect(execute("if a {}")).to.eql(ERROR('invalid boolean "a"'));
             });
           });
         });
@@ -528,19 +531,19 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("for")).to.throw(
-                'wrong # args: should be "for start test next command"'
+              expect(execute("for")).to.eql(
+                ERROR('wrong # args: should be "for start test next command"')
               );
-              expect(() => evaluate("for a b c")).to.throw(
-                'wrong # args: should be "for start test next command"'
+              expect(execute("for a b c")).to.eql(
+                ERROR('wrong # args: should be "for start test next command"')
               );
-              expect(() => evaluate("for a b c d e")).to.throw(
-                'wrong # args: should be "for start test next command"'
+              expect(execute("for a b c d e")).to.eql(
+                ERROR('wrong # args: should be "for start test next command"')
               );
             });
             specify("invalid condition", () => {
-              expect(() => evaluate("for {} a {} {} ")).to.throw(
-                'invalid boolean "a"'
+              expect(execute("for {} a {} {} ")).to.eql(
+                ERROR('invalid boolean "a"')
               );
             });
           });
@@ -575,19 +578,19 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("while")).to.throw(
-                'wrong # args: should be "while test script"'
+              expect(execute("while")).to.eql(
+                ERROR('wrong # args: should be "while test script"')
               );
-              expect(() => evaluate("while true")).to.throw(
-                'wrong # args: should be "while test script"'
+              expect(execute("while true")).to.eql(
+                ERROR('wrong # args: should be "while test script"')
               );
-              expect(() => evaluate("while true a b")).to.throw(
-                'wrong # args: should be "while test script"'
+              expect(execute("while true a b")).to.eql(
+                ERROR('wrong # args: should be "while test script"')
               );
             });
             specify("invalid condition", () => {
-              expect(() => evaluate("while a {}")).to.throw(
-                'invalid boolean "a"'
+              expect(execute("while a {}")).to.eql(
+                ERROR('invalid boolean "a"')
               );
             });
           });
@@ -611,8 +614,8 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("return a b")).to.throw(
-                'wrong # args: should be "return ?result?"'
+              expect(execute("return a b")).to.eql(
+                ERROR('wrong # args: should be "return ?result?"')
               );
             });
           });
@@ -641,8 +644,8 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("break a")).to.throw(
-                'wrong # args: should be "break"'
+              expect(execute("break a")).to.eql(
+                ERROR('wrong # args: should be "break"')
               );
             });
           });
@@ -671,8 +674,8 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("continue a")).to.throw(
-                'wrong # args: should be "continue"'
+              expect(execute("continue a")).to.eql(
+                ERROR('wrong # args: should be "continue"')
               );
             });
           });
@@ -699,8 +702,8 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
-              expect(() => evaluate("error")).to.throw(
-                'wrong # args: should be "error message"'
+              expect(execute("error")).to.eql(
+                ERROR('wrong # args: should be "error message"')
               );
             });
           });
@@ -726,16 +729,16 @@ describe("Picol dialect", () => {
         });
         describe("exceptions", () => {
           specify("non-existing variable", () => {
-            expect(() => evaluate("set unknownVariable")).to.throw(
-              'can\'t read "unknownVariable": no such variable'
+            expect(execute("set unknownVariable")).to.eql(
+              ERROR('can\'t read "unknownVariable": no such variable')
             );
           });
           specify("wrong arity", () => {
-            expect(() => evaluate("set")).to.throw(
-              'wrong # args: should be "set varName ?newValue?"'
+            expect(execute("set")).to.eql(
+              ERROR('wrong # args: should be "set varName ?newValue?"')
             );
-            expect(() => evaluate("set a b c")).to.throw(
-              'wrong # args: should be "set varName ?newValue?"'
+            expect(execute("set a b c")).to.eql(
+              ERROR('wrong # args: should be "set varName ?newValue?"')
             );
           });
         });
@@ -760,20 +763,20 @@ describe("Picol dialect", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("incr")).to.throw(
-              'wrong # args: should be "incr varName ?increment?"'
+            expect(execute("incr")).to.eql(
+              ERROR('wrong # args: should be "incr varName ?increment?"')
             );
-            expect(() => evaluate("incr a 1 2")).to.throw(
-              'wrong # args: should be "incr varName ?increment?"'
+            expect(execute("incr a 1 2")).to.eql(
+              ERROR('wrong # args: should be "incr varName ?increment?"')
             );
           });
           specify("invalid variable value", () => {
-            expect(() => evaluate("set var a; incr var")).to.throw(
-              'invalid number "a"'
+            expect(execute("set var a; incr var")).to.eql(
+              ERROR('invalid number "a"')
             );
           });
           specify("invalid increment", () => {
-            expect(() => evaluate("incr var a")).to.throw('invalid number "a"');
+            expect(execute("incr var a")).to.eql(ERROR('invalid number "a"'));
           });
         });
       });
@@ -786,7 +789,7 @@ describe("Picol dialect", () => {
         it("should replace existing commands", () => {
           evaluate("proc cmd {} {}");
           evaluate("proc cmd {} {}");
-          expect(() => evaluate("proc cmd {} {}")).to.not.throw();
+          expect(execute("proc cmd {} {}").code).to.eql(ResultCode.OK);
         });
         it("should return empty", () => {
           expect(evaluate("proc cmd {} {}")).to.eql(new StringValue(""));
@@ -808,7 +811,7 @@ describe("Picol dialect", () => {
           it("should not access global variables", () => {
             evaluate("set var val");
             evaluate("proc cmd {} {set var}");
-            expect(() => evaluate("cmd")).to.throw();
+            expect(execute("cmd").code).to.eql(ResultCode.ERROR);
           });
           it("should not set global variables", () => {
             evaluate("set var val");
@@ -862,52 +865,52 @@ describe("Picol dialect", () => {
           });
           describe("exceptions", () => {
             specify("not enough arguments", () => {
-              expect(() => evaluate("proc cmd {a b} {}; cmd 1")).to.throw(
-                'wrong # args: should be "cmd a b"'
+              expect(execute("proc cmd {a b} {}; cmd 1")).to.eql(
+                ERROR('wrong # args: should be "cmd a b"')
               );
-              expect(() => evaluate("proc cmd {a b args} {}; cmd 1")).to.throw(
-                'wrong # args: should be "cmd a b ?arg ...?"'
+              expect(execute("proc cmd {a b args} {}; cmd 1")).to.eql(
+                ERROR('wrong # args: should be "cmd a b ?arg ...?"')
               );
             });
             specify("too many arguments", () => {
-              expect(() => evaluate("proc cmd {} {}; cmd 1 2")).to.throw(
-                'wrong # args: should be "cmd"'
+              expect(execute("proc cmd {} {}; cmd 1 2")).to.eql(
+                ERROR('wrong # args: should be "cmd"')
               );
-              expect(() => evaluate("proc cmd {a} {}; cmd 1 2")).to.throw(
-                'wrong # args: should be "cmd a"'
+              expect(execute("proc cmd {a} {}; cmd 1 2")).to.eql(
+                ERROR('wrong # args: should be "cmd a"')
               );
-              expect(() =>
-                evaluate("proc cmd {a {b 1}} {}; cmd 1 2 3")
-              ).to.throw('wrong # args: should be "cmd a ?b?"');
+              expect(execute("proc cmd {a {b 1}} {}; cmd 1 2 3")).to.eql(
+                ERROR('wrong # args: should be "cmd a ?b?"')
+              );
             });
           });
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("proc")).to.throw(
-              'wrong # args: should be "proc name args body"'
+            expect(execute("proc")).to.eql(
+              ERROR('wrong # args: should be "proc name args body"')
             );
-            expect(() => evaluate("proc a")).to.throw(
-              'wrong # args: should be "proc name args body"'
+            expect(execute("proc a")).to.eql(
+              ERROR('wrong # args: should be "proc name args body"')
             );
-            expect(() => evaluate("proc a b")).to.throw(
-              'wrong # args: should be "proc name args body"'
+            expect(execute("proc a b")).to.eql(
+              ERROR('wrong # args: should be "proc name args body"')
             );
-            expect(() => evaluate("proc a b c d")).to.throw(
-              'wrong # args: should be "proc name args body"'
+            expect(execute("proc a b c d")).to.eql(
+              ERROR('wrong # args: should be "proc name args body"')
             );
           });
           specify("argument with no name", () => {
-            expect(() => evaluate("proc cmd {{}} {}")).to.throw(
-              "argument with no name"
+            expect(execute("proc cmd {{}} {}")).to.eql(
+              ERROR("argument with no name")
             );
-            expect(() => evaluate("proc cmd {{{} def}} {}")).to.throw(
-              "argument with no name"
+            expect(execute("proc cmd {{{} def}} {}")).to.eql(
+              ERROR("argument with no name")
             );
           });
           specify("wrong argument specifier format", () => {
-            expect(() => evaluate("proc cmd {{a b c}} {}")).to.throw(
-              'too many fields in argument specifier "a b c"'
+            expect(execute("proc cmd {{a b c}} {}")).to.eql(
+              ERROR('too many fields in argument specifier "a b c"')
             );
           });
         });

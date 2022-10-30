@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { OK, ResultCode, RETURN } from "../core/command";
+import { ERROR, OK, ResultCode, RETURN } from "../core/command";
 import { Process } from "../core/compiler";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
@@ -16,12 +16,7 @@ describe("Helena closures", () => {
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
   const execute = (script: string) =>
     rootScope.execute(rootScope.compile(parse(script)));
-  const evaluate = (script: string) => {
-    const result = execute(script);
-    if (result.code == ResultCode.ERROR)
-      throw new Error(result.value.asString());
-    return result.value;
-  };
+  const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
     rootScope = new Scope();
@@ -38,7 +33,7 @@ describe("Helena closures", () => {
     });
     it("should replace existing commands", () => {
       evaluate("closure cmd {} {}");
-      expect(() => evaluate("closure cmd {} {}")).to.not.throw();
+      expect(execute("closure cmd {} {}").code).to.eql(ResultCode.OK);
     });
     it("should return a command value", () => {
       expect(evaluate("closure {} {}")).to.be.instanceof(CommandValue);
@@ -96,9 +91,9 @@ describe("Helena closures", () => {
             new StringValue("val2")
           );
           expect(evaluate("scp1 eval {cmd2}")).to.eql(new StringValue("val3"));
-          expect(() => evaluate("scp2 eval {get cst}")).to.throw();
-          expect(() => evaluate("scp2 eval {get var}")).to.throw();
-          expect(() => evaluate("scp2 eval {cmd2}")).to.throw();
+          expect(execute("scp2 eval {get cst}").code).to.eql(ResultCode.ERROR);
+          expect(execute("scp2 eval {get var}").code).to.eql(ResultCode.ERROR);
+          expect(execute("scp2 eval {cmd2}").code).to.eql(ResultCode.ERROR);
         });
       });
     });
@@ -116,11 +111,11 @@ describe("Helena closures", () => {
       describe("exceptions", () => {
         specify("wrong arity", () => {
           evaluate("closure cmd {a} {}");
-          expect(() => evaluate("cmd")).to.throw(
-            'wrong # args: should be "cmd a"'
+          expect(execute("cmd")).to.eql(
+            ERROR('wrong # args: should be "cmd a"')
           );
-          expect(() => evaluate("cmd 1 2")).to.throw(
-            'wrong # args: should be "cmd a"'
+          expect(execute("cmd 1 2")).to.eql(
+            ERROR('wrong # args: should be "cmd a"')
           );
         });
       });
@@ -188,22 +183,22 @@ describe("Helena closures", () => {
       });
       describe("exceptions", () => {
         specify("non-existing method", () => {
-          expect(() => evaluate("[closure {} {}] unknownMethod")).to.throw(
-            'invalid method name "unknownMethod"'
+          expect(execute("[closure {} {}] unknownMethod")).to.eql(
+            ERROR('invalid method name "unknownMethod"')
           );
         });
       });
     });
     describe("exceptions", () => {
       specify("wrong arity", () => {
-        expect(() => evaluate("closure")).to.throw(
-          'wrong # args: should be "closure ?name? argspec body"'
+        expect(execute("closure")).to.eql(
+          ERROR('wrong # args: should be "closure ?name? argspec body"')
         );
-        expect(() => evaluate("closure a")).to.throw(
-          'wrong # args: should be "closure ?name? argspec body"'
+        expect(execute("closure a")).to.eql(
+          ERROR('wrong # args: should be "closure ?name? argspec body"')
         );
-        expect(() => evaluate("closure a b c d")).to.throw(
-          'wrong # args: should be "closure ?name? argspec body"'
+        expect(execute("closure a b c d")).to.eql(
+          ERROR('wrong # args: should be "closure ?name? argspec body"')
         );
       });
     });

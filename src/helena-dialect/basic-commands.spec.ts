@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { OK, ResultCode, RETURN } from "../core/command";
+import { ERROR, OK, ResultCode, RETURN } from "../core/command";
 import { Process } from "../core/compiler";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
@@ -16,12 +16,7 @@ describe("Helena basic commands", () => {
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
   const execute = (script: string) =>
     rootScope.execute(rootScope.compile(parse(script)));
-  const evaluate = (script: string) => {
-    const result = execute(script);
-    if (result.code == ResultCode.ERROR)
-      throw new Error(result.value.asString());
-    return result.value;
-  };
+  const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
     rootScope = new Scope();
@@ -44,11 +39,11 @@ describe("Helena basic commands", () => {
     });
     describe("exceptions", () => {
       specify("wrong arity", () => {
-        expect(() => evaluate("idem")).to.throw(
-          'wrong # args: should be "idem value"'
+        expect(execute("idem")).to.eql(
+          ERROR('wrong # args: should be "idem value"')
         );
-        expect(() => evaluate("idem a b")).to.throw(
-          'wrong # args: should be "idem value"'
+        expect(execute("idem a b")).to.eql(
+          ERROR('wrong # args: should be "idem value"')
         );
       });
     });
@@ -66,8 +61,8 @@ describe("Helena basic commands", () => {
     });
     describe("exceptions", () => {
       specify("wrong arity", () => {
-        expect(() => evaluate("return a b")).to.throw(
-          'wrong # args: should be "return ?result?"'
+        expect(execute("return a b")).to.eql(
+          ERROR('wrong # args: should be "return ?result?"')
         );
       });
     });
@@ -85,8 +80,8 @@ describe("Helena basic commands", () => {
     });
     describe("exceptions", () => {
       specify("wrong arity", () => {
-        expect(() => evaluate("yield a b")).to.throw(
-          'wrong # args: should be "yield ?result?"'
+        expect(execute("yield a b")).to.eql(
+          ERROR('wrong # args: should be "yield ?result?"')
         );
       });
     });
@@ -172,11 +167,11 @@ describe("Helena basic commands", () => {
     });
     describe("exceptions", () => {
       specify("wrong arity", () => {
-        expect(() => evaluate("eval")).to.throw(
-          'wrong # args: should be "eval body"'
+        expect(execute("eval")).to.eql(
+          ERROR('wrong # args: should be "eval body"')
         );
-        expect(() => evaluate("eval a b")).to.throw(
-          'wrong # args: should be "eval body"'
+        expect(execute("eval a b")).to.eql(
+          ERROR('wrong # args: should be "eval body"')
         );
       });
     });

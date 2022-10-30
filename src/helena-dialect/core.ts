@@ -85,17 +85,16 @@ export class Scope {
       return this.context.variables.get(name).value;
     throw new Error(`can't read "${name}": no such variable`);
   }
-  resolveCommand(value: Value, recurse = true): Command {
+  resolveCommand(value: Value): Command {
     if (value.type == ValueType.TUPLE) return tupleCmd;
     if (value instanceof CommandValue) return value.command;
     if (NumberValue.isNumber(value)) return numberCmd;
-    return this.resolveNamedCommand(value.asString(), recurse);
+    return this.resolveNamedCommand(value.asString());
   }
-  private resolveNamedCommand(name: string, recurse: boolean): Command {
-    if (!this.context.commands.has(name)) {
-      if (!recurse || !this.parent)
-        throw new Error(`invalid command name "${name}"`);
-      return this.parent.resolveNamedCommand(name, recurse);
+  private resolveNamedCommand(name: string): Command {
+    if (!this.hasLocalCommand(name)) {
+      if (!this.parent) return;
+      return this.parent.resolveNamedCommand(name);
     }
     return this.context.commands.get(name);
   }
@@ -129,11 +128,18 @@ export class Scope {
     return OK(value);
   }
   getVariable(name: string): Result {
-    return OK(this.resolveVariable(name));
+    try {
+      return OK(this.resolveVariable(name));
+    } catch (e) {
+      return ERROR(e.message);
+    }
   }
 
   registerCommand(name: string, command: Command) {
     this.context.commands.set(name, command);
+  }
+  hasLocalCommand(name: string): boolean {
+    return this.context.commands.has(name);
   }
 }
 
@@ -143,7 +149,7 @@ type TupleState = {
 };
 const tupleCmd: Command = {
   execute(args: Value[], scope: Scope): Result {
-    const [command, args2] = resolveTuple(args, scope);
+    const [command, args2] = resolveLeadingTuple(args, scope);
     if (!command) return OK(NIL);
     const result = command.execute(args2, scope);
     if (result.code == ResultCode.YIELD)
@@ -160,7 +166,7 @@ const tupleCmd: Command = {
   },
 };
 
-function resolveTuple(args: Value[], scope: Scope): [Command, Value[]] {
+function resolveLeadingTuple(args: Value[], scope: Scope): [Command, Value[]] {
   if (args.length == 0) return [null, null];
   const [lead, ...rest] = args;
   if (lead.type != ValueType.TUPLE) {
@@ -168,5 +174,5 @@ function resolveTuple(args: Value[], scope: Scope): [Command, Value[]] {
     return [command, args];
   }
   const tuple = lead as TupleValue;
-  return resolveTuple([...tuple.values, ...rest], scope);
+  return resolveLeadingTuple([...tuple.values, ...rest], scope);
 }

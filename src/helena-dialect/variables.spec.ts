@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ResultCode } from "../core/command";
+import { ERROR, ResultCode } from "../core/command";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { StringValue } from "../core/values";
@@ -15,12 +15,7 @@ describe("Helena constants and variables", () => {
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
   const execute = (script: string) =>
     rootScope.execute(rootScope.compile(parse(script)));
-  const evaluate = (script: string) => {
-    const result = execute(script);
-    if (result.code == ResultCode.ERROR)
-      throw new Error(result.value.asString());
-    return result.value;
-  };
+  const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
     rootScope = new Scope();
@@ -43,8 +38,8 @@ describe("Helena constants and variables", () => {
     describe("exceptions", () => {
       it("existing constant", () => {
         rootScope.context.constants.set("cst", new StringValue("old"));
-        expect(() => evaluate("let cst val")).to.throw(
-          'cannot redefine constant "cst"'
+        expect(execute("let cst val")).to.eql(
+          ERROR('cannot redefine constant "cst"')
         );
       });
       it("existing variable", () => {
@@ -52,19 +47,19 @@ describe("Helena constants and variables", () => {
           "var",
           new Variable(new StringValue("old"))
         );
-        expect(() => evaluate("let var val")).to.throw(
-          'cannot define constant "var": variable already exists'
+        expect(execute("let var val")).to.eql(
+          ERROR('cannot define constant "var": variable already exists')
         );
       });
       specify("wrong arity", () => {
-        expect(() => evaluate("let")).to.throw(
-          'wrong # args: should be "let constname value"'
+        expect(execute("let")).to.eql(
+          ERROR('wrong # args: should be "let constname value"')
         );
-        expect(() => evaluate("let a")).to.throw(
-          'wrong # args: should be "let constname value"'
+        expect(execute("let a")).to.eql(
+          ERROR('wrong # args: should be "let constname value"')
         );
-        expect(() => evaluate("let a b c")).to.throw(
-          'wrong # args: should be "let constname value"'
+        expect(execute("let a b c")).to.eql(
+          ERROR('wrong # args: should be "let constname value"')
         );
       });
     });
@@ -92,19 +87,19 @@ describe("Helena constants and variables", () => {
     describe("exceptions", () => {
       it("existing constant", () => {
         rootScope.context.constants.set("cst", new StringValue("old"));
-        expect(() => evaluate("set cst val")).to.throw(
-          'cannot redefine constant "cst"'
+        expect(execute("set cst val")).to.eql(
+          ERROR('cannot redefine constant "cst"')
         );
       });
       specify("wrong arity", () => {
-        expect(() => evaluate("set")).to.throw(
-          'wrong # args: should be "set varname value"'
+        expect(execute("set")).to.eql(
+          ERROR('wrong # args: should be "set varname value"')
         );
-        expect(() => evaluate("set a")).to.throw(
-          'wrong # args: should be "set varname value"'
+        expect(execute("set a")).to.eql(
+          ERROR('wrong # args: should be "set varname value"')
         );
-        expect(() => evaluate("set a b c")).to.throw(
-          'wrong # args: should be "set varname value"'
+        expect(execute("set a b c")).to.eql(
+          ERROR('wrong # args: should be "set varname value"')
         );
       });
     });
@@ -120,16 +115,16 @@ describe("Helena constants and variables", () => {
     });
     describe("exceptions", () => {
       specify("non-existing variable", () => {
-        expect(() => evaluate("get unknownVariable")).to.throw(
-          'can\'t read "unknownVariable": no such variable'
+        expect(execute("get unknownVariable")).to.eql(
+          ERROR('can\'t read "unknownVariable": no such variable')
         );
       });
       specify("wrong arity", () => {
-        expect(() => evaluate("get")).to.throw(
-          'wrong # args: should be "get varname"'
+        expect(execute("get")).to.eql(
+          ERROR('wrong # args: should be "get varname"')
         );
-        expect(() => evaluate("get a b")).to.throw(
-          'wrong # args: should be "get varname"'
+        expect(execute("get a b")).to.eql(
+          ERROR('wrong # args: should be "get varname"')
         );
       });
     });

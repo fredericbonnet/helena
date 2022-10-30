@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ResultCode } from "../core/command";
+import { ERROR, ResultCode } from "../core/command";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { FALSE, IntegerValue, NumberValue, TRUE } from "../core/values";
@@ -15,12 +15,7 @@ describe("Helena math operations", () => {
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
   const execute = (script: string) =>
     rootScope.execute(rootScope.compile(parse(script)));
-  const evaluate = (script: string) => {
-    const result = execute(script);
-    if (result.code == ResultCode.ERROR)
-      throw new Error(result.value.asString());
-    return result.value;
-  };
+  const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
     rootScope = new Scope();
@@ -42,8 +37,8 @@ describe("Helena math operations", () => {
     });
     describe("exceptions", () => {
       specify("non-existing method", () => {
-        expect(() => evaluate("1 unknownMethod")).to.throw(
-          'invalid method name "unknownMethod"'
+        expect(execute("1 unknownMethod")).to.eql(
+          ERROR('invalid method name "unknownMethod"')
         );
       });
     });
@@ -61,8 +56,8 @@ describe("Helena math operations", () => {
     });
     describe("exceptions", () => {
       specify("non-existing method", () => {
-        expect(() => evaluate("1.23 unknownMethod")).to.throw(
-          'invalid method name "unknownMethod"'
+        expect(execute("1.23 unknownMethod")).to.eql(
+          ERROR('invalid method name "unknownMethod"')
         );
       });
     });
@@ -78,15 +73,15 @@ describe("Helena math operations", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("1 ==")).to.throw(
-              'wrong # operands: should be "operand1 == operand2"'
+            expect(execute("1 ==")).to.eql(
+              ERROR('wrong # operands: should be "operand1 == operand2"')
             );
-            expect(() => evaluate("1 == 2 3")).to.throw(
-              'wrong # operands: should be "operand1 == operand2"'
+            expect(execute("1 == 2 3")).to.eql(
+              ERROR('wrong # operands: should be "operand1 == operand2"')
             );
           });
           specify("invalid value", () => {
-            expect(() => evaluate("1 == a")).to.throw('invalid number "a"');
+            expect(execute("1 == a")).to.eql(ERROR('invalid number "a"'));
           });
         });
       });
@@ -98,15 +93,15 @@ describe("Helena math operations", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("1 !=")).to.throw(
-              'wrong # operands: should be "operand1 != operand2"'
+            expect(execute("1 !=")).to.eql(
+              ERROR('wrong # operands: should be "operand1 != operand2"')
             );
-            expect(() => evaluate("1 != 2 3")).to.throw(
-              'wrong # operands: should be "operand1 != operand2"'
+            expect(execute("1 != 2 3")).to.eql(
+              ERROR('wrong # operands: should be "operand1 != operand2"')
             );
           });
           specify("invalid value", () => {
-            expect(() => evaluate("1 != a")).to.throw('invalid number "a"');
+            expect(execute("1 != a")).to.eql(ERROR('invalid number "a"'));
           });
         });
       });
@@ -118,15 +113,15 @@ describe("Helena math operations", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("1 >")).to.throw(
-              'wrong # operands: should be "operand1 > operand2"'
+            expect(execute("1 >")).to.eql(
+              ERROR('wrong # operands: should be "operand1 > operand2"')
             );
-            expect(() => evaluate("1 > 2 3")).to.throw(
-              'wrong # operands: should be "operand1 > operand2"'
+            expect(execute("1 > 2 3")).to.eql(
+              ERROR('wrong # operands: should be "operand1 > operand2"')
             );
           });
           specify("invalid value", () => {
-            expect(() => evaluate("1 > a")).to.throw('invalid number "a"');
+            expect(execute("1 > a")).to.eql(ERROR('invalid number "a"'));
           });
         });
       });
@@ -138,15 +133,15 @@ describe("Helena math operations", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("1 >=")).to.throw(
-              'wrong # operands: should be "operand1 >= operand2"'
+            expect(execute("1 >=")).to.eql(
+              ERROR('wrong # operands: should be "operand1 >= operand2"')
             );
-            expect(() => evaluate("1 >= 2 3")).to.throw(
-              'wrong # operands: should be "operand1 >= operand2"'
+            expect(execute("1 >= 2 3")).to.eql(
+              ERROR('wrong # operands: should be "operand1 >= operand2"')
             );
           });
           specify("invalid value", () => {
-            expect(() => evaluate("1 >= a")).to.throw('invalid number "a"');
+            expect(execute("1 >= a")).to.eql(ERROR('invalid number "a"'));
           });
         });
       });
@@ -158,15 +153,15 @@ describe("Helena math operations", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("1 <")).to.throw(
-              'wrong # operands: should be "operand1 < operand2"'
+            expect(execute("1 <")).to.eql(
+              ERROR('wrong # operands: should be "operand1 < operand2"')
             );
-            expect(() => evaluate("1 < 2 3")).to.throw(
-              'wrong # operands: should be "operand1 < operand2"'
+            expect(execute("1 < 2 3")).to.eql(
+              ERROR('wrong # operands: should be "operand1 < operand2"')
             );
           });
           specify("invalid value", () => {
-            expect(() => evaluate("1 < a")).to.throw('invalid number "a"');
+            expect(execute("1 < a")).to.eql(ERROR('invalid number "a"'));
           });
         });
       });
@@ -178,15 +173,15 @@ describe("Helena math operations", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("1 <=")).to.throw(
-              'wrong # operands: should be "operand1 <= operand2"'
+            expect(execute("1 <=")).to.eql(
+              ERROR('wrong # operands: should be "operand1 <= operand2"')
             );
-            expect(() => evaluate("1 <= 2 3")).to.throw(
-              'wrong # operands: should be "operand1 <= operand2"'
+            expect(execute("1 <= 2 3")).to.eql(
+              ERROR('wrong # operands: should be "operand1 <= operand2"')
             );
           });
           specify("invalid value", () => {
-            expect(() => evaluate("1 <= a")).to.throw('invalid number "a"');
+            expect(execute("1 <= a")).to.eql(ERROR('invalid number "a"'));
           });
         });
       });
@@ -218,12 +213,12 @@ describe("Helena math operations", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("+")).to.throw(
-              'wrong # args: should be "+ arg ?arg ...?"'
+            expect(execute("+")).to.eql(
+              ERROR('wrong # args: should be "+ arg ?arg ...?"')
             );
           });
           specify("invalid value", () => {
-            expect(() => evaluate("+ a")).to.throw('invalid number "a"');
+            expect(execute("+ a")).to.eql(ERROR('invalid number "a"'));
           });
         });
       });
@@ -253,12 +248,12 @@ describe("Helena math operations", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("-")).to.throw(
-              'wrong # args: should be "- arg ?arg ...?"'
+            expect(execute("-")).to.eql(
+              ERROR('wrong # args: should be "- arg ?arg ...?"')
             );
           });
           specify("invalid value", () => {
-            expect(() => evaluate("- a")).to.throw('invalid number "a"');
+            expect(execute("- a")).to.eql(ERROR('invalid number "a"'));
           });
         });
       });
@@ -287,12 +282,12 @@ describe("Helena math operations", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("*")).to.throw(
-              'wrong # args: should be "* arg ?arg ...?"'
+            expect(execute("*")).to.eql(
+              ERROR('wrong # args: should be "* arg ?arg ...?"')
             );
           });
           specify("invalid value", () => {
-            expect(() => evaluate("* a")).to.throw('invalid number "a"');
+            expect(execute("* a")).to.eql(ERROR('invalid number "a"'));
           });
         });
       });
@@ -318,16 +313,16 @@ describe("Helena math operations", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("/")).to.throw(
-              'wrong # args: should be "/ arg arg ?arg ...?"'
+            expect(execute("/")).to.eql(
+              ERROR('wrong # args: should be "/ arg arg ?arg ...?"')
             );
-            expect(() => evaluate("/ 1")).to.throw(
-              'wrong # args: should be "/ arg arg ?arg ...?"'
+            expect(execute("/ 1")).to.eql(
+              ERROR('wrong # args: should be "/ arg arg ?arg ...?"')
             );
           });
           specify("invalid value", () => {
-            expect(() => evaluate("/ a 1")).to.throw('invalid number "a"');
-            expect(() => evaluate("/ 2 b")).to.throw('invalid number "b"');
+            expect(execute("/ a 1")).to.eql(ERROR('invalid number "a"'));
+            expect(execute("/ 2 b")).to.eql(ERROR('invalid number "b"'));
           });
         });
       });

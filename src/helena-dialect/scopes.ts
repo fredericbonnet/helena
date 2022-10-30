@@ -31,8 +31,10 @@ class ScopeCommand implements Command {
       case "call": {
         if (args.length < 3) return ARITY_ERROR("scope call cmdname ?arg ...?");
         const cmdline = args.slice(2);
+        if (!this.value.scope.hasLocalCommand(cmdline[0].asString()))
+          return ERROR(`invalid command name "${cmdline[0].asString()}"`);
         return this.value.scope
-          .resolveCommand(cmdline[0], false)
+          .resolveCommand(cmdline[0])
           .execute(cmdline, this.value.scope);
       }
       default:

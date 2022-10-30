@@ -2,7 +2,7 @@
  * @file Helena script compilation
  */
 
-import { Command, OK, Result, ResultCode } from "./command";
+import { Command, ERROR, OK, Result, ResultCode } from "./command";
 import {
   CommandResolver,
   SelectorResolver,
@@ -185,6 +185,8 @@ export class Compiler {
         break;
       case WordType.IGNORED:
         break;
+      case WordType.INVALID:
+        throw new Error("invalid word structure");
       default:
         throw new Error("unknown word type");
     }
@@ -691,7 +693,9 @@ export class Executor {
         case OpCode.RESOLVE_VALUE:
           {
             const source = process.pop();
-            process.push(this.resolveValue(source));
+            const result = this.resolveValue(source);
+            if (result.code != ResultCode.OK) return result;
+            process.push(result.value);
           }
           break;
 
@@ -745,7 +749,11 @@ export class Executor {
           {
             const args = process.pop() as TupleValue;
             if (args.values.length) {
-              process.command = this.resolveCommand(args.values);
+              const cmdname = args.values[0];
+              const command = this.resolveCommand(cmdname);
+              if (!command)
+                return ERROR(`cannot resolve command ${cmdname.asString()}`);
+              process.command = command;
               process.result = process.command.execute(
                 args.values,
                 this.context
@@ -768,7 +776,7 @@ export class Executor {
           break;
 
         default:
-          throw new Error("TODO");
+          throw new Error("CANTHAPPEN");
       }
     }
     if (process.frame().length) process.result = OK(process.pop());
@@ -784,7 +792,7 @@ export class Executor {
    * @param source - Value(s) to resolve
    * @returns        Resolved value(s)
    */
-  private resolveValue(source: Value) {
+  private resolveValue(source: Value): Result {
     if (source.type == ValueType.TUPLE) {
       return this.mapTuple(source as TupleValue, (element) =>
         this.resolveValue(element)
@@ -802,30 +810,30 @@ export class Executor {
    *
    * @returns       Mapped tuple
    */
-  private mapTuple(tuple: TupleValue, mapFn: (value: Value) => Value) {
-    return new TupleValue(
-      tuple.values.map((value) => {
-        switch (value.type) {
-          case ValueType.TUPLE:
-            return this.mapTuple(value as TupleValue, mapFn);
-          default:
-            return mapFn(value);
-        }
-      })
-    );
+  private mapTuple(tuple: TupleValue, mapFn: (value: Value) => Result): Result {
+    const values: Value[] = [];
+    for (const value of tuple.values) {
+      let result: Result;
+      switch (value.type) {
+        case ValueType.TUPLE:
+          result = this.mapTuple(value as TupleValue, mapFn);
+          break;
+        default:
+          result = mapFn(value);
+      }
+      if (result.code != ResultCode.OK) return result;
+      values.push(result.value);
+    }
+    return OK(new TupleValue(values));
   }
 
-  private resolveVariable(varname: string): Value {
+  private resolveVariable(varname: string): Result {
     const value = this.variableResolver.resolve(varname);
-    if (!value) throw new Error(`cannot resolve variable ${varname}`);
-    return value;
+    if (!value) return ERROR(`cannot resolve variable ${varname}`);
+    return OK(value);
   }
-  private resolveCommand(args: Value[]) {
-    const cmdname = args[0];
-    const command = this.commandResolver.resolve(cmdname);
-    if (!command)
-      throw new Error(`cannot resolve command ${cmdname.asString()}`);
-    return command;
+  private resolveCommand(cmdname: Value) {
+    return this.commandResolver.resolve(cmdname);
   }
   private resolveSelector(rules: Value[]) {
     return this.selectorResolver.resolve(rules);

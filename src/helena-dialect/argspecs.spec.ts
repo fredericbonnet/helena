@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ResultCode } from "../core/command";
+import { ERROR, ResultCode } from "../core/command";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { IntegerValue, TupleValue, NIL, StringValue } from "../core/values";
@@ -16,12 +16,7 @@ describe("Helena argument handling", () => {
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
   const execute = (script: string) =>
     rootScope.execute(rootScope.compile(parse(script)));
-  const evaluate = (script: string) => {
-    const result = execute(script);
-    if (result.code == ResultCode.ERROR)
-      throw new Error(result.value.asString());
-    return result.value;
-  };
+  const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
     rootScope = new Scope();
@@ -38,7 +33,7 @@ describe("Helena argument handling", () => {
     });
     it("should replace existing commands", () => {
       evaluate("argspec cmd {}");
-      expect(() => evaluate("argspec cmd {}")).to.not.throw();
+      expect(execute("argspec cmd {}").code).to.eql(ResultCode.OK);
     });
     it("should return a command value", () => {
       expect(evaluate("argspec {}")).to.be.instanceof(CommandValue);
@@ -272,11 +267,11 @@ describe("Helena argument handling", () => {
         });
 
         it("cannot be used more than once", () => {
-          expect(() => evaluate("argspec (* *)")).to.throw(
-            "only one remainder argument is allowed"
+          expect(execute("argspec (* *)")).to.eql(
+            ERROR("only one remainder argument is allowed")
           );
-          expect(() => evaluate("argspec (*a *b)")).to.throw(
-            "only one remainder argument is allowed"
+          expect(execute("argspec (*a *b)")).to.eql(
+            ERROR("only one remainder argument is allowed")
           );
         });
       });
@@ -308,8 +303,8 @@ describe("Helena argument handling", () => {
           describe("set", () => {
             specify("zero", () => {
               evaluate("[argspec ?a] set ()");
-              expect(() => evaluate("get a")).to.throw(
-                `can't read "a": no such variable`
+              expect(execute("get a")).to.eql(
+                ERROR(`can't read "a": no such variable`)
               );
             });
             specify("one", () => {
@@ -340,18 +335,18 @@ describe("Helena argument handling", () => {
           describe("set", () => {
             specify("zero", () => {
               evaluate("[argspec (?a ?b)] set ()");
-              expect(() => evaluate("get a")).to.throw(
-                `can't read "a": no such variable`
+              expect(execute("get a")).to.eql(
+                ERROR(`can't read "a": no such variable`)
               );
-              expect(() => evaluate("get b")).to.throw(
-                `can't read "b": no such variable`
+              expect(execute("get b")).to.eql(
+                ERROR(`can't read "b": no such variable`)
               );
             });
             specify("one", () => {
               evaluate("[argspec (?a ?b)] set (val)");
               expect(evaluate("get a")).to.eql(new StringValue("val"));
-              expect(() => evaluate("get b")).to.throw(
-                `can't read "b": no such variable`
+              expect(execute("get b")).to.eql(
+                ERROR(`can't read "b": no such variable`)
               );
             });
             specify("one two", () => {
@@ -365,8 +360,8 @@ describe("Helena argument handling", () => {
         describe("prefix", () => {
           specify("one", () => {
             evaluate("[argspec (?a b)] set (val)");
-            expect(() => evaluate("get a")).to.throw(
-              `can't read "a": no such variable`
+            expect(execute("get a")).to.eql(
+              ERROR(`can't read "a": no such variable`)
             );
             expect(evaluate("get b")).to.eql(new StringValue("val"));
           });
@@ -380,8 +375,8 @@ describe("Helena argument handling", () => {
           specify("two", () => {
             evaluate("[argspec (a ?b c)] set (val1 val2)");
             expect(evaluate("get a")).to.eql(new StringValue("val1"));
-            expect(() => evaluate("get b")).to.throw(
-              `can't read "b": no such variable`
+            expect(execute("get b")).to.eql(
+              ERROR(`can't read "b": no such variable`)
             );
             expect(evaluate("get c")).to.eql(new StringValue("val2"));
           });
@@ -396,8 +391,8 @@ describe("Helena argument handling", () => {
           specify("one", () => {
             evaluate("[argspec (a ?b)] set (val)");
             expect(evaluate("get a")).to.eql(new StringValue("val"));
-            expect(() => evaluate("get b")).to.throw(
-              `can't read "b": no such variable`
+            expect(execute("get b")).to.eql(
+              ERROR(`can't read "b": no such variable`)
             );
           });
           specify("two", () => {
@@ -461,8 +456,8 @@ describe("Helena argument handling", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("[argspec {}] help a")).to.throw(
-              'wrong # args: should be "argspec help"'
+            expect(execute("[argspec {}] help a")).to.eql(
+              ERROR('wrong # args: should be "argspec help"')
             );
           });
         });
@@ -476,29 +471,29 @@ describe("Helena argument handling", () => {
           expect(evaluate("get a")).to.eql(new StringValue("val"));
         });
         it("should enforce minimum number of arguments", () => {
-          expect(() => evaluate("[argspec {a}] set ()")).to.throw(
-            `wrong # values: should be "a"`
+          expect(execute("[argspec {a}] set ()")).to.eql(
+            ERROR(`wrong # values: should be "a"`)
           );
-          expect(() => evaluate("[argspec {a ?b}] set ()")).to.throw(
-            `wrong # values: should be "a ?b?"`
+          expect(execute("[argspec {a ?b}] set ()")).to.eql(
+            ERROR(`wrong # values: should be "a ?b?"`)
           );
-          expect(() => evaluate("[argspec {?a b c}] set (val)")).to.throw(
-            `wrong # values: should be "?a? b c"`
+          expect(execute("[argspec {?a b c}] set (val)")).to.eql(
+            ERROR(`wrong # values: should be "?a? b c"`)
           );
-          expect(() => evaluate("[argspec {a *b c}] set (val)")).to.throw(
-            `wrong # values: should be "a ?b ...? c"`
+          expect(execute("[argspec {a *b c}] set (val)")).to.eql(
+            ERROR(`wrong # values: should be "a ?b ...? c"`)
           );
         });
         it("should enforce maximum number of arguments", () => {
-          expect(() => evaluate("[argspec {}] set (val1)")).to.throw(
-            `wrong # values: should be ""`
+          expect(execute("[argspec {}] set (val1)")).to.eql(
+            ERROR(`wrong # values: should be ""`)
           );
-          expect(() => evaluate("[argspec {a}] set (val1 val2)")).to.throw(
-            `wrong # values: should be "a"`
+          expect(execute("[argspec {a}] set (val1 val2)")).to.eql(
+            ERROR(`wrong # values: should be "a"`)
           );
-          expect(() =>
-            evaluate("[argspec {a ?b}] set (val1 val2 val3)")
-          ).to.throw(`wrong # values: should be "a ?b?"`);
+          expect(execute("[argspec {a ?b}] set (val1 val2 val3)")).to.eql(
+            ERROR(`wrong # values: should be "a ?b?"`)
+          );
         });
         it("should set required attributes first", () => {
           evaluate("[argspec {?a b ?c}] set (val)");
@@ -506,8 +501,8 @@ describe("Helena argument handling", () => {
         });
         it("should skip missing optional attributes", () => {
           evaluate("[argspec {?a b (c def)}] set (val)");
-          expect(() => evaluate("get a")).to.throw(
-            `can't read "a": no such variable`
+          expect(execute("get a")).to.eql(
+            ERROR(`can't read "a": no such variable`)
           );
           expect(evaluate("get b")).to.eql(new StringValue("val"));
           expect(evaluate("get c")).to.eql(new StringValue("def"));
@@ -516,8 +511,8 @@ describe("Helena argument handling", () => {
           evaluate("[argspec {(a def) b ?c}] set (val1 val2)");
           expect(evaluate("get a")).to.eql(new StringValue("val1"));
           expect(evaluate("get b")).to.eql(new StringValue("val2"));
-          expect(() => evaluate("get c")).to.throw(
-            `can't read "c": no such variable`
+          expect(execute("get c")).to.eql(
+            ERROR(`can't read "c": no such variable`)
           );
         });
         it("should set remainder after optional attributes", () => {
@@ -536,11 +531,11 @@ describe("Helena argument handling", () => {
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(() => evaluate("[argspec {}] set")).to.throw(
-              'wrong # args: should be "argspec set values"'
+            expect(execute("[argspec {}] set")).to.eql(
+              ERROR('wrong # args: should be "argspec set values"')
             );
-            expect(() => evaluate("[argspec {}] set a b")).to.throw(
-              'wrong # args: should be "argspec set values"'
+            expect(execute("[argspec {}] set a b")).to.eql(
+              ERROR('wrong # args: should be "argspec set values"')
             );
           });
         });
@@ -548,46 +543,44 @@ describe("Helena argument handling", () => {
     });
     describe("exceptions", () => {
       specify("wrong arity", () => {
-        expect(() => evaluate("argspec")).to.throw(
-          'wrong # args: should be "argspec ?name? specs"'
+        expect(execute("argspec")).to.eql(
+          ERROR('wrong # args: should be "argspec ?name? specs"')
         );
-        expect(() => evaluate("argspec a b c")).to.throw(
-          'wrong # args: should be "argspec ?name? specs"'
+        expect(execute("argspec a b c")).to.eql(
+          ERROR('wrong # args: should be "argspec ?name? specs"')
         );
       });
       specify("empty argument name", () => {
-        expect(() => evaluate('argspec ("")')).to.throw("empty argument name");
-        expect(() => evaluate("argspec (?)")).to.throw("empty argument name");
-        expect(() => evaluate('argspec ((""))')).to.throw(
-          "empty argument name"
-        );
-        expect(() => evaluate("argspec ((?))")).to.throw("empty argument name");
+        expect(execute('argspec ("")')).to.eql(ERROR("empty argument name"));
+        expect(execute("argspec (?)")).to.eql(ERROR("empty argument name"));
+        expect(execute('argspec ((""))')).to.eql(ERROR("empty argument name"));
+        expect(execute("argspec ((?))")).to.eql(ERROR("empty argument name"));
       });
       specify("duplicate arguments", () => {
-        expect(() => evaluate("argspec (a a)")).to.throw(
-          'duplicate argument "a"'
+        expect(execute("argspec (a a)")).to.eql(
+          ERROR('duplicate argument "a"')
         );
-        expect(() => evaluate("argspec ((a def) a)")).to.throw(
-          'duplicate argument "a"'
+        expect(execute("argspec ((a def) a)")).to.eql(
+          ERROR('duplicate argument "a"')
         );
-        expect(() => evaluate("argspec (a (a def))")).to.throw(
-          'duplicate argument "a"'
+        expect(execute("argspec (a (a def))")).to.eql(
+          ERROR('duplicate argument "a"')
         );
       });
       specify("empty argument specifier", () => {
-        expect(() => evaluate("argspec (())")).to.throw(
-          "empty argument specifier"
+        expect(execute("argspec (())")).to.eql(
+          ERROR("empty argument specifier")
         );
-        expect(() => evaluate("argspec ({})")).to.throw(
-          "empty argument specifier"
+        expect(execute("argspec ({})")).to.eql(
+          ERROR("empty argument specifier")
         );
       });
       specify("too many specifiers", () => {
-        expect(() => evaluate("argspec ((a b c))")).to.throw(
-          'too many specifiers for argument "a"'
+        expect(execute("argspec ((a b c))")).to.eql(
+          ERROR('too many specifiers for argument "a"')
         );
-        expect(() => evaluate("argspec ({a b c})")).to.throw(
-          'too many specifiers for argument "a"'
+        expect(execute("argspec ({a b c})")).to.eql(
+          ERROR('too many specifiers for argument "a"')
         );
       });
     });
