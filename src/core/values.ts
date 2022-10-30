@@ -43,16 +43,22 @@ export interface Value {
   asString(): string;
 
   /** Select value at index */
-  selectIndex(index: Value): Result;
+  selectIndex?(index: Value): Result;
 
   /** Select value at key */
-  selectKey(key: Value): Result;
+  selectKey?(key: Value): Result;
+
+  /**
+   * Select value with selector. When present, this takes precedence over
+   * {@link selectRules}
+   *
+   * Note: Implementations must not call {@link Selector.apply} else this would
+   * result in an infinite loop
+   */
+  select?(selector: Selector): Result;
 
   /** Select value from rules */
-  selectRules(rules: Value[]): Result;
-
-  /** Select value with selector */
-  select?(selector: Selector): Result;
+  selectRules?(rules: Value[]): Result;
 }
 
 /**
@@ -65,21 +71,6 @@ class NilValue implements Value {
   /** @override */
   asString(): string {
     throw new Error("nil has no string representation");
-  }
-
-  /** @override */
-  selectIndex(_index: Value): Result {
-    throw new Error("nil is not index-selectable");
-  }
-
-  /** @override */
-  selectKey(_key: Value): Result {
-    throw new Error("nil is not key-selectable");
-  }
-
-  /** @override */
-  selectRules(_rules: Value[]): Result {
-    throw new Error("nil is not selectable");
   }
 }
 
@@ -158,21 +149,6 @@ export class BooleanValue implements Value {
   /** @override */
   asString(): string {
     return this.value.toString();
-  }
-
-  /** @override */
-  selectIndex(_index: Value): Result {
-    throw new Error("value is not index-selectable");
-  }
-
-  /** @override */
-  selectKey(_key: Value): Result {
-    throw new Error("value is not key-selectable");
-  }
-
-  /** @override */
-  selectRules(_rules: Value[]): Result {
-    throw new Error("value is not selectable");
   }
 }
 
@@ -256,21 +232,6 @@ export class IntegerValue implements Value {
   asString(): string {
     return this.value.toString();
   }
-
-  /** @override */
-  selectIndex(_index: Value): Result {
-    throw new Error("value is not index-selectable");
-  }
-
-  /** @override */
-  selectKey(_key: Value): Result {
-    throw new Error("value is not key-selectable");
-  }
-
-  /** @override */
-  selectRules(_rules: Value[]): Result {
-    throw new Error("value is not selectable");
-  }
 }
 
 /**
@@ -351,21 +312,6 @@ export class NumberValue implements Value {
   asString(): string {
     return this.value.toString();
   }
-
-  /** @override */
-  selectIndex(_index: Value): Result {
-    throw new Error("value is not index-selectable");
-  }
-
-  /** @override */
-  selectKey(_key: Value): Result {
-    throw new Error("value is not key-selectable");
-  }
-
-  /** @override */
-  selectRules(_rules: Value[]): Result {
-    throw new Error("value is not selectable");
-  }
 }
 
 /**
@@ -395,16 +341,6 @@ export class StringValue implements Value {
     const i = IntegerValue.toInteger(index);
     if (i < 0 || i >= this.value.length) return ERROR("index out of range");
     return OK(new StringValue(this.value[i]));
-  }
-
-  /** @override */
-  selectKey(_key: Value): Result {
-    throw new Error("value is not key-selectable");
-  }
-
-  /** @override */
-  selectRules(_rules: Value[]): Result {
-    throw new Error("value is not selectable");
   }
 }
 
@@ -438,16 +374,6 @@ export class ListValue implements Value {
     if (i < 0 || i >= this.values.length) return ERROR("index out of range");
     return OK(this.values[i]);
   }
-
-  /** @override */
-  selectKey(_key: Value): Result {
-    throw new Error("value is not key-selectable");
-  }
-
-  /** @override */
-  selectRules(_rules: Value[]): Result {
-    throw new Error("value is not selectable");
-  }
 }
 
 /**
@@ -475,20 +401,10 @@ export class MapValue implements Value {
   }
 
   /** @override */
-  selectIndex(_index: Value): Result {
-    throw new Error("value is not index-selectable");
-  }
-
-  /** @override */
   selectKey(key: Value): Result {
     const k = key.asString();
     if (!this.map.has(k)) return ERROR("unknown key");
     return OK(this.map.get(k));
-  }
-
-  /** @override */
-  selectRules(_rules: Value[]): Result {
-    throw new Error("value is not selectable");
   }
 }
 
@@ -540,15 +456,12 @@ export class TupleValue implements Value {
   }
 
   /** @override */
-  selectRules(_rules: Value[]): Result {
-    throw new Error("value is not selectable");
-  }
-
-  /** @override */
   select(selector: Selector): Result {
     const values = [];
     for (const value of this.values) {
-      const result = selector.apply(value);
+      const result = value.select
+        ? value.select(selector)
+        : selector.apply(value);
       if (result.code != ResultCode.OK) return result;
       values.push(result.value);
     }
@@ -583,21 +496,6 @@ export class ScriptValue implements Value {
   /** @override */
   asString(): string {
     return this.value;
-  }
-
-  /** @override */
-  selectIndex(_index: Value): Result {
-    throw new Error("value is not index-selectable");
-  }
-
-  /** @override */
-  selectKey(_key: Value): Result {
-    throw new Error("value is not key-selectable");
-  }
-
-  /** @override */
-  selectRules(_rules: Value[]): Result {
-    throw new Error("value is not selectable");
   }
 }
 

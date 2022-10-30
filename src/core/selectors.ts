@@ -2,7 +2,7 @@
  * @file Helena value selectors
  */
 
-import { OK, Result, ResultCode } from "./command";
+import { ERROR, OK, Result, ResultCode } from "./command";
 import { NIL, Value } from "./values";
 
 /**
@@ -43,6 +43,7 @@ export class IndexedSelector implements Selector {
 
   /** @override */
   apply(value: Value): Result {
+    if (!value.selectIndex) return ERROR("value is not index-selectable");
     return value.selectIndex(this.index);
   }
 }
@@ -69,6 +70,7 @@ export class KeyedSelector implements Selector {
   /** @override */
   apply(value: Value): Result {
     for (const key of this.keys) {
+      if (!value.selectKey) return ERROR("value is not key-selectable");
       const result = value.selectKey(key);
       if (result.code != ResultCode.OK) return result;
       value = result.value;
@@ -97,6 +99,8 @@ export class GenericSelector implements Selector {
 
   /** @override */
   apply(value: Value): Result {
-    return value.selectRules(this.rules);
+    if (!value.select && !value.selectRules)
+      return ERROR("value is not selectable");
+    return value.select ? value.select(this) : value.selectRules(this.rules);
   }
 }

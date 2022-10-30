@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { OK, Result } from "./command";
+import { ERROR, OK, Result } from "./command";
 import {
   GenericSelector,
   IndexedSelector,
@@ -37,6 +37,13 @@ class MockValue implements Value {
   }
 }
 
+class UnselectableValue implements Value {
+  type = ValueType.CUSTOM;
+  asString(): string {
+    throw new Error("Method not implemented.");
+  }
+}
+
 describe("IndexedSelector", () => {
   specify("literal index", () => {
     const index = new StringValue("index");
@@ -48,6 +55,13 @@ describe("IndexedSelector", () => {
   describe("exceptions", () => {
     specify("invalid index", () => {
       expect(() => new IndexedSelector(NIL)).to.throw("invalid index");
+    });
+    specify("non-selectable value", () => {
+      const selector = new IndexedSelector(new IntegerValue(1));
+      const value = new UnselectableValue();
+      expect(selector.apply(value)).to.eql(
+        ERROR("value is not index-selectable")
+      );
     });
   });
 });
@@ -70,6 +84,13 @@ describe("KeyedSelector", () => {
   describe("exceptions", () => {
     specify("empty key list", () => {
       expect(() => new KeyedSelector([])).to.throws("empty selector");
+    });
+    specify("non-selectable value", () => {
+      const selector = new KeyedSelector([new IntegerValue(1)]);
+      const value = new UnselectableValue();
+      expect(selector.apply(value)).to.eql(
+        ERROR("value is not key-selectable")
+      );
     });
   });
 });
@@ -104,6 +125,11 @@ describe("GenericSelector", () => {
   describe("exceptions", () => {
     specify("empty rules", () => {
       expect(() => new GenericSelector([])).to.throws("empty selector");
+    });
+    specify("non-selectable value", () => {
+      const selector = new GenericSelector([new StringValue("rule")]);
+      const value = new UnselectableValue();
+      expect(selector.apply(value)).to.eql(ERROR("value is not selectable"));
     });
   });
 });

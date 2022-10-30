@@ -29,15 +29,6 @@ export class CommandValue implements Value {
   asString(): string {
     throw new Error("Method not implemented.");
   }
-  selectIndex(_index: Value): Result {
-    throw new Error("Method not implemented.");
-  }
-  selectKey(_key: Value): Result {
-    throw new Error("Method not implemented.");
-  }
-  selectRules(_rules: Value[]): Result {
-    throw new Error("Method not implemented.");
-  }
 }
 
 export class ScopeContext {
