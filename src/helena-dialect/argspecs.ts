@@ -12,6 +12,7 @@ import {
   Argument,
   ARITY_ERROR,
   buildArguments,
+  buildHelp,
   valueToArray,
 } from "./arguments";
 import { CommandValue, Scope } from "./core";
@@ -48,11 +49,69 @@ export class ArgspecValue extends CommandValue {
     this.argspec = argspec;
   }
 
-  static fromValue(value: Value, scope: Scope): ArgspecValue {
+  static fromValue(scope: Scope, value: Value): ArgspecValue {
     if (value instanceof ArgspecValue) return value;
-    const argspec = valueToArgspec(scope, value);
+    const args = buildArguments(scope, value);
+    const argspec = new Argspec(args);
     const command = new ArgspecCommand(argspec);
-    return new ArgspecValue(command, argspec);
+    return command.value;
+  }
+
+  help(): string {
+    return this.argspec.help.asString();
+  }
+  checkArity(values: Value[], skip: number) {
+    return (
+      values.length - skip >= this.argspec.nbRequired &&
+      (this.argspec.hasRemainder ||
+        values.length - skip <=
+          this.argspec.nbRequired + this.argspec.nbOptional)
+    );
+  }
+  applyArguments(
+    scope: Scope,
+    values: Value[],
+    skip: number,
+    setArgument: (name: string, value: Value) => Result
+  ): Result {
+    let setOptionals = Math.min(
+      this.argspec.nbOptional,
+      values.length - this.argspec.nbRequired
+    );
+    const setRemainder = values.length - this.argspec.nbRequired - setOptionals;
+    let i = skip;
+    for (const arg of this.argspec.args) {
+      let value: Value;
+      switch (arg.type) {
+        case "required":
+          value = values[i++];
+          break;
+        case "optional":
+          if (setOptionals > 0) {
+            setOptionals--;
+            value = values[i++];
+          } else if (arg.default) {
+            if (arg.default.type == ValueType.SCRIPT) {
+              const body = arg.default as ScriptValue;
+              const result = scope.executeScript(body);
+              // TODO handle YIELD?
+              if (result.code != ResultCode.OK) return result;
+              value = result.value;
+            } else {
+              value = arg.default;
+            }
+          } else continue; // Skip missing optional
+          break;
+        case "remainder":
+          value = new TupleValue(values.slice(i, i + setRemainder));
+          i += setRemainder;
+          break;
+      }
+      const result = setArgument(arg.name, value);
+      // TODO handle YIELD?
+      if (result.code != ResultCode.OK) return result;
+    }
+    return OK(NIL);
   }
 }
 class ArgspecCommand implements Command {
@@ -73,15 +132,19 @@ class ArgspecCommand implements Command {
       case "set": {
         if (args.length != 3) return ARITY_ERROR("argspec set values");
         // TODO handle YIELD?
-        return setArguments(
-          scope,
-          this.value.argspec,
-          valueToArray(scope, args[2])
-        );
+        return this.setArguments(valueToArray(scope, args[2]), scope);
       }
       default:
         return ERROR(`invalid method name "${method.asString()}"`);
     }
+  }
+
+  setArguments(values: Value[], scope: Scope): Result {
+    if (!this.value.checkArity(values, 0))
+      return ERROR(`wrong # values: should be "${this.value.help()}"`);
+    return this.value.applyArguments(scope, values, 0, (name, value) =>
+      scope.setVariable(name, value)
+    );
   }
 }
 export const argspecCmd: Command = {
@@ -99,7 +162,7 @@ export const argspecCmd: Command = {
     }
 
     try {
-      const argspec = ArgspecValue.fromValue(specs, scope);
+      const argspec = ArgspecValue.fromValue(scope, specs);
       if (name) {
         scope.registerCommand(name.asString(), argspec.command);
       }
@@ -109,92 +172,3 @@ export const argspecCmd: Command = {
     }
   },
 };
-
-function buildHelp(args: Argument[]) {
-  const parts = [];
-  for (const arg of args) {
-    switch (arg.type) {
-      case "required":
-        parts.push(arg.name);
-        break;
-      case "optional":
-        parts.push(`?${arg.name}?`);
-        break;
-      case "remainder":
-        parts.push(`?${arg.name == "*" ? "arg" : arg.name} ...?`);
-        break;
-    }
-  }
-  return parts.join(" ");
-}
-
-function setArguments(
-  scope: Scope,
-  argspec: Argspec,
-  values: Value[],
-  skip = 0
-): Result {
-  if (!checkArity(argspec, values, skip))
-    return ERROR(`wrong # values: should be "${argspec.help.asString()}"`);
-  return applyArguments(scope, argspec, values, skip, (name, value) =>
-    scope.setVariable(name, value)
-  );
-}
-export function checkArity(argspec: Argspec, values: Value[], skip) {
-  return (
-    values.length - skip >= argspec.nbRequired &&
-    (argspec.hasRemainder ||
-      values.length - skip <= argspec.nbRequired + argspec.nbOptional)
-  );
-}
-export function applyArguments(
-  scope: Scope,
-  argspec: Argspec,
-  values: Value[],
-  skip: number,
-  setArgument: (name: string, value: Value) => Result
-): Result {
-  let setOptionals = Math.min(
-    argspec.nbOptional,
-    values.length - argspec.nbRequired
-  );
-  const setRemainder = values.length - argspec.nbRequired - setOptionals;
-  let i = skip;
-  for (const arg of argspec.args) {
-    let value: Value;
-    switch (arg.type) {
-      case "required":
-        value = values[i++];
-        break;
-      case "optional":
-        if (setOptionals > 0) {
-          setOptionals--;
-          value = values[i++];
-        } else if (arg.default) {
-          if (arg.default.type == ValueType.SCRIPT) {
-            const body = arg.default as ScriptValue;
-            const result = scope.executeScript(body);
-            // TODO handle YIELD?
-            if (result.code != ResultCode.OK) return result;
-            value = result.value;
-          } else {
-            value = arg.default;
-          }
-        } else continue; // Skip missing optional
-        break;
-      case "remainder":
-        value = new TupleValue(values.slice(i, i + setRemainder));
-        i += setRemainder;
-        break;
-    }
-    const result = setArgument(arg.name, value);
-    // TODO handle YIELD?
-    if (result.code != ResultCode.OK) return result;
-  }
-  return OK(NIL);
-}
-
-export function valueToArgspec(scope: Scope, value: Value): Argspec {
-  if (value instanceof ArgspecValue) return value.argspec;
-  return new Argspec(buildArguments(scope, value));
-}

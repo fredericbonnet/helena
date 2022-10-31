@@ -84,6 +84,23 @@ function buildArgument(scope: Scope, value: Value): Argument {
     }
   }
 }
+export function buildHelp(args: Argument[]) {
+  const parts = [];
+  for (const arg of args) {
+    switch (arg.type) {
+      case "required":
+        parts.push(arg.name);
+        break;
+      case "optional":
+        parts.push(`?${arg.name}?`);
+        break;
+      case "remainder":
+        parts.push(`?${arg.name == "*" ? "arg" : arg.name} ...?`);
+        break;
+    }
+  }
+  return parts.join(" ");
+}
 
 export function valueToArray(scope: Scope, value: Value): Value[] {
   switch (value.type) {
