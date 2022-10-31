@@ -201,6 +201,24 @@ describe("Helena macros", () => {
           evaluate("set cmd [macro {} {idem val}]");
           expect(evaluate("$cmd call")).to.eql(new StringValue("val"));
         });
+        it("should pass arguments to macro", () => {
+          evaluate("set cmd [macro {a} {idem $a}]");
+          expect(evaluate("$cmd call val")).to.eql(new StringValue("val"));
+        });
+      });
+      describe("argspec", () => {
+        it("should return the macro argspec", () => {
+          expect(evaluate("[macro {} {}] argspec")).to.eql(
+            evaluate("argspec {}")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("[macro {} {}] argspec a")).to.eql(
+              ERROR('wrong # args: should be "macro argspec"')
+            );
+          });
+        });
       });
       describe("exceptions", () => {
         specify("non-existing method", () => {

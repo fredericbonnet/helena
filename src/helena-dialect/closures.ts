@@ -2,25 +2,20 @@
 import { Command, Result, ResultCode, YIELD, OK, ERROR } from "../core/command";
 import { Program, Process } from "../core/compiler";
 import { ScriptValue, Value } from "../core/values";
-import {
-  applyArguments,
-  Argspec,
-  checkArity,
-  valueToArgspec,
-} from "./argspecs";
+import { applyArguments, ArgspecValue, checkArity } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, ScopeContext } from "./core";
 
 class ClosureValue extends CommandValue {
   readonly scope: Scope;
-  readonly argspec: Argspec;
+  readonly argspec: ArgspecValue;
   readonly body: ScriptValue;
   readonly program: Program;
   readonly closure: Command;
   constructor(
     command: Command,
     scope: Scope,
-    argspec: Argspec,
+    argspec: ArgspecValue,
     body: ScriptValue
   ) {
     super(command);
@@ -33,7 +28,7 @@ class ClosureValue extends CommandValue {
 }
 class ClosureValueCommand implements Command {
   readonly value: ClosureValue;
-  constructor(scope: Scope, argspec: Argspec, body: ScriptValue) {
+  constructor(scope: Scope, argspec: ArgspecValue, body: ScriptValue) {
     this.value = new ClosureValue(this, scope, argspec, body);
   }
   execute(args: Value[]): Result {
@@ -46,6 +41,9 @@ class ClosureValueCommand implements Command {
         const cmdline = [this.value, ...args.slice(2)];
         return this.value.closure.execute(cmdline);
       }
+      case "argspec":
+        if (args.length != 2) return ARITY_ERROR("closure argspec");
+        return OK(this.value.argspec);
       default:
         return ERROR(`invalid method name "${method.asString()}"`);
     }
@@ -63,9 +61,9 @@ class ClosureCommand implements Command {
   }
 
   execute(args: Value[]): Result {
-    if (!checkArity(this.value.argspec, args, 1)) {
+    if (!checkArity(this.value.argspec.argspec, args, 1)) {
       return ERROR(
-        `wrong # args: should be "${args[0].asString()} ${this.value.argspec.help.asString()}"`
+        `wrong # args: should be "${args[0].asString()} ${this.value.argspec.argspec.help.asString()}"`
       );
     }
     const locals: Map<string, Value> = new Map();
@@ -76,7 +74,7 @@ class ClosureCommand implements Command {
     // TODO handle YIELD?
     const result = applyArguments(
       this.value.scope,
-      this.value.argspec,
+      this.value.argspec.argspec,
       args,
       1,
       setarg
@@ -112,7 +110,7 @@ export const closureCmd: Command = {
         return ARITY_ERROR("closure ?name? argspec body");
     }
 
-    const argspec = valueToArgspec(scope, specs);
+    const argspec = ArgspecValue.fromValue(specs, scope);
     const command = new ClosureValueCommand(
       scope,
       argspec,

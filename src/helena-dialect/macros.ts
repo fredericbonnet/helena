@@ -2,24 +2,19 @@
 import { Command, Result, ResultCode, YIELD, OK, ERROR } from "../core/command";
 import { Program, Process } from "../core/compiler";
 import { ScriptValue, Value } from "../core/values";
-import {
-  applyArguments,
-  Argspec,
-  checkArity,
-  valueToArgspec,
-} from "./argspecs";
+import { applyArguments, ArgspecValue, checkArity } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, ScopeContext } from "./core";
 
 class MacroValue extends CommandValue {
-  readonly argspec: Argspec;
+  readonly argspec: ArgspecValue;
   readonly body: ScriptValue;
   readonly program: Program;
   readonly macro: Command;
   constructor(
     command: Command,
     scope: Scope,
-    argspec: Argspec,
+    argspec: ArgspecValue,
     body: ScriptValue
   ) {
     super(command);
@@ -31,7 +26,7 @@ class MacroValue extends CommandValue {
 }
 class MacroValueCommand implements Command {
   readonly value: MacroValue;
-  constructor(scope: Scope, argspec: Argspec, body: ScriptValue) {
+  constructor(scope: Scope, argspec: ArgspecValue, body: ScriptValue) {
     this.value = new MacroValue(this, scope, argspec, body);
   }
 
@@ -45,6 +40,9 @@ class MacroValueCommand implements Command {
         const cmdline = [this.value, ...args.slice(2)];
         return this.value.macro.execute(cmdline, scope);
       }
+      case "argspec":
+        if (args.length != 2) return ARITY_ERROR("macro argspec");
+        return OK(this.value.argspec);
       default:
         return ERROR(`invalid method name "${method.asString()}"`);
     }
@@ -62,9 +60,9 @@ class MacroCommand implements Command {
   }
 
   execute(args: Value[], scope: Scope): Result {
-    if (!checkArity(this.value.argspec, args, 1)) {
+    if (!checkArity(this.value.argspec.argspec, args, 1)) {
       return ERROR(
-        `wrong # args: should be "${args[0].asString()} ${this.value.argspec.help.asString()}"`
+        `wrong # args: should be "${args[0].asString()} ${this.value.argspec.argspec.help.asString()}"`
       );
     }
     const locals: Map<string, Value> = new Map();
@@ -73,7 +71,13 @@ class MacroCommand implements Command {
       return OK(value);
     };
     // TODO handle YIELD?
-    const result = applyArguments(scope, this.value.argspec, args, 1, setarg);
+    const result = applyArguments(
+      scope,
+      this.value.argspec.argspec,
+      args,
+      1,
+      setarg
+    );
     if (result.code != ResultCode.OK) return result;
     const subscope = new Scope(scope, new ScopeContext(scope.context, locals));
     const process = new Process();
@@ -102,7 +106,7 @@ export const macroCmd: Command = {
         return ARITY_ERROR("macro ?name? argspec body");
     }
 
-    const argspec = valueToArgspec(scope, specs);
+    const argspec = ArgspecValue.fromValue(specs, scope);
     const command = new MacroValueCommand(scope, argspec, body as ScriptValue);
     if (name) {
       scope.registerCommand(name.asString(), command.value.macro);

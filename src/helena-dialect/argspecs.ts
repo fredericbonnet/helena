@@ -47,6 +47,13 @@ export class ArgspecValue extends CommandValue {
     super(command);
     this.argspec = argspec;
   }
+
+  static fromValue(value: Value, scope: Scope): ArgspecValue {
+    if (value instanceof ArgspecValue) return value;
+    const argspec = valueToArgspec(scope, value);
+    const command = new ArgspecCommand(argspec);
+    return new ArgspecValue(command, argspec);
+  }
 }
 class ArgspecCommand implements Command {
   readonly value: ArgspecValue;
@@ -92,12 +99,11 @@ export const argspecCmd: Command = {
     }
 
     try {
-      const argspec = valueToArgspec(scope, specs);
-      const command = new ArgspecCommand(argspec);
+      const argspec = ArgspecValue.fromValue(specs, scope);
       if (name) {
-        scope.registerCommand(name.asString(), command);
+        scope.registerCommand(name.asString(), argspec.command);
       }
-      return OK(command.value);
+      return OK(argspec);
     } catch (e) {
       return ERROR(e.message);
     }

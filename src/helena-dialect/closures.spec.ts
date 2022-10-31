@@ -180,6 +180,24 @@ describe("Helena closures", () => {
           evaluate("set cmd [closure {} {idem val}]");
           expect(evaluate("$cmd call")).to.eql(new StringValue("val"));
         });
+        it("should pass arguments to closure", () => {
+          evaluate("set cmd [closure {a} {idem $a}]");
+          expect(evaluate("$cmd call val")).to.eql(new StringValue("val"));
+        });
+      });
+      describe("argspec", () => {
+        it("should return the closure argspec", () => {
+          expect(evaluate("[closure {} {}] argspec")).to.eql(
+            evaluate("argspec {}")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("[closure {} {}] argspec a")).to.eql(
+              ERROR('wrong # args: should be "closure argspec"')
+            );
+          });
+        });
       });
       describe("exceptions", () => {
         specify("non-existing method", () => {
