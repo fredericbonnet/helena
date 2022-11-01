@@ -71,7 +71,7 @@ export const scopeCmd: Command = {
     return executeScopeBody({ scope, subscope, program, process, name });
   },
   resume(result: Result): Result {
-    return executeScopeBody(result.state as ScopeBodyState);
+    return executeScopeBody(result.data as ScopeBodyState);
   },
 };
 const executeScopeBody = (state: ScopeBodyState): Result => {

@@ -67,7 +67,7 @@ class CoroutineCommand implements Command {
         if (args.length == 3) {
           this.value.process.result = YIELD(
             args[2],
-            this.value.process.result.state
+            this.value.process.result.data
           );
         }
         const result = this.value.scope.execute(

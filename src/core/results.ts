@@ -15,15 +15,15 @@ export enum ResultCode {
 }
 
 /** Helena result */
-export type Result = {
+export type Result<T = unknown> = {
   /** Result code */
   readonly code: ResultCode;
 
   /** Result value */
   readonly value: Value;
 
-  /** Resumable state */
-  readonly state?: unknown;
+  /** Extra data */
+  readonly data?: T;
 };
 
 /**
@@ -31,16 +31,16 @@ export type Result = {
  */
 
 /* eslint-disable jsdoc/require-jsdoc */
-export const OK = (value: Value): Result => {
-  return { code: ResultCode.OK, value };
+export const OK = <T = unknown>(value: Value, data?: T): Result<T> => {
+  return { code: ResultCode.OK, value, data };
 };
 export const YIELD = (value: Value = NIL, state?): Result => {
-  return { code: ResultCode.YIELD, value, state };
+  return { code: ResultCode.YIELD, value, data: state };
 };
 export const RETURN = (value: Value = NIL): Result => {
   return { code: ResultCode.RETURN, value };
 };
-export const ERROR = (message: string): Result => {
+export const ERROR = (message: string): Result<never> => {
   return { code: ResultCode.ERROR, value: new StringValue(message) };
 };
 export const BREAK = (value: Value = NIL): Result => {

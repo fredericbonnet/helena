@@ -1,19 +1,18 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Result, OK, ERROR } from "../core/results";
+import { Result, OK, ERROR, ResultCode } from "../core/results";
 import { Command } from "../core/command";
 import { Value, IntegerValue, NumberValue, TRUE, FALSE } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Scope } from "./core";
-
-const NUMBER_ERROR = (value: Value) =>
-  ERROR(`invalid number "${value.asString()}"`);
 
 const OPERATOR_ARITY_ERROR = (operator: string) =>
   ERROR(`wrong # operands: should be "operand1 ${operator} operand2"`);
 
 export const numberCmd = {
   execute(args: Value[]): Result {
-    const operand1 = NumberValue.toNumber(args[0]);
+    const result = NumberValue.toNumber(args[0]);
+    if (result.code != ResultCode.OK) return result;
+    const operand1 = result.data;
     if (args.length == 1) return OK(numberToValue(operand1));
     const method = args[1].asString();
     switch (method) {
@@ -45,8 +44,9 @@ const binaryOp =
   (args: Value[], operand1: number): Result => {
     if (args.length != 3) return OPERATOR_ARITY_ERROR(operator);
     if (args[0] == args[2]) return OK(whenEqual ? TRUE : FALSE);
-    if (!NumberValue.isNumber(args[2])) return NUMBER_ERROR(args[2]);
-    const operand2 = NumberValue.toNumber(args[2]);
+    const result = NumberValue.toNumber(args[2]);
+    if (result.code != ResultCode.OK) return result;
+    const operand2 = result.data;
     return OK(fn(operand1, operand2) ? TRUE : FALSE);
   };
 const eqOp = binaryOp("==", true, (op1, op2) => op1 == op2);
@@ -61,9 +61,10 @@ export const addCmd: Command = {
     if (args.length < 2) return ARITY_ERROR("+ arg ?arg ...?");
     let total = 0;
     for (let i = 1; i < args.length; i++) {
-      const arg = args[i];
-      if (!NumberValue.isNumber(arg)) return NUMBER_ERROR(arg);
-      total += NumberValue.toNumber(arg);
+      const result = NumberValue.toNumber(args[i]);
+      if (result.code != ResultCode.OK) return result;
+      const operand = result.data;
+      total += operand;
     }
     return OK(numberToValue(total));
   },
@@ -72,16 +73,17 @@ export const addCmd: Command = {
 export const subtractCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("- arg ?arg ...?");
-    if (!NumberValue.isNumber(args[1])) return NUMBER_ERROR(args[1]);
-    const first = NumberValue.toNumber(args[1]);
+    const result = NumberValue.toNumber(args[1]);
+    if (result.code != ResultCode.OK) return result;
+    const first = result.data;
     if (args.length == 2) {
       return OK(numberToValue(-first));
     }
     let total = first;
     for (let i = 2; i < args.length; i++) {
-      const arg = args[i];
-      if (!NumberValue.isNumber(arg)) return NUMBER_ERROR(arg);
-      total -= NumberValue.toNumber(arg);
+      const result = NumberValue.toNumber(args[i]);
+      if (result.code != ResultCode.OK) return result;
+      total -= result.data;
     }
     return OK(numberToValue(total));
   },
@@ -90,16 +92,17 @@ export const subtractCmd: Command = {
 export const multiplyCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("* arg ?arg ...?");
-    if (!NumberValue.isNumber(args[1])) return NUMBER_ERROR(args[1]);
-    const first = NumberValue.toNumber(args[1]);
+    const result = NumberValue.toNumber(args[1]);
+    if (result.code != ResultCode.OK) return result;
+    const first = result.data;
     if (args.length == 2) {
       return OK(numberToValue(first));
     }
     let total = first;
     for (let i = 2; i < args.length; i++) {
-      const arg = args[i];
-      if (!NumberValue.isNumber(arg)) return NUMBER_ERROR(arg);
-      total *= NumberValue.toNumber(arg);
+      const result = NumberValue.toNumber(args[i]);
+      if (result.code != ResultCode.OK) return result;
+      total *= result.data;
     }
     return OK(numberToValue(total));
   },
@@ -108,13 +111,14 @@ export const multiplyCmd: Command = {
 export const divideCmd: Command = {
   execute: (args) => {
     if (args.length < 3) return ARITY_ERROR("/ arg arg ?arg ...?");
-    if (!NumberValue.isNumber(args[1])) return NUMBER_ERROR(args[1]);
-    const first = NumberValue.toNumber(args[1]);
+    const result = NumberValue.toNumber(args[1]);
+    if (result.code != ResultCode.OK) return result;
+    const first = result.data;
     let total = first;
     for (let i = 2; i < args.length; i++) {
-      const arg = args[i];
-      if (!NumberValue.isNumber(arg)) return NUMBER_ERROR(arg);
-      total /= NumberValue.toNumber(arg);
+      const result = NumberValue.toNumber(args[i]);
+      if (result.code != ResultCode.OK) return result;
+      total /= result.data;
     }
     return OK(numberToValue(total));
   },

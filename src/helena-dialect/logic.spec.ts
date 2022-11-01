@@ -131,10 +131,10 @@ describe("Helena logic operations", () => {
               );
 
               let result = rootScope.execute(program, process);
-              expect(result.state).to.exist;
+              expect(result.data).to.exist;
 
               result = rootScope.execute(program, process);
-              expect(result.state).to.exist;
+              expect(result.data).to.exist;
 
               result = rootScope.execute(program, process);
               expect(result).to.eql(OK(FALSE));
@@ -197,10 +197,10 @@ describe("Helena logic operations", () => {
               );
 
               let result = rootScope.execute(program, process);
-              expect(result.state).to.exist;
+              expect(result.data).to.exist;
 
               result = rootScope.execute(program, process);
-              expect(result.state).to.exist;
+              expect(result.data).to.exist;
 
               result = rootScope.execute(program, process);
               expect(result).to.eql(OK(FALSE));
@@ -261,10 +261,10 @@ describe("Helena logic operations", () => {
               );
 
               let result = rootScope.execute(program, process);
-              expect(result.state).to.exist;
+              expect(result.data).to.exist;
 
               result = rootScope.execute(program, process);
-              expect(result.state).to.exist;
+              expect(result.data).to.exist;
 
               result = rootScope.execute(program, process);
               expect(result).to.eql(OK(TRUE));

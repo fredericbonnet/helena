@@ -79,7 +79,7 @@ class MacroCommand implements Command {
     return this.run({ scope: subscope, process });
   }
   resume(result: Result): Result {
-    return this.run(result.state as MacroState);
+    return this.run(result.data as MacroState);
   }
   run(state: MacroState) {
     const result = state.scope.execute(this.value.program, state.process);
@@ -101,7 +101,9 @@ export const macroCmd: Command = {
         return ARITY_ERROR("macro ?name? argspec body");
     }
 
-    const argspec = ArgspecValue.fromValue(scope, specs);
+    const result = ArgspecValue.fromValue(scope, specs);
+    if (result.code != ResultCode.OK) return result; // TODO handle YIELD?
+    const argspec = result.data;
     const command = new MacroValueCommand(scope, argspec, body as ScriptValue);
     if (name) {
       scope.registerCommand(name.asString(), command.value.macro);

@@ -41,7 +41,7 @@ export const evalCmd: Command = {
     return executeEvalBody({ program, process }, scope);
   },
   resume(result: Result, scope: Scope): Result {
-    return executeEvalBody(result.state as EvalBodyState, scope);
+    return executeEvalBody(result.data as EvalBodyState, scope);
   },
 };
 const executeEvalBody = (state: EvalBodyState, scope: Scope): Result => {

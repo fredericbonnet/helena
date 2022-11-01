@@ -2692,7 +2692,7 @@ describe("Compiler", () => {
       commandResolver.register(
         "repeat",
         new FunctionCommand((args) => {
-          const nb = IntegerValue.toInteger(args[1]);
+          const nb = IntegerValue.toInteger(args[1]).data;
           const block = args[2];
           const script =
             block.type == ValueType.SCRIPT
@@ -2851,7 +2851,7 @@ describe("Compiler", () => {
           return YIELD(new StringValue("begin"), 1);
         },
         resume(result) {
-          const step = result.state as number;
+          const step = result.data as number;
           switch (step) {
             case 1:
               return YIELD(new StringValue(`step one`), step + 1);

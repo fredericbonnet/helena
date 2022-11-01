@@ -78,68 +78,71 @@ const ARITY_ERROR = (signature: string) =>
 const addCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("+ arg ?arg ...?");
-    try {
-      const result = args.reduce((total, arg, i) => {
-        if (i == 0) return 0;
-        const v = NumberValue.toNumber(arg);
-        return total + v;
-      }, 0);
-      return OK(new NumberValue(result));
-    } catch (e) {
-      return ERROR(e.message);
+    const result = NumberValue.toNumber(args[1]);
+    if (result.code != ResultCode.OK) return result;
+    const first = result.data;
+    if (args.length == 2) {
+      return OK(new NumberValue(first));
     }
+    let total = first;
+    for (let i = 2; i < args.length; i++) {
+      const result = NumberValue.toNumber(args[i]);
+      if (result.code != ResultCode.OK) return result;
+      total += result.data;
+    }
+    return OK(new NumberValue(total));
   },
 };
 const subtractCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("- arg ?arg ...?");
-    try {
-      if (args.length == 2) {
-        const v = NumberValue.toNumber(args[1]);
-        return OK(new NumberValue(-v));
-      }
-      const result = args.reduce((total, arg, i) => {
-        if (i == 0) return 0;
-        const v = NumberValue.toNumber(arg);
-        if (i == 1) return v;
-        return total - v;
-      }, 0);
-      return OK(new NumberValue(result));
-    } catch (e) {
-      return ERROR(e.message);
+    const result = NumberValue.toNumber(args[1]);
+    if (result.code != ResultCode.OK) return result;
+    const first = result.data;
+    if (args.length == 2) {
+      return OK(new NumberValue(-first));
     }
+    let total = first;
+    for (let i = 2; i < args.length; i++) {
+      const result = NumberValue.toNumber(args[i]);
+      if (result.code != ResultCode.OK) return result;
+      total -= result.data;
+    }
+    return OK(new NumberValue(total));
   },
 };
 
 const multiplyCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("* arg ?arg ...?");
-    try {
-      const result = args.reduce((total, arg, i) => {
-        if (i == 0) return 1;
-        const v = NumberValue.toNumber(arg);
-        return total * v;
-      }, 1);
-      return OK(new NumberValue(result));
-    } catch (e) {
-      return ERROR(e.message);
+    const result = NumberValue.toNumber(args[1]);
+    if (result.code != ResultCode.OK) return result;
+    const first = result.data;
+    if (args.length == 2) {
+      return OK(new NumberValue(first));
     }
+    let total = first;
+    for (let i = 2; i < args.length; i++) {
+      const result = NumberValue.toNumber(args[i]);
+      if (result.code != ResultCode.OK) return result;
+      total *= result.data;
+    }
+    return OK(new NumberValue(total));
   },
 };
 const divideCmd: Command = {
   execute: (args) => {
     if (args.length < 3) return ARITY_ERROR("/ arg arg ?arg ...?");
-    try {
-      const result = args.reduce((total, arg, i) => {
-        if (i == 0) return 1;
-        const v = NumberValue.toNumber(arg);
-        if (i == 1) return v;
-        return total / v;
-      }, 0);
-      return OK(new NumberValue(result));
-    } catch (e) {
-      return ERROR(e.message);
+    const result = NumberValue.toNumber(args[1]);
+    if (result.code != ResultCode.OK) return result;
+    const first = result.data;
+    let total = first;
+    for (let i = 2; i < args.length; i++) {
+      const result = NumberValue.toNumber(args[i]);
+      if (result.code != ResultCode.OK) return result;
+      total /= result.data;
     }
+    return OK(new NumberValue(total));
   },
 };
 
@@ -149,11 +152,7 @@ const compareValuesCmd = (
 ): Command => ({
   execute: (args) => {
     if (args.length != 3) return ARITY_ERROR(`${name} arg arg`);
-    try {
-      return fn(args[1], args[2]) ? OK(TRUE) : OK(FALSE);
-    } catch (e) {
-      return ERROR(e.message);
-    }
+    return fn(args[1], args[2]) ? OK(TRUE) : OK(FALSE);
   },
 });
 const eqCmd = compareValuesCmd(
@@ -171,13 +170,13 @@ const compareNumbersCmd = (
 ): Command => ({
   execute: (args) => {
     if (args.length != 3) return ARITY_ERROR(`${name} arg arg`);
-    try {
-      const op1 = NumberValue.toNumber(args[1]);
-      const op2 = NumberValue.toNumber(args[2]);
-      return fn(op1, op2) ? OK(TRUE) : OK(FALSE);
-    } catch (e) {
-      return ERROR(e.message);
-    }
+    const result1 = NumberValue.toNumber(args[1]);
+    if (result1.code != ResultCode.OK) return result1;
+    const op1 = result1.data;
+    const result2 = NumberValue.toNumber(args[2]);
+    if (result2.code != ResultCode.OK) return result2;
+    const op2 = result2.data;
+    return fn(op1, op2) ? OK(TRUE) : OK(FALSE);
   },
 });
 
@@ -305,7 +304,7 @@ function evaluateCondition(value: Value, scope: PicolScope): Result {
   if (value.type == ValueType.SCRIPT) {
     const result = scope.evaluator.executeScript((value as ScriptValue).script);
     if (result.code != ResultCode.OK) return result;
-    return OK(BooleanValue.fromValue(result.value));
+    return BooleanValue.fromValue(result.value);
   }
   const s = value.asString();
   if (s == "true" || s == "yes" || s == "1") return OK(TRUE);
@@ -334,28 +333,33 @@ const setCmd: Command = {
 };
 const incrCmd: Command = {
   execute: (args, scope: PicolScope) => {
-    try {
-      let increment: number;
-      switch (args.length) {
-        case 2:
-          increment = 1;
-          break;
-        case 3:
-          increment = NumberValue.toNumber(args[2]);
-          break;
-        default:
-          return ARITY_ERROR("incr varName ?increment?");
-      }
-      const varName = args[1].asString();
-      const value = scope.variables.get(varName);
-      const result = new NumberValue(
-        (value ? NumberValue.toNumber(value) : 0) + increment
-      );
-      scope.variables.set(varName, result);
-      return OK(result);
-    } catch (e) {
-      return ERROR(e.message);
+    let increment: number;
+    switch (args.length) {
+      case 2:
+        increment = 1;
+        break;
+      case 3:
+        {
+          const result = NumberValue.toNumber(args[2]);
+          if (result.code != ResultCode.OK) return result;
+          increment = result.data;
+        }
+        break;
+      default:
+        return ARITY_ERROR("incr varName ?increment?");
     }
+    const varName = args[1].asString();
+    const value = scope.variables.get(varName);
+    let incremented;
+    if (value) {
+      const result = NumberValue.toNumber(value);
+      if (result.code != ResultCode.OK) return result;
+      incremented = new NumberValue(result.data + increment);
+    } else {
+      incremented = new NumberValue(increment);
+    }
+    scope.variables.set(varName, incremented);
+    return OK(incremented);
   },
 };
 
@@ -398,10 +402,10 @@ class ProcCommand implements Command {
   }
 }
 
-function valueToList(value: Value): Value[] {
+function valueToArray(value: Value): Result<Value[]> {
   switch (value.type) {
     case ValueType.TUPLE:
-      return (value as TupleValue).values;
+      return OK(NIL, (value as TupleValue).values);
     case ValueType.SCRIPT: {
       const evaluator = new InlineEvaluator(null, null, null);
       const values = [];
@@ -410,37 +414,46 @@ function valueToList(value: Value): Value[] {
           values.push(evaluator.evaluateWord(word));
         }
       }
-      return values;
+      return OK(NIL, values);
     }
     default:
-      throw new Error("unsupported list format");
+      return ERROR("unsupported list format");
   }
 }
 
-function valueToArgspec(value: Value): ArgSpec {
+function valueToArgspec(value: Value): Result<ArgSpec> {
   switch (value.type) {
     case ValueType.SCRIPT: {
-      const values = valueToList(value);
-      if (values.length == 0) throw new Error("argument with no name");
+      const { data: values, ...result } = valueToArray(value);
+      if (result.code != ResultCode.OK) return result;
+      if (values.length == 0) return ERROR("argument with no name");
       const name = values[0].asString();
-      if (name == "") throw new Error("argument with no name");
+      if (name == "") return ERROR("argument with no name");
       switch (values.length) {
         case 1:
-          return { name };
+          return OK(NIL, { name });
         case 2:
-          return { name, default: values[1] };
+          return OK(NIL, { name, default: values[1] });
         default:
-          throw new Error(
+          return ERROR(
             `too many fields in argument specifier "${value.asString()}"`
           );
       }
     }
     default:
-      return { name: value.asString() };
+      return OK(NIL, { name: value.asString() });
   }
 }
-function valueToArgspecs(value: Value): ArgSpec[] {
-  return valueToList(value).map(valueToArgspec);
+function valueToArgspecs(value: Value): Result<ArgSpec[]> {
+  const { data: values, ...result } = valueToArray(value);
+  if (result.code != ResultCode.OK) return result;
+  const argspecs: ArgSpec[] = [];
+  for (const value of values) {
+    const { data: argspec, ...result } = valueToArgspec(value);
+    if (result.code != ResultCode.OK) return result;
+    argspecs.push(argspec);
+  }
+  return OK(NIL, argspecs);
 }
 function argspecsToSignature(name: Value, argspecs: ArgSpec[]): string {
   const chunks = [name.asString()];
@@ -459,16 +472,13 @@ const procCmd: Command = {
   execute: (args, scope: PicolScope) => {
     if (args.length != 4) return ARITY_ERROR("proc name args body");
     const [, name, _argspecs, body] = args;
-    try {
-      const argspecs = valueToArgspecs(_argspecs);
-      scope.commands.set(
-        name.asString(),
-        new ProcCommand(argspecs, body as ScriptValue)
-      );
-      return EMPTY;
-    } catch (e) {
-      return ERROR(e.message);
-    }
+    const { data: argspecs, ...result } = valueToArgspecs(_argspecs);
+    if (result.code != ResultCode.OK) return result;
+    scope.commands.set(
+      name.asString(),
+      new ProcCommand(argspecs, body as ScriptValue)
+    );
+    return EMPTY;
   },
 };
 

@@ -1,7 +1,8 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { ERROR, ResultCode } from "../core/results";
+import { ERROR, OK, Result, ResultCode } from "../core/results";
 import {
   ListValue,
+  NIL,
   ScriptValue,
   TupleValue,
   Value,
@@ -18,68 +19,67 @@ export type Argument = {
   default?: Value;
 };
 
-export function buildArguments(scope: Scope, specs: Value): Argument[] {
+export function buildArguments(scope: Scope, specs: Value): Result<Argument[]> {
   const args: Argument[] = [];
   const argnames = new Set<string>();
   let hasRemainder = false;
-  for (const value of valueToArray(scope, specs)) {
-    const arg = buildArgument(scope, value);
+  const { data: values, ...result } = valueToArray(scope, specs);
+  if (result.code != ResultCode.OK) return result;
+  for (const value of values) {
+    const { data: arg, ...result } = buildArgument(scope, value);
+    if (result.code != ResultCode.OK) return result;
     if (arg.type == "remainder" && hasRemainder)
-      throw new Error("only one remainder argument is allowed");
+      return ERROR("only one remainder argument is allowed");
     if (argnames.has(arg.name))
-      throw new Error(`duplicate argument "${arg.name}"`);
+      return ERROR(`duplicate argument "${arg.name}"`);
     hasRemainder = arg.type == "remainder";
     argnames.add(arg.name);
     args.push(arg);
   }
-  return args;
+  return OK(NIL, args);
 }
-function buildArgument(scope: Scope, value: Value): Argument {
+function buildArgument(scope: Scope, value: Value): Result<Argument> {
   switch (value.type) {
     case ValueType.LIST:
     case ValueType.TUPLE:
     case ValueType.SCRIPT: {
-      const specs = valueToArray(scope, value);
-      if (specs.length == 0) throw new Error("empty argument specifier");
+      const { data: specs, ...result } = valueToArray(scope, value);
+      if (result.code != ResultCode.OK) return result;
+      if (specs.length == 0) return ERROR("empty argument specifier");
       const name = specs[0].asString();
-      if (name == "" || name == "?") throw new Error("empty argument name");
+      if (name == "" || name == "?") return ERROR("empty argument name");
       if (specs.length > 2)
-        throw new Error(`too many specifiers for argument "${name}"`);
+        return ERROR(`too many specifiers for argument "${name}"`);
       if (specs.length == 2) {
         const def = specs[1];
         if (name[0] == "?") {
-          return {
+          return OK(NIL, {
             name: name.substring(1),
             type: "optional",
             default: def,
-          };
+          });
         } else {
-          return { name, type: "optional", default: def };
+          return OK(NIL, { name, type: "optional", default: def });
         }
+      } else if (name[0] == "?") {
+        return OK(NIL, { name: name.substring(1), type: "optional" });
       } else {
-        if (name[0] == "?") {
-          return {
-            name: name.substring(1),
-            type: "optional",
-          };
-        } else {
-          return { name, type: "required" };
-        }
+        return OK(NIL, { name, type: "required" });
       }
     }
     default: {
       const name = value.asString();
-      if (name == "" || name == "?") throw new Error("empty argument name");
+      if (name == "" || name == "?") return ERROR("empty argument name");
       if (name[0] == "*") {
         if (name.length == 1) {
-          return { name, type: "remainder" };
+          return OK(NIL, { name, type: "remainder" });
         } else {
-          return { name: name.substring(1), type: "remainder" };
+          return OK(NIL, { name: name.substring(1), type: "remainder" });
         }
       } else if (name[0] == "?") {
-        return { name: name.substring(1), type: "optional" };
+        return OK(NIL, { name: name.substring(1), type: "optional" });
       } else {
-        return { name, type: "required" };
+        return OK(NIL, { name, type: "required" });
       }
     }
   }
@@ -102,28 +102,27 @@ export function buildHelp(args: Argument[]) {
   return parts.join(" ");
 }
 
-export function valueToArray(scope: Scope, value: Value): Value[] {
+export function valueToArray(scope: Scope, value: Value): Result<Value[]> {
   switch (value.type) {
     case ValueType.LIST:
-      return (value as ListValue).values;
+      return OK(NIL, (value as ListValue).values);
     case ValueType.TUPLE:
-      return (value as TupleValue).values;
+      return OK(NIL, (value as TupleValue).values);
     case ValueType.SCRIPT: {
       return scriptToValues(scope, value as ScriptValue);
     }
     default:
-      return [value];
+      return OK(NIL, [value]);
   }
 }
-function scriptToValues(scope: Scope, script: ScriptValue) {
-  const values = [];
+function scriptToValues(scope: Scope, script: ScriptValue): Result<Value[]> {
+  const values: Value[] = [];
   for (const sentence of script.script.sentences) {
     for (const word of sentence.words) {
       const result = scope.executeWord(word);
-      if (result.code != ResultCode.OK)
-        throw new Error(result.value.asString());
+      if (result.code != ResultCode.OK) return result as Result<Value[]>;
       values.push(result.value);
     }
   }
-  return values;
+  return OK(NIL, values);
 }

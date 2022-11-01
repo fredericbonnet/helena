@@ -14,9 +14,6 @@ import {
 import { ARITY_ERROR } from "./arguments";
 import { Scope } from "./core";
 
-const BOOLEAN_ERROR = (value: Value) =>
-  ERROR(`invalid boolean "${value.asString()}"`);
-
 export const trueCmd: Command = {
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(TRUE);
@@ -62,7 +59,7 @@ export const notCmd: Command = {
     return (result.value as BooleanValue).value ? OK(FALSE) : OK(TRUE);
   },
   resume(result: Result, scope: Scope) {
-    result = runCondition(scope, result.state as ConditionState);
+    result = runCondition(scope, result.data as ConditionState);
     if (result.code != ResultCode.OK) return result;
     return (result.value as BooleanValue).value ? OK(FALSE) : OK(TRUE);
   },
@@ -79,7 +76,7 @@ class AndCommand implements Command {
     return this.run({ args, i: 1 }, scope);
   }
   resume(result: Result, scope: Scope): Result {
-    return this.run(result.state as AndCommandState, scope);
+    return this.run(result.data as AndCommandState, scope);
   }
   run(state: AndCommandState, scope: Scope) {
     let r = TRUE;
@@ -88,7 +85,7 @@ class AndCommand implements Command {
         ? runCondition(scope, state.conditionState)
         : executeCondition(scope, state.args[state.i]);
       if (result.code == ResultCode.YIELD) {
-        state.conditionState = result.state as ConditionState;
+        state.conditionState = result.data as ConditionState;
         return YIELD(result.value, state);
       }
       delete state.conditionState;
@@ -116,7 +113,7 @@ class OrCommand implements Command {
     return this.run({ args, i: 1 }, scope);
   }
   resume(result: Result, scope: Scope): Result {
-    return this.run(result.state as OrCommandState, scope);
+    return this.run(result.data as OrCommandState, scope);
   }
   run(state: OrCommandState, scope: Scope) {
     let r = FALSE;
@@ -125,7 +122,7 @@ class OrCommand implements Command {
         ? runCondition(scope, state.conditionState)
         : executeCondition(scope, state.args[state.i]);
       if (result.code == ResultCode.YIELD) {
-        state.conditionState = result.state as ConditionState;
+        state.conditionState = result.data as ConditionState;
         return YIELD(result.value, state);
       }
       delete state.conditionState;
@@ -153,15 +150,13 @@ function executeCondition(scope: Scope, value: Value): Result {
     const process = new Process();
     return runCondition(scope, { program, process });
   }
-  if (!BooleanValue.isBoolean(value)) return BOOLEAN_ERROR(value);
-  return OK(BooleanValue.fromValue(value));
+  return BooleanValue.fromValue(value);
 }
 function runCondition(scope: Scope, state: ConditionState) {
   const result = scope.execute(state.program, state.process);
   if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
   if (result.code != ResultCode.OK) return result;
-  if (!BooleanValue.isBoolean(result.value)) return BOOLEAN_ERROR(result.value);
-  return OK(BooleanValue.fromValue(result.value));
+  return BooleanValue.fromValue(result.value);
 }
 
 export function registerLogicCommands(scope: Scope) {

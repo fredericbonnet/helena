@@ -50,12 +50,13 @@ export class ArgspecValue extends CommandValue {
     this.argspec = argspec;
   }
 
-  static fromValue(scope: Scope, value: Value): ArgspecValue {
-    if (value instanceof ArgspecValue) return value;
-    const args = buildArguments(scope, value);
+  static fromValue(scope: Scope, value: Value): Result<ArgspecValue> {
+    if (value instanceof ArgspecValue) return OK(value, value);
+    const { data: args, ...result } = buildArguments(scope, value);
+    if (result.code != ResultCode.OK) return result;
     const argspec = new Argspec(args);
     const command = new ArgspecCommand(argspec);
-    return command.value;
+    return OK(command.value, command.value);
   }
 
   help(): string {
@@ -132,8 +133,10 @@ class ArgspecCommand implements Command {
       }
       case "set": {
         if (args.length != 3) return ARITY_ERROR("argspec set values");
+        const { data: values, ...result } = valueToArray(scope, args[2]);
+        if (result.code != ResultCode.OK) return result;
         // TODO handle YIELD?
-        return this.setArguments(valueToArray(scope, args[2]), scope);
+        return this.setArguments(values, scope);
       }
       default:
         return ERROR(`invalid method name "${method.asString()}"`);
@@ -162,14 +165,12 @@ export const argspecCmd: Command = {
         return ARITY_ERROR("argspec ?name? specs");
     }
 
-    try {
-      const argspec = ArgspecValue.fromValue(scope, specs);
-      if (name) {
-        scope.registerCommand(name.asString(), argspec.command);
-      }
-      return OK(argspec);
-    } catch (e) {
-      return ERROR(e.message);
+    const result = ArgspecValue.fromValue(scope, specs);
+    if (result.code != ResultCode.OK) return result; // TODO handle YIELD?
+    const argspec = result.data;
+    if (name) {
+      scope.registerCommand(name.asString(), argspec.command);
     }
+    return OK(argspec);
   },
 };

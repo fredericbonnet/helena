@@ -51,30 +51,32 @@ describe("values", () => {
     });
     describe("fromValue()", () => {
       it("should return the passed BooleanValue", () => {
-        expect(BooleanValue.fromValue(TRUE)).to.equal(TRUE);
-        expect(BooleanValue.fromValue(FALSE)).to.equal(FALSE);
+        expect(BooleanValue.fromValue(TRUE).value).to.equal(TRUE);
+        expect(BooleanValue.fromValue(FALSE).value).to.equal(FALSE);
       });
       it("should accept boolean strings", () => {
-        expect(BooleanValue.fromValue(new StringValue("false"))).to.equal(
+        expect(BooleanValue.fromValue(new StringValue("false")).value).to.equal(
           FALSE
         );
-        expect(BooleanValue.fromValue(new StringValue("true"))).to.equal(TRUE);
+        expect(BooleanValue.fromValue(new StringValue("true")).value).to.equal(
+          TRUE
+        );
       });
       it("should reject non-boolean strings", () => {
-        expect(() => BooleanValue.fromValue(new IntegerValue(0))).to.throw(
-          'invalid boolean "0"'
+        expect(BooleanValue.fromValue(new IntegerValue(0))).to.eql(
+          ERROR('invalid boolean "0"')
         );
-        expect(() => BooleanValue.fromValue(new StringValue("1"))).to.throw(
-          'invalid boolean "1"'
+        expect(BooleanValue.fromValue(new StringValue("1"))).to.eql(
+          ERROR('invalid boolean "1"')
         );
-        expect(() => BooleanValue.fromValue(new StringValue("no"))).to.throw(
-          'invalid boolean "no"'
+        expect(BooleanValue.fromValue(new StringValue("no"))).to.eql(
+          ERROR('invalid boolean "no"')
         );
-        expect(() => BooleanValue.fromValue(new StringValue("yes"))).to.throw(
-          'invalid boolean "yes"'
+        expect(BooleanValue.fromValue(new StringValue("yes"))).to.eql(
+          ERROR('invalid boolean "yes"')
         );
-        expect(() => BooleanValue.fromValue(new StringValue("a"))).to.throw(
-          'invalid boolean "a"'
+        expect(BooleanValue.fromValue(new StringValue("a"))).to.eql(
+          ERROR('invalid boolean "a"')
         );
       });
     });
@@ -110,16 +112,16 @@ describe("values", () => {
     describe("fromValue()", () => {
       it("should return the passed IntegerValue", () => {
         const value = new IntegerValue(1234);
-        expect(IntegerValue.fromValue(value)).to.equal(value);
+        expect(IntegerValue.fromValue(value).value).to.equal(value);
       });
       it("should accept integer strings", () => {
         const value = new StringValue("1234");
-        expect(IntegerValue.fromValue(value).value).to.eql(1234);
+        expect(IntegerValue.fromValue(value).data.value).to.eql(1234);
       });
       it("should reject non-integer strings", () => {
         const value = new StringValue("a");
-        expect(() => IntegerValue.fromValue(value)).to.throw(
-          'invalid integer "a"'
+        expect(IntegerValue.fromValue(value)).to.eql(
+          ERROR('invalid integer "a"')
         );
       });
     });
@@ -154,20 +156,20 @@ describe("values", () => {
     describe("fromValue()", () => {
       it("should return the passed NumberValue", () => {
         const value = new NumberValue(12.34);
-        expect(NumberValue.fromValue(value)).to.equal(value);
+        expect(NumberValue.fromValue(value).value).to.equal(value);
       });
       it("should accept integer values", () => {
         const value = new IntegerValue(4567);
-        expect(NumberValue.fromValue(value).value).to.eql(4567);
+        expect(NumberValue.fromValue(value).data.value).to.eql(4567);
       });
       it("should accept float strings", () => {
         const value = new StringValue("12.34");
-        expect(NumberValue.fromValue(value).value).to.eql(12.34);
+        expect(NumberValue.fromValue(value).data.value).to.eql(12.34);
       });
       it("should reject non-number strings", () => {
         const value = new StringValue("a");
-        expect(() => NumberValue.fromValue(value)).to.throw(
-          'invalid number "a"'
+        expect(NumberValue.fromValue(value)).to.eql(
+          ERROR('invalid number "a"')
         );
       });
     });
@@ -219,7 +221,9 @@ describe("values", () => {
         specify("invalid index value", () => {
           const value = new StringValue("some string");
           const index = new StringValue("foo");
-          expect(() => value.selectIndex(index)).to.throw("invalid integer");
+          expect(value.selectIndex(index)).to.eql(
+            ERROR('invalid integer "foo"')
+          );
         });
         specify("index out of range", () => {
           const string = "some string";
@@ -278,7 +282,9 @@ describe("values", () => {
         specify("invalid index value", () => {
           const value = new ListValue([]);
           const index = new StringValue("foo");
-          expect(() => value.selectIndex(index)).to.throw("invalid integer");
+          expect(value.selectIndex(index)).to.eql(
+            ERROR('invalid integer "foo"')
+          );
         });
         specify("index out of range", () => {
           const values = [new StringValue("value1"), new StringValue("value2")];

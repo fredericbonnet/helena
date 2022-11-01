@@ -156,7 +156,7 @@ const tupleCmd: Command = {
     return result;
   },
   resume(result: Result, scope: Scope): Result {
-    const { command, result: commandResult } = result.state as TupleState;
+    const { command, result: commandResult } = result.data as TupleState;
     if (!command.resume) return commandResult;
     const result2 = command.resume(commandResult, scope);
     if (result2.code == ResultCode.YIELD)

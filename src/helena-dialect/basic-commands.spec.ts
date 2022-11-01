@@ -130,7 +130,7 @@ describe("Helena basic commands", () => {
           let result = rootScope.execute(program, process);
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val2"));
-          expect(result.state).to.exist;
+          expect(result.data).to.exist;
           expect(evaluate("get var")).to.eql(new StringValue("val1"));
 
           result = rootScope.execute(program, process);
@@ -148,17 +148,17 @@ describe("Helena basic commands", () => {
         let result = rootScope.execute(program, process);
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val1"));
-        expect(result.state).to.exist;
+        expect(result.data).to.exist;
 
         result = rootScope.execute(program, process);
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val2"));
-        expect(result.state).to.exist;
+        expect(result.data).to.exist;
 
         result = rootScope.execute(program, process);
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val3"));
-        expect(result.state).to.exist;
+        expect(result.data).to.exist;
 
         result = rootScope.execute(program, process);
         expect(result.code).to.eql(ResultCode.OK);

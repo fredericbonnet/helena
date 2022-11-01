@@ -88,7 +88,7 @@ class ClosureCommand implements Command {
     return this.run({ scope: subscope, process });
   }
   resume(result: Result): Result {
-    return this.run(result.state as ClosureState);
+    return this.run(result.data as ClosureState);
   }
   run(state: ClosureState) {
     const result = state.scope.execute(this.value.program, state.process);
@@ -110,7 +110,9 @@ export const closureCmd: Command = {
         return ARITY_ERROR("closure ?name? argspec body");
     }
 
-    const argspec = ArgspecValue.fromValue(scope, specs);
+    const result = ArgspecValue.fromValue(scope, specs);
+    if (result.code != ResultCode.OK) return result; // TODO handle YIELD?
+    const argspec = result.data;
     const command = new ClosureValueCommand(
       scope,
       argspec,
