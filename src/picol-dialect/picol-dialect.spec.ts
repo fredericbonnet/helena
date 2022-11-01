@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ERROR, ResultCode } from "../core/command";
+import { ERROR, ResultCode } from "../core/results";
 import {
   CompilingEvaluator,
   Evaluator,

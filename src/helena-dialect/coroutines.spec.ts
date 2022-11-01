@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ERROR, OK, ResultCode } from "../core/command";
+import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { FALSE, StringValue, TRUE } from "../core/values";

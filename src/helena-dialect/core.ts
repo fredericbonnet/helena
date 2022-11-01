@@ -1,5 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Command, ERROR, OK, Result, ResultCode, YIELD } from "../core/command";
+import { ERROR, OK, Result, ResultCode, YIELD } from "../core/results";
+import { Command } from "../core/command";
 import { Compiler, Executor, Program, Process } from "../core/compiler";
 import { VariableResolver, CommandResolver } from "../core/evaluator";
 import { Script, Word } from "../core/syntax";

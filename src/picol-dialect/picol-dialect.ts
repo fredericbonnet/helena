@@ -1,6 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import {
-  Command,
   Result,
   ResultCode,
   OK,
@@ -8,7 +7,8 @@ import {
   BREAK,
   CONTINUE,
   ERROR,
-} from "../core/command";
+} from "../core/results";
+import { Command } from "../core/command";
 import {
   VariableResolver,
   CommandResolver,

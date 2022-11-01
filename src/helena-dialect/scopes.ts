@@ -1,5 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Command, Result, OK, ERROR, ResultCode, YIELD } from "../core/command";
+import { Result, OK, ERROR, ResultCode, YIELD } from "../core/results";
+import { Command } from "../core/command";
 import { Program, Process } from "../core/compiler";
 import { Value, ScriptValue } from "../core/values";
 import { ARITY_ERROR } from "./arguments";

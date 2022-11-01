@@ -22,7 +22,8 @@ import {
   QualifiedValue,
   ValueType,
 } from "./values";
-import { Command, Result, ResultCode, OK, RETURN, ERROR } from "./command";
+import { Result, ResultCode, OK, RETURN, ERROR } from "./results";
+import { Command } from "./command";
 import {
   GenericSelector,
   IndexedSelector,

@@ -29,7 +29,8 @@ import {
   ValueType,
   QualifiedValue,
 } from "./values";
-import { Command, ERROR, OK, Result, ResultCode } from "./command";
+import { ERROR, OK, Result, ResultCode } from "./results";
+import { Command } from "./command";
 import { Compiler, Executor } from "./compiler";
 
 /**

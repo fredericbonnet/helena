@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { OK, ResultCode } from "../core/command";
+import { OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Scope, initCommands } from "./helena-dialect";
 import { Tokenizer } from "../core/tokenizer";

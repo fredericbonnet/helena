@@ -1,5 +1,6 @@
 import { expect } from "chai";
-import { Command, Result, OK, YIELD, BREAK } from "./command";
+import { Result, OK, YIELD, BREAK } from "./results";
+import { Command } from "./command";
 import { Compiler, OpCode, Executor, Program, Process } from "./compiler";
 import {
   VariableResolver,

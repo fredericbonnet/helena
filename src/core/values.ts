@@ -9,7 +9,7 @@ import {
   KeyedSelector,
   Selector,
 } from "./selectors";
-import { ERROR, OK, Result, ResultCode } from "./command";
+import { ERROR, OK, Result, ResultCode } from "./results";
 
 /**
  * Helena value types

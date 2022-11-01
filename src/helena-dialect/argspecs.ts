@@ -1,5 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Command, Result, OK, ERROR, ResultCode } from "../core/command";
+import { Result, OK, ERROR, ResultCode } from "../core/results";
+import { Command } from "../core/command";
 import {
   Value,
   StringValue,

@@ -2,7 +2,7 @@
  * @file Helena value selectors
  */
 
-import { ERROR, OK, Result, ResultCode } from "./command";
+import { ERROR, OK, Result, ResultCode } from "./results";
 import { NIL, Value } from "./values";
 
 /**

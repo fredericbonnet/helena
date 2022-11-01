@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ERROR, OK, Result } from "./command";
+import { ERROR, OK, Result } from "./results";
 import {
   GenericSelector,
   IndexedSelector,
