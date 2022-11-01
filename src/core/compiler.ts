@@ -136,6 +136,23 @@ export class Compiler {
    */
 
   /**
+   * Flatten and compile the given sentences into a program
+   *
+   * @param sentences - Sentences to compile
+   *
+   * @returns           Compiled program
+   */
+  compileSentences(sentences: Sentence[]): Program {
+    const program: Program = new Program();
+    program.pushOpCode(OpCode.OPEN_FRAME);
+    for (const sentence of sentences) {
+      this.emitSentence(program, sentence);
+    }
+    program.pushOpCode(OpCode.CLOSE_FRAME);
+    return program;
+  }
+
+  /**
    * Compile the given sentence into a program
    *
    * @param sentence - Sentence to compile
