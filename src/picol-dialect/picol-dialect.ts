@@ -241,7 +241,7 @@ const ifCmd: Command = {
     } else {
       script = args[4] as ScriptValue;
     }
-    const result = scope.evaluator.executeScript(script.script);
+    const result = scope.evaluator.evaluateScript(script.script);
     if (result.code != ResultCode.OK) return result;
     return result.value == NIL ? EMPTY : OK(result.value);
   },
@@ -256,21 +256,21 @@ const forCmd: Command = {
     const next = args[3] as ScriptValue;
     const script = args[4] as ScriptValue;
     let result: Result;
-    result = scope.evaluator.executeScript(start.script);
+    result = scope.evaluator.evaluateScript(start.script);
     if (result.code != ResultCode.OK) return result;
     for (;;) {
       result = evaluateCondition(test, scope);
       if (result.code != ResultCode.OK) return result;
       if (!(result.value as BooleanValue).value) break;
-      result = scope.evaluator.executeScript(script.script);
+      result = scope.evaluator.evaluateScript(script.script);
       if (result.code == ResultCode.BREAK) break;
       if (result.code == ResultCode.CONTINUE) {
-        result = scope.evaluator.executeScript(next.script);
+        result = scope.evaluator.evaluateScript(next.script);
         if (result.code != ResultCode.OK) return result;
         continue;
       }
       if (result.code != ResultCode.OK) return result;
-      result = scope.evaluator.executeScript(next.script);
+      result = scope.evaluator.evaluateScript(next.script);
       if (result.code != ResultCode.OK) return result;
     }
     return EMPTY;
@@ -288,7 +288,7 @@ const whileCmd: Command = {
       result = evaluateCondition(test, scope);
       if (result.code != ResultCode.OK) return result;
       if (!(result.value as BooleanValue).value) break;
-      result = scope.evaluator.executeScript(script.script);
+      result = scope.evaluator.evaluateScript(script.script);
       if (result.code == ResultCode.BREAK) break;
       if (result.code == ResultCode.CONTINUE) continue;
       if (result.code != ResultCode.OK) return result;
@@ -302,7 +302,9 @@ function evaluateCondition(value: Value, scope: PicolScope): Result {
   if (value.type == ValueType.INTEGER)
     return OK((value as IntegerValue) ? TRUE : FALSE);
   if (value.type == ValueType.SCRIPT) {
-    const result = scope.evaluator.executeScript((value as ScriptValue).script);
+    const result = scope.evaluator.evaluateScript(
+      (value as ScriptValue).script
+    );
     if (result.code != ResultCode.OK) return result;
     return BooleanValue.fromValue(result.value);
   }
@@ -396,7 +398,7 @@ class ProcCommand implements Command {
     if (a < args.length)
       return ARITY_ERROR(argspecsToSignature(args[0], this.argspecs));
 
-    const result = scope.evaluator.executeScript(this.body.script);
+    const result = scope.evaluator.evaluateScript(this.body.script);
     if (result.code == ResultCode.ERROR) return result;
     return result.value == NIL ? EMPTY : OK(result.value);
   }
@@ -411,7 +413,9 @@ function valueToArray(value: Value): Result<Value[]> {
       const values = [];
       for (const sentence of (value as ScriptValue).script.sentences) {
         for (const word of sentence.words) {
-          values.push(evaluator.evaluateWord(word));
+          const result = evaluator.evaluateWord(word);
+          if (result.code != ResultCode.OK) return result as Result<Value[]>;
+          values.push(result.value);
         }
       }
       return OK(NIL, values);

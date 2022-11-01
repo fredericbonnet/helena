@@ -725,14 +725,14 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
       describe("roots", () => {
         specify("literals", () => {
           const word = firstWord(parse("word"));
-          const value = evaluator.evaluateWord(word);
+          const { value } = evaluator.evaluateWord(word);
           expect(mapValue(value)).to.eql("word");
         });
 
         describe("expressions", () => {
           specify("empty expression", () => {
             const word = firstWord(parse("[]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(value).to.eql(NIL);
           });
         });
@@ -742,7 +742,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
         describe("scalars", () => {
           specify("indexed selector", () => {
             const word = firstWord(parse("var[123]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql({
               source: "var",
               selectors: [{ index: "123" }],
@@ -750,7 +750,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           });
           specify("keyed selector", () => {
             const word = firstWord(parse("var(key)"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql({
               source: "var",
               selectors: [{ keys: ["key"] }],
@@ -762,7 +762,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             });
             specify("simple rule", () => {
               const word = firstWord(parse("var{rule}"));
-              const value = evaluator.evaluateWord(word);
+              const { value } = evaluator.evaluateWord(word);
               expect(mapValue(value)).to.eql({
                 source: "var",
                 selectors: [{ rules: [["rule"]] }],
@@ -770,7 +770,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             });
             specify("rule with literal arguments", () => {
               const word = firstWord(parse("var{rule arg1 arg2}"));
-              const value = evaluator.evaluateWord(word);
+              const { value } = evaluator.evaluateWord(word);
               expect(mapValue(value)).to.eql({
                 source: "var",
                 selectors: [{ rules: [["rule", "arg1", "arg2"]] }],
@@ -778,7 +778,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             });
             specify("multiple rules", () => {
               const word = firstWord(parse("var{rule1;rule2}"));
-              const value = evaluator.evaluateWord(word);
+              const { value } = evaluator.evaluateWord(word);
               expect(mapValue(value)).to.eql({
                 source: "var",
                 selectors: [{ rules: [["rule1"], ["rule2"]] }],
@@ -786,7 +786,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             });
             specify("successive selectors", () => {
               const word = firstWord(parse("var{rule1}{rule2}"));
-              const value = evaluator.evaluateWord(word);
+              const { value } = evaluator.evaluateWord(word);
               expect(mapValue(value)).to.eql({
                 source: "var",
                 selectors: [{ rules: [["rule1"]] }, { rules: [["rule2"]] }],
@@ -795,7 +795,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             specify("indirect selector", () => {
               variableResolver.register("var2", new StringValue("rule"));
               const word = firstWord(parse("var1{$var2}"));
-              const value = evaluator.evaluateWord(word);
+              const { value } = evaluator.evaluateWord(word);
               expect(mapValue(value)).to.eql({
                 source: "var1",
                 selectors: [{ rules: [["rule"]] }],
@@ -817,7 +817,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             });
             specify("simple rule", () => {
               const word = firstWord(parse("var{last}"));
-              const value = evaluator.evaluateWord(word);
+              const { value } = evaluator.evaluateWord(word);
               expect(mapValue(value)).to.eql({
                 source: "var",
                 selectors: [{ custom: lastSelector }],
@@ -826,7 +826,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             specify("indirect selector", () => {
               variableResolver.register("var2", new StringValue("last"));
               const word = firstWord(parse("var1{$var2}"));
-              const value = evaluator.evaluateWord(word);
+              const { value } = evaluator.evaluateWord(word);
               expect(mapValue(value)).to.eql({
                 source: "var1",
                 selectors: [{ custom: lastSelector }],
@@ -841,7 +841,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
                 "var(key1 key2 key3){rule1;rule2}[1]{rule3}{rule4}[2](key4)"
               )
             );
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql({
               source: "var",
               selectors: [
@@ -886,7 +886,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
         describe("tuples", () => {
           specify("indexed selector", () => {
             const word = firstWord(parse("(var1 var2 (var3 var4))[123]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql({
               source: ["var1", "var2", ["var3", "var4"]],
               selectors: [{ index: "123" }],
@@ -894,7 +894,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           });
           specify("keyed selector", () => {
             const word = firstWord(parse("(var1 (var2) var3)(key)"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql({
               source: ["var1", ["var2"], "var3"],
               selectors: [{ keys: ["key"] }],
@@ -906,7 +906,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             });
             specify("simple rule", () => {
               const word = firstWord(parse("(var1 (var2) var3){rule}"));
-              const value = evaluator.evaluateWord(word);
+              const { value } = evaluator.evaluateWord(word);
               expect(mapValue(value)).to.eql({
                 source: ["var1", ["var2"], "var3"],
                 selectors: [{ rules: [["rule"]] }],
@@ -916,7 +916,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               const word = firstWord(
                 parse("(var1 (var2) var3){rule arg1 arg2}")
               );
-              const value = evaluator.evaluateWord(word);
+              const { value } = evaluator.evaluateWord(word);
               expect(mapValue(value)).to.eql({
                 source: ["var1", ["var2"], "var3"],
                 selectors: [{ rules: [["rule", "arg1", "arg2"]] }],
@@ -924,7 +924,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             });
             specify("multiple rules", () => {
               const word = firstWord(parse("(var1 (var2) var3){rule1;rule2}"));
-              const value = evaluator.evaluateWord(word);
+              const { value } = evaluator.evaluateWord(word);
               expect(mapValue(value)).to.eql({
                 source: ["var1", ["var2"], "var3"],
                 selectors: [{ rules: [["rule1"], ["rule2"]] }],
@@ -932,7 +932,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             });
             specify("successive selectors", () => {
               const word = firstWord(parse("(var1 (var2) var3){rule1}{rule2}"));
-              const value = evaluator.evaluateWord(word);
+              const { value } = evaluator.evaluateWord(word);
               expect(mapValue(value)).to.eql({
                 source: ["var1", ["var2"], "var3"],
                 selectors: [{ rules: [["rule1"]] }, { rules: [["rule2"]] }],
@@ -941,7 +941,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             specify("indirect selector", () => {
               variableResolver.register("var4", new StringValue("rule"));
               const word = firstWord(parse("(var1 (var2) var3){$var4}"));
-              const value = evaluator.evaluateWord(word);
+              const { value } = evaluator.evaluateWord(word);
               expect(mapValue(value)).to.eql({
                 source: ["var1", ["var2"], "var3"],
                 selectors: [{ rules: [["rule"]] }],
@@ -955,7 +955,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
                 "((var))(key1 key2 key3){rule1;rule2}[1]{rule3}{rule4}[2](key4)"
               )
             );
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql({
               source: [["var"]],
               selectors: [
@@ -1004,14 +1004,14 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           specify("simple substitution", () => {
             variableResolver.register("var", new StringValue("value"));
             const word = firstWord(parse("$var"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("double substitution", () => {
             variableResolver.register("var1", new StringValue("var2"));
             variableResolver.register("var2", new StringValue("value"));
             const word = firstWord(parse("$$var1"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("triple substitution", () => {
@@ -1019,7 +1019,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             variableResolver.register("var2", new StringValue("var3"));
             variableResolver.register("var3", new StringValue("value"));
             const word = firstWord(parse("$$$var1"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
         });
@@ -1028,35 +1028,35 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           specify("single variable", () => {
             variableResolver.register("var", new StringValue("value"));
             const word = firstWord(parse("$(var)"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value"]);
           });
           specify("multiple variables", () => {
             variableResolver.register("var1", new StringValue("value1"));
             variableResolver.register("var2", new StringValue("value2"));
             const word = firstWord(parse("$(var1 var2)"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value1", "value2"]);
           });
           specify("double substitution", () => {
             variableResolver.register("var1", new StringValue("var2"));
             variableResolver.register("var2", new StringValue("value"));
             const word = firstWord(parse("$$(var1)"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value"]);
           });
           specify("nested tuples", () => {
             variableResolver.register("var1", new StringValue("value1"));
             variableResolver.register("var2", new StringValue("value2"));
             const word = firstWord(parse("$(var1 (var2))"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value1", ["value2"]]);
           });
           specify("nested double substitution", () => {
             variableResolver.register("var1", new StringValue("var2"));
             variableResolver.register("var2", new StringValue("value"));
             const word = firstWord(parse("$$((var1))"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql([["value"]]);
           });
         });
@@ -1068,7 +1068,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               new StringValue("value")
             );
             const word = firstWord(parse("${variable name}"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("varname with special characters", () => {
@@ -1077,7 +1077,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               new StringValue("value")
             );
             const word = firstWord(parse('${variable " " name}'));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("varname with continuations", () => {
@@ -1086,7 +1086,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               new StringValue("value")
             );
             const word = firstWord(parse("${variable\\\n \t\r     name}"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
         });
@@ -1098,7 +1098,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               new FunctionCommand(() => new StringValue("value"))
             );
             const word = firstWord(parse("$[cmd]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("double substitution, scalar", () => {
@@ -1108,7 +1108,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             );
             variableResolver.register("var", new StringValue("value"));
             const word = firstWord(parse("$$[cmd]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("double substitution, tuple", () => {
@@ -1125,7 +1125,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             variableResolver.register("var1", new StringValue("value1"));
             variableResolver.register("var2", new StringValue("value2"));
             const word = firstWord(parse("$$[cmd]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value1", "value2"]);
           });
         });
@@ -1140,7 +1140,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               ])
             );
             const word = firstWord(parse("$var[1]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value2");
           });
           specify("double substitution", () => {
@@ -1150,7 +1150,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             );
             variableResolver.register("var2", new StringValue("value"));
             const word = firstWord(parse("$$var1[0]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("successive indexes", () => {
@@ -1165,7 +1165,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               ])
             );
             const word = firstWord(parse("$var[1][0]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value2_1");
           });
           specify("indirect index", () => {
@@ -1179,7 +1179,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             );
             variableResolver.register("var2", new StringValue("1"));
             const word = firstWord(parse("$var1[$var2]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value2");
           });
           specify("command index", () => {
@@ -1196,7 +1196,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               ])
             );
             const word = firstWord(parse("$var[cmd]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value2");
           });
           specify("tuple", () => {
@@ -1215,7 +1215,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               ])
             );
             const word = firstWord(parse("$(var1 var2)[1]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value2", "value4"]);
           });
           specify("recursive tuple", () => {
@@ -1234,7 +1234,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               ])
             );
             const word = firstWord(parse("$(var1 (var2))[1]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value2", ["value4"]]);
           });
           specify("tuple with double substitution", () => {
@@ -1249,7 +1249,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             variableResolver.register("var4", new StringValue("value1"));
             variableResolver.register("var6", new StringValue("value2"));
             const word = firstWord(parse("$$(var1 var2)[1]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value1", "value2"]);
           });
           specify("scalar expression", () => {
@@ -1260,7 +1260,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               )
             );
             const word = firstWord(parse("$[cmd][0]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("tuple expression", () => {
@@ -1275,7 +1275,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               )
             );
             const word = firstWord(parse("$[cmd][0]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value1", "value2"]);
           });
         });
@@ -1287,7 +1287,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               new MapValue({ key: new StringValue("value") })
             );
             const word = firstWord(parse("$var(key)"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("double substitution", () => {
@@ -1297,7 +1297,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             );
             variableResolver.register("var2", new StringValue("value"));
             const word = firstWord(parse("$$var1(key)"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("recursive keys", () => {
@@ -1308,7 +1308,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               })
             );
             const word = firstWord(parse("$var(key1 key2)"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("successive keys", () => {
@@ -1319,7 +1319,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               })
             );
             const word = firstWord(parse("$var(key1)(key2)"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("indirect key", () => {
@@ -1331,7 +1331,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             );
             variableResolver.register("var2", new StringValue("key"));
             const word = firstWord(parse("$var1($var2)"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("string key", () => {
@@ -1342,7 +1342,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               })
             );
             const word = firstWord(parse('$var("arbitrary key")'));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("block key", () => {
@@ -1353,7 +1353,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               })
             );
             const word = firstWord(parse("$var({arbitrary key})"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("tuple", () => {
@@ -1366,7 +1366,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               new MapValue({ key: new StringValue("value2") })
             );
             const word = firstWord(parse("$(var1 var2)(key)"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value1", "value2"]);
           });
           specify("recursive tuple", () => {
@@ -1379,7 +1379,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               new MapValue({ key: new StringValue("value2") })
             );
             const word = firstWord(parse("$(var1 (var2))(key)"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value1", ["value2"]]);
           });
           specify("tuple with double substitution", () => {
@@ -1394,7 +1394,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             variableResolver.register("var3", new StringValue("value3"));
             variableResolver.register("var4", new StringValue("value4"));
             const word = firstWord(parse("$$(var1 var2)(key)"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value3", "value4"]);
           });
           specify("scalar expression", () => {
@@ -1405,7 +1405,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               )
             );
             const word = firstWord(parse("$[cmd](key)"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("tuple expression", () => {
@@ -1420,7 +1420,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               )
             );
             const word = firstWord(parse("$[cmd](key)"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value1", "value2"]);
           });
           describe("exceptions", () => {
@@ -1462,7 +1462,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               ])
             );
             const word = firstWord(parse("$var{last}"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value3");
           });
           specify("double substitution", () => {
@@ -1472,7 +1472,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             );
             variableResolver.register("var3", new StringValue("value"));
             const word = firstWord(parse("$$var1{last}"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("successive selectors", () => {
@@ -1487,7 +1487,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               ])
             );
             const word = firstWord(parse("$var{last}{last}"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value2_2");
           });
           specify("indirect selector", () => {
@@ -1501,7 +1501,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             );
             variableResolver.register("var2", new StringValue("last"));
             const word = firstWord(parse("$var1{$var2}"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value3");
           });
           specify("tuple", () => {
@@ -1521,7 +1521,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               ])
             );
             const word = firstWord(parse("$(var1 var2){last}"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value2", "value5"]);
           });
           specify("recursive tuple", () => {
@@ -1540,7 +1540,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               ])
             );
             const word = firstWord(parse("$(var1 (var2))[1]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value2", ["value4"]]);
           });
           specify("tuple with double substitution", () => {
@@ -1555,7 +1555,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             variableResolver.register("var4", new StringValue("value1"));
             variableResolver.register("var6", new StringValue("value2"));
             const word = firstWord(parse("$$(var1 var2)[1]"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value1", "value2"]);
           });
           specify("expression", () => {
@@ -1570,7 +1570,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               )
             );
             const word = firstWord(parse("$[cmd]{last}"));
-            const value = evaluator.evaluateWord(word);
+            const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value2");
           });
         });
@@ -1578,8 +1578,8 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
         describe("exceptions", () => {
           specify("unknown variable", () => {
             const word = firstWord(parse("$var"));
-            expect(() => evaluator.evaluateWord(word)).to.throws(
-              "cannot resolve variable"
+            expect(evaluator.evaluateWord(word)).to.eql(
+              ERROR('cannot resolve variable "var"')
             );
           });
         });
@@ -1588,12 +1588,12 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
       describe("ignored words", () => {
         specify("line comments", () => {
           const word = firstWord(parse("# this is a comment"));
-          const value = evaluator.evaluateWord(word);
+          const { value } = evaluator.evaluateWord(word);
           expect(value).to.eql(NIL);
         });
         specify("block comments", () => {
           const word = firstWord(parse("#{ this is\n a\nblock comment }#"));
-          const value = evaluator.evaluateWord(word);
+          const { value } = evaluator.evaluateWord(word);
           expect(value).to.eql(NIL);
         });
       });
@@ -1612,7 +1612,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
         const word = firstWord(
           parse("prefix_${var}(key)_infix_[cmd a b]_suffix")
         );
-        const value = evaluator.evaluateWord(word);
+        const { value } = evaluator.evaluateWord(word);
         expect(mapValue(value)).to.eql("prefix_value_infix_ab_suffix");
       });
     });
@@ -1622,19 +1622,19 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
         specify("empty string", () => {
           variableResolver.register("var", new StringValue(""));
           const word = firstWord(parse("(prefix $*var suffix)"));
-          const value = evaluator.evaluateWord(word);
+          const { value } = evaluator.evaluateWord(word);
           expect(mapValue(value)).to.eql(["prefix", "", "suffix"]);
         });
         specify("scalar variable", () => {
           variableResolver.register("var", new StringValue("value"));
           const word = firstWord(parse("(prefix $*var suffix)"));
-          const value = evaluator.evaluateWord(word);
+          const { value } = evaluator.evaluateWord(word);
           expect(mapValue(value)).to.eql(["prefix", "value", "suffix"]);
         });
         specify("empty tuple variable", () => {
           variableResolver.register("var", new TupleValue([]));
           const word = firstWord(parse("(prefix $*var suffix)"));
-          const value = evaluator.evaluateWord(word);
+          const { value } = evaluator.evaluateWord(word);
           expect(mapValue(value)).to.eql(["prefix", "suffix"]);
         });
         specify("tuple variable", () => {
@@ -1646,7 +1646,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             ])
           );
           const word = firstWord(parse("(prefix $*var suffix)"));
-          const value = evaluator.evaluateWord(word);
+          const { value } = evaluator.evaluateWord(word);
           expect(mapValue(value)).to.eql([
             "prefix",
             "value1",
@@ -1660,7 +1660,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             new FunctionCommand(() => new StringValue("value"))
           );
           const word = firstWord(parse("(prefix $*[cmd] suffix)"));
-          const value = evaluator.evaluateWord(word);
+          const { value } = evaluator.evaluateWord(word);
           expect(mapValue(value)).to.eql(["prefix", "value", "suffix"]);
         });
         specify("tuple expression", () => {
@@ -1675,7 +1675,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             )
           );
           const word = firstWord(parse("(prefix $*[cmd] suffix)"));
-          const value = evaluator.evaluateWord(word);
+          const { value } = evaluator.evaluateWord(word);
           expect(mapValue(value)).to.eql([
             "prefix",
             "value1",
@@ -1694,19 +1694,19 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
         specify("empty string", () => {
           variableResolver.register("var", new StringValue(""));
           const sentence = firstSentence(parse("cmd $*var arg"));
-          const { value } = evaluator.executeSentence(sentence);
+          const { value } = evaluator.evaluateSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "", "arg"]);
         });
         specify("scalar variable", () => {
           variableResolver.register("var", new StringValue("value"));
           const sentence = firstSentence(parse("cmd $*var arg"));
-          const { value } = evaluator.executeSentence(sentence);
+          const { value } = evaluator.evaluateSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "value", "arg"]);
         });
         specify("empty tuple variable", () => {
           variableResolver.register("var", new TupleValue([]));
           const sentence = firstSentence(parse("cmd $*var arg"));
-          const { value } = evaluator.executeSentence(sentence);
+          const { value } = evaluator.evaluateSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "arg"]);
         });
         specify("tuple variable", () => {
@@ -1718,14 +1718,14 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             ])
           );
           const sentence = firstSentence(parse("cmd $*var arg"));
-          const { value } = evaluator.executeSentence(sentence);
+          const { value } = evaluator.evaluateSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "value1", "value2", "arg"]);
         });
         specify("multiple variables", () => {
           variableResolver.register("var1", new StringValue("value1"));
           variableResolver.register("var2", new StringValue("value2"));
           const sentence = firstSentence(parse("cmd $*(var1 var2) arg"));
-          const { value } = evaluator.executeSentence(sentence);
+          const { value } = evaluator.evaluateSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "value1", "value2", "arg"]);
         });
         specify("scalar expression", () => {
@@ -1734,7 +1734,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             new FunctionCommand(() => new StringValue("value"))
           );
           const sentence = firstSentence(parse("cmd $*[cmd2] arg"));
-          const { value } = evaluator.executeSentence(sentence);
+          const { value } = evaluator.evaluateSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "value", "arg"]);
         });
         specify("tuple expression", () => {
@@ -1749,7 +1749,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             )
           );
           const sentence = firstSentence(parse("cmd $*[cmd2] arg"));
-          const { value } = evaluator.executeSentence(sentence);
+          const { value } = evaluator.evaluateSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "value1", "value2", "arg"]);
         });
       });
@@ -1759,7 +1759,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
       describe("line comments", () => {
         specify("empty sentence", () => {
           const sentence = firstSentence(parse("# this is a comment"));
-          const { value } = evaluator.executeSentence(sentence);
+          const { value } = evaluator.evaluateSentence(sentence);
           expect(value).to.eql(NIL);
         });
         specify("command", () => {
@@ -1768,7 +1768,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             new FunctionCommand((args) => new TupleValue(args))
           );
           const sentence = firstSentence(parse("cmd arg # this is a comment"));
-          const { value } = evaluator.executeSentence(sentence);
+          const { value } = evaluator.evaluateSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "arg"]);
         });
       });
@@ -1777,7 +1777,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           const sentence = firstSentence(
             parse("#{ this is\na\nblock comment }#")
           );
-          const { value } = evaluator.executeSentence(sentence);
+          const { value } = evaluator.evaluateSentence(sentence);
           expect(value).to.eql(NIL);
         });
         specify("command", () => {
@@ -1788,7 +1788,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           const sentence = firstSentence(
             parse("cmd #{ this is\na\nblock comment }# arg")
           );
-          const { value } = evaluator.executeSentence(sentence);
+          const { value } = evaluator.evaluateSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "arg"]);
         });
         specify("command", () => {
@@ -1799,14 +1799,14 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           const sentence = firstSentence(
             parse("cmd #{ this is\na\nblock comment }# arg")
           );
-          const { value } = evaluator.executeSentence(sentence);
+          const { value } = evaluator.evaluateSentence(sentence);
           expect(mapValue(value)).to.eql(["cmd", "arg"]);
         });
         specify("tuple", () => {
           const word = firstWord(
             parse("(prefix #{ this is\na\nblock comment }# suffix)")
           );
-          const value = evaluator.evaluateWord(word);
+          const { value } = evaluator.evaluateWord(word);
           expect(mapValue(value)).to.eql(["prefix", "suffix"]);
         });
       });
@@ -1818,7 +1818,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           execute(args) {
             const condition = args[1];
             const block = condition.asString() == "true" ? args[2] : args[4];
-            return evaluator.executeScript((block as ScriptValue).script);
+            return evaluator.evaluateScript((block as ScriptValue).script);
           },
         });
         const called = {};
@@ -1830,11 +1830,11 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
         commandResolver.register("cmd1", fn);
         commandResolver.register("cmd2", fn);
         const script1 = parse("if true {cmd1 a} else {cmd2 b}");
-        const { value: value1 } = evaluator.executeScript(script1);
+        const { value: value1 } = evaluator.evaluateScript(script1);
         expect(mapValue(value1)).to.eql("a");
         expect(called).to.eql({ cmd1: 1 });
         const script2 = parse("if false {cmd1 a} else {cmd2 b}");
-        const { value: value2 } = evaluator.executeScript(script2);
+        const { value: value2 } = evaluator.evaluateScript(script2);
         expect(mapValue(value2)).to.eql("b");
         expect(called).to.eql({ cmd1: 1, cmd2: 1 });
       });
@@ -1846,7 +1846,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             const block = args[2];
             let value: Value = NIL;
             for (let i = 0; i < nb; i++) {
-              value = evaluator.executeScript(
+              value = evaluator.evaluateScript(
                 (block as ScriptValue).script
               ).value;
             }
@@ -1864,7 +1864,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           })
         );
         const script = parse("repeat 10 {cmd foo}");
-        const { value } = evaluator.executeScript(script);
+        const { value } = evaluator.evaluateScript(script);
         expect(mapValue(value)).to.eql(9);
         expect(counter).to.eql(10);
         expect(acc).to.eql("foo".repeat(10));
@@ -1878,7 +1878,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             execute: (args) => RETURN(args[1]),
           });
           const script = parse("return a [return b]; return c");
-          const { code, value } = evaluator.executeScript(script);
+          const { code, value } = evaluator.evaluateScript(script);
           expect(code).to.eql(ResultCode.RETURN);
           expect(mapValue(value)).to.eql("b");
         });
@@ -1890,7 +1890,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             execute: (args) => RETURN(args[1]),
           });
           const script = parse("cmd [return a [return b]]");
-          const { code, value } = evaluator.executeScript(script);
+          const { code, value } = evaluator.evaluateScript(script);
           expect(code).to.eql(ResultCode.RETURN);
           expect(mapValue(value)).to.eql("b");
         });
@@ -1902,7 +1902,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             execute: (args) => RETURN(args[1]),
           });
           const script = parse("cmd ([return a [return b]])");
-          const { code, value } = evaluator.executeScript(script);
+          const { code, value } = evaluator.evaluateScript(script);
           expect(code).to.eql(ResultCode.RETURN);
           expect(mapValue(value)).to.eql("b");
         });
@@ -1919,7 +1919,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             execute: (args) => RETURN(args[1]),
           });
           const script = parse("cmd [return a [return b]; cmd2] ");
-          const { code, value } = evaluator.executeScript(script);
+          const { code, value } = evaluator.evaluateScript(script);
           expect(code).to.eql(ResultCode.RETURN);
           expect(mapValue(value)).to.eql("b");
         });
@@ -1935,7 +1935,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             new MapValue({ key: new StringValue("value") })
           );
           const script = parse("cmd $var([return a [return b]])");
-          const { code, value } = evaluator.executeScript(script);
+          const { code, value } = evaluator.evaluateScript(script);
           expect(code).to.eql(ResultCode.RETURN);
           expect(mapValue(value)).to.eql("b");
         });
@@ -1954,7 +1954,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             ])
           );
           const script = parse("cmd $var[return a [return b]]");
-          const { code, value } = evaluator.executeScript(script);
+          const { code, value } = evaluator.evaluateScript(script);
           expect(code).to.eql(ResultCode.RETURN);
           expect(mapValue(value)).to.eql("b");
         });
@@ -1967,7 +1967,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           });
           variableResolver.register("var", new StringValue("value"));
           const script = parse("cmd $var{[return a [return b]]}");
-          const { code, value } = evaluator.executeScript(script);
+          const { code, value } = evaluator.evaluateScript(script);
           expect(code).to.eql(ResultCode.RETURN);
           expect(mapValue(value)).to.eql("b");
         });
@@ -1993,7 +1993,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           selectorResolver,
           context
         );
-        evaluator.executeScript(script);
+        evaluator.evaluateScript(script);
         expect(commandContext).to.equal(context);
       });
       specify("executeSentence", () => {
@@ -2015,7 +2015,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           selectorResolver,
           context
         );
-        evaluator.executeSentence(sentence);
+        evaluator.evaluateSentence(sentence);
         expect(commandContext).to.equal(context);
       });
       specify("evaluateWord", () => {

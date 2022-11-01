@@ -830,7 +830,7 @@ export class Executor {
 
   private resolveVariable(varname: string): Result {
     const value = this.variableResolver.resolve(varname);
-    if (!value) return ERROR(`cannot resolve variable ${varname}`);
+    if (!value) return ERROR(`cannot resolve variable "${varname}"`);
     return OK(value);
   }
   private resolveCommand(cmdname: Value) {

@@ -80,30 +80,31 @@ export interface SelectorResolver {
  */
 export interface Evaluator {
   /**
-   * Execute a script
+   * Evaluate a script
    *
-   * @param script - Script to execute
+   * @param script - Script to evaluate
    *
-   * @returns        Result of execution
+   * @returns        Result of evaluation
    */
-  executeScript(script: Script): Result;
+  evaluateScript(script: Script): Result;
+
   /**
-   * Execute a sentence
+   * Evaluate a sentence
    *
-   * @param sentence - Sentence to execute
+   * @param sentence - Sentence to evaluate
    *
-   * @returns          Result of command execution
+   * @returns          Result of sentence evaluation
    */
-  executeSentence(sentence: Sentence): Result;
+  evaluateSentence(sentence: Sentence): Result;
 
   /**
    * Evaluate a word
    *
    * @param word - Word to evaluate
    *
-   * @returns      Word value
+   * @returns      Result of word evaluation
    */
-  evaluateWord(word: Word): Value;
+  evaluateWord(word: Word): Result;
 }
 
 /**
@@ -168,19 +169,19 @@ export class InlineEvaluator implements Evaluator {
    */
 
   /**
-   * Execute a script
+   * Evaluate a script
    *
    * This will execute all the sentences of the script and return the last
    * result
    *
-   * @param script - Script to execute
+   * @param script - Script to evaluate
    *
-   * @returns        Result of execution
+   * @returns        Result of evaluation
    */
-  executeScript(script: Script): Result {
+  evaluateScript(script: Script): Result {
     let result: Result = OK(NIL);
     for (const sentence of script.sentences) {
-      result = this.executeSentence(sentence);
+      result = this.evaluateSentence(sentence);
       if (result.code != ResultCode.OK) break;
     }
     return result;
@@ -191,16 +192,16 @@ export class InlineEvaluator implements Evaluator {
    */
 
   /**
-   * Execute a sentence
+   * Evaluate a sentence
    *
    * This will resolve the first word as a command and pass the remaining words
    * as parameters
    *
-   * @param sentence - Sentence to execute
+   * @param sentence - Sentence to evaluate
    *
-   * @returns          Result of command execution
+   * @returns          Result of sentence evaluation
    */
-  executeSentence(sentence: Sentence): Result {
+  evaluateSentence(sentence: Sentence): Result {
     try {
       const values = this.getWordValues(sentence.words);
       if (values.length == 0) return OK(NIL);
@@ -221,14 +222,13 @@ export class InlineEvaluator implements Evaluator {
    */
 
   /** @override */
-  evaluateWord(word: Word): Value {
+  evaluateWord(word: Word): Result {
     const type = this.syntaxChecker.checkWord(word);
     if (type == WordType.INVALID) throw new Error("invalid word structure");
     try {
-      return this.getWordValue(word, type);
+      return OK(this.getWordValue(word, type));
     } catch (e) {
-      if (e instanceof Interrupt && e.result.code == ResultCode.ERROR)
-        throw new Error(e.result.value.asString());
+      if (e instanceof Interrupt) return e.result;
       throw e;
     }
   }
@@ -367,7 +367,7 @@ export class InlineEvaluator implements Evaluator {
 
   private evaluateExpression(expression: ExpressionMorpheme): Value {
     const script = (expression as ExpressionMorpheme).subscript;
-    const result = this.executeScript(script);
+    const result = this.evaluateScript(script);
     if (result.code != ResultCode.OK) throw new Interrupt(result);
     return result.value;
   }
@@ -483,7 +483,7 @@ export class InlineEvaluator implements Evaluator {
   private resolveVariable(varname: string): Value {
     const value = this.variableResolver.resolve(varname);
     if (!value)
-      throw new Interrupt(ERROR(`cannot resolve variable ${varname}`));
+      throw new Interrupt(ERROR(`cannot resolve variable "${varname}"`));
     return value;
   }
   private resolveVariables(tuple: TupleValue): TupleValue {
@@ -551,7 +551,12 @@ export class InlineEvaluator implements Evaluator {
   }
   private evaluateSelectorRule(sentence: Sentence): Value {
     if (sentence.words.length == 0) throw new Error("empty selector rule");
-    const words = sentence.words.map((word) => this.evaluateWord(word));
+    const words: Value[] = [];
+    for (const word of sentence.words) {
+      const result = this.evaluateWord(word);
+      if (result.code != ResultCode.OK) throw new Interrupt(result);
+      words.push(result.value);
+    }
     return new TupleValue(words);
   }
   private applySelectors(value: Value, selectors: Selector[]): Value {
@@ -599,29 +604,29 @@ export class CompilingEvaluator implements Evaluator {
   }
 
   /**
-   * Execute a script
+   * Evaluate a script
    *
    * This will compile then execute the script
    *
-   * @param script - Script to execute
+   * @param script - Script to evaluatee
    *
-   * @returns        Result of execution
+   * @returns        Result of evaluation
    */
-  executeScript(script: Script): Result {
+  evaluateScript(script: Script): Result {
     const program = this.compiler.compileScript(script);
     return this.executor.execute(program);
   }
 
   /**
-   * Execute a sentence
+   * Evaluate a sentence
    *
    * This will execute a single-sentence script
    *
-   * @param sentence - Sentence to execute
+   * @param sentence - Sentence to evaluate
    *
-   * @returns          Result of command execution
+   * @returns          Result of sentence evaluation
    */
-  executeSentence(sentence: Sentence): Result {
+  evaluateSentence(sentence: Sentence): Result {
     const script = new Script();
     script.sentences.push(sentence);
     const program = this.compiler.compileScript(script);
@@ -631,17 +636,14 @@ export class CompilingEvaluator implements Evaluator {
   /**
    * Evaluate a word
    *
-   * This will compile then execute the word and return the resulting value
+   * This will execute a single-word program
    *
    * @param word - Word to evaluate
    *
-   * @returns      Word value
+   * @returns      Result of word evaluation
    */
-  evaluateWord(word: Word): Value {
+  evaluateWord(word: Word): Result {
     const program = this.compiler.compileWord(word);
-    const result = this.executor.execute(program);
-    if (result.code == ResultCode.ERROR)
-      throw new Error(result.value.asString());
-    return result.value;
+    return this.executor.execute(program);
   }
 }
