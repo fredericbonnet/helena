@@ -67,7 +67,11 @@ export class Scope {
   executeScript(script: ScriptValue): Result {
     return this.execute(this.compile(script.script));
   }
-  executeWord(word: Word): Result {
+  evaluateList(script: ScriptValue): Result {
+    const program = this.compiler.compileSentences(script.script.sentences);
+    return this.execute(program);
+  }
+  evaluateWord(word: Word): Result {
     const program = this.compiler.compileWord(word);
     return this.execute(program);
   }

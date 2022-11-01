@@ -109,20 +109,11 @@ export function valueToArray(scope: Scope, value: Value): Result<Value[]> {
     case ValueType.TUPLE:
       return OK(NIL, (value as TupleValue).values);
     case ValueType.SCRIPT: {
-      return scriptToValues(scope, value as ScriptValue);
+      const result = scope.evaluateList(value as ScriptValue);
+      if (result.code != ResultCode.OK) return result as Result<Value[]>;
+      return OK(NIL, (result.value as TupleValue).values);
     }
     default:
       return OK(NIL, [value]);
   }
-}
-function scriptToValues(scope: Scope, script: ScriptValue): Result<Value[]> {
-  const values: Value[] = [];
-  for (const sentence of script.script.sentences) {
-    for (const word of sentence.words) {
-      const result = scope.executeWord(word);
-      if (result.code != ResultCode.OK) return result as Result<Value[]>;
-      values.push(result.value);
-    }
-  }
-  return OK(NIL, values);
 }
