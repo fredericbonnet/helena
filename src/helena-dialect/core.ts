@@ -83,7 +83,7 @@ export class Scope {
       return this.context.constants.get(name);
     if (this.context.variables.has(name))
       return this.context.variables.get(name).value;
-    throw new Error(`can't read "${name}": no such variable`);
+    return null;
   }
   resolveCommand(value: Value): Command {
     if (value.type == ValueType.TUPLE) return tupleCmd;
@@ -128,11 +128,9 @@ export class Scope {
     return OK(value);
   }
   getVariable(name: string): Result {
-    try {
-      return OK(this.resolveVariable(name));
-    } catch (e) {
-      return ERROR(e.message);
-    }
+    const value = this.resolveVariable(name);
+    if (value) return OK(value);
+    return ERROR(`cannot get "${name}": no such variable`);
   }
 
   registerCommand(name: string, command: Command) {

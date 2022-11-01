@@ -116,7 +116,7 @@ describe("Helena constants and variables", () => {
     describe("exceptions", () => {
       specify("non-existing variable", () => {
         expect(execute("get unknownVariable")).to.eql(
-          ERROR('can\'t read "unknownVariable": no such variable')
+          ERROR('cannot get "unknownVariable": no such variable')
         );
       });
       specify("wrong arity", () => {

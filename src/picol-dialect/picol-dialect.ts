@@ -53,10 +53,10 @@ export class PicolScope {
   };
 
   resolveVariable(name: string): Value {
-    if (!this.variables.has(name)) {
-      throw new Error(`can't read "${name}": no such variable`);
+    if (this.variables.has(name)) {
+      return this.variables.get(name);
     }
-    return this.variables.get(name);
+    return null;
   }
   resolveCommand(name: Value): Command {
     return this.resolveNamedCommand(name.asString());
@@ -318,12 +318,12 @@ function evaluateCondition(value: Value, scope: PicolScope): Result {
 const setCmd: Command = {
   execute: (args, scope: PicolScope) => {
     switch (args.length) {
-      case 2:
-        try {
-          return OK(scope.variableResolver.resolve(args[1].asString()));
-        } catch (e) {
-          return ERROR(e.message);
-        }
+      case 2: {
+        const name = args[1].asString();
+        const value = scope.variableResolver.resolve(name);
+        if (value) return OK(value);
+        return ERROR(`can't read "${name}": no such variable`);
+      }
       case 3:
         scope.variables.set(args[1].asString(), args[2]);
         return OK(args[2]);

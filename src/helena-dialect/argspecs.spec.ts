@@ -304,7 +304,7 @@ describe("Helena argument handling", () => {
             specify("zero", () => {
               evaluate("[argspec ?a] set ()");
               expect(execute("get a")).to.eql(
-                ERROR(`can't read "a": no such variable`)
+                ERROR(`cannot get "a": no such variable`)
               );
             });
             specify("one", () => {
@@ -336,17 +336,17 @@ describe("Helena argument handling", () => {
             specify("zero", () => {
               evaluate("[argspec (?a ?b)] set ()");
               expect(execute("get a")).to.eql(
-                ERROR(`can't read "a": no such variable`)
+                ERROR(`cannot get "a": no such variable`)
               );
               expect(execute("get b")).to.eql(
-                ERROR(`can't read "b": no such variable`)
+                ERROR(`cannot get "b": no such variable`)
               );
             });
             specify("one", () => {
               evaluate("[argspec (?a ?b)] set (val)");
               expect(evaluate("get a")).to.eql(new StringValue("val"));
               expect(execute("get b")).to.eql(
-                ERROR(`can't read "b": no such variable`)
+                ERROR(`cannot get "b": no such variable`)
               );
             });
             specify("one two", () => {
@@ -361,7 +361,7 @@ describe("Helena argument handling", () => {
           specify("one", () => {
             evaluate("[argspec (?a b)] set (val)");
             expect(execute("get a")).to.eql(
-              ERROR(`can't read "a": no such variable`)
+              ERROR(`cannot get "a": no such variable`)
             );
             expect(evaluate("get b")).to.eql(new StringValue("val"));
           });
@@ -376,7 +376,7 @@ describe("Helena argument handling", () => {
             evaluate("[argspec (a ?b c)] set (val1 val2)");
             expect(evaluate("get a")).to.eql(new StringValue("val1"));
             expect(execute("get b")).to.eql(
-              ERROR(`can't read "b": no such variable`)
+              ERROR(`cannot get "b": no such variable`)
             );
             expect(evaluate("get c")).to.eql(new StringValue("val2"));
           });
@@ -392,7 +392,7 @@ describe("Helena argument handling", () => {
             evaluate("[argspec (a ?b)] set (val)");
             expect(evaluate("get a")).to.eql(new StringValue("val"));
             expect(execute("get b")).to.eql(
-              ERROR(`can't read "b": no such variable`)
+              ERROR(`cannot get "b": no such variable`)
             );
           });
           specify("two", () => {
@@ -502,7 +502,7 @@ describe("Helena argument handling", () => {
         it("should skip missing optional attributes", () => {
           evaluate("[argspec {?a b (c def)}] set (val)");
           expect(execute("get a")).to.eql(
-            ERROR(`can't read "a": no such variable`)
+            ERROR(`cannot get "a": no such variable`)
           );
           expect(evaluate("get b")).to.eql(new StringValue("val"));
           expect(evaluate("get c")).to.eql(new StringValue("def"));
@@ -512,7 +512,7 @@ describe("Helena argument handling", () => {
           expect(evaluate("get a")).to.eql(new StringValue("val1"));
           expect(evaluate("get b")).to.eql(new StringValue("val2"));
           expect(execute("get c")).to.eql(
-            ERROR(`can't read "c": no such variable`)
+            ERROR(`cannot get "c": no such variable`)
           );
         });
         it("should set remainder after optional attributes", () => {
