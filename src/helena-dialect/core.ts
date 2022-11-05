@@ -91,7 +91,7 @@ export class Scope {
     return null;
   }
   resolveCommand(value: Value): Command {
-    if (value.type == ValueType.TUPLE) return tupleCmd;
+    if (value.type == ValueType.TUPLE) return expandPrefixCmd;
     if (value instanceof CommandValue) return value.command;
     if (NumberValue.isNumber(value)) return numberCmd;
     return this.resolveNamedCommand(value.asString());
@@ -146,11 +146,11 @@ export class Scope {
   }
 }
 
-type TupleState = {
+type ExpandPrefixState = {
   command: Command;
   result: Result;
 };
-const tupleCmd: Command = {
+export const expandPrefixCmd: Command = {
   execute(args: Value[], scope: Scope): Result {
     const [command, args2] = resolveLeadingTuple(args, scope);
     if (!command) return OK(NIL);
@@ -160,7 +160,7 @@ const tupleCmd: Command = {
     return result;
   },
   resume(result: Result, scope: Scope): Result {
-    const { command, result: commandResult } = result.data as TupleState;
+    const { command, result: commandResult } = result.data as ExpandPrefixState;
     if (!command.resume) return commandResult;
     const result2 = command.resume(commandResult, scope);
     if (result2.code == ResultCode.YIELD)

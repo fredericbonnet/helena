@@ -9,6 +9,7 @@ import { coroutineCmd } from "./coroutines";
 import { registerMathCommands } from "./math";
 import { registerLogicCommands } from "./logic";
 import { argspecCmd } from "./argspecs";
+import { aliasCmd } from "./aliases";
 
 export { Scope, Variable, CommandValue } from "./core";
 
@@ -32,4 +33,5 @@ export function initCommands(scope: Scope) {
   scope.registerCommand("macro", macroCmd);
   scope.registerCommand("closure", closureCmd);
   scope.registerCommand("coroutine", coroutineCmd);
+  scope.registerCommand("alias", aliasCmd);
 }
