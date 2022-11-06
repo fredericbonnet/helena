@@ -76,11 +76,9 @@ export class ArgspecValue extends CommandValue {
     skip: number,
     setArgument: (name: string, value: Value) => Result
   ): Result {
-    let setOptionals = Math.min(
-      this.argspec.nbOptional,
-      values.length - this.argspec.nbRequired
-    );
-    const setRemainder = values.length - this.argspec.nbRequired - setOptionals;
+    const nonRequired = values.length - skip - this.argspec.nbRequired;
+    let optionals = Math.min(this.argspec.nbOptional, nonRequired);
+    const remainders = nonRequired - optionals;
     let i = skip;
     for (const arg of this.argspec.args) {
       let value: Value;
@@ -89,8 +87,8 @@ export class ArgspecValue extends CommandValue {
           value = values[i++];
           break;
         case "optional":
-          if (setOptionals > 0) {
-            setOptionals--;
+          if (optionals > 0) {
+            optionals--;
             value = values[i++];
           } else if (arg.default) {
             if (arg.default.type == ValueType.SCRIPT) {
@@ -105,8 +103,8 @@ export class ArgspecValue extends CommandValue {
           } else continue; // Skip missing optional
           break;
         case "remainder":
-          value = new TupleValue(values.slice(i, i + setRemainder));
-          i += setRemainder;
+          value = new TupleValue(values.slice(i, i + remainders));
+          i += remainders;
           break;
       }
       const result = setArgument(arg.name, value);
