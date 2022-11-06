@@ -174,6 +174,9 @@ describe("Helena basic commands", () => {
           ERROR('wrong # args: should be "eval body"')
         );
       });
+      specify("non-script body", () => {
+        expect(execute("eval 1")).to.eql(ERROR("body must be a script"));
+      });
     });
   });
 });

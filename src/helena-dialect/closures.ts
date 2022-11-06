@@ -2,7 +2,7 @@
 import { Result, ResultCode, YIELD, OK, ERROR } from "../core/results";
 import { Command } from "../core/command";
 import { Program, Process } from "../core/compiler";
-import { ScriptValue, Value } from "../core/values";
+import { ScriptValue, Value, ValueType } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, ScopeContext } from "./core";
@@ -109,6 +109,7 @@ export const closureCmd: Command = {
       default:
         return ARITY_ERROR("closure ?name? argspec body");
     }
+    if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
     const result = ArgspecValue.fromValue(scope, specs);
     if (result.code != ResultCode.OK) return result; // TODO handle YIELD?

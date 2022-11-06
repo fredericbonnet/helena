@@ -229,6 +229,9 @@ describe("Helena coroutines", () => {
           ERROR('wrong # args: should be "coroutine body"')
         );
       });
+      specify("non-script body", () => {
+        expect(execute("coroutine a")).to.eql(ERROR("body must be a script"));
+      });
     });
   });
 });

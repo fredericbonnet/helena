@@ -2,7 +2,7 @@
 import { Result, OK, ERROR, ResultCode, YIELD } from "../core/results";
 import { Command } from "../core/command";
 import { Program, Process } from "../core/compiler";
-import { Value, ScriptValue } from "../core/values";
+import { Value, ScriptValue, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { CommandValue, Scope } from "./core";
 
@@ -26,7 +26,10 @@ class ScopeCommand implements Command {
     switch (method.asString()) {
       case "eval": {
         if (args.length != 3) return ARITY_ERROR("scope eval body");
+        if (args[2].type != ValueType.SCRIPT)
+          return ERROR("body must be a script");
         const body = args[2] as ScriptValue;
+        // TODO handle YIELD
         return this.value.scope.executeScript(body);
       }
       case "call": {
@@ -63,6 +66,7 @@ export const scopeCmd: Command = {
       default:
         return ARITY_ERROR("scope ?name? body");
     }
+    if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
     const subscope = new Scope(scope);
     const program = subscope.compile((body as ScriptValue).script);

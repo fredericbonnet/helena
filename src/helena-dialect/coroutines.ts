@@ -2,7 +2,7 @@
 import { ERROR, OK, Result, ResultCode, YIELD } from "../core/results";
 import { Command } from "../core/command";
 import { Program, Process } from "../core/compiler";
-import { Value, ScriptValue, FALSE, TRUE } from "../core/values";
+import { Value, ScriptValue, FALSE, TRUE, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { CommandValue, Scope } from "./core";
 
@@ -98,6 +98,7 @@ export const coroutineCmd: Command = {
       default:
         return ARITY_ERROR("coroutine body");
     }
+    if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
     const command = new CoroutineCommand(scope, body as ScriptValue);
     return OK(command.value);

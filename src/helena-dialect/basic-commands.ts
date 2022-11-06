@@ -1,9 +1,9 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { OK, Result, ResultCode, RETURN, YIELD } from "../core/results";
+import { ERROR, OK, Result, ResultCode, RETURN, YIELD } from "../core/results";
 import { Command } from "../core/command";
 import { Program, Process } from "../core/compiler";
-import { NIL, ScriptValue } from "../core/values";
+import { NIL, ScriptValue, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Scope } from "./core";
 
@@ -36,6 +36,7 @@ export const evalCmd: Command = {
   execute: (args, scope: Scope) => {
     if (args.length != 2) return ARITY_ERROR("eval body");
     const body = args[1];
+    if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
     const program = scope.compile((body as ScriptValue).script);
     const process = new Process();
     return executeEvalBody({ program, process }, scope);

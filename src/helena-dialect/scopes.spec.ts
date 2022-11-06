@@ -173,6 +173,11 @@ describe("Helena scopes", () => {
               ERROR('wrong # args: should be "scope eval body"')
             );
           });
+          specify("non-script body", () => {
+            expect(execute("[scope {}] eval 1")).to.eql(
+              ERROR("body must be a script")
+            );
+          });
         });
       });
       describe("call", () => {
@@ -226,6 +231,10 @@ describe("Helena scopes", () => {
         expect(execute("scope a b c")).to.eql(
           ERROR('wrong # args: should be "scope ?name? body"')
         );
+      });
+      specify("non-script body", () => {
+        expect(execute("scope a")).to.eql(ERROR("body must be a script"));
+        expect(execute("scope a b")).to.eql(ERROR("body must be a script"));
       });
     });
   });

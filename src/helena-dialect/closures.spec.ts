@@ -219,6 +219,10 @@ describe("Helena closures", () => {
           ERROR('wrong # args: should be "closure ?name? argspec body"')
         );
       });
+      specify("non-script body", () => {
+        expect(execute("closure a b")).to.eql(ERROR("body must be a script"));
+        expect(execute("closure a b c")).to.eql(ERROR("body must be a script"));
+      });
     });
   });
 });
