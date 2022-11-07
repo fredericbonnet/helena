@@ -143,7 +143,7 @@ type ConditionState = {
   program: Program;
   process: Process;
 };
-function executeCondition(scope: Scope, value: Value): Result {
+export function executeCondition(scope: Scope, value: Value): Result {
   if (value.type == ValueType.SCRIPT) {
     const script = (value as ScriptValue).script;
     const program = scope.compile(script);
@@ -151,6 +151,11 @@ function executeCondition(scope: Scope, value: Value): Result {
     return runCondition(scope, { program, process });
   }
   return BooleanValue.fromValue(value);
+}
+export function resumeCondition(result: Result, scope: Scope) {
+  const state = result.data as ConditionState;
+  state.process.result = { ...state.process.result, value: result.value };
+  return runCondition(scope, state);
 }
 function runCondition(scope: Scope, state: ConditionState) {
   const result = scope.execute(state.program, state.process);
