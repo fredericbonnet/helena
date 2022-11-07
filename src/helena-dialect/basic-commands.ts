@@ -9,6 +9,7 @@ import {
   ResultCode,
   RETURN,
   YIELD,
+  YIELD_BACK,
 } from "../core/results";
 import { Command } from "../core/command";
 import { Program, Process } from "../core/compiler";
@@ -72,7 +73,9 @@ export const evalCmd: Command = {
     return executeEvalBody({ program, process }, scope);
   },
   resume(result: Result, scope: Scope): Result {
-    return executeEvalBody(result.data as EvalBodyState, scope);
+    const state = result.data as EvalBodyState;
+    state.process.result = YIELD_BACK(state.process.result, result.value);
+    return executeEvalBody(state, scope);
   },
 };
 const executeEvalBody = (state: EvalBodyState, scope: Scope): Result => {

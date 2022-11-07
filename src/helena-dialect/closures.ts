@@ -1,5 +1,12 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Result, ResultCode, YIELD, OK, ERROR } from "../core/results";
+import {
+  Result,
+  ResultCode,
+  YIELD,
+  OK,
+  ERROR,
+  YIELD_BACK,
+} from "../core/results";
 import { Command } from "../core/command";
 import { Program, Process } from "../core/compiler";
 import { ScriptValue, Value, ValueType } from "../core/values";
@@ -88,7 +95,9 @@ class ClosureCommand implements Command {
     return this.run({ scope: subscope, process });
   }
   resume(result: Result): Result {
-    return this.run(result.data as ClosureState);
+    const state = result.data as ClosureState;
+    state.process.result = YIELD_BACK(state.process.result, result.value);
+    return this.run(state);
   }
   run(state: ClosureState) {
     const result = state.scope.execute(this.value.program, state.process);

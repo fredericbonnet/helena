@@ -1,5 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { ERROR, OK, Result, ResultCode, YIELD } from "../core/results";
+import { ERROR, OK, Result, ResultCode, YIELD_BACK } from "../core/results";
 import { Command } from "../core/command";
 import { Program, Process } from "../core/compiler";
 import { Value, ScriptValue, FALSE, TRUE, ValueType } from "../core/values";
@@ -65,9 +65,9 @@ class CoroutineCommand implements Command {
           return ERROR("coroutine is inactive");
         if (this.value.state == "done") return ERROR("coroutine is done");
         if (args.length == 3) {
-          this.value.process.result = YIELD(
-            args[2],
-            this.value.process.result.data
+          this.value.process.result = YIELD_BACK(
+            this.value.process.result,
+            args[2]
           );
         }
         const result = this.value.scope.execute(

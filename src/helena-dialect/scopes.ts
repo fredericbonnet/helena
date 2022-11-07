@@ -1,5 +1,12 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Result, OK, ERROR, ResultCode, YIELD } from "../core/results";
+import {
+  Result,
+  OK,
+  ERROR,
+  ResultCode,
+  YIELD,
+  YIELD_BACK,
+} from "../core/results";
 import { Command } from "../core/command";
 import { Program, Process } from "../core/compiler";
 import { Value, ScriptValue, ValueType } from "../core/values";
@@ -75,7 +82,9 @@ export const scopeCmd: Command = {
     return executeScopeBody({ scope, subscope, program, process, name });
   },
   resume(result: Result): Result {
-    return executeScopeBody(result.data as ScopeBodyState);
+    const state = result.data as ScopeBodyState;
+    state.process.result = YIELD_BACK(state.process.result, result.value);
+    return executeScopeBody(state);
   },
 };
 const executeScopeBody = (state: ScopeBodyState): Result => {

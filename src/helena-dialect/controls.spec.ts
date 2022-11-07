@@ -6,6 +6,8 @@ import {
   OK,
   ResultCode,
   RETURN,
+  YIELD,
+  YIELD_BACK,
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
@@ -85,37 +87,37 @@ describe("Helena control flow commands", () => {
           expect(result.value).to.eql(new StringValue("test"));
           expect(result.data).to.exist;
 
-          process.result = { ...process.result, value: TRUE };
+          process.result = YIELD_BACK(process.result, TRUE);
           result = rootScope.execute(program, process);
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("body"));
           expect(result.data).to.exist;
 
-          process.result = {
-            ...process.result,
-            value: new StringValue("step 1"),
-          };
+          process.result = YIELD_BACK(
+            process.result,
+            new StringValue("step 1")
+          );
           result = rootScope.execute(program, process);
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("test"));
           expect(result.data).to.exist;
 
-          process.result = { ...process.result, value: TRUE };
+          process.result = YIELD_BACK(process.result, TRUE);
           result = rootScope.execute(program, process);
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("body"));
           expect(result.data).to.exist;
 
-          process.result = {
-            ...process.result,
-            value: new StringValue("step 2"),
-          };
+          process.result = YIELD_BACK(
+            process.result,
+            new StringValue("step 2")
+          );
           result = rootScope.execute(program, process);
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("test"));
           expect(result.data).to.exist;
 
-          process.result = { ...process.result, value: FALSE };
+          process.result = YIELD_BACK(process.result, FALSE);
           result = rootScope.execute(program, process);
           expect(result.code).to.eql(ResultCode.OK);
           expect(result.value).to.eql(new StringValue("step 2"));

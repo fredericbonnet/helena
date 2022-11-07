@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ERROR, OK, ResultCode } from "../core/results";
+import { ERROR, OK, ResultCode, YIELD_BACK } from "../core/results";
 import { Process } from "../core/compiler";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
@@ -113,21 +113,22 @@ describe("Helena scopes", () => {
         });
         it("should provide a resumable state", () => {
           evaluate("closure cmd1 {} {set var val1}");
-          evaluate("closure cmd2 {} {set var val2}");
+          evaluate("closure cmd2 {val} {set var $val}");
           const process = new Process();
           const program = rootScope.compile(
-            parse("scope cmd {cmd1; yield val3; cmd2}")
+            parse("scope cmd {cmd1; cmd2 [yield val2]}")
           );
 
           let result = rootScope.execute(program, process);
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("val3"));
+          expect(result.value).to.eql(new StringValue("val2"));
           expect(result.data).to.exist;
 
+          process.result = YIELD_BACK(process.result, new StringValue("val3"));
           result = rootScope.execute(program, process);
           expect(result.code).to.eql(ResultCode.OK);
           expect(result.value).to.be.instanceof(CommandValue);
-          expect(evaluate("get var")).to.eql(new StringValue("val2"));
+          expect(evaluate("get var")).to.eql(new StringValue("val3"));
         });
         it("should delay the definition of scope command until resumed", () => {
           const process = new Process();

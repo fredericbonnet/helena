@@ -1,5 +1,12 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { ERROR, OK, Result, ResultCode, YIELD } from "../core/results";
+import {
+  ERROR,
+  OK,
+  Result,
+  ResultCode,
+  YIELD,
+  YIELD_BACK,
+} from "../core/results";
 import { Command } from "../core/command";
 import { Compiler, Executor, Program, Process } from "../core/compiler";
 import { VariableResolver, CommandResolver } from "../core/evaluator";
@@ -162,7 +169,10 @@ export const expandPrefixCmd: Command = {
   resume(result: Result, scope: Scope): Result {
     const { command, result: commandResult } = result.data as ExpandPrefixState;
     if (!command.resume) return commandResult;
-    const result2 = command.resume(commandResult, scope);
+    const result2 = command.resume(
+      YIELD_BACK(commandResult, result.value),
+      scope
+    );
     if (result2.code == ResultCode.YIELD)
       return YIELD(result2.value, { command, result: result2 });
     return result2;

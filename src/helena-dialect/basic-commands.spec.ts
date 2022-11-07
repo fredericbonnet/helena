@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ERROR, OK, ResultCode, RETURN } from "../core/results";
+import { ERROR, OK, ResultCode, RETURN, YIELD_BACK } from "../core/results";
 import { Process } from "../core/compiler";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
@@ -174,7 +174,7 @@ describe("Helena basic commands", () => {
         it("should provide a resumable state", () => {
           const process = new Process();
           const program = rootScope.compile(
-            parse("eval {set var val1; yield val2; set var val3}")
+            parse("eval {set var val1; set var [yield val2]}")
           );
 
           let result = rootScope.execute(program, process);
@@ -183,6 +183,7 @@ describe("Helena basic commands", () => {
           expect(result.data).to.exist;
           expect(evaluate("get var")).to.eql(new StringValue("val1"));
 
+          process.result = YIELD_BACK(process.result, new StringValue("val3"));
           result = rootScope.execute(program, process);
           expect(result.code).to.eql(ResultCode.OK);
           expect(result.value).to.eql(new StringValue("val3"));
@@ -210,9 +211,10 @@ describe("Helena basic commands", () => {
         expect(result.value).to.eql(new StringValue("val3"));
         expect(result.data).to.exist;
 
+        process.result = YIELD_BACK(process.result, new StringValue("val4"));
         result = rootScope.execute(program, process);
         expect(result.code).to.eql(ResultCode.OK);
-        expect(result.value).to.eql(new StringValue("val3"));
+        expect(result.value).to.eql(new StringValue("val4"));
       });
     });
     describe("exceptions", () => {

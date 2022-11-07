@@ -1,7 +1,14 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
 import { Process, Program } from "../core/compiler";
-import { ERROR, OK, Result, ResultCode, YIELD } from "../core/results";
+import {
+  ERROR,
+  OK,
+  Result,
+  ResultCode,
+  YIELD,
+  YIELD_BACK,
+} from "../core/results";
 import {
   BooleanValue,
   NIL,
@@ -42,10 +49,10 @@ class WhileCommand implements Command {
     const state = result.data as WhileState;
     switch (state.step) {
       case "inTest":
-        state.testResult = { ...state.testResult, value: result.value };
+        state.testResult = YIELD_BACK(state.testResult, result.value);
         break;
       case "inBody":
-        state.process.result = { ...state.process.result, value: result.value };
+        state.process.result = YIELD_BACK(state.process.result, result.value);
         break;
     }
     return this.run(state, scope);

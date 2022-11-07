@@ -1,5 +1,12 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Result, ResultCode, YIELD, OK, ERROR } from "../core/results";
+import {
+  Result,
+  ResultCode,
+  YIELD,
+  OK,
+  ERROR,
+  YIELD_BACK,
+} from "../core/results";
 import { Command } from "../core/command";
 import { Program, Process } from "../core/compiler";
 import { ScriptValue, Value, ValueType } from "../core/values";
@@ -79,7 +86,9 @@ class MacroCommand implements Command {
     return this.run({ scope: subscope, process });
   }
   resume(result: Result): Result {
-    return this.run(result.data as MacroState);
+    const state = result.data as MacroState;
+    state.process.result = YIELD_BACK(state.process.result, result.value);
+    return this.run(state);
   }
   run(state: MacroState) {
     const result = state.scope.execute(this.value.program, state.process);

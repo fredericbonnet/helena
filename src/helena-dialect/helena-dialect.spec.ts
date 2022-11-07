@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { OK, ResultCode } from "../core/results";
+import { OK, ResultCode, YIELD_BACK } from "../core/results";
 import { Parser } from "../core/parser";
 import { Scope, initCommands } from "./helena-dialect";
 import { Tokenizer } from "../core/tokenizer";
@@ -77,7 +77,7 @@ describe("Helena dialect", () => {
         expect(result).to.eql(OK(new StringValue("val2")));
       });
       it("should work on several levels", () => {
-        evaluate("macro cmd2 {*} {yield val2; idem val3}");
+        evaluate("macro cmd2 {*} {yield val2}");
         evaluate("macro cmd {*} {yield val1; yield [cmd2]; idem val4}");
         const process = new Process();
         const program = rootScope.compile(parse("(((cmd) a) b) c"));
@@ -90,6 +90,7 @@ describe("Helena dialect", () => {
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val2"));
 
+        process.result = YIELD_BACK(process.result, new StringValue("val3"));
         result = rootScope.execute(program, process);
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val3"));

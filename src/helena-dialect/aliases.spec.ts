@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ERROR, OK, ResultCode, RETURN } from "../core/results";
+import { ERROR, OK, ResultCode, RETURN, YIELD_BACK } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { NIL, StringValue, TupleValue } from "../core/values";
@@ -106,7 +106,7 @@ describe("Helena aliases", () => {
           expect(result.value).to.eql(new StringValue("val1"));
         });
         it("should provide a resumable state", () => {
-          evaluate("macro mac {} {yield val1; idem val2}");
+          evaluate("macro mac {} {idem [yield val1]}");
           evaluate("alias cmd mac");
           const process = new Process();
           const program = rootScope.compile(parse("cmd"));
@@ -114,6 +114,7 @@ describe("Helena aliases", () => {
           let result = rootScope.execute(program, process);
           expect(result.data).to.exist;
 
+          process.result = YIELD_BACK(process.result, new StringValue("val2"));
           result = rootScope.execute(program, process);
           expect(result).to.eql(OK(new StringValue("val2")));
         });

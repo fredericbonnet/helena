@@ -27,7 +27,7 @@ export type Result<T = unknown> = {
 };
 
 /**
- * Convenience methods for results
+ * Convenience functions for results
  */
 
 /* eslint-disable jsdoc/require-jsdoc */
@@ -36,6 +36,9 @@ export const OK = <T = unknown>(value: Value, data?: T): Result<T> => {
 };
 export const YIELD = (value: Value = NIL, state?): Result => {
   return { code: ResultCode.YIELD, value, data: state };
+};
+export const YIELD_BACK = (result: Result, value: Value): Result => {
+  return { ...result, value };
 };
 export const RETURN = (value: Value = NIL): Result => {
   return { code: ResultCode.RETURN, value };

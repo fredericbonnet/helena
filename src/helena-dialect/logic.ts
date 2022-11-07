@@ -1,5 +1,12 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Result, OK, ResultCode, ERROR, YIELD } from "../core/results";
+import {
+  Result,
+  OK,
+  ResultCode,
+  ERROR,
+  YIELD,
+  YIELD_BACK,
+} from "../core/results";
 import { Command } from "../core/command";
 import { Process, Program } from "../core/compiler";
 import {
@@ -59,7 +66,7 @@ export const notCmd: Command = {
     return (result.value as BooleanValue).value ? OK(FALSE) : OK(TRUE);
   },
   resume(result: Result, scope: Scope) {
-    result = runCondition(scope, result.data as ConditionState);
+    result = resumeCondition(result, scope);
     if (result.code != ResultCode.OK) return result;
     return (result.value as BooleanValue).value ? OK(FALSE) : OK(TRUE);
   },
@@ -68,7 +75,7 @@ export const notCmd: Command = {
 type AndCommandState = {
   args: Value[];
   i: number;
-  conditionState?: ConditionState;
+  result?: Result;
 };
 class AndCommand implements Command {
   execute(args, scope: Scope) {
@@ -76,24 +83,25 @@ class AndCommand implements Command {
     return this.run({ args, i: 1 }, scope);
   }
   resume(result: Result, scope: Scope): Result {
+    const state = result.data as AndCommandState;
+    state.result = YIELD_BACK(state.result, result.value);
     return this.run(result.data as AndCommandState, scope);
   }
   run(state: AndCommandState, scope: Scope) {
     let r = TRUE;
     while (state.i < state.args.length) {
-      const result = state.conditionState
-        ? runCondition(scope, state.conditionState)
+      state.result = state.result
+        ? resumeCondition(state.result, scope)
         : executeCondition(scope, state.args[state.i]);
-      if (result.code == ResultCode.YIELD) {
-        state.conditionState = result.data as ConditionState;
-        return YIELD(result.value, state);
+      if (state.result.code == ResultCode.YIELD) {
+        return YIELD(state.result.value, state);
       }
-      delete state.conditionState;
-      if (result.code != ResultCode.OK) return result;
-      if (!(result.value as BooleanValue).value) {
+      if (state.result.code != ResultCode.OK) return state.result;
+      if (!(state.result.value as BooleanValue).value) {
         r = FALSE;
         break;
       }
+      delete state.result;
       state.i++;
     }
 
@@ -105,7 +113,7 @@ const andCmd: Command = new AndCommand();
 type OrCommandState = {
   args: Value[];
   i: number;
-  conditionState?: ConditionState;
+  result?: Result;
 };
 class OrCommand implements Command {
   execute(args, scope: Scope) {
@@ -113,24 +121,25 @@ class OrCommand implements Command {
     return this.run({ args, i: 1 }, scope);
   }
   resume(result: Result, scope: Scope): Result {
+    const state = result.data as OrCommandState;
+    state.result = YIELD_BACK(state.result, result.value);
     return this.run(result.data as OrCommandState, scope);
   }
   run(state: OrCommandState, scope: Scope) {
     let r = FALSE;
     while (state.i < state.args.length) {
-      const result = state.conditionState
-        ? runCondition(scope, state.conditionState)
+      state.result = state.result
+        ? resumeCondition(state.result, scope)
         : executeCondition(scope, state.args[state.i]);
-      if (result.code == ResultCode.YIELD) {
-        state.conditionState = result.data as ConditionState;
-        return YIELD(result.value, state);
+      if (state.result.code == ResultCode.YIELD) {
+        return YIELD(state.result.value, state);
       }
-      delete state.conditionState;
-      if (result.code != ResultCode.OK) return result;
-      if ((result.value as BooleanValue).value) {
+      if (state.result.code != ResultCode.OK) return state.result;
+      if ((state.result.value as BooleanValue).value) {
         r = TRUE;
         break;
       }
+      delete state.result;
       state.i++;
     }
 
@@ -154,7 +163,7 @@ export function executeCondition(scope: Scope, value: Value): Result {
 }
 export function resumeCondition(result: Result, scope: Scope) {
   const state = result.data as ConditionState;
-  state.process.result = { ...state.process.result, value: result.value };
+  state.process.result = YIELD_BACK(state.process.result, result.value);
   return runCondition(scope, state);
 }
 function runCondition(scope: Scope, state: ConditionState) {
