@@ -87,6 +87,56 @@ describe("Helena basic commands", () => {
     });
   });
 
+  describe("error", () => {
+    specify("result code should be ERROR", () => {
+      expect(execute("error a").code).to.eql(ResultCode.ERROR);
+    });
+    specify("result value should be message", () => {
+      expect(evaluate("error val")).to.eql(new StringValue("val"));
+    });
+    describe("exceptions", () => {
+      specify("wrong arity", () => {
+        expect(execute("error")).to.eql(
+          ERROR('wrong # args: should be "error message"')
+        );
+        expect(execute("error a b")).to.eql(
+          ERROR('wrong # args: should be "error message"')
+        );
+      });
+      specify("non-string message", () => {
+        expect(() => execute("error ()")).to.throw(
+          "value has no string representation"
+        );
+      });
+    });
+  });
+
+  describe("break", () => {
+    specify("result code should be BREAK", () => {
+      expect(execute("break").code).to.eql(ResultCode.BREAK);
+    });
+    describe("exceptions", () => {
+      specify("wrong arity", () => {
+        expect(execute("break a")).to.eql(
+          ERROR('wrong # args: should be "break"')
+        );
+      });
+    });
+  });
+
+  describe("continue", () => {
+    specify("result code should be CONTINUE", () => {
+      expect(execute("continue").code).to.eql(ResultCode.CONTINUE);
+    });
+    describe("exceptions", () => {
+      specify("wrong arity", () => {
+        expect(execute("continue a")).to.eql(
+          ERROR('wrong # args: should be "continue"')
+        );
+      });
+    });
+  });
+
   describe("eval", () => {
     it("should return nil for empty body", () => {
       expect(evaluate("eval {}")).to.eql(NIL);

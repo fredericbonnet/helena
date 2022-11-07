@@ -1,6 +1,15 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { ERROR, OK, Result, ResultCode, RETURN, YIELD } from "../core/results";
+import {
+  BREAK,
+  CONTINUE,
+  ERROR,
+  OK,
+  Result,
+  ResultCode,
+  RETURN,
+  YIELD,
+} from "../core/results";
 import { Command } from "../core/command";
 import { Program, Process } from "../core/compiler";
 import { NIL, ScriptValue, ValueType } from "../core/values";
@@ -25,6 +34,27 @@ export const yieldCmd: Command = {
   execute: (args) => {
     if (args.length > 2) return ARITY_ERROR("yield ?result?");
     return YIELD(args.length == 2 ? args[1] : NIL);
+  },
+};
+
+export const errorCmd: Command = {
+  execute: (args) => {
+    if (args.length != 2) return ARITY_ERROR("error message");
+    return ERROR(args[1].asString());
+  },
+};
+
+export const breakCmd: Command = {
+  execute: (args) => {
+    if (args.length != 1) return ARITY_ERROR("break");
+    return BREAK();
+  },
+};
+
+export const continueCmd: Command = {
+  execute: (args) => {
+    if (args.length != 1) return ARITY_ERROR("continue");
+    return CONTINUE();
   },
 };
 
