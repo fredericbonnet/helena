@@ -157,11 +157,11 @@ describe("Helena macros", () => {
           evaluate("macro cmd {} {idem [yield val1]}");
           const state = rootScope.prepareScript(parse("cmd"));
 
-          let result = state.execute();
+          let result = state.run();
           expect(result.data).to.exist;
 
           state.yieldBack(new StringValue("val2"));
-          result = state.execute();
+          result = state.run();
           expect(result).to.eql(OK(new StringValue("val2")));
         });
         it("should work recursively", () => {
@@ -171,25 +171,25 @@ describe("Helena macros", () => {
           evaluate("macro cmd4 {} {yield val3}");
           const state = rootScope.prepareScript(parse("cmd1"));
 
-          let result = state.execute();
+          let result = state.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val1"));
 
           state.yieldBack(new StringValue("val2"));
-          result = state.execute();
+          result = state.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val2"));
 
-          result = state.execute();
+          result = state.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val3"));
 
           state.yieldBack(new StringValue("val4"));
-          result = state.execute();
+          result = state.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val4"));
 
-          result = state.execute();
+          result = state.run();
           expect(result).to.eql(OK(new StringValue("val5")));
         });
       });

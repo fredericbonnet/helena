@@ -116,13 +116,13 @@ describe("Helena scopes", () => {
             parse("scope cmd {cmd1; cmd2 [yield val2]}")
           );
 
-          let result = state.execute();
+          let result = state.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val2"));
           expect(result.data).to.exist;
 
           state.yieldBack(new StringValue("val3"));
-          result = state.execute();
+          result = state.run();
           expect(result.code).to.eql(ResultCode.OK);
           expect(result.value).to.be.instanceof(CommandValue);
           expect(evaluate("get var")).to.eql(new StringValue("val3"));
@@ -130,11 +130,11 @@ describe("Helena scopes", () => {
         it("should delay the definition of scope command until resumed", () => {
           const state = rootScope.prepareScript(parse("scope cmd {yield}"));
 
-          let result = state.execute();
+          let result = state.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(rootScope.context.commands.has("cmd")).to.be.false;
 
-          result = state.execute();
+          result = state.run();
           expect(result.code).to.eql(ResultCode.OK);
           expect(rootScope.context.commands.has("cmd")).to.be.true;
         });

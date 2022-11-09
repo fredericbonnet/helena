@@ -77,7 +77,7 @@ export const scopeCmd: Command = {
   },
 };
 const executeScopeBody = (state: ScopeBodyState): Result => {
-  const result = state.process.execute();
+  const result = state.process.run();
 
   if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
   if (result.code != ResultCode.OK && result.code != ResultCode.RETURN)

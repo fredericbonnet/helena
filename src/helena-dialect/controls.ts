@@ -72,11 +72,11 @@ class WhileCommand implements Command {
           break;
         case "beforeBody":
           state.process = scope.prepareProcess(state.program);
-          result = state.process.execute();
+          result = state.process.run();
           state.step = "inBody";
           break;
         case "inBody":
-          result = state.process.execute();
+          result = state.process.run();
           break;
       }
       if (result.code == ResultCode.YIELD) return YIELD(result.value, state);

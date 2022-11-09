@@ -174,14 +174,14 @@ describe("Helena basic commands", () => {
             parse("eval {set var val1; set var [yield val2]}")
           );
 
-          let result = state.execute();
+          let result = state.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val2"));
           expect(result.data).to.exist;
           expect(evaluate("get var")).to.eql(new StringValue("val1"));
 
           state.yieldBack(new StringValue("val3"));
-          result = state.execute();
+          result = state.run();
           expect(result.code).to.eql(ResultCode.OK);
           expect(result.value).to.eql(new StringValue("val3"));
           expect(evaluate("get var")).to.eql(new StringValue("val3"));
@@ -192,23 +192,23 @@ describe("Helena basic commands", () => {
           parse("eval {eval {yield val1}; yield val2; eval {yield val3}}")
         );
 
-        let result = state.execute();
+        let result = state.run();
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val1"));
         expect(result.data).to.exist;
 
-        result = state.execute();
+        result = state.run();
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val2"));
         expect(result.data).to.exist;
 
-        result = state.execute();
+        result = state.run();
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val3"));
         expect(result.data).to.exist;
 
         state.yieldBack(new StringValue("val4"));
-        result = state.execute();
+        result = state.run();
         expect(result.code).to.eql(ResultCode.OK);
         expect(result.value).to.eql(new StringValue("val4"));
       });

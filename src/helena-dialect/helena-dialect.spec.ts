@@ -67,10 +67,10 @@ describe("Helena dialect", () => {
         evaluate("macro cmd {*} {yield val1; idem val2}");
         const state = rootScope.prepareScript(parse("cmd a b c"));
 
-        let result = state.execute();
+        let result = state.run();
         expect(result.data).to.exist;
 
-        result = state.execute();
+        result = state.run();
         expect(result).to.eql(OK(new StringValue("val2")));
       });
       it("should work on several levels", () => {
@@ -78,20 +78,20 @@ describe("Helena dialect", () => {
         evaluate("macro cmd {*} {yield val1; yield [cmd2]; idem val4}");
         const state = rootScope.prepareScript(parse("(((cmd) a) b) c"));
 
-        let result = state.execute();
+        let result = state.run();
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val1"));
 
-        result = state.execute();
+        result = state.run();
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val2"));
 
         state.yieldBack(new StringValue("val3"));
-        result = state.execute();
+        result = state.run();
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val3"));
 
-        result = state.execute();
+        result = state.run();
         expect(result.code).to.eql(ResultCode.OK);
         expect(result.value).to.eql(new StringValue("val4"));
       });

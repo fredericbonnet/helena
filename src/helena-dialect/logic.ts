@@ -160,7 +160,7 @@ export function resumeCondition(result: Result) {
   return runCondition(process);
 }
 function runCondition(process: Process) {
-  const result = process.execute();
+  const result = process.run();
   if (result.code == ResultCode.YIELD) return YIELD(result.value, process);
   if (result.code != ResultCode.OK) return result;
   return BooleanValue.fromValue(result.value);

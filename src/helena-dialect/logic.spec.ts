@@ -127,16 +127,16 @@ describe("Helena logic operations", () => {
                 parse("! {yield val1; yield val2}")
               );
 
-              let result = state.execute();
+              let result = state.run();
               expect(result.value).to.eql(new StringValue("val1"));
               expect(result.data).to.exist;
 
-              result = state.execute();
+              result = state.run();
               expect(result.value).to.eql(new StringValue("val2"));
               expect(result.data).to.exist;
 
               state.yieldBack(TRUE);
-              result = state.execute();
+              result = state.run();
               expect(result).to.eql(OK(FALSE));
             });
           });
@@ -195,17 +195,17 @@ describe("Helena logic operations", () => {
                 parse("&& {yield val1} {yield val2} ")
               );
 
-              let result = state.execute();
+              let result = state.run();
               expect(result.value).to.eql(new StringValue("val1"));
               expect(result.data).to.exist;
 
               state.yieldBack(TRUE);
-              result = state.execute();
+              result = state.run();
               expect(result.value).to.eql(new StringValue("val2"));
               expect(result.data).to.exist;
 
               state.yieldBack(FALSE);
-              result = state.execute();
+              result = state.run();
               expect(result).to.eql(OK(FALSE));
             });
           });
@@ -262,17 +262,17 @@ describe("Helena logic operations", () => {
                 parse("|| {yield val1} {yield val2} ")
               );
 
-              let result = state.execute();
+              let result = state.run();
               expect(result.value).to.eql(new StringValue("val1"));
               expect(result.data).to.exist;
 
               state.yieldBack(FALSE);
-              result = state.execute();
+              result = state.run();
               expect(result.value).to.eql(new StringValue("val2"));
               expect(result.data).to.exist;
 
               state.yieldBack(TRUE);
-              result = state.execute();
+              result = state.run();
               expect(result).to.eql(OK(TRUE));
             });
           });

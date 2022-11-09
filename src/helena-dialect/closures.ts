@@ -93,7 +93,7 @@ class ClosureCommand implements Command {
     return this.run(state);
   }
   run(state: ClosureState) {
-    const result = state.process.execute();
+    const result = state.process.run();
     if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
     return result;
   }

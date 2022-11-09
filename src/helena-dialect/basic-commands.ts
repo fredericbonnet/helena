@@ -72,7 +72,7 @@ export const evalCmd: Command = {
   },
 };
 const executeEvalBody = (process: Process): Result => {
-  const result = process.execute();
+  const result = process.run();
   if (result.code == ResultCode.YIELD) return YIELD(result.value, process);
   return result;
 };

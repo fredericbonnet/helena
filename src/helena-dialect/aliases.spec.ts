@@ -108,11 +108,11 @@ describe("Helena aliases", () => {
           evaluate("alias cmd mac");
           const state = rootScope.prepareScript(parse("cmd"));
 
-          let result = state.execute();
+          let result = state.run();
           expect(result.data).to.exist;
 
           state.yieldBack(new StringValue("val2"));
-          result = state.execute();
+          result = state.run();
           expect(result).to.eql(OK(new StringValue("val2")));
         });
       });

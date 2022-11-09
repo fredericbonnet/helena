@@ -61,7 +61,7 @@ export class Process {
     this.program = program;
     this.state = new ProgramState();
   }
-  execute(): Result {
+  run(): Result {
     return this.scope.execute(this.program, this.state);
   }
   yieldBack(value: Value) {

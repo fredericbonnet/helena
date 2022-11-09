@@ -77,37 +77,37 @@ describe("Helena control flow commands", () => {
             parse("while {yield test} {yield body}")
           );
 
-          let result = state.execute();
+          let result = state.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("test"));
           expect(result.data).to.exist;
 
           state.yieldBack(TRUE);
-          result = state.execute();
+          result = state.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("body"));
           expect(result.data).to.exist;
 
           state.yieldBack(new StringValue("step 1"));
-          result = state.execute();
+          result = state.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("test"));
           expect(result.data).to.exist;
 
           state.yieldBack(TRUE);
-          result = state.execute();
+          result = state.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("body"));
           expect(result.data).to.exist;
 
           state.yieldBack(new StringValue("step 2"));
-          result = state.execute();
+          result = state.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("test"));
           expect(result.data).to.exist;
 
           state.yieldBack(FALSE);
-          result = state.execute();
+          result = state.run();
           expect(result.code).to.eql(ResultCode.OK);
           expect(result.value).to.eql(new StringValue("step 2"));
         });

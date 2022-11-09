@@ -36,7 +36,7 @@ class CoroutineCommand implements Command {
             this.value.body
           );
         }
-        const result = this.value.process.execute();
+        const result = this.value.process.run();
         if (result.code == ResultCode.OK || result.code == ResultCode.RETURN) {
           this.value.state = "done";
           return OK(result.value);
@@ -63,7 +63,7 @@ class CoroutineCommand implements Command {
         if (args.length == 3) {
           this.value.process.yieldBack(args[2]);
         }
-        const result = this.value.process.execute();
+        const result = this.value.process.run();
         if (result.code == ResultCode.OK || result.code == ResultCode.RETURN) {
           this.value.state = "done";
           return OK(result.value);
