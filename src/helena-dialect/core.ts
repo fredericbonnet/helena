@@ -8,7 +8,7 @@ import {
   YIELD_BACK,
 } from "../core/results";
 import { Command } from "../core/command";
-import { Compiler, Executor, Program, Process } from "../core/compiler";
+import { Compiler, Executor, Program, ProgramState } from "../core/compiler";
 import { VariableResolver, CommandResolver } from "../core/evaluator";
 import { Script } from "../core/syntax";
 import {
@@ -52,20 +52,20 @@ export class ScopeContext {
   }
 }
 
-export class ProcessState {
+export class Process {
   scope: Scope;
   program: Program;
-  process: Process;
+  state: ProgramState;
   constructor(scope: Scope, program: Program) {
     this.scope = scope;
     this.program = program;
-    this.process = new Process();
+    this.state = new ProgramState();
   }
   execute(): Result {
-    return this.scope.execute(this.program, this.process);
+    return this.scope.execute(this.program, this.state);
   }
   yieldBack(value: Value) {
-    this.process.result = YIELD_BACK(this.process.result, value);
+    this.state.result = YIELD_BACK(this.state.result, value);
   }
 }
 export class Scope {
@@ -100,18 +100,18 @@ export class Scope {
   compile(script: Script): Program {
     return this.compiler.compileScript(script);
   }
-  execute(program: Program, process?: Process): Result {
-    return this.executor.execute(program, process);
+  execute(program: Program, state?: ProgramState): Result {
+    return this.executor.execute(program, state);
   }
 
-  prepareScriptValue(script: ScriptValue): ProcessState {
+  prepareScriptValue(script: ScriptValue): Process {
     return this.prepareScript(script.script);
   }
-  prepareScript(script: Script): ProcessState {
+  prepareScript(script: Script): Process {
     return this.prepareProcess(this.compile(script));
   }
-  prepareProcess(program: Program): ProcessState {
-    return new ProcessState(this, program);
+  prepareProcess(program: Program): Process {
+    return new Process(this, program);
   }
 
   resolveVariable(name: string): Value {

@@ -3,13 +3,13 @@ import { ERROR, OK, Result, ResultCode } from "../core/results";
 import { Command } from "../core/command";
 import { Value, ScriptValue, FALSE, TRUE, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { CommandValue, ProcessState, Scope } from "./core";
+import { CommandValue, Process, Scope } from "./core";
 
 class CoroutineValue extends CommandValue {
   readonly scope: Scope;
   readonly body: ScriptValue;
   state: "inactive" | "active" | "done";
-  processState: ProcessState;
+  process: Process;
   constructor(command: Command, scope: Scope, body: ScriptValue) {
     super(command);
     this.scope = scope;
@@ -32,11 +32,11 @@ class CoroutineCommand implements Command {
         if (args.length != 2) return ARITY_ERROR("coroutine wait");
         if (this.value.state == "inactive") {
           this.value.state = "active";
-          this.value.processState = this.value.scope.prepareScriptValue(
+          this.value.process = this.value.scope.prepareScriptValue(
             this.value.body
           );
         }
-        const result = this.value.processState.execute();
+        const result = this.value.process.execute();
         if (result.code == ResultCode.OK || result.code == ResultCode.RETURN) {
           this.value.state = "done";
           return OK(result.value);
@@ -61,9 +61,9 @@ class CoroutineCommand implements Command {
           return ERROR("coroutine is inactive");
         if (this.value.state == "done") return ERROR("coroutine is done");
         if (args.length == 3) {
-          this.value.processState.yieldBack(args[2]);
+          this.value.process.yieldBack(args[2]);
         }
-        const result = this.value.processState.execute();
+        const result = this.value.process.execute();
         if (result.code == ResultCode.OK || result.code == ResultCode.RETURN) {
           this.value.state = "done";
           return OK(result.value);

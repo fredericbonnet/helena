@@ -5,7 +5,7 @@ import { Program } from "../core/compiler";
 import { ScriptValue, Value, ValueType } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, CommandValue, ScopeContext, ProcessState } from "./core";
+import { Scope, CommandValue, ScopeContext, Process } from "./core";
 
 class MacroValue extends CommandValue {
   readonly argspec: ArgspecValue;
@@ -52,7 +52,7 @@ class MacroValueCommand implements Command {
 
 type MacroState = {
   scope: Scope;
-  processState: ProcessState;
+  process: Process;
 };
 class MacroCommand implements Command {
   readonly value: MacroValue;
@@ -75,16 +75,16 @@ class MacroCommand implements Command {
     const result = this.value.argspec.applyArguments(scope, args, 1, setarg);
     if (result.code != ResultCode.OK) return result;
     const subscope = new Scope(scope, new ScopeContext(scope.context, locals));
-    const processState = subscope.prepareProcess(this.value.program);
-    return this.run({ scope: subscope, processState });
+    const process = subscope.prepareProcess(this.value.program);
+    return this.run({ scope: subscope, process });
   }
   resume(result: Result): Result {
     const state = result.data as MacroState;
-    state.processState.yieldBack(result.value);
+    state.process.yieldBack(result.value);
     return this.run(state);
   }
   run(state: MacroState) {
-    const result = state.processState.execute();
+    const result = state.process.execute();
     if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
     return result;
   }

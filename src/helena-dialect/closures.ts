@@ -5,7 +5,7 @@ import { Program } from "../core/compiler";
 import { ScriptValue, Value, ValueType } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, CommandValue, ScopeContext, ProcessState } from "./core";
+import { Scope, CommandValue, ScopeContext, Process } from "./core";
 
 class ClosureValue extends CommandValue {
   readonly scope: Scope;
@@ -53,7 +53,7 @@ class ClosureValueCommand implements Command {
 
 type ClosureState = {
   scope: Scope;
-  processState: ProcessState;
+  process: Process;
 };
 class ClosureCommand implements Command {
   readonly value: ClosureValue;
@@ -84,16 +84,16 @@ class ClosureCommand implements Command {
       this.value.scope,
       new ScopeContext(this.value.scope.context, locals)
     );
-    const processState = subscope.prepareProcess(this.value.program);
-    return this.run({ scope: subscope, processState });
+    const process = subscope.prepareProcess(this.value.program);
+    return this.run({ scope: subscope, process });
   }
   resume(result: Result): Result {
     const state = result.data as ClosureState;
-    state.processState.yieldBack(result.value);
+    state.process.yieldBack(result.value);
     return this.run(state);
   }
   run(state: ClosureState) {
-    const result = state.processState.execute();
+    const result = state.process.execute();
     if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
     return result;
   }

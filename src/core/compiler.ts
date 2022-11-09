@@ -558,12 +558,12 @@ export class Compiler {
 }
 
 /**
- * Helena process
+ * Helena program state
  *
  * This class encapsulates the state of a program being executed, allowing
  * reentrancy and parallelism of executors
  */
-export class Process {
+export class ProgramState {
   /** Execution frames; each frame is a stack of values */
   private readonly frames: Value[][] = [[]];
 
@@ -634,7 +634,7 @@ export class Process {
 /**
  * Helena program executor
  *
- * This class executes compiled programs in a provided process
+ * This class executes compiled programs in an isolated state
  */
 export class Executor {
   /** Variable resolver used during execution */
@@ -672,124 +672,121 @@ export class Executor {
    *
    * Runs a flat loop over the program opcodes
    *
-   * By default a new process is created at each call. Passing a process object
+   * By default a new state is created at each call. Passing a state object
    * can be used to implement resumability, context switching, trampolines,
    * coroutines, etc.
    *
-   * @param program   - Program to execute
-   * @param [process] - Program execution process (defaults to new)
+   * @param program - Program to execute
+   * @param [state] - Program state (defaults to new)
    *
-   * @returns           Last executed result
+   * @returns         Last executed result
    */
-  execute(program: Program, process = new Process()): Result {
-    if (process.result.code == ResultCode.YIELD && process.command?.resume) {
-      process.result = process.command.resume(process.result, this.context);
-      if (process.result.code != ResultCode.OK) return process.result;
+  execute(program: Program, state = new ProgramState()): Result {
+    if (state.result.code == ResultCode.YIELD && state.command?.resume) {
+      state.result = state.command.resume(state.result, this.context);
+      if (state.result.code != ResultCode.OK) return state.result;
     }
-    while (process.pc < program.opCodes.length) {
-      const opcode = program.opCodes[process.pc++];
+    while (state.pc < program.opCodes.length) {
+      const opcode = program.opCodes[state.pc++];
       switch (opcode) {
         case OpCode.PUSH_NIL:
-          process.push(NIL);
+          state.push(NIL);
           break;
 
         case OpCode.PUSH_CONSTANT:
-          process.push(program.constants[process.cc++]);
+          state.push(program.constants[state.cc++]);
           break;
 
         case OpCode.OPEN_FRAME:
-          process.openFrame();
+          state.openFrame();
           break;
 
         case OpCode.CLOSE_FRAME:
           {
-            const values = process.closeFrame();
-            process.push(new TupleValue(values));
+            const values = state.closeFrame();
+            state.push(new TupleValue(values));
           }
           break;
 
         case OpCode.RESOLVE_VALUE:
           {
-            const source = process.pop();
+            const source = state.pop();
             const result = this.resolveValue(source);
             if (result.code != ResultCode.OK) return result;
-            process.push(result.value);
+            state.push(result.value);
           }
           break;
 
         case OpCode.EXPAND_VALUE:
-          process.expand();
+          state.expand();
           break;
 
         case OpCode.SET_SOURCE:
           {
-            const source = process.pop();
-            process.push(new QualifiedValue(source, []));
+            const source = state.pop();
+            state.push(new QualifiedValue(source, []));
           }
           break;
 
         case OpCode.SELECT_INDEX:
           {
-            const index = process.pop();
+            const index = state.pop();
             const selector = new IndexedSelector(index);
-            const value = process.pop();
+            const value = state.pop();
             const result = selector.apply(value);
             if (result.code != ResultCode.OK) return result;
-            process.push(result.value);
+            state.push(result.value);
           }
           break;
 
         case OpCode.SELECT_KEYS:
           {
-            const keys = process.pop() as TupleValue;
+            const keys = state.pop() as TupleValue;
             const selector = new KeyedSelector(keys.values);
-            const value = process.pop();
+            const value = state.pop();
             const result = selector.apply(value);
             if (result.code != ResultCode.OK) return result;
-            process.push(result.value);
+            state.push(result.value);
           }
           break;
 
         case OpCode.SELECT_RULES:
           {
-            const rules = process.pop() as TupleValue;
+            const rules = state.pop() as TupleValue;
             const selector = this.resolveSelector(rules.values);
-            const value = process.pop();
+            const value = state.pop();
             const result = value.select
               ? value.select(selector)
               : selector.apply(value);
             if (result.code != ResultCode.OK) return result;
-            process.push(result.value);
+            state.push(result.value);
           }
           break;
 
         case OpCode.EVALUATE_SENTENCE:
           {
-            const args = process.pop() as TupleValue;
+            const args = state.pop() as TupleValue;
             if (args.values.length) {
               const cmdname = args.values[0];
               const command = this.resolveCommand(cmdname);
               if (!command)
                 return ERROR(`cannot resolve command ${cmdname.asString()}`);
-              process.command = command;
-              process.result = process.command.execute(
-                args.values,
-                this.context
-              );
-              if (process.result.code != ResultCode.OK) return process.result;
+              state.command = command;
+              state.result = state.command.execute(args.values, this.context);
+              if (state.result.code != ResultCode.OK) return state.result;
             }
           }
           break;
 
         case OpCode.PUSH_RESULT:
-          process.push(process.result.value);
+          state.push(state.result.value);
           break;
 
         case OpCode.JOIN_STRINGS:
           {
-            const tuple = process.pop() as TupleValue;
+            const tuple = state.pop() as TupleValue;
             const chunks = tuple.values.map((value) => value.asString());
-            process.push(new StringValue(chunks.join("")));
+            state.push(new StringValue(chunks.join("")));
           }
           break;
 
@@ -797,8 +794,8 @@ export class Executor {
           throw new Error("CANTHAPPEN");
       }
     }
-    if (process.frame().length) process.result = OK(process.pop());
-    return process.result;
+    if (state.frame().length) state.result = OK(state.pop());
+    return state.result;
   }
 
   /**

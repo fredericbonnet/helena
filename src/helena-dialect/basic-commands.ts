@@ -13,7 +13,7 @@ import {
 import { Command } from "../core/command";
 import { NIL, ScriptValue, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { ProcessState, Scope } from "./core";
+import { Process, Scope } from "./core";
 
 export const idemCmd: Command = {
   execute: (args) => {
@@ -66,13 +66,13 @@ export const evalCmd: Command = {
     return executeEvalBody(state);
   },
   resume(result: Result): Result {
-    const state = result.data as ProcessState;
-    state.yieldBack(result.value);
-    return executeEvalBody(state);
+    const process = result.data as Process;
+    process.yieldBack(result.value);
+    return executeEvalBody(process);
   },
 };
-const executeEvalBody = (state: ProcessState): Result => {
-  const result = state.execute();
-  if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
+const executeEvalBody = (process: Process): Result => {
+  const result = process.execute();
+  if (result.code == ResultCode.YIELD) return YIELD(result.value, process);
   return result;
 };

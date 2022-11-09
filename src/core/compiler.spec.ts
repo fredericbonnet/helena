@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { Result, OK, YIELD, BREAK } from "./results";
 import { Command } from "./command";
-import { Compiler, OpCode, Executor, Program, Process } from "./compiler";
+import { Compiler, OpCode, Executor, Program, ProgramState } from "./compiler";
 import {
   VariableResolver,
   CommandResolver,
@@ -2747,7 +2747,7 @@ describe("Compiler", () => {
     });
   });
 
-  describe("Process", () => {
+  describe("Program", () => {
     it("should be resumable", () => {
       const script = parse("break 1; ok 2; break 3; break 4; ok 5; break 6");
       const program = compiler.compileScript(script);
@@ -2762,22 +2762,20 @@ describe("Compiler", () => {
           return OK(args[1]);
         },
       });
-      const process = new Process();
-      expect(executor.execute(program, process)).to.eql(
+      const state = new ProgramState();
+      expect(executor.execute(program, state)).to.eql(
         BREAK(new StringValue("1"))
       );
-      expect(executor.execute(program, process)).to.eql(
+      expect(executor.execute(program, state)).to.eql(
         BREAK(new StringValue("3"))
       );
-      expect(executor.execute(program, process)).to.eql(
+      expect(executor.execute(program, state)).to.eql(
         BREAK(new StringValue("4"))
       );
-      expect(executor.execute(program, process)).to.eql(
+      expect(executor.execute(program, state)).to.eql(
         BREAK(new StringValue("6"))
       );
-      expect(executor.execute(program, process)).to.eql(
-        OK(new StringValue("6"))
-      );
+      expect(executor.execute(program, state)).to.eql(OK(new StringValue("6")));
     });
     it("result should be settable", () => {
       const script = parse("ok [break 1]");
@@ -2793,14 +2791,12 @@ describe("Compiler", () => {
           return OK(args[1]);
         },
       });
-      const process = new Process();
-      expect(executor.execute(program, process)).to.eql(
+      const state = new ProgramState();
+      expect(executor.execute(program, state)).to.eql(
         BREAK(new StringValue("1"))
       );
-      process.result = OK(new StringValue("2"));
-      expect(executor.execute(program, process)).to.eql(
-        OK(new StringValue("2"))
-      );
+      state.result = OK(new StringValue("2"));
+      expect(executor.execute(program, state)).to.eql(OK(new StringValue("2")));
     });
     it("should support resumable commands", () => {
       const script = parse("ok [cmd]");
@@ -2822,23 +2818,23 @@ describe("Compiler", () => {
         },
       });
 
-      const process = new Process();
-      expect(executor.execute(program, process)).to.eql(
+      const state = new ProgramState();
+      expect(executor.execute(program, state)).to.eql(
         YIELD(new IntegerValue(1))
       );
-      expect(executor.execute(program, process)).to.eql(
+      expect(executor.execute(program, state)).to.eql(
         YIELD(new IntegerValue(2))
       );
-      expect(executor.execute(program, process)).to.eql(
+      expect(executor.execute(program, state)).to.eql(
         YIELD(new IntegerValue(3))
       );
-      expect(executor.execute(program, process)).to.eql(
+      expect(executor.execute(program, state)).to.eql(
         YIELD(new IntegerValue(4))
       );
-      expect(executor.execute(program, process)).to.eql(
+      expect(executor.execute(program, state)).to.eql(
         YIELD(new IntegerValue(5))
       );
-      expect(executor.execute(program, process)).to.eql(
+      expect(executor.execute(program, state)).to.eql(
         OK(new StringValue("done"))
       );
     });
@@ -2870,20 +2866,20 @@ describe("Compiler", () => {
         },
       });
 
-      const process = new Process();
-      expect(executor.execute(program, process)).to.eql(
+      const state = new ProgramState();
+      expect(executor.execute(program, state)).to.eql(
         YIELD(new StringValue("begin"), 1)
       );
-      expect(executor.execute(program, process)).to.eql(
+      expect(executor.execute(program, state)).to.eql(
         YIELD(new StringValue("step one"), 2)
       );
-      expect(executor.execute(program, process)).to.eql(
+      expect(executor.execute(program, state)).to.eql(
         YIELD(new StringValue("step two"), 3)
       );
-      expect(executor.execute(program, process)).to.eql(
+      expect(executor.execute(program, state)).to.eql(
         YIELD(new StringValue("step three"), 4)
       );
-      expect(executor.execute(program, process)).to.eql(
+      expect(executor.execute(program, state)).to.eql(
         OK(new StringValue("end"))
       );
     });

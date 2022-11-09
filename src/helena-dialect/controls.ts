@@ -17,7 +17,7 @@ import {
   ValueType,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { ProcessState, Scope } from "./core";
+import { Process, Scope } from "./core";
 import { executeCondition, resumeCondition } from "./logic";
 
 type WhileState = {
@@ -25,7 +25,7 @@ type WhileState = {
   test: Value;
   testResult?: Result;
   program: Program;
-  processState?: ProcessState;
+  process?: Process;
   result: Result;
 };
 class WhileCommand implements Command {
@@ -52,7 +52,7 @@ class WhileCommand implements Command {
         state.testResult = YIELD_BACK(state.testResult, result.value);
         break;
       case "inBody":
-        state.processState.yieldBack(result.value);
+        state.process.yieldBack(result.value);
         break;
     }
     return this.run(state, scope);
@@ -71,12 +71,12 @@ class WhileCommand implements Command {
           state.testResult = result;
           break;
         case "beforeBody":
-          state.processState = scope.prepareProcess(state.program);
-          result = state.processState.execute();
+          state.process = scope.prepareProcess(state.program);
+          result = state.process.execute();
           state.step = "inBody";
           break;
         case "inBody":
-          result = state.processState.execute();
+          result = state.process.execute();
           break;
       }
       if (result.code == ResultCode.YIELD) return YIELD(result.value, state);

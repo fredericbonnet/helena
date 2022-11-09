@@ -3,7 +3,7 @@ import { Result, OK, ERROR, ResultCode, YIELD } from "../core/results";
 import { Command } from "../core/command";
 import { Value, ScriptValue, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { CommandValue, ProcessState, Scope } from "./core";
+import { CommandValue, Process, Scope } from "./core";
 
 class ScopeValue extends CommandValue {
   readonly scope: Scope;
@@ -48,7 +48,7 @@ class ScopeCommand implements Command {
 type ScopeBodyState = {
   scope: Scope;
   subscope: Scope;
-  processState: ProcessState;
+  process: Process;
   name?: Value;
 };
 export const scopeCmd: Command = {
@@ -67,22 +67,17 @@ export const scopeCmd: Command = {
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
     const subscope = new Scope(scope);
-    const processState = subscope.prepareScriptValue(body as ScriptValue);
-    return executeScopeBody({
-      scope,
-      subscope,
-      processState,
-      name,
-    });
+    const process = subscope.prepareScriptValue(body as ScriptValue);
+    return executeScopeBody({ scope, subscope, process, name });
   },
   resume(result: Result): Result {
     const state = result.data as ScopeBodyState;
-    state.processState.yieldBack(result.value);
+    state.process.yieldBack(result.value);
     return executeScopeBody(state);
   },
 };
 const executeScopeBody = (state: ScopeBodyState): Result => {
-  const result = state.processState.execute();
+  const result = state.process.execute();
 
   if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
   if (result.code != ResultCode.OK && result.code != ResultCode.RETURN)

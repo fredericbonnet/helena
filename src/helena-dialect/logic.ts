@@ -18,7 +18,7 @@ import {
   ValueType,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { ProcessState, Scope } from "./core";
+import { Process, Scope } from "./core";
 
 export const trueCmd: Command = {
   execute(args: Value[]): Result {
@@ -149,19 +149,19 @@ const orCmd: Command = new OrCommand();
 
 export function executeCondition(scope: Scope, value: Value): Result {
   if (value.type == ValueType.SCRIPT) {
-    const state = scope.prepareScriptValue(value as ScriptValue);
-    return runCondition(state);
+    const process = scope.prepareScriptValue(value as ScriptValue);
+    return runCondition(process);
   }
   return BooleanValue.fromValue(value);
 }
 export function resumeCondition(result: Result) {
-  const state = result.data as ProcessState;
-  state.yieldBack(result.value);
-  return runCondition(state);
+  const process = result.data as Process;
+  process.yieldBack(result.value);
+  return runCondition(process);
 }
-function runCondition(state: ProcessState) {
-  const result = state.execute();
-  if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
+function runCondition(process: Process) {
+  const result = process.execute();
+  if (result.code == ResultCode.YIELD) return YIELD(result.value, process);
   if (result.code != ResultCode.OK) return result;
   return BooleanValue.fromValue(result.value);
 }
