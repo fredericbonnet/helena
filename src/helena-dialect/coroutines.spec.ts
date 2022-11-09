@@ -13,8 +13,7 @@ describe("Helena coroutines", () => {
   let parser: Parser;
 
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
-  const execute = (script: string) =>
-    rootScope.execute(rootScope.compile(parse(script)));
+  const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {

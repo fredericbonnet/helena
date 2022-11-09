@@ -1,18 +1,11 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import {
-  Result,
-  ResultCode,
-  YIELD,
-  OK,
-  ERROR,
-  YIELD_BACK,
-} from "../core/results";
+import { Result, ResultCode, YIELD, OK, ERROR } from "../core/results";
 import { Command } from "../core/command";
-import { Program, Process } from "../core/compiler";
+import { Program } from "../core/compiler";
 import { ScriptValue, Value, ValueType } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, CommandValue, ScopeContext } from "./core";
+import { Scope, CommandValue, ScopeContext, ProcessState } from "./core";
 
 class MacroValue extends CommandValue {
   readonly argspec: ArgspecValue;
@@ -59,7 +52,7 @@ class MacroValueCommand implements Command {
 
 type MacroState = {
   scope: Scope;
-  process: Process;
+  processState: ProcessState;
 };
 class MacroCommand implements Command {
   readonly value: MacroValue;
@@ -82,16 +75,16 @@ class MacroCommand implements Command {
     const result = this.value.argspec.applyArguments(scope, args, 1, setarg);
     if (result.code != ResultCode.OK) return result;
     const subscope = new Scope(scope, new ScopeContext(scope.context, locals));
-    const process = new Process();
-    return this.run({ scope: subscope, process });
+    const processState = subscope.prepareProcess(this.value.program);
+    return this.run({ scope: subscope, processState });
   }
   resume(result: Result): Result {
     const state = result.data as MacroState;
-    state.process.result = YIELD_BACK(state.process.result, result.value);
+    state.processState.yieldBack(result.value);
     return this.run(state);
   }
   run(state: MacroState) {
-    const result = state.scope.execute(this.value.program, state.process);
+    const result = state.processState.execute();
     if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
     return result;
   }

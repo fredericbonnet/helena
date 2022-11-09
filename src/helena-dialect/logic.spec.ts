@@ -1,6 +1,5 @@
 import { expect } from "chai";
-import { ERROR, OK, ResultCode, RETURN, YIELD_BACK } from "../core/results";
-import { Process } from "../core/compiler";
+import { ERROR, OK, ResultCode, RETURN } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { FALSE, TRUE, StringValue, NIL } from "../core/values";
@@ -14,8 +13,7 @@ describe("Helena logic operations", () => {
   let parser: Parser;
 
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
-  const execute = (script: string) =>
-    rootScope.execute(rootScope.compile(parse(script)));
+  const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
@@ -125,21 +123,20 @@ describe("Helena logic operations", () => {
               expect(result.value).to.eql(new StringValue("value"));
             });
             it("should provide a resumable state", () => {
-              const process = new Process();
-              const program = rootScope.compile(
+              const state = rootScope.prepareScript(
                 parse("! {yield val1; yield val2}")
               );
 
-              let result = rootScope.execute(program, process);
+              let result = state.execute();
               expect(result.value).to.eql(new StringValue("val1"));
               expect(result.data).to.exist;
 
-              result = rootScope.execute(program, process);
+              result = state.execute();
               expect(result.value).to.eql(new StringValue("val2"));
               expect(result.data).to.exist;
 
-              process.result = YIELD_BACK(process.result, TRUE);
-              result = rootScope.execute(program, process);
+              state.yieldBack(TRUE);
+              result = state.execute();
               expect(result).to.eql(OK(FALSE));
             });
           });
@@ -194,22 +191,21 @@ describe("Helena logic operations", () => {
               expect(result.value).to.eql(new StringValue("value"));
             });
             it("should provide a resumable state", () => {
-              const process = new Process();
-              const program = rootScope.compile(
+              const state = rootScope.prepareScript(
                 parse("&& {yield val1} {yield val2} ")
               );
 
-              let result = rootScope.execute(program, process);
+              let result = state.execute();
               expect(result.value).to.eql(new StringValue("val1"));
               expect(result.data).to.exist;
 
-              process.result = YIELD_BACK(process.result, TRUE);
-              result = rootScope.execute(program, process);
+              state.yieldBack(TRUE);
+              result = state.execute();
               expect(result.value).to.eql(new StringValue("val2"));
               expect(result.data).to.exist;
 
-              process.result = YIELD_BACK(process.result, FALSE);
-              result = rootScope.execute(program, process);
+              state.yieldBack(FALSE);
+              result = state.execute();
               expect(result).to.eql(OK(FALSE));
             });
           });
@@ -262,22 +258,21 @@ describe("Helena logic operations", () => {
               expect(result.value).to.eql(new StringValue("value"));
             });
             it("should provide a resumable state", () => {
-              const process = new Process();
-              const program = rootScope.compile(
+              const state = rootScope.prepareScript(
                 parse("|| {yield val1} {yield val2} ")
               );
 
-              let result = rootScope.execute(program, process);
+              let result = state.execute();
               expect(result.value).to.eql(new StringValue("val1"));
               expect(result.data).to.exist;
 
-              process.result = YIELD_BACK(process.result, FALSE);
-              result = rootScope.execute(program, process);
+              state.yieldBack(FALSE);
+              result = state.execute();
               expect(result.value).to.eql(new StringValue("val2"));
               expect(result.data).to.exist;
 
-              process.result = YIELD_BACK(process.result, TRUE);
-              result = rootScope.execute(program, process);
+              state.yieldBack(TRUE);
+              result = state.execute();
               expect(result).to.eql(OK(TRUE));
             });
           });

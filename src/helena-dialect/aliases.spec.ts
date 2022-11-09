@@ -1,11 +1,10 @@
 import { expect } from "chai";
-import { ERROR, OK, ResultCode, RETURN, YIELD_BACK } from "../core/results";
+import { ERROR, OK, ResultCode, RETURN } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { NIL, StringValue, TupleValue } from "../core/values";
 import { CommandValue, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { Process } from "../core/compiler";
 
 describe("Helena aliases", () => {
   let rootScope: Scope;
@@ -14,8 +13,7 @@ describe("Helena aliases", () => {
   let parser: Parser;
 
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
-  const execute = (script: string) =>
-    rootScope.execute(rootScope.compile(parse(script)));
+  const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
@@ -108,14 +106,13 @@ describe("Helena aliases", () => {
         it("should provide a resumable state", () => {
           evaluate("macro mac {} {idem [yield val1]}");
           evaluate("alias cmd mac");
-          const process = new Process();
-          const program = rootScope.compile(parse("cmd"));
+          const state = rootScope.prepareScript(parse("cmd"));
 
-          let result = rootScope.execute(program, process);
+          let result = state.execute();
           expect(result.data).to.exist;
 
-          process.result = YIELD_BACK(process.result, new StringValue("val2"));
-          result = rootScope.execute(program, process);
+          state.yieldBack(new StringValue("val2"));
+          result = state.execute();
           expect(result).to.eql(OK(new StringValue("val2")));
         });
       });

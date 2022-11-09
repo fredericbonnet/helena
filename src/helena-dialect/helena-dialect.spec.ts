@@ -1,10 +1,9 @@
 import { expect } from "chai";
-import { OK, ResultCode, YIELD_BACK } from "../core/results";
+import { OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Scope, initCommands } from "./helena-dialect";
 import { Tokenizer } from "../core/tokenizer";
 import { IntegerValue, NIL, StringValue } from "../core/values";
-import { Process } from "../core/compiler";
 
 describe("Helena dialect", () => {
   let rootScope: Scope;
@@ -13,8 +12,7 @@ describe("Helena dialect", () => {
   let parser: Parser;
 
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
-  const execute = (script: string) =>
-    rootScope.execute(rootScope.compile(parse(script)));
+  const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
@@ -67,35 +65,33 @@ describe("Helena dialect", () => {
     describe("yield", () => {
       it("should provide a resumable state", () => {
         evaluate("macro cmd {*} {yield val1; idem val2}");
-        const process = new Process();
-        const program = rootScope.compile(parse("cmd a b c"));
+        const state = rootScope.prepareScript(parse("cmd a b c"));
 
-        let result = rootScope.execute(program, process);
+        let result = state.execute();
         expect(result.data).to.exist;
 
-        result = rootScope.execute(program, process);
+        result = state.execute();
         expect(result).to.eql(OK(new StringValue("val2")));
       });
       it("should work on several levels", () => {
         evaluate("macro cmd2 {*} {yield val2}");
         evaluate("macro cmd {*} {yield val1; yield [cmd2]; idem val4}");
-        const process = new Process();
-        const program = rootScope.compile(parse("(((cmd) a) b) c"));
+        const state = rootScope.prepareScript(parse("(((cmd) a) b) c"));
 
-        let result = rootScope.execute(program, process);
+        let result = state.execute();
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val1"));
 
-        result = rootScope.execute(program, process);
+        result = state.execute();
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val2"));
 
-        process.result = YIELD_BACK(process.result, new StringValue("val3"));
-        result = rootScope.execute(program, process);
+        state.yieldBack(new StringValue("val3"));
+        result = state.execute();
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val3"));
 
-        result = rootScope.execute(program, process);
+        result = state.execute();
         expect(result.code).to.eql(ResultCode.OK);
         expect(result.value).to.eql(new StringValue("val4"));
       });

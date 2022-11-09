@@ -6,15 +6,12 @@ import {
   OK,
   ResultCode,
   RETURN,
-  YIELD,
-  YIELD_BACK,
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { FALSE, IntegerValue, NIL, StringValue, TRUE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { Process } from "../core/compiler";
 
 describe("Helena control flow commands", () => {
   let rootScope: Scope;
@@ -23,8 +20,7 @@ describe("Helena control flow commands", () => {
   let parser: Parser;
 
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
-  const execute = (script: string) =>
-    rootScope.execute(rootScope.compile(parse(script)));
+  const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
@@ -77,48 +73,41 @@ describe("Helena control flow commands", () => {
           );
         });
         it("should provide a resumable state", () => {
-          const process = new Process();
-          const program = rootScope.compile(
+          const state = rootScope.prepareScript(
             parse("while {yield test} {yield body}")
           );
 
-          let result = rootScope.execute(program, process);
+          let result = state.execute();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("test"));
           expect(result.data).to.exist;
 
-          process.result = YIELD_BACK(process.result, TRUE);
-          result = rootScope.execute(program, process);
+          state.yieldBack(TRUE);
+          result = state.execute();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("body"));
           expect(result.data).to.exist;
 
-          process.result = YIELD_BACK(
-            process.result,
-            new StringValue("step 1")
-          );
-          result = rootScope.execute(program, process);
+          state.yieldBack(new StringValue("step 1"));
+          result = state.execute();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("test"));
           expect(result.data).to.exist;
 
-          process.result = YIELD_BACK(process.result, TRUE);
-          result = rootScope.execute(program, process);
+          state.yieldBack(TRUE);
+          result = state.execute();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("body"));
           expect(result.data).to.exist;
 
-          process.result = YIELD_BACK(
-            process.result,
-            new StringValue("step 2")
-          );
-          result = rootScope.execute(program, process);
+          state.yieldBack(new StringValue("step 2"));
+          result = state.execute();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("test"));
           expect(result.data).to.exist;
 
-          process.result = YIELD_BACK(process.result, FALSE);
-          result = rootScope.execute(program, process);
+          state.yieldBack(FALSE);
+          result = state.execute();
           expect(result.code).to.eql(ResultCode.OK);
           expect(result.value).to.eql(new StringValue("step 2"));
         });

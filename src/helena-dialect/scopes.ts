@@ -1,17 +1,9 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import {
-  Result,
-  OK,
-  ERROR,
-  ResultCode,
-  YIELD,
-  YIELD_BACK,
-} from "../core/results";
+import { Result, OK, ERROR, ResultCode, YIELD } from "../core/results";
 import { Command } from "../core/command";
-import { Program, Process } from "../core/compiler";
 import { Value, ScriptValue, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { CommandValue, Scope } from "./core";
+import { CommandValue, ProcessState, Scope } from "./core";
 
 class ScopeValue extends CommandValue {
   readonly scope: Scope;
@@ -37,7 +29,7 @@ class ScopeCommand implements Command {
           return ERROR("body must be a script");
         const body = args[2] as ScriptValue;
         // TODO handle YIELD
-        return this.value.scope.executeScript(body);
+        return this.value.scope.executeScriptValue(body);
       }
       case "call": {
         if (args.length < 3) return ARITY_ERROR("scope call cmdname ?arg ...?");
@@ -56,8 +48,7 @@ class ScopeCommand implements Command {
 type ScopeBodyState = {
   scope: Scope;
   subscope: Scope;
-  program: Program;
-  process: Process;
+  processState: ProcessState;
   name?: Value;
 };
 export const scopeCmd: Command = {
@@ -76,19 +67,22 @@ export const scopeCmd: Command = {
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
     const subscope = new Scope(scope);
-    const program = subscope.compile((body as ScriptValue).script);
-    const process = new Process();
-
-    return executeScopeBody({ scope, subscope, program, process, name });
+    const processState = subscope.prepareScriptValue(body as ScriptValue);
+    return executeScopeBody({
+      scope,
+      subscope,
+      processState,
+      name,
+    });
   },
   resume(result: Result): Result {
     const state = result.data as ScopeBodyState;
-    state.process.result = YIELD_BACK(state.process.result, result.value);
+    state.processState.yieldBack(result.value);
     return executeScopeBody(state);
   },
 };
 const executeScopeBody = (state: ScopeBodyState): Result => {
-  const result = state.subscope.execute(state.program, state.process);
+  const result = state.processState.execute();
 
   if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
   if (result.code != ResultCode.OK && result.code != ResultCode.RETURN)

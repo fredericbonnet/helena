@@ -1,6 +1,5 @@
 import { expect } from "chai";
-import { ERROR, OK, ResultCode, YIELD_BACK } from "../core/results";
-import { Process } from "../core/compiler";
+import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { StringValue } from "../core/values";
@@ -14,8 +13,7 @@ describe("Helena scopes", () => {
   let parser: Parser;
 
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
-  const execute = (script: string) =>
-    rootScope.execute(rootScope.compile(parse(script)));
+  const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
@@ -114,31 +112,29 @@ describe("Helena scopes", () => {
         it("should provide a resumable state", () => {
           evaluate("closure cmd1 {} {set var val1}");
           evaluate("closure cmd2 {val} {set var $val}");
-          const process = new Process();
-          const program = rootScope.compile(
+          const state = rootScope.prepareScript(
             parse("scope cmd {cmd1; cmd2 [yield val2]}")
           );
 
-          let result = rootScope.execute(program, process);
+          let result = state.execute();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val2"));
           expect(result.data).to.exist;
 
-          process.result = YIELD_BACK(process.result, new StringValue("val3"));
-          result = rootScope.execute(program, process);
+          state.yieldBack(new StringValue("val3"));
+          result = state.execute();
           expect(result.code).to.eql(ResultCode.OK);
           expect(result.value).to.be.instanceof(CommandValue);
           expect(evaluate("get var")).to.eql(new StringValue("val3"));
         });
         it("should delay the definition of scope command until resumed", () => {
-          const process = new Process();
-          const program = rootScope.compile(parse("scope cmd {yield}"));
+          const state = rootScope.prepareScript(parse("scope cmd {yield}"));
 
-          let result = rootScope.execute(program, process);
+          let result = state.execute();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(rootScope.context.commands.has("cmd")).to.be.false;
 
-          result = rootScope.execute(program, process);
+          result = state.execute();
           expect(result.code).to.eql(ResultCode.OK);
           expect(rootScope.context.commands.has("cmd")).to.be.true;
         });

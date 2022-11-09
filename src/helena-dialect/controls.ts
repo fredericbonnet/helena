@@ -1,6 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
-import { Process, Program } from "../core/compiler";
+import { Program } from "../core/compiler";
 import {
   ERROR,
   OK,
@@ -17,7 +17,7 @@ import {
   ValueType,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { Scope } from "./core";
+import { ProcessState, Scope } from "./core";
 import { executeCondition, resumeCondition } from "./logic";
 
 type WhileState = {
@@ -25,7 +25,7 @@ type WhileState = {
   test: Value;
   testResult?: Result;
   program: Program;
-  process?: Process;
+  processState?: ProcessState;
   result: Result;
 };
 class WhileCommand implements Command {
@@ -52,7 +52,7 @@ class WhileCommand implements Command {
         state.testResult = YIELD_BACK(state.testResult, result.value);
         break;
       case "inBody":
-        state.process.result = YIELD_BACK(state.process.result, result.value);
+        state.processState.yieldBack(result.value);
         break;
     }
     return this.run(state, scope);
@@ -67,16 +67,16 @@ class WhileCommand implements Command {
           state.step = "inTest";
           break;
         case "inTest":
-          result = resumeCondition(state.testResult, scope);
+          result = resumeCondition(state.testResult);
           state.testResult = result;
           break;
         case "beforeBody":
-          state.process = new Process();
-          result = scope.execute(state.program, state.process);
+          state.processState = scope.prepareProcess(state.program);
+          result = state.processState.execute();
           state.step = "inBody";
           break;
         case "inBody":
-          result = scope.execute(state.program, state.process);
+          result = state.processState.execute();
           break;
       }
       if (result.code == ResultCode.YIELD) return YIELD(result.value, state);

@@ -9,13 +9,11 @@ import {
   ResultCode,
   RETURN,
   YIELD,
-  YIELD_BACK,
 } from "../core/results";
 import { Command } from "../core/command";
-import { Program, Process } from "../core/compiler";
 import { NIL, ScriptValue, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { Scope } from "./core";
+import { ProcessState, Scope } from "./core";
 
 export const idemCmd: Command = {
   execute: (args) => {
@@ -59,28 +57,22 @@ export const continueCmd: Command = {
   },
 };
 
-type EvalBodyState = {
-  program: Program;
-  process: Process;
-};
 export const evalCmd: Command = {
   execute: (args, scope: Scope) => {
     if (args.length != 2) return ARITY_ERROR("eval body");
     const body = args[1];
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
-    const program = scope.compile((body as ScriptValue).script);
-    const process = new Process();
-    return executeEvalBody({ program, process }, scope);
+    const state = scope.prepareScriptValue(body as ScriptValue);
+    return executeEvalBody(state);
   },
-  resume(result: Result, scope: Scope): Result {
-    const state = result.data as EvalBodyState;
-    state.process.result = YIELD_BACK(state.process.result, result.value);
-    return executeEvalBody(state, scope);
+  resume(result: Result): Result {
+    const state = result.data as ProcessState;
+    state.yieldBack(result.value);
+    return executeEvalBody(state);
   },
 };
-const executeEvalBody = (state: EvalBodyState, scope: Scope): Result => {
-  const result = scope.execute(state.program, state.process);
-
+const executeEvalBody = (state: ProcessState): Result => {
+  const result = state.execute();
   if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
   return result;
 };

@@ -1,17 +1,15 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { ERROR, OK, Result, ResultCode, YIELD_BACK } from "../core/results";
+import { ERROR, OK, Result, ResultCode } from "../core/results";
 import { Command } from "../core/command";
-import { Program, Process } from "../core/compiler";
 import { Value, ScriptValue, FALSE, TRUE, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { CommandValue, Scope } from "./core";
+import { CommandValue, ProcessState, Scope } from "./core";
 
 class CoroutineValue extends CommandValue {
   readonly scope: Scope;
   readonly body: ScriptValue;
   state: "inactive" | "active" | "done";
-  program: Program;
-  process: Process;
+  processState: ProcessState;
   constructor(command: Command, scope: Scope, body: ScriptValue) {
     super(command);
     this.scope = scope;
@@ -34,13 +32,11 @@ class CoroutineCommand implements Command {
         if (args.length != 2) return ARITY_ERROR("coroutine wait");
         if (this.value.state == "inactive") {
           this.value.state = "active";
-          this.value.program = this.value.scope.compile(this.value.body.script);
-          this.value.process = new Process();
+          this.value.processState = this.value.scope.prepareScriptValue(
+            this.value.body
+          );
         }
-        const result = this.value.scope.execute(
-          this.value.program,
-          this.value.process
-        );
+        const result = this.value.processState.execute();
         if (result.code == ResultCode.OK || result.code == ResultCode.RETURN) {
           this.value.state = "done";
           return OK(result.value);
@@ -65,15 +61,9 @@ class CoroutineCommand implements Command {
           return ERROR("coroutine is inactive");
         if (this.value.state == "done") return ERROR("coroutine is done");
         if (args.length == 3) {
-          this.value.process.result = YIELD_BACK(
-            this.value.process.result,
-            args[2]
-          );
+          this.value.processState.yieldBack(args[2]);
         }
-        const result = this.value.scope.execute(
-          this.value.program,
-          this.value.process
-        );
+        const result = this.value.processState.execute();
         if (result.code == ResultCode.OK || result.code == ResultCode.RETURN) {
           this.value.state = "done";
           return OK(result.value);

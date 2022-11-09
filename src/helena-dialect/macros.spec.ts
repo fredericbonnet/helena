@@ -1,6 +1,5 @@
 import { expect } from "chai";
-import { ERROR, OK, ResultCode, RETURN, YIELD_BACK } from "../core/results";
-import { Process } from "../core/compiler";
+import { ERROR, OK, ResultCode, RETURN } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { NIL, StringValue } from "../core/values";
@@ -14,8 +13,7 @@ describe("Helena macros", () => {
   let parser: Parser;
 
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
-  const execute = (script: string) =>
-    rootScope.execute(rootScope.compile(parse(script)));
+  const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
@@ -157,14 +155,13 @@ describe("Helena macros", () => {
         });
         it("should provide a resumable state", () => {
           evaluate("macro cmd {} {idem [yield val1]}");
-          const process = new Process();
-          const program = rootScope.compile(parse("cmd"));
+          const state = rootScope.prepareScript(parse("cmd"));
 
-          let result = rootScope.execute(program, process);
+          let result = state.execute();
           expect(result.data).to.exist;
 
-          process.result = YIELD_BACK(process.result, new StringValue("val2"));
-          result = rootScope.execute(program, process);
+          state.yieldBack(new StringValue("val2"));
+          result = state.execute();
           expect(result).to.eql(OK(new StringValue("val2")));
         });
         it("should work recursively", () => {
@@ -172,28 +169,27 @@ describe("Helena macros", () => {
           evaluate("macro cmd2 {} {yield [cmd3]; idem [cmd4]}");
           evaluate("macro cmd3 {} {yield val1}");
           evaluate("macro cmd4 {} {yield val3}");
-          const process = new Process();
-          const program = rootScope.compile(parse("cmd1"));
+          const state = rootScope.prepareScript(parse("cmd1"));
 
-          let result = rootScope.execute(program, process);
+          let result = state.execute();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val1"));
 
-          process.result = YIELD_BACK(process.result, new StringValue("val2"));
-          result = rootScope.execute(program, process);
+          state.yieldBack(new StringValue("val2"));
+          result = state.execute();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val2"));
 
-          result = rootScope.execute(program, process);
+          result = state.execute();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val3"));
 
-          process.result = YIELD_BACK(process.result, new StringValue("val4"));
-          result = rootScope.execute(program, process);
+          state.yieldBack(new StringValue("val4"));
+          result = state.execute();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val4"));
 
-          result = rootScope.execute(program, process);
+          result = state.execute();
           expect(result).to.eql(OK(new StringValue("val5")));
         });
       });

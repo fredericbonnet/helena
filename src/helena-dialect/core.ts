@@ -10,7 +10,7 @@ import {
 import { Command } from "../core/command";
 import { Compiler, Executor, Program, Process } from "../core/compiler";
 import { VariableResolver, CommandResolver } from "../core/evaluator";
-import { Script, Word } from "../core/syntax";
+import { Script } from "../core/syntax";
 import {
   Value,
   ValueType,
@@ -52,6 +52,22 @@ export class ScopeContext {
   }
 }
 
+export class ProcessState {
+  scope: Scope;
+  program: Program;
+  process: Process;
+  constructor(scope: Scope, program: Program) {
+    this.scope = scope;
+    this.program = program;
+    this.process = new Process();
+  }
+  execute(): Result {
+    return this.scope.execute(this.program, this.process);
+  }
+  yieldBack(value: Value) {
+    this.process.result = YIELD_BACK(this.process.result, value);
+  }
+}
 export class Scope {
   readonly parent?: Scope;
   readonly context: ScopeContext;
@@ -71,15 +87,14 @@ export class Scope {
     this.executor = new Executor(variableResolver, commandResolver, null, this);
   }
 
-  executeScript(script: ScriptValue): Result {
-    return this.execute(this.compile(script.script));
+  executeScriptValue(script: ScriptValue): Result {
+    return this.executeScript(script.script);
+  }
+  executeScript(script: Script): Result {
+    return this.execute(this.compile(script));
   }
   evaluateList(script: ScriptValue): Result {
     const program = this.compiler.compileSentences(script.script.sentences);
-    return this.execute(program);
-  }
-  evaluateWord(word: Word): Result {
-    const program = this.compiler.compileWord(word);
     return this.execute(program);
   }
   compile(script: Script): Program {
@@ -87,6 +102,16 @@ export class Scope {
   }
   execute(program: Program, process?: Process): Result {
     return this.executor.execute(program, process);
+  }
+
+  prepareScriptValue(script: ScriptValue): ProcessState {
+    return this.prepareScript(script.script);
+  }
+  prepareScript(script: Script): ProcessState {
+    return this.prepareProcess(this.compile(script));
+  }
+  prepareProcess(program: Program): ProcessState {
+    return new ProcessState(this, program);
   }
 
   resolveVariable(name: string): Value {

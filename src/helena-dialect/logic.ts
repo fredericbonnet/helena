@@ -8,7 +8,6 @@ import {
   YIELD_BACK,
 } from "../core/results";
 import { Command } from "../core/command";
-import { Process, Program } from "../core/compiler";
 import {
   BooleanValue,
   FALSE,
@@ -19,7 +18,7 @@ import {
   ValueType,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { Scope } from "./core";
+import { ProcessState, Scope } from "./core";
 
 export const trueCmd: Command = {
   execute(args: Value[]): Result {
@@ -65,8 +64,8 @@ export const notCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     return (result.value as BooleanValue).value ? OK(FALSE) : OK(TRUE);
   },
-  resume(result: Result, scope: Scope) {
-    result = resumeCondition(result, scope);
+  resume(result: Result) {
+    result = resumeCondition(result);
     if (result.code != ResultCode.OK) return result;
     return (result.value as BooleanValue).value ? OK(FALSE) : OK(TRUE);
   },
@@ -91,7 +90,7 @@ class AndCommand implements Command {
     let r = TRUE;
     while (state.i < state.args.length) {
       state.result = state.result
-        ? resumeCondition(state.result, scope)
+        ? resumeCondition(state.result)
         : executeCondition(scope, state.args[state.i]);
       if (state.result.code == ResultCode.YIELD) {
         return YIELD(state.result.value, state);
@@ -129,7 +128,7 @@ class OrCommand implements Command {
     let r = FALSE;
     while (state.i < state.args.length) {
       state.result = state.result
-        ? resumeCondition(state.result, scope)
+        ? resumeCondition(state.result)
         : executeCondition(scope, state.args[state.i]);
       if (state.result.code == ResultCode.YIELD) {
         return YIELD(state.result.value, state);
@@ -148,26 +147,20 @@ class OrCommand implements Command {
 }
 const orCmd: Command = new OrCommand();
 
-type ConditionState = {
-  program: Program;
-  process: Process;
-};
 export function executeCondition(scope: Scope, value: Value): Result {
   if (value.type == ValueType.SCRIPT) {
-    const script = (value as ScriptValue).script;
-    const program = scope.compile(script);
-    const process = new Process();
-    return runCondition(scope, { program, process });
+    const state = scope.prepareScriptValue(value as ScriptValue);
+    return runCondition(state);
   }
   return BooleanValue.fromValue(value);
 }
-export function resumeCondition(result: Result, scope: Scope) {
-  const state = result.data as ConditionState;
-  state.process.result = YIELD_BACK(state.process.result, result.value);
-  return runCondition(scope, state);
+export function resumeCondition(result: Result) {
+  const state = result.data as ProcessState;
+  state.yieldBack(result.value);
+  return runCondition(state);
 }
-function runCondition(scope: Scope, state: ConditionState) {
-  const result = scope.execute(state.program, state.process);
+function runCondition(state: ProcessState) {
+  const result = state.execute();
   if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
   if (result.code != ResultCode.OK) return result;
   return BooleanValue.fromValue(result.value);

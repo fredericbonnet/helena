@@ -93,7 +93,7 @@ export class ArgspecValue extends CommandValue {
           } else if (arg.default) {
             if (arg.default.type == ValueType.SCRIPT) {
               const body = arg.default as ScriptValue;
-              const result = scope.executeScript(body);
+              const result = scope.executeScriptValue(body);
               // TODO handle YIELD?
               if (result.code != ResultCode.OK) return result;
               value = result.value;

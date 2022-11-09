@@ -1,6 +1,5 @@
 import { expect } from "chai";
-import { ERROR, OK, ResultCode, RETURN, YIELD_BACK } from "../core/results";
-import { Process } from "../core/compiler";
+import { ERROR, OK, ResultCode, RETURN } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { NIL, StringValue, TupleValue } from "../core/values";
@@ -14,8 +13,7 @@ describe("Helena basic commands", () => {
   let parser: Parser;
 
   const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
-  const execute = (script: string) =>
-    rootScope.execute(rootScope.compile(parse(script)));
+  const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
@@ -172,47 +170,45 @@ describe("Helena basic commands", () => {
           expect(evaluate("get var")).to.eql(new StringValue("val1"));
         });
         it("should provide a resumable state", () => {
-          const process = new Process();
-          const program = rootScope.compile(
+          const state = rootScope.prepareScript(
             parse("eval {set var val1; set var [yield val2]}")
           );
 
-          let result = rootScope.execute(program, process);
+          let result = state.execute();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val2"));
           expect(result.data).to.exist;
           expect(evaluate("get var")).to.eql(new StringValue("val1"));
 
-          process.result = YIELD_BACK(process.result, new StringValue("val3"));
-          result = rootScope.execute(program, process);
+          state.yieldBack(new StringValue("val3"));
+          result = state.execute();
           expect(result.code).to.eql(ResultCode.OK);
           expect(result.value).to.eql(new StringValue("val3"));
           expect(evaluate("get var")).to.eql(new StringValue("val3"));
         });
       });
       it("should work recursively", () => {
-        const process = new Process();
-        const program = rootScope.compile(
+        const state = rootScope.prepareScript(
           parse("eval {eval {yield val1}; yield val2; eval {yield val3}}")
         );
 
-        let result = rootScope.execute(program, process);
+        let result = state.execute();
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val1"));
         expect(result.data).to.exist;
 
-        result = rootScope.execute(program, process);
+        result = state.execute();
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val2"));
         expect(result.data).to.exist;
 
-        result = rootScope.execute(program, process);
+        result = state.execute();
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val3"));
         expect(result.data).to.exist;
 
-        process.result = YIELD_BACK(process.result, new StringValue("val4"));
-        result = rootScope.execute(program, process);
+        state.yieldBack(new StringValue("val4"));
+        result = state.execute();
         expect(result.code).to.eql(ResultCode.OK);
         expect(result.value).to.eql(new StringValue("val4"));
       });
