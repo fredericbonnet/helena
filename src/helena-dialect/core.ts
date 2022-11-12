@@ -4,11 +4,18 @@ import {
   OK,
   Result,
   ResultCode,
+  RETURN,
   YIELD,
   YIELD_BACK,
 } from "../core/results";
 import { Command } from "../core/command";
-import { Compiler, Executor, Program, ProgramState } from "../core/compiler";
+import {
+  Compiler,
+  Executor,
+  OpCode,
+  Program,
+  ProgramState,
+} from "../core/compiler";
 import { VariableResolver, CommandResolver } from "../core/evaluator";
 import { Script } from "../core/syntax";
 import {
@@ -62,7 +69,29 @@ export class Process {
     this.state = new ProgramState();
   }
   run(): Result {
-    return this.scope.execute(this.program, this.state);
+    let tailcall = false;
+    for (;;) {
+      const result = this.scope.execute(this.program, this.state);
+      if (tailcall && result.code == ResultCode.OK) return RETURN(result.value);
+      if (result.code != ResultCode.TAILCALL) return result;
+      tailcall = true;
+      const scope = result.data as Scope;
+      let process: Process;
+      switch (result.value.type) {
+        case ValueType.SCRIPT:
+          process = scope.prepareScriptValue(result.value as ScriptValue);
+          break;
+        case ValueType.TUPLE: {
+          process = scope.prepareTupleValue(result.value as TupleValue);
+          break;
+        }
+        default:
+          return ERROR("body must be a script or tuple");
+      }
+      this.scope = process.scope;
+      this.program = process.program;
+      this.state = process.state;
+    }
   }
   yieldBack(value: Value) {
     this.state.result = YIELD_BACK(this.state.result, value);
@@ -91,12 +120,13 @@ export class Scope {
     return this.executeScript(script.script);
   }
   executeScript(script: Script): Result {
-    return this.execute(this.compile(script));
+    return this.prepareScript(script).run();
   }
   evaluateList(script: ScriptValue): Result {
     const program = this.compiler.compileSentences(script.script.sentences);
     return this.execute(program);
   }
+
   compile(script: Script): Program {
     return this.compiler.compileScript(script);
   }
@@ -109,6 +139,14 @@ export class Scope {
   }
   prepareScript(script: Script): Process {
     return this.prepareProcess(this.compile(script));
+  }
+  prepareTupleValue(tuple: TupleValue): Process {
+    const program = new Program();
+    program.pushOpCode(OpCode.PUSH_CONSTANT);
+    program.pushOpCode(OpCode.EVALUATE_SENTENCE);
+    program.pushOpCode(OpCode.PUSH_RESULT);
+    program.pushConstant(tuple);
+    return this.prepareProcess(program);
   }
   prepareProcess(program: Program): Process {
     return new Process(this, program);

@@ -8,10 +8,11 @@ import {
   Result,
   ResultCode,
   RETURN,
+  TAILCALL,
   YIELD,
 } from "../core/results";
 import { Command } from "../core/command";
-import { NIL, ScriptValue, ValueType } from "../core/values";
+import { NIL, ScriptValue, TupleValue, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Process, Scope } from "./core";
 
@@ -33,6 +34,21 @@ export const yieldCmd: Command = {
   execute: (args) => {
     if (args.length > 2) return ARITY_ERROR("yield ?result?");
     return YIELD(args.length == 2 ? args[1] : NIL);
+  },
+};
+
+export const tailcallCmd: Command = {
+  execute: (args, scope: Scope) => {
+    if (args.length != 2) return ARITY_ERROR("tailcall body");
+    const body = args[1];
+    switch (body.type) {
+      case ValueType.SCRIPT:
+      case ValueType.TUPLE: {
+        return TAILCALL(body, scope);
+      }
+      default:
+        return ERROR("body must be a script or tuple");
+    }
   },
 };
 
@@ -61,9 +77,18 @@ export const evalCmd: Command = {
   execute: (args, scope: Scope) => {
     if (args.length != 2) return ARITY_ERROR("eval body");
     const body = args[1];
-    if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
-    const state = scope.prepareScriptValue(body as ScriptValue);
-    return executeEvalBody(state);
+    switch (body.type) {
+      case ValueType.SCRIPT: {
+        const state = scope.prepareScriptValue(body as ScriptValue);
+        return executeEvalBody(state);
+      }
+      case ValueType.TUPLE: {
+        const state = scope.prepareTupleValue(body as TupleValue);
+        return executeEvalBody(state);
+      }
+      default:
+        return ERROR("body must be a script or tuple");
+    }
   },
   resume(result: Result): Result {
     const process = result.data as Process;

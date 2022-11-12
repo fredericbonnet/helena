@@ -120,8 +120,14 @@ describe("Helena closures", () => {
     });
     describe("control flow", () => {
       describe("return", () => {
-        it("should interrupt a closure with RESULT code", () => {
+        it("should interrupt a closure with RETURN code", () => {
           evaluate("closure cmd {} {return val1; idem val2}");
+          expect(execute("cmd")).to.eql(RETURN(new StringValue("val1")));
+        });
+      });
+      describe("tailcall", () => {
+        it("should interrupt a closure with RETURN code", () => {
+          evaluate("closure cmd {} {tailcall (idem val1); idem val2}");
           expect(execute("cmd")).to.eql(RETURN(new StringValue("val1")));
         });
       });

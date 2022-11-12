@@ -100,6 +100,25 @@ describe("Helena scopes", () => {
           );
         });
       });
+      describe("tailcall", () => {
+        it("should interrupt the body with OK code", () => {
+          evaluate("closure cmd1 {} {set var val1}");
+          evaluate("closure cmd2 {} {set var val2}");
+          expect(execute("scope {cmd1; tailcall {}; cmd2}").code).to.eql(
+            ResultCode.OK
+          );
+          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+        });
+        it("should still define the scope command", () => {
+          evaluate("scope cmd {tailcall {}}");
+          expect(rootScope.context.commands.has("cmd")).to.be.true;
+        });
+        it("should return passed value instead of scope command value", () => {
+          expect(execute("scope {tailcall {idem val}}")).to.eql(
+            OK(new StringValue("val"))
+          );
+        });
+      });
       describe("yield", () => {
         it("should interrupt the body with YIELD code", () => {
           evaluate("closure cmd1 {} {set var val1}");

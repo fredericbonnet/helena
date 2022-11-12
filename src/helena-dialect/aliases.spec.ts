@@ -89,8 +89,15 @@ describe("Helena aliases", () => {
     });
     describe("control flow", () => {
       describe("return", () => {
-        it("should interrupt an alias with RESULT code", () => {
+        it("should interrupt an alias with RETURN code", () => {
           evaluate("macro mac {} {return val1; idem val2}");
+          evaluate("alias cmd mac");
+          expect(execute("cmd")).to.eql(RETURN(new StringValue("val1")));
+        });
+      });
+      describe("tailcall", () => {
+        it("should interrupt an alias with RETURN code", () => {
+          evaluate("macro mac {} {tailcall {idem val1}; idem val2}");
           evaluate("alias cmd mac");
           expect(execute("cmd")).to.eql(RETURN(new StringValue("val1")));
         });

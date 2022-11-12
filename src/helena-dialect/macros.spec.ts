@@ -141,8 +141,14 @@ describe("Helena macros", () => {
     });
     describe("control flow", () => {
       describe("return", () => {
-        it("should interrupt a macro with RESULT code", () => {
+        it("should interrupt a macro with RETURN code", () => {
           evaluate("macro cmd {} {return val1; idem val2}");
+          expect(execute("cmd")).to.eql(RETURN(new StringValue("val1")));
+        });
+      });
+      describe("tailcall", () => {
+        it("should interrupt a macro with RETURN code", () => {
+          evaluate("macro cmd {} {tailcall {idem val1}; idem val2}");
           expect(execute("cmd")).to.eql(RETURN(new StringValue("val1")));
         });
       });

@@ -6,6 +6,7 @@ import {
   evalCmd,
   idemCmd,
   returnCmd,
+  tailcallCmd,
   yieldCmd,
 } from "./basic-commands";
 import { macroCmd } from "./macros";
@@ -25,6 +26,7 @@ export { Scope, Variable, CommandValue } from "./core";
 export function initCommands(scope: Scope) {
   scope.registerCommand("idem", idemCmd);
   scope.registerCommand("return", returnCmd);
+  scope.registerCommand("tailcall", tailcallCmd);
   scope.registerCommand("yield", yieldCmd);
   scope.registerCommand("error", errorCmd);
   scope.registerCommand("break", breakCmd);

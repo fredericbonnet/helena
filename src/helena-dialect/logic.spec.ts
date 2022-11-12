@@ -110,8 +110,15 @@ describe("Helena logic operations", () => {
         });
         describe("control flow", () => {
           describe("return", () => {
-            it("should interrupt expression with RESULT code", () => {
+            it("should interrupt expression with RETURN code", () => {
               expect(execute("! {return value; error}")).to.eql(
+                RETURN(new StringValue("value"))
+              );
+            });
+          });
+          describe("tailcall", () => {
+            it("should interrupt expression with RETURN code", () => {
+              expect(execute("! {tailcall {idem value}; error}")).to.eql(
                 RETURN(new StringValue("value"))
               );
             });
@@ -178,10 +185,17 @@ describe("Helena logic operations", () => {
         });
         describe("control flow", () => {
           describe("return", () => {
-            it("should interrupt expression with RESULT code", () => {
+            it("should interrupt expression with RETURN code", () => {
               expect(execute("&& true {return value; error} false")).to.eql(
                 RETURN(new StringValue("value"))
               );
+            });
+          });
+          describe("tailcall", () => {
+            it("should interrupt expression with RETURN code", () => {
+              expect(
+                execute("&& true {tailcall {idem value}; error} false")
+              ).to.eql(RETURN(new StringValue("value")));
             });
           });
           describe("yield", () => {
@@ -245,10 +259,17 @@ describe("Helena logic operations", () => {
         });
         describe("control flow", () => {
           describe("return", () => {
-            it("should interrupt expression with RESULT code", () => {
+            it("should interrupt expression with RETURN code", () => {
               expect(execute("|| false {return value; error} true")).to.eql(
                 RETURN(new StringValue("value"))
               );
+            });
+          });
+          describe("tailcall", () => {
+            it("should interrupt expression with RETURN code", () => {
+              expect(
+                execute("|| false {tailcall {idem value}; error} true")
+              ).to.eql(RETURN(new StringValue("value")));
             });
           });
           describe("yield", () => {

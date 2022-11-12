@@ -66,6 +66,60 @@ describe("Helena basic commands", () => {
     });
   });
 
+  describe("tailcall", () => {
+    it("should return the result of the script body", () => {
+      expect(execute("tailcall {}")).to.eql(RETURN(NIL));
+      expect(execute("tailcall {idem val}")).to.eql(
+        RETURN(new StringValue("val"))
+      );
+      expect(execute("tailcall {return val}")).to.eql(
+        RETURN(new StringValue("val"))
+      );
+      expect(execute("tailcall {error msg}")).to.eql(ERROR("msg"));
+      expect(execute("tailcall {break}")).to.eql(BREAK());
+      expect(execute("tailcall {continue}")).to.eql(CONTINUE());
+    });
+    it("should return the result of the tuple body", () => {
+      expect(execute("tailcall (idem val); error")).to.eql(
+        RETURN(new StringValue("val"))
+      );
+      expect(execute("tailcall (return val); error")).to.eql(
+        RETURN(new StringValue("val"))
+      );
+      expect(execute("tailcall (error msg); error")).to.eql(ERROR("msg"));
+      expect(execute("tailcall (break); error")).to.eql(BREAK());
+      expect(execute("tailcall (continue); error")).to.eql(CONTINUE());
+    });
+    it("should interrupt the script", () => {
+      expect(execute("tailcall {idem val}; error")).to.eql(
+        RETURN(new StringValue("val"))
+      );
+      expect(execute("tailcall (idem val); error")).to.eql(
+        RETURN(new StringValue("val"))
+      );
+    });
+    it("should work recursively", () => {
+      expect(execute("tailcall {tailcall (idem val); error}; error")).to.eql(
+        RETURN(new StringValue("val"))
+      );
+    });
+    describe("exceptions", () => {
+      specify("wrong arity", () => {
+        expect(execute("tailcall")).to.eql(
+          ERROR('wrong # args: should be "tailcall body"')
+        );
+        expect(execute("tailcall a b")).to.eql(
+          ERROR('wrong # args: should be "tailcall body"')
+        );
+      });
+      specify("invalid body", () => {
+        expect(execute("tailcall 1")).to.eql(
+          ERROR("body must be a script or tuple")
+        );
+      });
+    });
+  });
+
   describe("yield", () => {
     specify("result code should be YIELD", () => {
       expect(execute("yield").code).to.eql(ResultCode.YIELD);
@@ -148,6 +202,9 @@ describe("Helena basic commands", () => {
       evaluate("eval {let var val}");
       expect(evaluate("get var")).to.eql(new StringValue("val"));
     });
+    it("should accept tuple bodies", () => {
+      expect(evaluate("eval (idem val)")).to.eql(new StringValue("val"));
+    });
     describe("control flow", () => {
       describe("return", () => {
         it("should interrupt the body with RETURN code", () => {
@@ -158,6 +215,19 @@ describe("Helena basic commands", () => {
         });
         it("should return passed value", () => {
           expect(execute("eval {return val}")).to.eql(
+            RETURN(new StringValue("val"))
+          );
+        });
+      });
+      describe("tailcall", () => {
+        it("should interrupt the body with RETURN code", () => {
+          expect(
+            execute("eval {set var val1; tailcall {}; set var val2}").code
+          ).to.eql(ResultCode.RETURN);
+          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+        });
+        it("should return tailcall result", () => {
+          expect(execute("eval {tailcall {idem val}}")).to.eql(
             RETURN(new StringValue("val"))
           );
         });
@@ -222,8 +292,10 @@ describe("Helena basic commands", () => {
           ERROR('wrong # args: should be "eval body"')
         );
       });
-      specify("non-script body", () => {
-        expect(execute("eval 1")).to.eql(ERROR("body must be a script"));
+      specify("invalid body", () => {
+        expect(execute("eval 1")).to.eql(
+          ERROR("body must be a script or tuple")
+        );
       });
     });
   });

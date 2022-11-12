@@ -61,6 +61,21 @@ describe("Helena control flow commands", () => {
           expect(evaluate("get i")).to.eql(new IntegerValue(1));
         });
       });
+      describe("tailcall", () => {
+        it("should interrupt the test with RETURN code", () => {
+          expect(execute("while {tailcall {idem val}; error} {error}")).to.eql(
+            RETURN(new StringValue("val"))
+          );
+        });
+        it("should interrupt the loop with RETURN code", () => {
+          expect(
+            execute(
+              "set i 0; while {$i < 10} {set i [+ $i 1]; tailcall {idem val}; error}"
+            )
+          ).to.eql(RETURN(new StringValue("val")));
+          expect(evaluate("get i")).to.eql(new IntegerValue(1));
+        });
+      });
       describe("yield", () => {
         it("should interrupt the test with YIELD code", () => {
           expect(execute("while {yield; error} {}").code).to.eql(
