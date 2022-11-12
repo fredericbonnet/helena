@@ -113,6 +113,30 @@ describe("Helena coroutines", () => {
           expect(execute("$cr done")).to.eql(OK(TRUE));
         });
       });
+      describe("error", () => {
+        it("should interrupt the body with ERROR code", () => {
+          expect(
+            execute("[coroutine {set var val1; error msg; set var val2}] wait")
+          ).to.eql(ERROR("msg"));
+          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+        });
+      });
+      describe("break", () => {
+        it("should interrupt the body with ERROR code", () => {
+          expect(
+            execute("[coroutine {set var val1; break; set var val2}] wait")
+          ).to.eql(ERROR("unexpected break"));
+          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+        });
+      });
+      describe("continue", () => {
+        it("should interrupt the body with ERROR code", () => {
+          expect(
+            execute("[coroutine {set var val1; continue; set var val2}] wait")
+          ).to.eql(ERROR("unexpected continue"));
+          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+        });
+      });
     });
     describe("methods", () => {
       describe("wait", () => {

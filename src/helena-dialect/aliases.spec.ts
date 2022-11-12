@@ -1,5 +1,12 @@
 import { expect } from "chai";
-import { ERROR, OK, ResultCode, RETURN } from "../core/results";
+import {
+  BREAK,
+  CONTINUE,
+  ERROR,
+  OK,
+  ResultCode,
+  RETURN,
+} from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { NIL, StringValue, TupleValue } from "../core/values";
@@ -121,6 +128,27 @@ describe("Helena aliases", () => {
           state.yieldBack(new StringValue("val2"));
           result = state.run();
           expect(result).to.eql(OK(new StringValue("val2")));
+        });
+      });
+      describe("error", () => {
+        it("should interrupt an alias with ERROR code", () => {
+          evaluate("macro mac {} {error msg; idem val}");
+          evaluate("alias cmd mac");
+          expect(execute("cmd")).to.eql(ERROR("msg"));
+        });
+      });
+      describe("break", () => {
+        it("should interrupt an alias with BREAK code", () => {
+          evaluate("macro mac {} {break; idem val}");
+          evaluate("alias cmd mac");
+          expect(execute("cmd")).to.eql(BREAK());
+        });
+      });
+      describe("continue", () => {
+        it("should interrupt an alias with CONTINUE code", () => {
+          evaluate("macro mac {} {continue; idem val}");
+          evaluate("alias cmd mac");
+          expect(execute("cmd")).to.eql(CONTINUE());
         });
       });
     });

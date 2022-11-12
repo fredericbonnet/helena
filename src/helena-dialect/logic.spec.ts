@@ -1,5 +1,12 @@
 import { expect } from "chai";
-import { ERROR, OK, ResultCode, RETURN } from "../core/results";
+import {
+  BREAK,
+  CONTINUE,
+  ERROR,
+  OK,
+  ResultCode,
+  RETURN,
+} from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { FALSE, TRUE, StringValue, NIL } from "../core/values";
@@ -147,6 +154,21 @@ describe("Helena logic operations", () => {
               expect(result).to.eql(OK(FALSE));
             });
           });
+          describe("error", () => {
+            it("should interrupt expression with ERROR code", () => {
+              expect(execute("! {error msg; false}")).to.eql(ERROR("msg"));
+            });
+          });
+          describe("break", () => {
+            it("should interrupt expression with BREAK code", () => {
+              expect(execute("! {break; error}")).to.eql(BREAK());
+            });
+          });
+          describe("continue", () => {
+            it("should interrupt expression with CONTINUE code", () => {
+              expect(execute("! {continue; false}")).to.eql(CONTINUE());
+            });
+          });
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
@@ -223,6 +245,25 @@ describe("Helena logic operations", () => {
               expect(result).to.eql(OK(FALSE));
             });
           });
+          describe("error", () => {
+            it("should interrupt expression with ERROR code", () => {
+              expect(execute("&& true {error msg; true} false")).to.eql(
+                ERROR("msg")
+              );
+            });
+          });
+          describe("break", () => {
+            it("should interrupt expression with BREAK code", () => {
+              expect(execute("&& true {break; error} false")).to.eql(BREAK());
+            });
+          });
+          describe("continue", () => {
+            it("should interrupt expression with CONTINUE code", () => {
+              expect(execute("&& true {continue; error} false")).to.eql(
+                CONTINUE()
+              );
+            });
+          });
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
@@ -295,6 +336,25 @@ describe("Helena logic operations", () => {
               state.yieldBack(TRUE);
               result = state.run();
               expect(result).to.eql(OK(TRUE));
+            });
+          });
+          describe("error", () => {
+            it("should interrupt expression with ERROR code", () => {
+              expect(execute("|| false {error msg; true} true")).to.eql(
+                ERROR("msg")
+              );
+            });
+          });
+          describe("break", () => {
+            it("should interrupt expression with BREAK code", () => {
+              expect(execute("|| false {break; error} true")).to.eql(BREAK());
+            });
+          });
+          describe("continue", () => {
+            it("should interrupt expression with CONTINUE code", () => {
+              expect(execute("|| false {continue; error} true")).to.eql(
+                CONTINUE()
+              );
             });
           });
         });

@@ -78,16 +78,24 @@ export const scopeCmd: Command = {
 };
 const executeScopeBody = (state: ScopeBodyState): Result => {
   const result = state.process.run();
-
-  if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
-  if (result.code != ResultCode.OK && result.code != ResultCode.RETURN)
-    return result;
-
-  const command = new ScopeCommand(state.subscope);
-  if (state.name) {
-    state.scope.registerCommand(state.name.asString(), command);
+  switch (result.code) {
+    case ResultCode.OK:
+    case ResultCode.RETURN: {
+      const command = new ScopeCommand(state.subscope);
+      if (state.name) {
+        state.scope.registerCommand(state.name.asString(), command);
+      }
+      return OK(
+        result.code == ResultCode.RETURN ? result.value : command.value
+      );
+    }
+    case ResultCode.YIELD:
+      return YIELD(result.value, state);
+    case ResultCode.BREAK:
+      return ERROR("unexpected break");
+    case ResultCode.CONTINUE:
+      return ERROR("unexpected continue");
+    default:
+      return result;
   }
-
-  if (result.code == ResultCode.RETURN) return OK(result.value);
-  return OK(command.value);
 };

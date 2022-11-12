@@ -158,6 +158,46 @@ describe("Helena scopes", () => {
           expect(rootScope.context.commands.has("cmd")).to.be.true;
         });
       });
+      describe("error", () => {
+        it("should interrupt the body with ERROR code", () => {
+          evaluate("closure cmd1 {} {set var val1}");
+          evaluate("closure cmd2 {} {set var val2}");
+          expect(execute("scope {cmd1; error msg; cmd2}")).to.eql(ERROR("msg"));
+          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+        });
+        it("should not define the scope command", () => {
+          evaluate("scope cmd {error msg}");
+          expect(rootScope.context.commands.has("cmd")).to.be.false;
+        });
+      });
+      describe("break", () => {
+        it("should interrupt the body with ERROR code", () => {
+          evaluate("closure cmd1 {} {set var val1}");
+          evaluate("closure cmd2 {} {set var val2}");
+          expect(execute("scope {cmd1; break; cmd2}")).to.eql(
+            ERROR("unexpected break")
+          );
+          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+        });
+        it("should not define the scope command", () => {
+          evaluate("scope cmd {break}");
+          expect(rootScope.context.commands.has("cmd")).to.be.false;
+        });
+      });
+      describe("continue", () => {
+        it("should interrupt the body with ERROR code", () => {
+          evaluate("closure cmd1 {} {set var val1}");
+          evaluate("closure cmd2 {} {set var val2}");
+          expect(execute("scope {cmd1; continue; cmd2}")).to.eql(
+            ERROR("unexpected continue")
+          );
+          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+        });
+        it("should not define the scope command", () => {
+          evaluate("scope cmd {continue}");
+          expect(rootScope.context.commands.has("cmd")).to.be.false;
+        });
+      });
     });
     describe("methods", () => {
       describe("eval", () => {

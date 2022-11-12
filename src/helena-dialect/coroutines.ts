@@ -36,15 +36,7 @@ class CoroutineCommand implements Command {
             this.value.body
           );
         }
-        const result = this.value.process.run();
-        if (result.code == ResultCode.OK || result.code == ResultCode.RETURN) {
-          this.value.state = "done";
-          return OK(result.value);
-        }
-        if (result.code == ResultCode.YIELD) {
-          return OK(result.value);
-        }
-        return result;
+        return this.run();
       }
       case "active": {
         if (args.length != 2) return ARITY_ERROR("coroutine active");
@@ -63,18 +55,28 @@ class CoroutineCommand implements Command {
         if (args.length == 3) {
           this.value.process.yieldBack(args[2]);
         }
-        const result = this.value.process.run();
-        if (result.code == ResultCode.OK || result.code == ResultCode.RETURN) {
-          this.value.state = "done";
-          return OK(result.value);
-        }
-        if (result.code == ResultCode.YIELD) {
-          return OK(result.value);
-        }
-        return result;
+        return this.run();
       }
       default:
         return ERROR(`invalid method name "${method.asString()}"`);
+    }
+  }
+
+  run() {
+    const result = this.value.process.run();
+    switch (result.code) {
+      case ResultCode.OK:
+      case ResultCode.RETURN:
+        this.value.state = "done";
+        return OK(result.value);
+      case ResultCode.YIELD:
+        return OK(result.value);
+      case ResultCode.BREAK:
+        return ERROR("unexpected break");
+      case ResultCode.CONTINUE:
+        return ERROR("unexpected continue");
+      default:
+        return result;
     }
   }
 }

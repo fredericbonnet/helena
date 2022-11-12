@@ -1,5 +1,12 @@
 import { expect } from "chai";
-import { ERROR, OK, ResultCode, RETURN } from "../core/results";
+import {
+  BREAK,
+  CONTINUE,
+  ERROR,
+  OK,
+  ResultCode,
+  RETURN,
+} from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { NIL, StringValue } from "../core/values";
@@ -197,6 +204,24 @@ describe("Helena macros", () => {
 
           result = state.run();
           expect(result).to.eql(OK(new StringValue("val5")));
+        });
+      });
+      describe("error", () => {
+        it("should interrupt a macro with ERROR code", () => {
+          evaluate("macro cmd {} {error msg; idem val}");
+          expect(execute("cmd")).to.eql(ERROR("msg"));
+        });
+      });
+      describe("break", () => {
+        it("should interrupt a macro with BREAK code", () => {
+          evaluate("macro cmd {} {break; error}");
+          expect(execute("cmd")).to.eql(BREAK());
+        });
+      });
+      describe("continue", () => {
+        it("should interrupt a macro with CONTINUE code", () => {
+          evaluate("macro cmd {} {continue; error}");
+          expect(execute("cmd")).to.eql(CONTINUE());
         });
       });
     });

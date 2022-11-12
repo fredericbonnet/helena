@@ -1,5 +1,12 @@
 import { expect } from "chai";
-import { ERROR, OK, ResultCode, RETURN } from "../core/results";
+import {
+  BREAK,
+  CONTINUE,
+  ERROR,
+  OK,
+  ResultCode,
+  RETURN,
+} from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { NIL, StringValue, TupleValue } from "../core/values";
@@ -205,6 +212,31 @@ describe("Helena basic commands", () => {
     it("should accept tuple bodies", () => {
       expect(evaluate("eval (idem val)")).to.eql(new StringValue("val"));
     });
+    it("should work recursively", () => {
+      const state = rootScope.prepareScript(
+        parse("eval {eval {yield val1}; yield val2; eval {yield val3}}")
+      );
+
+      let result = state.run();
+      expect(result.code).to.eql(ResultCode.YIELD);
+      expect(result.value).to.eql(new StringValue("val1"));
+      expect(result.data).to.exist;
+
+      result = state.run();
+      expect(result.code).to.eql(ResultCode.YIELD);
+      expect(result.value).to.eql(new StringValue("val2"));
+      expect(result.data).to.exist;
+
+      result = state.run();
+      expect(result.code).to.eql(ResultCode.YIELD);
+      expect(result.value).to.eql(new StringValue("val3"));
+      expect(result.data).to.exist;
+
+      state.yieldBack(new StringValue("val4"));
+      result = state.run();
+      expect(result.code).to.eql(ResultCode.OK);
+      expect(result.value).to.eql(new StringValue("val4"));
+    });
     describe("control flow", () => {
       describe("return", () => {
         it("should interrupt the body with RETURN code", () => {
@@ -257,30 +289,29 @@ describe("Helena basic commands", () => {
           expect(evaluate("get var")).to.eql(new StringValue("val3"));
         });
       });
-      it("should work recursively", () => {
-        const state = rootScope.prepareScript(
-          parse("eval {eval {yield val1}; yield val2; eval {yield val3}}")
-        );
-
-        let result = state.run();
-        expect(result.code).to.eql(ResultCode.YIELD);
-        expect(result.value).to.eql(new StringValue("val1"));
-        expect(result.data).to.exist;
-
-        result = state.run();
-        expect(result.code).to.eql(ResultCode.YIELD);
-        expect(result.value).to.eql(new StringValue("val2"));
-        expect(result.data).to.exist;
-
-        result = state.run();
-        expect(result.code).to.eql(ResultCode.YIELD);
-        expect(result.value).to.eql(new StringValue("val3"));
-        expect(result.data).to.exist;
-
-        state.yieldBack(new StringValue("val4"));
-        result = state.run();
-        expect(result.code).to.eql(ResultCode.OK);
-        expect(result.value).to.eql(new StringValue("val4"));
+      describe("error", () => {
+        it("should interrupt the body with ERROR code", () => {
+          expect(
+            execute("eval {set var val1; error msg; set var val2}")
+          ).to.eql(ERROR("msg"));
+          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+        });
+      });
+      describe("break", () => {
+        it("should interrupt the body with BREAK code", () => {
+          expect(execute("eval {set var val1; break; set var val2}")).to.eql(
+            BREAK()
+          );
+          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+        });
+      });
+      describe("continue", () => {
+        it("should interrupt the body with CONTINUE code", () => {
+          expect(execute("eval {set var val1; continue; set var val2}")).to.eql(
+            CONTINUE()
+          );
+          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+        });
       });
     });
     describe("exceptions", () => {

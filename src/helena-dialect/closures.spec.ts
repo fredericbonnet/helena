@@ -1,5 +1,12 @@
 import { expect } from "chai";
-import { ERROR, OK, ResultCode, RETURN } from "../core/results";
+import {
+  BREAK,
+  CONTINUE,
+  ERROR,
+  OK,
+  ResultCode,
+  RETURN,
+} from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { NIL, StringValue } from "../core/values";
@@ -176,6 +183,24 @@ describe("Helena closures", () => {
 
           result = state.run();
           expect(result).to.eql(OK(new StringValue("val5")));
+        });
+      });
+      describe("error", () => {
+        it("should interrupt a closure with ERROR code", () => {
+          evaluate("closure cmd {} {error msg; idem val}");
+          expect(execute("cmd")).to.eql(ERROR("msg"));
+        });
+      });
+      describe("break", () => {
+        it("should interrupt a closure with BREAK code", () => {
+          evaluate("closure cmd {} {break; idem val}");
+          expect(execute("cmd")).to.eql(BREAK());
+        });
+      });
+      describe("continue", () => {
+        it("should interrupt a closure with CONTINUE code", () => {
+          evaluate("closure cmd {} {continue; idem val}");
+          expect(execute("cmd")).to.eql(CONTINUE());
         });
       });
     });
