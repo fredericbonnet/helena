@@ -21,6 +21,7 @@ import { argspecCmd } from "./argspecs";
 import { aliasCmd } from "./aliases";
 import { whileCmd } from "./controls";
 import { procCmd } from "./procs";
+import { namespaceCmd } from "./namespaces";
 
 export { Scope, Variable, CommandValue } from "./core";
 
@@ -44,6 +45,7 @@ export function initCommands(scope: Scope) {
   scope.registerCommand("argspec", argspecCmd);
 
   scope.registerCommand("scope", scopeCmd);
+  scope.registerCommand("namespace", namespaceCmd);
 
   scope.registerCommand("macro", macroCmd);
   scope.registerCommand("closure", closureCmd);
