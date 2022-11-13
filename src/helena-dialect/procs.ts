@@ -14,21 +14,21 @@ class ProcValue extends CommandValue {
   readonly proc: Command;
   constructor(
     command: Command,
-    scope: Scope,
     argspec: ArgspecValue,
-    body: ScriptValue
+    body: ScriptValue,
+    program: Program
   ) {
     super(command);
     this.argspec = argspec;
     this.body = body;
-    this.program = scope.compile(this.body.script);
+    this.program = program;
     this.proc = new ProcCommand(this);
   }
 }
 class ProcValueCommand implements Command {
   readonly value: ProcValue;
-  constructor(scope: Scope, argspec: ArgspecValue, body: ScriptValue) {
-    this.value = new ProcValue(this, scope, argspec, body);
+  constructor(argspec: ArgspecValue, body: ScriptValue, program: Program) {
+    this.value = new ProcValue(this, argspec, body, program);
   }
 
   execute(args: Value[], scope: Scope): Result {
@@ -114,7 +114,8 @@ export const procCmd: Command = {
     const result = ArgspecValue.fromValue(scope, specs);
     if (result.code != ResultCode.OK) return result; // TODO handle YIELD?
     const argspec = result.data;
-    const command = new ProcValueCommand(scope, argspec, body as ScriptValue);
+    const program = scope.compile((body as ScriptValue).script);
+    const command = new ProcValueCommand(argspec, body as ScriptValue, program);
     if (name) {
       scope.registerCommand(name.asString(), command.value.proc);
     }

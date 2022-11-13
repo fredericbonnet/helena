@@ -17,20 +17,26 @@ class ClosureValue extends CommandValue {
     command: Command,
     scope: Scope,
     argspec: ArgspecValue,
-    body: ScriptValue
+    body: ScriptValue,
+    program: Program
   ) {
     super(command);
     this.scope = scope;
     this.argspec = argspec;
     this.body = body;
-    this.program = this.scope.compile(this.body.script);
+    this.program = program;
     this.closure = new ClosureCommand(this);
   }
 }
 class ClosureValueCommand implements Command {
   readonly value: ClosureValue;
-  constructor(scope: Scope, argspec: ArgspecValue, body: ScriptValue) {
-    this.value = new ClosureValue(this, scope, argspec, body);
+  constructor(
+    scope: Scope,
+    argspec: ArgspecValue,
+    body: ScriptValue,
+    program: Program
+  ) {
+    this.value = new ClosureValue(this, scope, argspec, body, program);
   }
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.value);
@@ -116,10 +122,12 @@ export const closureCmd: Command = {
     const result = ArgspecValue.fromValue(scope, specs);
     if (result.code != ResultCode.OK) return result; // TODO handle YIELD?
     const argspec = result.data;
+    const program = scope.compile((body as ScriptValue).script);
     const command = new ClosureValueCommand(
       scope,
       argspec,
-      body as ScriptValue
+      body as ScriptValue,
+      program
     );
     if (name) {
       scope.registerCommand(name.asString(), command.value.closure);

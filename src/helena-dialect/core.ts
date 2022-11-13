@@ -167,16 +167,14 @@ export class Scope {
     return this.resolveNamedCommand(value.asString());
   }
   private resolveNamedCommand(name: string): Command {
-    if (!this.hasLocalCommand(name)) {
-      if (!this.parent) return;
-      return this.parent.resolveNamedCommand(name);
-    }
-    return this.context.commands.get(name);
+    return (
+      this.context.commands.get(name) ?? this.parent?.resolveNamedCommand(name)
+    );
   }
 
   setConstant(name: string, value: Value): Result {
     if (this.context.locals?.has(name)) {
-      return ERROR(`cannot redefine local "${name}"`);
+      return ERROR(`cannot define constant "${name}": local already exists`);
     }
     if (this.context.constants.has(name)) {
       return ERROR(`cannot redefine constant "${name}"`);
