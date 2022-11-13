@@ -229,7 +229,7 @@ export const expandPrefixCmd: Command = {
   },
   resume(result: Result, scope: Scope): Result {
     const { command, result: commandResult } = result.data as ExpandPrefixState;
-    if (!command.resume) return commandResult;
+    if (!command.resume) return OK(result.value);
     const result2 = command.resume(
       YIELD_BACK(commandResult, result.value),
       scope

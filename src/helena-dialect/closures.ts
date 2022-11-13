@@ -55,6 +55,9 @@ class ClosureValueCommand implements Command {
         return ERROR(`invalid method name "${method.asString()}"`);
     }
   }
+  resume(result: Result, scope: Scope): Result {
+    return this.value.closure.resume(result, scope);
+  }
 }
 
 type ClosureState = {

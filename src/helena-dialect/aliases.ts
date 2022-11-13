@@ -37,6 +37,9 @@ class AliasValueCommand implements Command {
         return ERROR(`invalid method name "${method.asString()}"`);
     }
   }
+  resume(result: Result, scope: Scope): Result {
+    return this.value.alias.resume(result, scope);
+  }
 }
 
 class AliasCommand implements Command {

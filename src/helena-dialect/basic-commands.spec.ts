@@ -273,7 +273,7 @@ describe("Helena basic commands", () => {
         });
         it("should provide a resumable state", () => {
           const state = rootScope.prepareScript(
-            parse("eval {set var val1; set var [yield val2]}")
+            parse("eval {set var val1; set var _[yield val2]_}")
           );
 
           let result = state.run();
@@ -285,8 +285,8 @@ describe("Helena basic commands", () => {
           state.yieldBack(new StringValue("val3"));
           result = state.run();
           expect(result.code).to.eql(ResultCode.OK);
-          expect(result.value).to.eql(new StringValue("val3"));
-          expect(evaluate("get var")).to.eql(new StringValue("val3"));
+          expect(result.value).to.eql(new StringValue("_val3_"));
+          expect(evaluate("get var")).to.eql(new StringValue("_val3_"));
         });
       });
       describe("error", () => {

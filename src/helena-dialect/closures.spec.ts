@@ -146,7 +146,7 @@ describe("Helena closures", () => {
           expect(result.value).to.eql(new StringValue("val1"));
         });
         it("should provide a resumable state", () => {
-          evaluate("closure cmd {} {idem [yield val1]}");
+          evaluate("closure cmd {} {idem _[yield val1]_}");
           const state = rootScope.prepareScript(parse("cmd"));
 
           let result = state.run();
@@ -154,7 +154,7 @@ describe("Helena closures", () => {
 
           state.yieldBack(new StringValue("val2"));
           result = state.run();
-          expect(result).to.eql(OK(new StringValue("val2")));
+          expect(result).to.eql(OK(new StringValue("_val2_")));
         });
         it("should work recursively", () => {
           evaluate("closure cmd1 {} {yield [cmd2]; idem val5}");
@@ -226,6 +226,82 @@ describe("Helena closures", () => {
             expect(execute("[closure {} {}] argspec a")).to.eql(
               ERROR('wrong # args: should be "closure argspec"')
             );
+          });
+        });
+      });
+      describe("control flow", () => {
+        describe("return", () => {
+          it("should interrupt the body with RETURN code", () => {
+            evaluate("closure cmd1 {} {set var val1}");
+            evaluate("closure cmd2 {} {set var val2}");
+            evaluate("set cmd [closure {} {cmd1; return val3; cmd2}]");
+            expect(execute("$cmd call")).to.eql(
+              RETURN(new StringValue("val3"))
+            );
+            expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          });
+        });
+        describe("tailcall", () => {
+          it("should interrupt the body with RETURN code", () => {
+            evaluate("closure cmd1 {} {set var val1}");
+            evaluate("closure cmd2 {} {set var val2}");
+            evaluate("set cmd [closure {} {cmd1; tailcall {idem val3}; cmd2}]");
+            expect(execute("$cmd call")).to.eql(
+              RETURN(new StringValue("val3"))
+            );
+            expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          });
+        });
+        describe("yield", () => {
+          it("should interrupt the body with YIELD code", () => {
+            evaluate("closure cmd1 {} {set var val1}");
+            evaluate("closure cmd2 {} {set var val2}");
+            evaluate("set cmd [closure {} {cmd1; yield; cmd2}]");
+            expect(execute("$cmd call").code).to.eql(ResultCode.YIELD);
+            expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          });
+          it("should provide a resumable state", () => {
+            evaluate("closure cmd1 {} {set var val1}");
+            evaluate("closure cmd2 {val} {set var $val}");
+            evaluate("set cmd [closure {} {cmd1; cmd2 _[yield val2]_}]");
+            const state = rootScope.prepareScript(parse("$cmd call"));
+
+            let result = state.run();
+            expect(result.code).to.eql(ResultCode.YIELD);
+            expect(result.value).to.eql(new StringValue("val2"));
+            expect(result.data).to.exist;
+
+            state.yieldBack(new StringValue("val3"));
+            result = state.run();
+            expect(result).to.eql(OK(new StringValue("_val3_")));
+            expect(evaluate("get var")).to.eql(new StringValue("_val3_"));
+          });
+        });
+        describe("error", () => {
+          it("should interrupt the body with ERROR code", () => {
+            evaluate("closure cmd1 {} {set var val1}");
+            evaluate("closure cmd2 {} {set var val2}");
+            evaluate("set cmd [closure {} {cmd1; error msg; cmd2}]");
+            expect(execute("$cmd call")).to.eql(ERROR("msg"));
+            expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          });
+        });
+        describe("break", () => {
+          it("should interrupt the body with BREAK code", () => {
+            evaluate("closure cmd1 {} {set var val1}");
+            evaluate("closure cmd2 {} {set var val2}");
+            evaluate("set cmd [closure {} {cmd1; break; cmd2}]");
+            expect(execute("$cmd call")).to.eql(BREAK());
+            expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          });
+        });
+        describe("continue", () => {
+          it("should interrupt the body with CONTINUE code", () => {
+            evaluate("closure cmd1 {} {set var val1}");
+            evaluate("closure cmd2 {} {set var val2}");
+            evaluate("set cmd [closure {} {cmd1; continue; cmd2}]");
+            expect(execute("$cmd call")).to.eql(CONTINUE());
+            expect(evaluate("get var")).to.eql(new StringValue("val1"));
           });
         });
       });

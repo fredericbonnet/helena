@@ -48,6 +48,9 @@ class ProcValueCommand implements Command {
         return ERROR(`invalid method name "${method.asString()}"`);
     }
   }
+  resume(result: Result, scope: Scope): Result {
+    return this.value.proc.resume(result, scope);
+  }
 }
 
 type ProcState = {

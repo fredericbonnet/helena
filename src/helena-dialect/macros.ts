@@ -48,6 +48,9 @@ class MacroValueCommand implements Command {
         return ERROR(`invalid method name "${method.asString()}"`);
     }
   }
+  resume(result: Result, scope: Scope): Result {
+    return this.value.macro.resume(result, scope);
+  }
 }
 
 type MacroState = {

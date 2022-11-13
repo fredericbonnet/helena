@@ -1,7 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Result, OK, ERROR, ResultCode, YIELD } from "../core/results";
 import { Command } from "../core/command";
-import { Value, ScriptValue, ValueType } from "../core/values";
+import { Value, ScriptValue, ValueType, TupleValue } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { CommandValue, Process, Scope } from "./core";
 
@@ -34,8 +34,11 @@ class NamespaceValueCommand implements Command {
         if (args[2].type != ValueType.SCRIPT)
           return ERROR("body must be a script");
         const body = args[2] as ScriptValue;
-        // TODO handle YIELD
-        return this.value.scope.executeScriptValue(body);
+        const process = this.value.scope.prepareScriptValue(body);
+        const result = process.run();
+        if (result.code == ResultCode.YIELD)
+          return YIELD(result.value, process);
+        return result;
       }
       case "call": {
         if (args.length < 3)
@@ -43,13 +46,22 @@ class NamespaceValueCommand implements Command {
         const cmdline = args.slice(2);
         if (!this.value.scope.hasLocalCommand(cmdline[0].asString()))
           return ERROR(`invalid command name "${cmdline[0].asString()}"`);
-        return this.value.scope
-          .resolveCommand(cmdline[0])
-          .execute(cmdline, this.value.scope);
+        const process = this.value.scope.prepareTupleValue(
+          new TupleValue(cmdline)
+        );
+        const result = process.run();
+        if (result.code == ResultCode.YIELD)
+          return YIELD(result.value, process);
+        return result;
       }
       default:
         return ERROR(`invalid method name "${method.asString()}"`);
     }
+  }
+  resume(result: Result): Result {
+    const process = result.data as Process;
+    process.yieldBack(result.value);
+    return process.run();
   }
 }
 
