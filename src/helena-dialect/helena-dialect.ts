@@ -20,6 +20,7 @@ import { registerLogicCommands } from "./logic";
 import { argspecCmd } from "./argspecs";
 import { aliasCmd } from "./aliases";
 import { whileCmd } from "./controls";
+import { procCmd } from "./procs";
 
 export { Scope, Variable, CommandValue } from "./core";
 
@@ -46,6 +47,7 @@ export function initCommands(scope: Scope) {
 
   scope.registerCommand("macro", macroCmd);
   scope.registerCommand("closure", closureCmd);
+  scope.registerCommand("proc", procCmd);
   scope.registerCommand("coroutine", coroutineCmd);
   scope.registerCommand("alias", aliasCmd);
 
