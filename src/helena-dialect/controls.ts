@@ -21,7 +21,7 @@ import { Process, Scope } from "./core";
 import { executeCondition, resumeCondition } from "./logic";
 
 type WhileState = {
-  step: "beforeTest" | "inTest" | "beforeBody" | "inBody";
+  step: "beforeTest" | "inTest" | "afterTest" | "beforeBody" | "inBody";
   test: Value;
   testResult?: Result;
   program: Program;
@@ -59,40 +59,140 @@ class WhileCommand implements Command {
   }
   run(state: WhileState, scope: Scope) {
     for (;;) {
-      let result: Result;
       switch (state.step) {
         case "beforeTest":
-          result = executeCondition(scope, state.test);
-          state.testResult = result;
+          state.testResult = executeCondition(scope, state.test);
           state.step = "inTest";
+          if (state.testResult.code == ResultCode.YIELD)
+            return YIELD(state.testResult.value, state);
+          state.step = "afterTest";
           break;
         case "inTest":
-          result = resumeCondition(state.testResult);
-          state.testResult = result;
+          state.testResult = resumeCondition(state.testResult);
+          if (state.testResult.code == ResultCode.YIELD)
+            return YIELD(state.testResult.value, state);
+          state.step = "afterTest";
+          break;
+        case "afterTest":
+          if (state.testResult.code != ResultCode.OK) return state.testResult;
+          if (!(state.testResult.value as BooleanValue).value)
+            return state.result;
+          state.step = "beforeBody";
           break;
         case "beforeBody":
           state.process = scope.prepareProcess(state.program);
-          result = state.process.run();
           state.step = "inBody";
           break;
-        case "inBody":
-          result = state.process.run();
+        case "inBody": {
+          const result = state.process.run();
+          if (result.code == ResultCode.YIELD)
+            return YIELD(result.value, state);
+          state.step = "beforeTest";
+          if (result.code == ResultCode.BREAK) return state.result;
+          if (result.code == ResultCode.CONTINUE) continue;
+          if (result.code != ResultCode.OK) return result;
+          state.result = result;
           break;
-      }
-      if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
-      if (state.step == "inTest") {
-        state.step = "beforeBody";
-        if (result.code != ResultCode.OK) return result;
-        if (!(result.value as BooleanValue).value) return state.result;
-      } else if (state.step == "inBody") {
-        state.step = "beforeTest";
-        if (result.code == ResultCode.BREAK) break;
-        if (result.code == ResultCode.CONTINUE) continue;
-        state.result = result;
-        if (result.code != ResultCode.OK) return result;
+        }
       }
     }
-    return state.result;
   }
 }
 export const whileCmd = new WhileCommand();
+
+class IfState {
+  args: Value[];
+  i: number;
+  step: "beforeTest" | "inTest" | "afterTest" | "beforeBody" | "inBody";
+  testResult?: Result;
+  process?: Process;
+}
+class IfCommand implements Command {
+  execute(args, scope: Scope) {
+    const checkResult = this.checkArgs(args);
+    if (checkResult.code != ResultCode.OK) return checkResult;
+    return this.run({ args, i: 0, step: "beforeTest" }, scope);
+  }
+  resume(result: Result, scope: Scope): Result {
+    const state = result.data as IfState;
+    switch (state.step) {
+      case "inTest":
+        state.testResult = YIELD_BACK(state.testResult, result.value);
+        break;
+      case "inBody":
+        state.process.yieldBack(result.value);
+        break;
+    }
+    return this.run(state, scope);
+  }
+  run(state: IfState, scope: Scope): Result {
+    while (state.i < state.args.length) {
+      switch (state.step) {
+        case "beforeTest":
+          if (state.args[state.i].asString() == "else") {
+            state.step = "beforeBody";
+          } else {
+            const test = state.args[state.i + 1];
+            state.testResult = executeCondition(scope, test);
+            state.step = "inTest";
+            if (state.testResult.code == ResultCode.YIELD)
+              return YIELD(state.testResult.value, state);
+            state.step = "afterTest";
+          }
+          break;
+        case "inTest":
+          state.testResult = resumeCondition(state.testResult);
+          if (state.testResult.code == ResultCode.YIELD)
+            return YIELD(state.testResult.value, state);
+          state.step = "afterTest";
+          break;
+        case "afterTest":
+          if (state.testResult.code != ResultCode.OK) return state.testResult;
+          if (!(state.testResult.value as BooleanValue).value) {
+            state.step = "beforeTest";
+            state.i += 3;
+            continue;
+          }
+          state.step = "beforeBody";
+          break;
+        case "beforeBody": {
+          const body =
+            state.args[state.i].asString() == "else"
+              ? state.args[state.i + 1]
+              : state.args[state.i + 2];
+          if (body.type != ValueType.SCRIPT)
+            return ERROR("body must be a script");
+          state.process = scope.prepareScriptValue(body as ScriptValue);
+          state.step = "inBody";
+          break;
+        }
+        case "inBody": {
+          const result = state.process.run();
+          if (result.code == ResultCode.YIELD)
+            return YIELD(result.value, state);
+          return result;
+        }
+      }
+    }
+    return OK(NIL);
+  }
+  checkArgs(args: Value[]): Result {
+    let i = 3;
+    while (i < args.length) {
+      const keyword = args[i].asString();
+      switch (keyword) {
+        case "elseif":
+          i += 3;
+          break;
+        case "else":
+          i += 2;
+          break;
+        default:
+          return ERROR(`invalid keyword "${keyword}"`);
+      }
+    }
+    if (i == args.length) return OK(NIL);
+    return ARITY_ERROR("if test body ?elseif test body ...? ?else? ?body?");
+  }
+}
+export const ifCmd = new IfCommand();

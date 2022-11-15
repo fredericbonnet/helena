@@ -19,7 +19,7 @@ import { registerMathCommands } from "./math";
 import { registerLogicCommands } from "./logic";
 import { argspecCmd } from "./argspecs";
 import { aliasCmd } from "./aliases";
-import { whileCmd } from "./controls";
+import { ifCmd, whileCmd } from "./controls";
 import { procCmd } from "./procs";
 import { namespaceCmd } from "./namespaces";
 
@@ -54,4 +54,5 @@ export function initCommands(scope: Scope) {
   scope.registerCommand("alias", aliasCmd);
 
   scope.registerCommand("while", whileCmd);
+  scope.registerCommand("if", ifCmd);
 }
