@@ -3,7 +3,7 @@ import { Result, OK, ERROR, ResultCode, YIELD } from "../core/results";
 import { Command } from "../core/command";
 import { Value, ScriptValue, ValueType, TupleValue } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { CommandValue, Process, Scope } from "./core";
+import { CommandValue, DeferredValue, Process, Scope } from "./core";
 
 class ScopeValue extends CommandValue {
   readonly scope: Scope;
@@ -25,36 +25,20 @@ class ScopeCommand implements Command {
     switch (method.asString()) {
       case "eval": {
         if (args.length != 3) return ARITY_ERROR("scope eval body");
-        if (args[2].type != ValueType.SCRIPT)
-          return ERROR("body must be a script");
-        const body = args[2] as ScriptValue;
-        const process = this.value.scope.prepareScriptValue(body);
-        const result = process.run();
-        if (result.code == ResultCode.YIELD)
-          return YIELD(result.value, process);
-        return result;
+        return YIELD(new DeferredValue(args[2], this.value.scope));
       }
       case "call": {
         if (args.length < 3) return ARITY_ERROR("scope call cmdname ?arg ...?");
         const cmdline = args.slice(2);
         if (!this.value.scope.hasLocalCommand(cmdline[0].asString()))
           return ERROR(`invalid command name "${cmdline[0].asString()}"`);
-        const process = this.value.scope.prepareTupleValue(
-          new TupleValue(cmdline)
+        return YIELD(
+          new DeferredValue(new TupleValue(cmdline), this.value.scope)
         );
-        const result = process.run();
-        if (result.code == ResultCode.YIELD)
-          return YIELD(result.value, process);
-        return result;
       }
       default:
         return ERROR(`invalid method name "${method.asString()}"`);
     }
-  }
-  resume(result: Result): Result {
-    const process = result.data as Process;
-    process.yieldBack(result.value);
-    return process.run();
   }
 }
 type ScopeBodyState = {

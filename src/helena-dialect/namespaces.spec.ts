@@ -220,6 +220,12 @@ describe("Helena namespaces", () => {
             new StringValue("val")
           );
         });
+        it("should accept tuple bodies", () => {
+          evaluate("namespace cmd {let cst val}");
+          expect(evaluate("[cmd] eval (get cst)")).to.eql(
+            new StringValue("val")
+          );
+        });
         it("should evaluate macros in namespace", () => {
           evaluate("namespace cmd {macro mac {} {let cst val}}");
           evaluate("[cmd] eval {mac}");
@@ -281,7 +287,6 @@ describe("Helena namespaces", () => {
               let result = state.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("val2"));
-              expect(result.data).to.exist;
 
               state.yieldBack(new StringValue("val3"));
               result = state.run();
@@ -330,9 +335,9 @@ describe("Helena namespaces", () => {
               ERROR('wrong # args: should be "namespace eval body"')
             );
           });
-          specify("non-script body", () => {
+          specify("invalid body", () => {
             expect(execute("[namespace {}] eval 1")).to.eql(
-              ERROR("body must be a script")
+              ERROR("body must be a script or tuple")
             );
           });
         });

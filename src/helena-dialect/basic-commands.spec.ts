@@ -220,17 +220,14 @@ describe("Helena basic commands", () => {
       let result = state.run();
       expect(result.code).to.eql(ResultCode.YIELD);
       expect(result.value).to.eql(new StringValue("val1"));
-      expect(result.data).to.exist;
 
       result = state.run();
       expect(result.code).to.eql(ResultCode.YIELD);
       expect(result.value).to.eql(new StringValue("val2"));
-      expect(result.data).to.exist;
 
       result = state.run();
       expect(result.code).to.eql(ResultCode.YIELD);
       expect(result.value).to.eql(new StringValue("val3"));
-      expect(result.data).to.exist;
 
       state.yieldBack(new StringValue("val4"));
       result = state.run();
@@ -279,7 +276,6 @@ describe("Helena basic commands", () => {
           let result = state.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val2"));
-          expect(result.data).to.exist;
           expect(evaluate("get var")).to.eql(new StringValue("val1"));
 
           state.yieldBack(new StringValue("val3"));

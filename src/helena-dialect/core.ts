@@ -72,58 +72,62 @@ export class DeferredValue implements Value {
   }
 }
 
-export class Process {
+type ProcessContext = {
   scope: Scope;
   program: Program;
   state: ProgramState;
+  parent?: ProcessContext;
+};
+export class Process {
+  private context: ProcessContext;
   constructor(scope: Scope, program: Program) {
-    this.scope = scope;
-    this.program = program;
-    this.state = new ProgramState();
+    this.context = { scope, program, state: new ProgramState() };
   }
   run(): Result {
-    let tailcall = false;
     for (;;) {
-      const result = this.scope.execute(this.program, this.state);
-      switch (result.code) {
-        case ResultCode.OK:
-          if (tailcall) return RETURN(result.value);
-          break;
-
-        case ResultCode.RETURN:
-          if (result.value instanceof DeferredValue) {
-            tailcall = true;
-            this.tailcall(result.value);
+      const result = this.context.scope.execute(
+        this.context.program,
+        this.context.state
+      );
+      if (result.value instanceof DeferredValue) {
+        const deferred = result.value;
+        let process;
+        switch (deferred.value.type) {
+          case ValueType.SCRIPT:
+            process = deferred.scope.prepareScriptValue(
+              deferred.value as ScriptValue
+            );
+            break;
+          case ValueType.TUPLE:
+            process = deferred.scope.prepareTupleValue(
+              deferred.value as TupleValue
+            );
+            break;
+          default:
+            return ERROR("body must be a script or tuple");
+        }
+        const parent = this.context;
+        this.context = process.context;
+        this.context.parent = parent;
+        continue;
+      }
+      if (result.code == ResultCode.OK && this.context.parent) {
+        this.context = this.context.parent;
+        switch (this.context.state.result.code) {
+          case ResultCode.RETURN:
+            return RETURN(result.value);
+          case ResultCode.YIELD:
+            this.yieldBack(result.value);
             continue;
-          }
-          break;
+          default:
+            return ERROR("unexpected deferred result");
+        }
       }
       return result;
     }
   }
   yieldBack(value: Value) {
-    this.state.result = YIELD_BACK(this.state.result, value);
-  }
-  private tailcall(deferred: DeferredValue) {
-    let process: Process;
-    switch (deferred.value.type) {
-      case ValueType.SCRIPT:
-        process = deferred.scope.prepareScriptValue(
-          deferred.value as ScriptValue
-        );
-        break;
-      case ValueType.TUPLE: {
-        process = deferred.scope.prepareTupleValue(
-          deferred.value as TupleValue
-        );
-        break;
-      }
-      default:
-        return ERROR("body must be a script or tuple");
-    }
-    this.scope = process.scope;
-    this.program = process.program;
-    this.state = process.state;
+    this.context.state.result = YIELD_BACK(this.context.state.result, value);
   }
 }
 export class Scope {
