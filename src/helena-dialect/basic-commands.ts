@@ -1,5 +1,4 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-/* eslint-disable jsdoc/require-jsdoc */ // TODO
 import {
   BREAK,
   CONTINUE,
@@ -8,13 +7,12 @@ import {
   Result,
   ResultCode,
   RETURN,
-  TAILCALL,
   YIELD,
 } from "../core/results";
 import { Command } from "../core/command";
 import { NIL, ScriptValue, TupleValue, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { Process, Scope } from "./core";
+import { DeferredValue, Process, Scope } from "./core";
 
 export const idemCmd: Command = {
   execute: (args) => {
@@ -44,7 +42,7 @@ export const tailcallCmd: Command = {
     switch (body.type) {
       case ValueType.SCRIPT:
       case ValueType.TUPLE: {
-        return TAILCALL(body, scope);
+        return RETURN(new DeferredValue(body, scope));
       }
       default:
         return ERROR("body must be a script or tuple");

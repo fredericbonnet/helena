@@ -8,7 +8,6 @@ import { Value, NIL, StringValue } from "./values";
 export enum ResultCode {
   OK,
   RETURN,
-  TAILCALL,
   YIELD,
   ERROR,
   BREAK,
@@ -37,9 +36,6 @@ export const OK = <T = unknown>(value: Value, data?: T): Result<T> => {
 };
 export const RETURN = (value: Value = NIL): Result => {
   return { code: ResultCode.RETURN, value };
-};
-export const TAILCALL = (value: Value, context?): Result => {
-  return { code: ResultCode.TAILCALL, value, data: context };
 };
 export const YIELD = (value: Value = NIL, state?): Result => {
   return { code: ResultCode.YIELD, value, data: state };

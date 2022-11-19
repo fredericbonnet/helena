@@ -59,6 +59,19 @@ export class ScopeContext {
   }
 }
 
+export class DeferredValue implements Value {
+  type = ValueType.CUSTOM;
+  value: Value;
+  scope: Scope;
+  constructor(value: Value, scope: Scope) {
+    this.value = value;
+    this.scope = scope;
+  }
+  asString(): string {
+    throw new Error("Method not implemented.");
+  }
+}
+
 export class Process {
   scope: Scope;
   program: Program;
@@ -72,29 +85,45 @@ export class Process {
     let tailcall = false;
     for (;;) {
       const result = this.scope.execute(this.program, this.state);
-      if (tailcall && result.code == ResultCode.OK) return RETURN(result.value);
-      if (result.code != ResultCode.TAILCALL) return result;
-      tailcall = true;
-      const scope = result.data as Scope;
-      let process: Process;
-      switch (result.value.type) {
-        case ValueType.SCRIPT:
-          process = scope.prepareScriptValue(result.value as ScriptValue);
+      switch (result.code) {
+        case ResultCode.OK:
+          if (tailcall) return RETURN(result.value);
           break;
-        case ValueType.TUPLE: {
-          process = scope.prepareTupleValue(result.value as TupleValue);
+
+        case ResultCode.RETURN:
+          if (result.value instanceof DeferredValue) {
+            tailcall = true;
+            this.tailcall(result.value);
+            continue;
+          }
           break;
-        }
-        default:
-          return ERROR("body must be a script or tuple");
       }
-      this.scope = process.scope;
-      this.program = process.program;
-      this.state = process.state;
+      return result;
     }
   }
   yieldBack(value: Value) {
     this.state.result = YIELD_BACK(this.state.result, value);
+  }
+  private tailcall(deferred: DeferredValue) {
+    let process: Process;
+    switch (deferred.value.type) {
+      case ValueType.SCRIPT:
+        process = deferred.scope.prepareScriptValue(
+          deferred.value as ScriptValue
+        );
+        break;
+      case ValueType.TUPLE: {
+        process = deferred.scope.prepareTupleValue(
+          deferred.value as TupleValue
+        );
+        break;
+      }
+      default:
+        return ERROR("body must be a script or tuple");
+    }
+    this.scope = process.scope;
+    this.program = process.program;
+    this.state = process.state;
   }
 }
 export class Scope {
