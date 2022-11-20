@@ -302,6 +302,39 @@ export class StringValue implements Value {
     this.value = value;
   }
 
+  /**
+   * Convert Value to StringValue
+   *
+   * @param value - Value to convert
+   *
+   * @returns       Conversion result
+   */
+  static fromValue(value: Value): Result<StringValue> {
+    if (value.type == ValueType.STRING) return OK(value, value as StringValue);
+    try {
+      const str = new StringValue(value.asString());
+      return OK(str, str);
+    } catch (e) {
+      return ERROR(e.message);
+    }
+  }
+
+  /**
+   * Convert value to string
+   *
+   * @param value - Value to convert
+   *
+   * @returns       Conversion result
+   */
+  static toString(value: Value): Result<string> {
+    try {
+      const str = value.asString();
+      return OK(NIL, str);
+    } catch (e) {
+      return ERROR(e.message);
+    }
+  }
+
   /** @override */
   asString(): string {
     return this.value;

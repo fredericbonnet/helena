@@ -22,6 +22,7 @@ import { aliasCmd } from "./aliases";
 import { ifCmd, whileCmd } from "./controls";
 import { procCmd } from "./procs";
 import { namespaceCmd } from "./namespaces";
+import { stringCmd } from "./strings";
 
 export { Scope, Variable, CommandValue } from "./core";
 
@@ -37,6 +38,8 @@ export function initCommands(scope: Scope) {
 
   registerMathCommands(scope);
   registerLogicCommands(scope);
+  
+  scope.registerCommand("string", stringCmd);
 
   scope.registerCommand("let", letCmd);
   scope.registerCommand("set", setCmd);
