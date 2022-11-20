@@ -85,7 +85,7 @@ describe("Helena math operations", () => {
         });
       });
       describe("!=", () => {
-        it("should compare two values", () => {
+        it("should compare two numbers", () => {
           expect(evaluate('"123" != -34')).to.equal(TRUE);
           expect(evaluate('56 != "56.0"')).to.equal(FALSE);
           expect(evaluate("set var 1; $var != $var")).to.equal(FALSE);
