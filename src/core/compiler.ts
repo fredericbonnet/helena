@@ -799,6 +799,56 @@ export class Executor {
   }
 
   /**
+   * Transform the given program into a callable function
+   *
+   * The program is first translated into JS code then wrapped into a function
+   * with all the dependencies injected as parameters. The resulting function
+   * is itself curried with the current executor context.
+   *
+   * @param program - Program to translate
+   * @returns         Resulting function
+   */
+  functionify(program: Program): (state?: ProgramState) => Result {
+    const translator = new Translator();
+    const source = translator.translate(program);
+    const imports = {
+      ResultCode,
+      OK,
+      ERROR,
+      NIL,
+      StringValue,
+      TupleValue,
+      QualifiedValue,
+      IndexedSelector,
+      KeyedSelector,
+    };
+    const importsCode = `
+    const {
+      ResultCode,
+      OK,
+      ERROR,
+      NIL,
+      StringValue,
+      TupleValue,
+      QualifiedValue,
+      IndexedSelector,
+      KeyedSelector,
+    } = imports;
+    `;
+
+    const f = new Function(
+      "state",
+      "resolver",
+      "context",
+      "constants",
+      "imports",
+      importsCode + source
+    );
+    return (state = new ProgramState()) =>
+      f(state, this, this.context, program.constants, imports);
+  }
+
+  /**
    * Resolve value
    *
    * - If source value is a tuple, resolve each of its elements recursively
@@ -852,5 +902,197 @@ export class Executor {
   }
   private resolveSelector(rules: Value[]) {
     return this.selectorResolver.resolve(rules);
+  }
+}
+
+/**
+ * Helena program translator
+ *
+ * This class translates compiled programs into JavaScript code
+ */
+export class Translator {
+  /**
+   * Translate the given program
+   *
+   * Runs a flat loop over the program opcodes and generates JS code of each
+   * opcode in sequence; constants are inlined in the order they are encountered
+   *
+   * Resumability is implemented using `switch` as a jump table (similar to
+   * `Duff's device technique):
+   *
+   * - translated opcodes are wrapped into a `switch` statement whose control
+   * variable is the current {@link ProgramState.pc}
+   * - each opcode is behind a case statement whose value is the opcode position
+   * - case statements fall through (there is no break statement)
+   *
+   * This allows a resumed program to jump directly to the current
+   * {@link ProgramState.pc} and continue execution from there until the next
+   * `return`.
+   *
+   * @see Executor.execute(): The generated code must be kept in sync with the
+   * execution loop
+   *
+   * @param program - Program to execute
+   *
+   * @returns         Translated code
+   */
+  translate(program: Program) {
+    const sections: string[] = [];
+
+    sections.push(`
+    if (state.result.code == ResultCode.YIELD && state.command?.resume) {
+      state.result = state.command.resume(state.result, context);
+      if (state.result.code != ResultCode.OK) return state.result;
+    }
+    `);
+
+    sections.push(`
+    switch (state.pc) {
+    `);
+    let pc = 0;
+    let cc = 0;
+    while (pc < program.opCodes.length) {
+      sections.push(`
+      case ${pc}: state.pc++;
+      `);
+      const opcode = program.opCodes[pc++];
+      switch (opcode) {
+        case OpCode.PUSH_NIL:
+          sections.push(`
+          state.push(NIL);
+          `);
+          break;
+
+        case OpCode.PUSH_CONSTANT:
+          sections.push(`
+          state.push(constants[${cc++}]);
+          `);
+          break;
+
+        case OpCode.OPEN_FRAME:
+          sections.push(`
+          state.openFrame();
+          `);
+          break;
+
+        case OpCode.CLOSE_FRAME:
+          sections.push(`
+          {
+            const values = state.closeFrame();
+            state.push(new TupleValue(values));
+          }
+          `);
+          break;
+
+        case OpCode.RESOLVE_VALUE:
+          sections.push(`
+          {
+            const source = state.pop();
+            const result = resolver.resolveValue(source);
+            if (result.code != ResultCode.OK) return result;
+            state.push(result.value);
+          }
+          `);
+          break;
+
+        case OpCode.EXPAND_VALUE:
+          sections.push(`
+          state.expand();
+          `);
+          break;
+
+        case OpCode.SET_SOURCE:
+          sections.push(`
+          {
+            const source = state.pop();
+            state.push(new QualifiedValue(source, []));
+          }
+          `);
+          break;
+
+        case OpCode.SELECT_INDEX:
+          sections.push(`
+          {
+            const index = state.pop();
+            const selector = new IndexedSelector(index);
+            const value = state.pop();
+            const result = selector.apply(value);
+            if (result.code != ResultCode.OK) return result;
+            state.push(result.value);
+          }
+          `);
+          break;
+
+        case OpCode.SELECT_KEYS:
+          sections.push(`
+          {
+            const keys = state.pop();
+            const selector = new KeyedSelector(keys.values);
+            const value = state.pop();
+            const result = selector.apply(value);
+            if (result.code != ResultCode.OK) return result;
+            state.push(result.value);
+          }
+          `);
+          break;
+
+        case OpCode.SELECT_RULES:
+          sections.push(`
+          {
+            const rules = state.pop();
+            const selector = resolver.resolveSelector(rules.values);
+            const value = state.pop();
+            const result = value.select
+              ? value.select(selector)
+              : selector.apply(value);
+            if (result.code != ResultCode.OK) return result;
+            state.push(result.value);
+          }
+          `);
+          break;
+
+        case OpCode.EVALUATE_SENTENCE:
+          sections.push(`
+          {
+            const args = state.pop();
+            if (args.values.length) {
+              const cmdname = args.values[0];
+              const command = resolver.resolveCommand(cmdname);
+              if (!command)
+              return ERROR(\`cannot resolve command \${cmdname.asString()}\`);
+              state.command = command;
+              state.result = state.command.execute(args.values, context);
+              if (state.result.code != ResultCode.OK) return state.result;
+            }
+          }
+          `);
+          break;
+
+        case OpCode.PUSH_RESULT:
+          sections.push(`
+          state.push(state.result.value);
+          `);
+          break;
+
+        case OpCode.JOIN_STRINGS:
+          sections.push(`
+          {
+            const tuple = state.pop();
+            const chunks = tuple.values.map((value) => value.asString());
+            state.push(new StringValue(chunks.join("")));
+          }
+          `);
+          break;
+
+        default:
+          throw new Error("CANTHAPPEN");
+      }
+    }
+    sections.push(`
+    }
+    if (state.frame().length) state.result = OK(state.pop());
+    return state.result;
+    `);
+    return sections.join("\n");
   }
 }
