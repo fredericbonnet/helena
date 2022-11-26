@@ -109,7 +109,7 @@ export function valueToArray(scope: Scope, value: Value): Result<Value[]> {
     case ValueType.TUPLE:
       return OK(NIL, (value as TupleValue).values);
     case ValueType.SCRIPT: {
-      const result = scope.evaluateList(value as ScriptValue);
+      const result = scope.evaluateSentences(value as ScriptValue);
       if (result.code != ResultCode.OK) return result as Result<Value[]>;
       return OK(NIL, (result.value as TupleValue).values);
     }

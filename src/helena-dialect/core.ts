@@ -149,15 +149,16 @@ export class Scope {
     this.executor = new Executor(variableResolver, commandResolver, null, this);
   }
 
+  evaluateSentences(script: ScriptValue): Result {
+    const program = this.compiler.compileSentences(script.script.sentences);
+    return this.execute(program);
+  }
+
   executeScriptValue(script: ScriptValue): Result {
     return this.executeScript(script.script);
   }
   executeScript(script: Script): Result {
     return this.prepareScript(script).run();
-  }
-  evaluateList(script: ScriptValue): Result {
-    const program = this.compiler.compileSentences(script.script.sentences);
-    return this.execute(program);
   }
 
   compile(script: Script): Program {

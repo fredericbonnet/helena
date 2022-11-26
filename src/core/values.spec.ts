@@ -259,6 +259,40 @@ describe("values", () => {
         "value has no string representation"
       );
     });
+    describe("fromValue()", () => {
+      it("should return the passed ListValue", () => {
+        const value = new ListValue([]);
+        expect(ListValue.fromValue(value).value).to.equal(value);
+      });
+      it("should accept tuples", () => {
+        const value = new TupleValue([
+          new StringValue("a"),
+          TRUE,
+          new IntegerValue(10),
+        ]);
+        expect(ListValue.fromValue(value).value).to.eql(
+          new ListValue(value.values)
+        );
+      });
+      it("should reject other value types", () => {
+        expect(ListValue.fromValue(TRUE)).to.eql(ERROR("invalid list"));
+        expect(ListValue.fromValue(new StringValue("a"))).to.eql(
+          ERROR("invalid list")
+        );
+        expect(ListValue.fromValue(new IntegerValue(10))).to.eql(
+          ERROR("invalid list")
+        );
+        expect(ListValue.fromValue(new NumberValue(10))).to.eql(
+          ERROR("invalid list")
+        );
+        expect(ListValue.fromValue(new ScriptValue(new Script(), ""))).to.eql(
+          ERROR("invalid list")
+        );
+        expect(ListValue.fromValue(new MapValue({}))).to.eql(
+          ERROR("invalid list")
+        );
+      });
+    });
     describe("indexed selectors", () => {
       it("should select elements by index", () => {
         const values = [new StringValue("value1"), new StringValue("value2")];
@@ -290,10 +324,10 @@ describe("values", () => {
           const values = [new StringValue("value1"), new StringValue("value2")];
           const value = new ListValue(values);
           expect(value.selectIndex(new IntegerValue(-1))).to.eql(
-            ERROR("index out of range")
+            ERROR('index out of range "-1"')
           );
           expect(value.selectIndex(new IntegerValue(values.length))).to.eql(
-            ERROR("index out of range")
+            ERROR(`index out of range "${values.length}"`)
           );
         });
       });

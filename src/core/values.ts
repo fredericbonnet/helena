@@ -382,6 +382,58 @@ export class ListValue implements Value {
     this.values = [...value];
   }
 
+  /**
+   * Convert Value to ListValue
+   *
+   * @param value - Value to convert
+   *
+   * @returns       Conversion result
+   */
+  static fromValue(value: Value): Result<ListValue> {
+    if (value.type == ValueType.LIST) return OK(value, value as ListValue);
+    const { data, ...result } = this.toValues(value);
+    if (result.code != ResultCode.OK) return result;
+    const v = new ListValue(data);
+    return OK(v, v);
+  }
+
+  /**
+   * Convert value to array of values:
+   * - Booleans: use boolean value
+   * - Strings: true, false
+   *
+   * @param value - Value to convert
+   *
+   * @returns       Conversion result
+   */
+  static toValues(value: Value): Result<Value[]> {
+    switch (value.type) {
+      case ValueType.LIST:
+        return OK(NIL, (value as ListValue).values);
+      case ValueType.TUPLE:
+        return OK(NIL, (value as TupleValue).values);
+      default:
+        return ERROR("invalid list");
+    }
+  }
+
+  /**
+   * Get element
+   *
+   * @param values - Values to access
+   * @param index  - Index of element to access
+   *
+   * @returns        Conversion result
+   */
+  static at(values: Value[], index: Value): Result {
+    const result = IntegerValue.toInteger(index);
+    if (result.code != ResultCode.OK) return result;
+    const i = result.data as number;
+    if (i < 0 || i >= values.length)
+      return ERROR(`index out of range "${index.asString()}"`);
+    return OK(values[i]);
+  }
+
   /** @override */
   asString(): string {
     throw new Error("value has no string representation");
@@ -389,11 +441,7 @@ export class ListValue implements Value {
 
   /** @override */
   selectIndex(index: Value): Result {
-    const result = IntegerValue.toInteger(index);
-    if (result.code != ResultCode.OK) return result;
-    const i = result.data as number;
-    if (i < 0 || i >= this.values.length) return ERROR("index out of range");
-    return OK(this.values[i]);
+    return ListValue.at(this.values, index);
   }
 }
 

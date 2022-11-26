@@ -23,6 +23,7 @@ import { ifCmd, whileCmd } from "./controls";
 import { procCmd } from "./procs";
 import { namespaceCmd } from "./namespaces";
 import { stringCmd } from "./strings";
+import { listCmd } from "./lists";
 
 export { Scope, Variable, CommandValue } from "./core";
 
@@ -40,6 +41,7 @@ export function initCommands(scope: Scope) {
   registerLogicCommands(scope);
   
   scope.registerCommand("string", stringCmd);
+  scope.registerCommand("list", listCmd);
 
   scope.registerCommand("let", letCmd);
   scope.registerCommand("set", setCmd);
