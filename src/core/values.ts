@@ -335,6 +335,23 @@ export class StringValue implements Value {
     }
   }
 
+  /**
+   * Get character as StringValue
+   *
+   * @param value - String to access
+   * @param index - Index of character to access
+   *
+   * @returns       Conversion result
+   */
+  static at(value: string, index: Value): Result {
+    const result = IntegerValue.toInteger(index);
+    if (result.code != ResultCode.OK) return result;
+    const i = result.data as number;
+    if (i < 0 || i >= value.length)
+      return ERROR(`index out of range "${index.asString()}"`);
+    return OK(new StringValue(value[i]));
+  }
+
   /** @override */
   asString(): string {
     return this.value;
@@ -342,11 +359,7 @@ export class StringValue implements Value {
 
   /** @override */
   selectIndex(index: Value): Result {
-    const result = IntegerValue.toInteger(index);
-    if (result.code != ResultCode.OK) return result;
-    const i = result.data as number;
-    if (i < 0 || i >= this.value.length) return ERROR("index out of range");
-    return OK(new StringValue(this.value[i]));
+    return StringValue.at(this.value, index);
   }
 }
 

@@ -10,9 +10,7 @@ const OPERATOR_ARITY_ERROR = (operator: string) =>
 export const stringCmd: Command = {
   execute(args: Value[]): Result {
     if (args.length < 2)
-      return ERROR(
-        `wrong # args: should be "string value ?subcommand? ?arg ...?"`
-      );
+      return ARITY_ERROR("string value ?subcommand? ?arg ...?");
     if (args.length == 2) return StringValue.fromValue(args[1]);
     const result = StringValue.toString(args[1]);
     if (result.code != ResultCode.OK) return result;
@@ -22,14 +20,9 @@ export const stringCmd: Command = {
       case "length":
         if (args.length != 3) return ARITY_ERROR("string value length");
         return OK(new IntegerValue(str.length));
-      case "at": {
+      case "at":
         if (args.length != 4) return ARITY_ERROR("string value at index");
-        const indexResult = IntegerValue.toInteger(args[3]);
-        if (indexResult.code != ResultCode.OK) return indexResult;
-        const index = indexResult.data;
-        if (index < 0 || index >= str.length) return OK(new StringValue(""));
-        return OK(new StringValue(str[index]));
-      }
+        return StringValue.at(str, args[3]);
       case "range": {
         if (args.length != 4 && args.length != 5)
           return ARITY_ERROR("string value range first ?last?");

@@ -49,12 +49,6 @@ describe("Helena strings", () => {
         it("should return the character at the given index", () => {
           expect(evaluate("string example at 1")).to.eql(new StringValue("x"));
         });
-        it("should return an empty string when index is negative", () => {
-          expect(evaluate("string example at -1")).to.eql(new StringValue(""));
-        });
-        it("should return an empty string when index is past the string length", () => {
-          expect(evaluate("string example at 10")).to.eql(new StringValue(""));
-        });
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("string example at")).to.eql(
@@ -67,6 +61,14 @@ describe("Helena strings", () => {
           specify("invalid index", () => {
             expect(execute("string example at a")).to.eql(
               ERROR('invalid integer "a"')
+            );
+          });
+          specify("index out of range", () => {
+            expect(execute("string example at -1")).to.eql(
+              ERROR('index out of range "-1"')
+            );
+            expect(execute("string example at 10")).to.eql(
+              ERROR('index out of range "10"')
             );
           });
         });
@@ -524,5 +526,18 @@ describe("Helena strings", () => {
       expect(evaluate("$s == value")).to.eql(FALSE);
       expect(evaluate("$s == example")).to.eql(TRUE);
     });
+  });
+
+  specify("at <-> indexed selector equivalence", () => {
+    rootScope.setVariable("v", new StringValue("example"));
+    evaluate("set s (string $v)");
+
+    expect(execute("string $v at 2")).to.eql(execute("idem $v[2]"));
+    expect(execute("$s at 2")).to.eql(execute("idem $v[2]"));
+    expect(execute("idem $[$s][2]")).to.eql(execute("idem $v[2]"));
+
+    expect(execute("string $v at -1")).to.eql(execute("idem $v[-1]"));
+    expect(execute("$s at -1")).to.eql(execute("idem $v[-1]"));
+    expect(execute("idem $[$s][-1]")).to.eql(execute("idem $v[-1]"));
   });
 });

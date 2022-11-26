@@ -229,10 +229,10 @@ describe("values", () => {
           const string = "some string";
           const value = new StringValue(string);
           expect(value.selectIndex(new IntegerValue(-1))).to.eql(
-            ERROR("index out of range")
+            ERROR('index out of range "-1"')
           );
           expect(value.selectIndex(new IntegerValue(string.length))).to.eql(
-            ERROR("index out of range")
+            ERROR(`index out of range "${string.length}"`)
           );
         });
       });
