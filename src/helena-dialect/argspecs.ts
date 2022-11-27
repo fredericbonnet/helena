@@ -9,14 +9,9 @@ import {
   NIL,
   TupleValue,
 } from "../core/values";
-import {
-  Argument,
-  ARITY_ERROR,
-  buildArguments,
-  buildHelp,
-  valueToArray,
-} from "./arguments";
+import { Argument, ARITY_ERROR, buildArguments, buildHelp } from "./arguments";
 import { CommandValue, Scope } from "./core";
+import { valueToArray } from "./lists";
 
 export class Argspec {
   readonly args: Argument[];
@@ -50,9 +45,9 @@ export class ArgspecValue extends CommandValue {
     this.argspec = argspec;
   }
 
-  static fromValue(scope: Scope, value: Value): Result<ArgspecValue> {
+  static fromValue(value: Value): Result<ArgspecValue> {
     if (value instanceof ArgspecValue) return OK(value, value);
-    const { data: args, ...result } = buildArguments(scope, value);
+    const { data: args, ...result } = buildArguments(value);
     if (result.code != ResultCode.OK) return result;
     const argspec = new Argspec(args);
     const command = new ArgspecCommand(argspec);
@@ -131,7 +126,7 @@ class ArgspecCommand implements Command {
       }
       case "set": {
         if (args.length != 3) return ARITY_ERROR("argspec set values");
-        const { data: values, ...result } = valueToArray(scope, args[2]);
+        const { data: values, ...result } = valueToArray(args[2]);
         if (result.code != ResultCode.OK) return result;
         // TODO handle YIELD?
         return this.setArguments(values, scope);
@@ -163,8 +158,8 @@ export const argspecCmd: Command = {
         return ARITY_ERROR("argspec ?name? specs");
     }
 
-    const result = ArgspecValue.fromValue(scope, specs);
-    if (result.code != ResultCode.OK) return result; // TODO handle YIELD?
+    const result = ArgspecValue.fromValue(specs);
+    if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
     if (name) {
       scope.registerCommand(name.asString(), argspec.command);

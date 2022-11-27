@@ -111,7 +111,7 @@ describe("Helena logic operations", () => {
           expect(evaluate("! true")).to.eql(FALSE);
           expect(evaluate("! false")).to.eql(TRUE);
         });
-        it("should accept block expressions", () => {
+        it("should accept script expressions", () => {
           expect(evaluate("! {idem true}")).to.eql(FALSE);
           expect(evaluate("! {idem false}")).to.eql(TRUE);
         });
@@ -198,7 +198,7 @@ describe("Helena logic operations", () => {
           expect(evaluate("&&" + " true".repeat(3))).to.eql(TRUE);
           expect(evaluate("&&" + " true".repeat(3) + " false")).to.eql(FALSE);
         });
-        it("should accept block expressions", () => {
+        it("should accept script expressions", () => {
           expect(evaluate("&& {idem false}")).to.eql(FALSE);
           expect(evaluate("&& {idem true}")).to.eql(TRUE);
         });
@@ -291,7 +291,7 @@ describe("Helena logic operations", () => {
           expect(evaluate("||" + " false".repeat(3))).to.eql(FALSE);
           expect(evaluate("||" + " false".repeat(3) + " true")).to.eql(TRUE);
         });
-        it("should accept block expressions", () => {
+        it("should accept script expressions", () => {
           expect(evaluate("|| {idem false}")).to.eql(FALSE);
           expect(evaluate("|| {idem true}")).to.eql(TRUE);
         });

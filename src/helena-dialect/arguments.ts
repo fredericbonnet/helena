@@ -1,14 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { ERROR, OK, Result, ResultCode } from "../core/results";
-import {
-  ListValue,
-  NIL,
-  ScriptValue,
-  TupleValue,
-  Value,
-  ValueType,
-} from "../core/values";
-import { Scope } from "./core";
+import { NIL, Value, ValueType } from "../core/values";
+import { valueToArray } from "./lists";
 
 export const ARITY_ERROR = (signature: string) =>
   ERROR(`wrong # args: should be "${signature}"`);
@@ -19,14 +12,14 @@ export type Argument = {
   default?: Value;
 };
 
-export function buildArguments(scope: Scope, specs: Value): Result<Argument[]> {
+export function buildArguments(specs: Value): Result<Argument[]> {
   const args: Argument[] = [];
   const argnames = new Set<string>();
   let hasRemainder = false;
-  const { data: values, ...result } = valueToArray(scope, specs);
+  const { data: values, ...result } = valueToArray(specs);
   if (result.code != ResultCode.OK) return result;
   for (const value of values) {
-    const { data: arg, ...result } = buildArgument(scope, value);
+    const { data: arg, ...result } = buildArgument(value);
     if (result.code != ResultCode.OK) return result;
     if (arg.type == "remainder" && hasRemainder)
       return ERROR("only one remainder argument is allowed");
@@ -38,12 +31,12 @@ export function buildArguments(scope: Scope, specs: Value): Result<Argument[]> {
   }
   return OK(NIL, args);
 }
-function buildArgument(scope: Scope, value: Value): Result<Argument> {
+function buildArgument(value: Value): Result<Argument> {
   switch (value.type) {
     case ValueType.LIST:
     case ValueType.TUPLE:
     case ValueType.SCRIPT: {
-      const { data: specs, ...result } = valueToArray(scope, value);
+      const { data: specs, ...result } = valueToArray(value);
       if (result.code != ResultCode.OK) return result;
       if (specs.length == 0) return ERROR("empty argument specifier");
       const name = specs[0].asString();
@@ -100,20 +93,4 @@ export function buildHelp(args: Argument[]) {
     }
   }
   return parts.join(" ");
-}
-
-export function valueToArray(scope: Scope, value: Value): Result<Value[]> {
-  switch (value.type) {
-    case ValueType.LIST:
-      return OK(NIL, (value as ListValue).values);
-    case ValueType.TUPLE:
-      return OK(NIL, (value as TupleValue).values);
-    case ValueType.SCRIPT: {
-      const result = scope.evaluateSentences(value as ScriptValue);
-      if (result.code != ResultCode.OK) return result as Result<Value[]>;
-      return OK(NIL, (result.value as TupleValue).values);
-    }
-    default:
-      return OK(NIL, [value]);
-  }
 }

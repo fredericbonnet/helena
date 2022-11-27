@@ -122,8 +122,8 @@ export const closureCmd: Command = {
     }
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
-    const result = ArgspecValue.fromValue(scope, specs);
-    if (result.code != ResultCode.OK) return result; // TODO handle YIELD?
+    const result = ArgspecValue.fromValue(specs);
+    if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
     const program = scope.compile((body as ScriptValue).script);
     const command = new ClosureValueCommand(
