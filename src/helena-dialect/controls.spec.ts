@@ -481,4 +481,524 @@ describe("Helena control flow commands", () => {
       });
     });
   });
+
+  describe("when", () => {
+    it("should return nil with empty test list", () => {
+      expect(evaluate("when {}")).to.eql(NIL);
+    });
+    it("should accept tuple case list", () => {
+      expect(evaluate("when ()")).to.eql(NIL);
+    });
+    it("should return the result of the first true body", () => {
+      expect(evaluate("when {true {1}}")).to.eql(new IntegerValue(1));
+      expect(evaluate("when {true {1} {2}}")).to.eql(new IntegerValue(1));
+      expect(evaluate("when {true {1} true {2} {3}}")).to.eql(
+        new IntegerValue(1)
+      );
+      expect(evaluate("when {false {1} true {2} true {3} {4}}")).to.eql(
+        new IntegerValue(2)
+      );
+      expect(evaluate("when {false {1} true {2} {3}}")).to.eql(
+        new IntegerValue(2)
+      );
+      expect(evaluate("when {false {1} true {2} true {3}  {4}}")).to.eql(
+        new IntegerValue(2)
+      );
+    });
+    it("should skip leading false bodies", () => {
+      expect(evaluate("when {false {error}}")).to.eql(NIL);
+      expect(evaluate("when {false {error} false {error}}")).to.eql(NIL);
+      expect(
+        evaluate("when {false {error} false {error} false {error}}")
+      ).to.eql(NIL);
+    });
+    it("should skip trailing tests and bodies", () => {
+      expect(evaluate("when {true {1} {error}}")).to.eql(new IntegerValue(1));
+      expect(evaluate("when {true {1} {error} {error}}")).to.eql(
+        new IntegerValue(1)
+      );
+      expect(evaluate("when {true {1} {error} {error} {error}}")).to.eql(
+        new IntegerValue(1)
+      );
+      expect(evaluate("when {false {1} true {2} {error} {error}}")).to.eql(
+        new IntegerValue(2)
+      );
+    });
+    describe("no command", () => {
+      it("should evaluate tests as boolean conditions", () => {
+        expect(evaluate("when {true {1}}")).to.eql(new IntegerValue(1));
+        expect(evaluate("when {{idem true} {1}}")).to.eql(new IntegerValue(1));
+      });
+    });
+    describe("literal command", () => {
+      it("should apply to tests", () => {
+        expect(evaluate("when ! {true {1}}")).to.eql(NIL);
+        expect(evaluate("when ! {true {1} {2}}")).to.eql(new IntegerValue(2));
+        expect(evaluate("when ! {true {1} true {2} {3}}")).to.eql(
+          new IntegerValue(3)
+        );
+      });
+      it("should be called on each test", () => {
+        evaluate("macro test {v} {set count [+ $count 1]; idem $v}");
+        evaluate("set count 0");
+        expect(evaluate("when test {false {1} false {2} {3}}")).to.eql(
+          new IntegerValue(3)
+        );
+        expect(evaluate("get count")).to.eql(new IntegerValue(2));
+      });
+      it("should pass test literal as argument", () => {
+        expect(evaluate("when ! {false {1} true {2} true {3} {4}}")).to.eql(
+          evaluate("when {{! false} {1} {! true} {2} {! true} {3} {4}}")
+        );
+        expect(evaluate("when ! {true {1} false {2} {3}}")).to.eql(
+          evaluate("when {{! true} {1} {! false} {2} {3}}")
+        );
+      });
+      it("should pass test tuple values as arguments", () => {
+        expect(evaluate("when 1 {(== 2) {1} (!= 1) {2} {3}}")).to.eql(
+          evaluate("when {{1 == 2} {1} {1 != 1} {2} {3}}")
+        );
+        expect(evaluate("when true {(? false) {1} () {2} {3}}")).to.eql(
+          evaluate("when true {(? false) {1} () {2} {3}}")
+        );
+      });
+    });
+    describe("tuple command", () => {
+      it("should apply to tests", () => {
+        expect(evaluate("when (1 ==) {2 {1} 1 {2} {3}}")).to.eql(
+          new IntegerValue(2)
+        );
+      });
+      it("should be called on each test", () => {
+        evaluate("macro test {cmd v} {set count [+ $count 1]; $cmd $v}");
+        evaluate("set count 0");
+        expect(
+          evaluate("when (test (true ?)) {false {1} false {2} {3}}")
+        ).to.eql(new IntegerValue(3));
+        expect(evaluate("get count")).to.eql(new IntegerValue(2));
+      });
+      it("should pass test literal as argument", () => {
+        expect(evaluate("when (1 ==) {2 {1} 3 {2} 1 {3} {4}}")).to.eql(
+          new IntegerValue(3)
+        );
+      });
+      it("should pass test tuple values as arguments", () => {
+        expect(evaluate("when () {false {1} true {2} {3}}")).to.eql(
+          new IntegerValue(2)
+        );
+        expect(evaluate("when (1) {(== 2) {1} (!= 1) {2} {3}}")).to.eql(
+          new IntegerValue(3)
+        );
+        expect(
+          evaluate("when (&& true) {(true false) {1} (true) {2} {3}}")
+        ).to.eql(new IntegerValue(2));
+      });
+    });
+    describe("script command", () => {
+      it("evaluation result should apply to tests", () => {
+        evaluate("macro test {v} {idem $v}");
+        expect(evaluate("when {idem test} {false {1} true {2} {3}}")).to.eql(
+          new IntegerValue(2)
+        );
+      });
+      it("should be called on each test", () => {
+        evaluate("macro test {cmd} {set count [+ $count 1]; idem $cmd}");
+        evaluate("set count 0");
+        expect(evaluate("when {test !} {true {1} true {2} {3}}")).to.eql(
+          new IntegerValue(3)
+        );
+        expect(evaluate("get count")).to.eql(new IntegerValue(2));
+      });
+      it("should pass test literal as argument", () => {
+        evaluate("macro test {v} {1 == $v}");
+        expect(evaluate("when {idem test} {2 {1} 3 {2} 1 {3} {4}}")).to.eql(
+          new IntegerValue(3)
+        );
+      });
+      it("should pass test tuple values as arguments", () => {
+        evaluate("macro test {v1 v2} {$v1 == $v2}");
+        expect(evaluate("when {idem test} {(1 2) {1} (1 1) {2} {3}}")).to.eql(
+          new IntegerValue(2)
+        );
+        expect(evaluate("when {1} {(== 2) {1} (!= 1) {2} {3}}")).to.eql(
+          new IntegerValue(3)
+        );
+        expect(
+          evaluate("when {idem (&& true)} {(true false) {1} (true) {2} {3}}")
+        ).to.eql(new IntegerValue(2));
+      });
+    });
+    describe("control flow", () => {
+      describe("return", () => {
+        it("should interrupt tests with RETURN code", () => {
+          expect(execute("when {{return val; error} {error}}")).to.eql(
+            RETURN(new StringValue("val"))
+          );
+          expect(execute("when {false {} {return val; error} {error}}")).to.eql(
+            RETURN(new StringValue("val"))
+          );
+        });
+        it("should interrupt script command with RETURN code", () => {
+          expect(execute("when {return val; error} {true {error}}")).to.eql(
+            RETURN(new StringValue("val"))
+          );
+          expect(
+            execute(
+              "set count 0; when {if {$count == 1} {return val; error} else {set count [+ $count 1]; idem idem}} {false {error} true {error} {error}}"
+            )
+          ).to.eql(RETURN(new StringValue("val")));
+        });
+        it("should interrupt bodies with RETURN code", () => {
+          expect(execute("when {true {return val; error}}")).to.eql(
+            RETURN(new StringValue("val"))
+          );
+          expect(execute("when {false {} true {return val; error}}")).to.eql(
+            RETURN(new StringValue("val"))
+          );
+          expect(
+            execute("when {false {} false {} {return val; error}}")
+          ).to.eql(RETURN(new StringValue("val")));
+        });
+      });
+      describe("tailcall", () => {
+        it("should interrupt tests with RETURN code", () => {
+          expect(execute("when {{tailcall {idem val}; error} {error}}")).to.eql(
+            RETURN(new StringValue("val"))
+          );
+          expect(
+            execute("when {false {} {tailcall {idem val}; error} {error}}")
+          ).to.eql(RETURN(new StringValue("val")));
+        });
+        it("should interrupt script command with RETURN code", () => {
+          expect(
+            execute("when {tailcall {idem val}; error} {true {error}}")
+          ).to.eql(RETURN(new StringValue("val")));
+          expect(
+            execute(
+              "set count 0; when {if {$count == 1} {tailcall {idem val}; error} else {set count [+ $count 1]; idem idem}} {false {error} true {error} {error}}"
+            )
+          ).to.eql(RETURN(new StringValue("val")));
+        });
+        it("should interrupt bodies with RETURN code", () => {
+          expect(execute("when {true {tailcall {idem val}; error}}")).to.eql(
+            RETURN(new StringValue("val"))
+          );
+          expect(
+            execute("when {false {} true {tailcall {idem val}; error}}")
+          ).to.eql(RETURN(new StringValue("val")));
+          expect(
+            execute("when {false {} false {} {tailcall {idem val}; error}}")
+          ).to.eql(RETURN(new StringValue("val")));
+        });
+      });
+      describe("yield", () => {
+        it("should interrupt tests with YIELD code", () => {
+          expect(execute("when {{yield; error} {error}}").code).to.eql(
+            ResultCode.YIELD
+          );
+          expect(execute("when {false {} {yield; error} {error}}").code).to.eql(
+            ResultCode.YIELD
+          );
+        });
+        it("should interrupt script commands with YIELD code", () => {
+          expect(execute("when {yield; error} {true {error}}").code).to.eql(
+            ResultCode.YIELD
+          );
+          expect(
+            execute(
+              "set count 0; when {if {$count == 1} {yield; error} else {set count [+ $count 1]; idem idem}} {false {error} true {error} {error}}"
+            ).code
+          ).to.eql(ResultCode.YIELD);
+        });
+        it("should interrupt bodies with YIELD code", () => {
+          expect(execute("when {true {yield; error}}").code).to.eql(
+            ResultCode.YIELD
+          );
+          expect(execute("when {false {} true {yield; error}}").code).to.eql(
+            ResultCode.YIELD
+          );
+          expect(
+            execute("when {false {} false {} {yield; error}}").code
+          ).to.eql(ResultCode.YIELD);
+        });
+        describe("should provide a resumable state", () => {
+          describe("no command", () => {
+            let state;
+            beforeEach(() => {
+              state = rootScope.prepareScript(
+                parse(
+                  "when {{yield test1} {yield body1} {yield test2} {yield body2} {yield body3}}"
+                )
+              );
+            });
+            specify("first", () => {
+              let result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("test1"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(TRUE);
+              result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("body1"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(new StringValue("result"));
+              result = state.run();
+              expect(result).to.eql(OK(new StringValue("result")));
+            });
+            specify("second", () => {
+              let result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("test1"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(FALSE);
+              result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("test2"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(TRUE);
+              result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("body2"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(new StringValue("result"));
+              result = state.run();
+              expect(result).to.eql(OK(new StringValue("result")));
+            });
+            specify("default", () => {
+              let result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("test1"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(FALSE);
+              result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("test2"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(FALSE);
+              result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("body3"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(new StringValue("result"));
+              result = state.run();
+              expect(result).to.eql(OK(new StringValue("result")));
+            });
+          });
+          describe("script command", () => {
+            let state;
+            beforeEach(() => {
+              evaluate("macro test {v} {yield $v}");
+              state = rootScope.prepareScript(
+                parse(
+                  "when {yield command} {test1 {yield body1} test2 {yield body2} {yield body3}}"
+                )
+              );
+            });
+            specify("first", () => {
+              let result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("command"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(new StringValue("test"));
+              result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("test1"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(TRUE);
+              result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("body1"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(new StringValue("result"));
+              result = state.run();
+              expect(result).to.eql(OK(new StringValue("result")));
+            });
+            specify("second", () => {
+              let result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("command"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(new StringValue("test"));
+              result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("test1"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(FALSE);
+              result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("command"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(new StringValue("test"));
+              result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("test2"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(TRUE);
+              result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("body2"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(new StringValue("result"));
+              result = state.run();
+              expect(result).to.eql(OK(new StringValue("result")));
+            });
+            specify("default", () => {
+              let result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("command"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(new StringValue("test"));
+              result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("test1"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(FALSE);
+              result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("command"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(new StringValue("test"));
+              result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("test2"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(FALSE);
+              result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("body3"));
+              expect(result.data).to.exist;
+
+              state.yieldBack(new StringValue("result"));
+              result = state.run();
+              expect(result).to.eql(OK(new StringValue("result")));
+            });
+          });
+        });
+      });
+      describe("error", () => {
+        it("should interrupt tests with ERROR code", () => {
+          expect(execute("when {{error msg; error} {error}}")).to.eql(
+            ERROR("msg")
+          );
+          expect(execute("when {false {} {error msg; error} {error}}")).to.eql(
+            ERROR("msg")
+          );
+        });
+        it("should interrupt script command with ERROR code", () => {
+          expect(execute("when {error msg; error} {true {error}}")).to.eql(
+            ERROR("msg")
+          );
+          expect(
+            execute(
+              "set count 0; when {if {$count == 1} {error msg; error} else {set count [+ $count 1]; idem idem}} {false {error} true {error} {error}}"
+            )
+          ).to.eql(ERROR("msg"));
+        });
+        it("should interrupt bodies with ERROR code", () => {
+          expect(execute("when {true {error msg; error}}")).to.eql(
+            ERROR("msg")
+          );
+          expect(execute("when {false {} true {error msg; error}}")).to.eql(
+            ERROR("msg")
+          );
+          expect(execute("when {false {} false {} {error msg; error}}")).to.eql(
+            ERROR("msg")
+          );
+        });
+      });
+      describe("break", () => {
+        it("should interrupt tests with BREAK code", () => {
+          expect(execute("when {{break; error} {error}}")).to.eql(BREAK());
+          expect(execute("when {false {} {break; error} {error}}")).to.eql(
+            BREAK()
+          );
+        });
+        it("should interrupt script command with BREAK code", () => {
+          expect(execute("when {break; error} {true {error}}")).to.eql(BREAK());
+          expect(
+            execute(
+              "set count 0; when {if {$count == 1} {break; error} else {set count [+ $count 1]; idem idem}} {false {error} true {error} {error}}"
+            )
+          ).to.eql(BREAK());
+        });
+        it("should interrupt bodies with BREAK code", () => {
+          expect(execute("when {true {break; error}}")).to.eql(BREAK());
+          expect(execute("when {false {} true {break; error}}")).to.eql(
+            BREAK()
+          );
+          expect(execute("when {false {} false {} {break; error}}")).to.eql(
+            BREAK()
+          );
+        });
+      });
+      describe("continue", () => {
+        it("should interrupt tests with CONTINUE code", () => {
+          expect(execute("when {{continue; error} {error}}")).to.eql(
+            CONTINUE()
+          );
+          expect(execute("when {false {} {continue; error} {error}}")).to.eql(
+            CONTINUE()
+          );
+        });
+        it("should interrupt script command with BREAK code", () => {
+          expect(execute("when {continue; error} {true {error}}")).to.eql(
+            CONTINUE()
+          );
+          expect(
+            execute(
+              "set count 0; when {if {$count == 1} {continue; error} else {set count [+ $count 1]; idem idem}} {false {error} true {error} {error}}"
+            )
+          ).to.eql(CONTINUE());
+        });
+        it("should interrupt bodies with CONTINUE code", () => {
+          expect(execute("when {true {continue; error}}")).to.eql(CONTINUE());
+          expect(execute("when {false {} true {continue; error}}")).to.eql(
+            CONTINUE()
+          );
+          expect(execute("when {false {} false {} {continue; error}}")).to.eql(
+            CONTINUE()
+          );
+        });
+      });
+    });
+    describe("exceptions", () => {
+      specify("wrong arity", () => {
+        expect(execute("when")).to.eql(
+          ERROR(
+            'wrong # args: should be "when ?command? {?test body ...? ?default?}"'
+          )
+        );
+        expect(execute("when a b c")).to.eql(
+          ERROR(
+            'wrong # args: should be "when ?command? {?test body ...? ?default?}"'
+          )
+        );
+      });
+      specify("invalid case list", () => {
+        expect(execute("when a")).to.eql(ERROR("invalid list"));
+        expect(execute("when []")).to.eql(ERROR("invalid list"));
+        expect(execute("when {$a}")).to.eql(ERROR("invalid list"));
+      });
+    });
+  });
 });
