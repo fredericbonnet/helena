@@ -62,7 +62,7 @@ class CoroutineCommand implements Command {
     }
   }
 
-  run() {
+  private run() {
     const result = this.value.process.run();
     switch (result.code) {
       case ResultCode.OK:

@@ -118,14 +118,14 @@ describe("Helena logic operations", () => {
         describe("control flow", () => {
           describe("return", () => {
             it("should interrupt expression with RETURN code", () => {
-              expect(execute("! {return value; error}")).to.eql(
+              expect(execute("! {return value; unreachable}")).to.eql(
                 RETURN(new StringValue("value"))
               );
             });
           });
           describe("tailcall", () => {
             it("should interrupt expression with RETURN code", () => {
-              expect(execute("! {tailcall {idem value}; error}")).to.eql(
+              expect(execute("! {tailcall {idem value}; unreachable}")).to.eql(
                 RETURN(new StringValue("value"))
               );
             });
@@ -161,7 +161,7 @@ describe("Helena logic operations", () => {
           });
           describe("break", () => {
             it("should interrupt expression with BREAK code", () => {
-              expect(execute("! {break; error}")).to.eql(BREAK());
+              expect(execute("! {break; unreachable}")).to.eql(BREAK());
             });
           });
           describe("continue", () => {
@@ -203,20 +203,20 @@ describe("Helena logic operations", () => {
           expect(evaluate("&& {idem true}")).to.eql(TRUE);
         });
         it("should short-circuit on false", () => {
-          expect(evaluate("&& false {error}")).to.eql(FALSE);
+          expect(evaluate("&& false {unreachable}")).to.eql(FALSE);
         });
         describe("control flow", () => {
           describe("return", () => {
             it("should interrupt expression with RETURN code", () => {
-              expect(execute("&& true {return value; error} false")).to.eql(
-                RETURN(new StringValue("value"))
-              );
+              expect(
+                execute("&& true {return value; unreachable} false")
+              ).to.eql(RETURN(new StringValue("value")));
             });
           });
           describe("tailcall", () => {
             it("should interrupt expression with RETURN code", () => {
               expect(
-                execute("&& true {tailcall {idem value}; error} false")
+                execute("&& true {tailcall {idem value}; unreachable} false")
               ).to.eql(RETURN(new StringValue("value")));
             });
           });
@@ -254,12 +254,14 @@ describe("Helena logic operations", () => {
           });
           describe("break", () => {
             it("should interrupt expression with BREAK code", () => {
-              expect(execute("&& true {break; error} false")).to.eql(BREAK());
+              expect(execute("&& true {break; unreachable} false")).to.eql(
+                BREAK()
+              );
             });
           });
           describe("continue", () => {
             it("should interrupt expression with CONTINUE code", () => {
-              expect(execute("&& true {continue; error} false")).to.eql(
+              expect(execute("&& true {continue; unreachable} false")).to.eql(
                 CONTINUE()
               );
             });
@@ -296,20 +298,20 @@ describe("Helena logic operations", () => {
           expect(evaluate("|| {idem true}")).to.eql(TRUE);
         });
         it("should short-circuit on true", () => {
-          expect(evaluate("|| true {error}")).to.eql(TRUE);
+          expect(evaluate("|| true {unreachable}")).to.eql(TRUE);
         });
         describe("control flow", () => {
           describe("return", () => {
             it("should interrupt expression with RETURN code", () => {
-              expect(execute("|| false {return value; error} true")).to.eql(
-                RETURN(new StringValue("value"))
-              );
+              expect(
+                execute("|| false {return value; unreachable} true")
+              ).to.eql(RETURN(new StringValue("value")));
             });
           });
           describe("tailcall", () => {
             it("should interrupt expression with RETURN code", () => {
               expect(
-                execute("|| false {tailcall {idem value}; error} true")
+                execute("|| false {tailcall {idem value}; unreachable} true")
               ).to.eql(RETURN(new StringValue("value")));
             });
           });
@@ -347,12 +349,14 @@ describe("Helena logic operations", () => {
           });
           describe("break", () => {
             it("should interrupt expression with BREAK code", () => {
-              expect(execute("|| false {break; error} true")).to.eql(BREAK());
+              expect(execute("|| false {break; unreachable} true")).to.eql(
+                BREAK()
+              );
             });
           });
           describe("continue", () => {
             it("should interrupt expression with CONTINUE code", () => {
-              expect(execute("|| false {continue; error} true")).to.eql(
+              expect(execute("|| false {continue; unreachable} true")).to.eql(
                 CONTINUE()
               );
             });

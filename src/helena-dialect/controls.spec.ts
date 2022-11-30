@@ -33,7 +33,7 @@ describe("Helena control flow commands", () => {
 
   describe("while", () => {
     it("should skip the body when test is false", () => {
-      expect(execute("while false {error}").code).to.eql(ResultCode.OK);
+      expect(execute("while false {unreachable}").code).to.eql(ResultCode.OK);
     });
     it("should loop over the body while test is true", () => {
       evaluate("set i 0; while {$i < 10} {set i [+ $i 1]}");
@@ -48,14 +48,14 @@ describe("Helena control flow commands", () => {
     describe("control flow", () => {
       describe("return", () => {
         it("should interrupt the test with RETURN code", () => {
-          expect(execute("while {return val; error} {error}")).to.eql(
-            RETURN(new StringValue("val"))
-          );
+          expect(
+            execute("while {return val; unreachable} {unreachable}")
+          ).to.eql(RETURN(new StringValue("val")));
         });
         it("should interrupt the loop with RETURN code", () => {
           expect(
             execute(
-              "set i 0; while {$i < 10} {set i [+ $i 1]; return val; error}"
+              "set i 0; while {$i < 10} {set i [+ $i 1]; return val; unreachable}"
             )
           ).to.eql(RETURN(new StringValue("val")));
           expect(evaluate("get i")).to.eql(new IntegerValue(1));
@@ -63,14 +63,14 @@ describe("Helena control flow commands", () => {
       });
       describe("tailcall", () => {
         it("should interrupt the test with RETURN code", () => {
-          expect(execute("while {tailcall {idem val}; error} {error}")).to.eql(
-            RETURN(new StringValue("val"))
-          );
+          expect(
+            execute("while {tailcall {idem val}; unreachable} {unreachable}")
+          ).to.eql(RETURN(new StringValue("val")));
         });
         it("should interrupt the loop with RETURN code", () => {
           expect(
             execute(
-              "set i 0; while {$i < 10} {set i [+ $i 1]; tailcall {idem val}; error}"
+              "set i 0; while {$i < 10} {set i [+ $i 1]; tailcall {idem val}; unreachable}"
             )
           ).to.eql(RETURN(new StringValue("val")));
           expect(evaluate("get i")).to.eql(new IntegerValue(1));
@@ -78,12 +78,12 @@ describe("Helena control flow commands", () => {
       });
       describe("yield", () => {
         it("should interrupt the test with YIELD code", () => {
-          expect(execute("while {yield; error} {}").code).to.eql(
+          expect(execute("while {yield; unreachable} {}").code).to.eql(
             ResultCode.YIELD
           );
         });
         it("should interrupt the body with YIELD code", () => {
-          expect(execute("while {true} {yield; error}").code).to.eql(
+          expect(execute("while {true} {yield; unreachable}").code).to.eql(
             ResultCode.YIELD
           );
         });
@@ -129,9 +129,9 @@ describe("Helena control flow commands", () => {
       });
       describe("error", () => {
         it("should interrupt the test with ERROR code", () => {
-          expect(execute("while {error msg; set var val} {error}")).to.eql(
-            ERROR("msg")
-          );
+          expect(
+            execute("while {error msg; set var val} {unreachable}")
+          ).to.eql(ERROR("msg"));
           expect(execute("get var").code).to.eql(ResultCode.ERROR);
         });
         it("should interrupt the loop with ERROR code", () => {
@@ -146,23 +146,29 @@ describe("Helena control flow commands", () => {
       });
       describe("break", () => {
         it("should interrupt the test with BREAK code", () => {
-          expect(execute("while {break; error} {error}")).to.eql(BREAK());
+          expect(execute("while {break; unreachable} {unreachable}")).to.eql(
+            BREAK()
+          );
         });
         it("should interrupt the body with nil result", () => {
           expect(
-            execute("set i 0; while {$i < 10} {set i [+ $i 1]; break; error}")
+            execute(
+              "set i 0; while {$i < 10} {set i [+ $i 1]; break; unreachable}"
+            )
           ).to.eql(OK(NIL));
           expect(evaluate("get i")).to.eql(new IntegerValue(1));
         });
       });
       describe("continue", () => {
         it("should interrupt the test with CONTINUE code", () => {
-          expect(execute("while {continue; error} {error}")).to.eql(CONTINUE());
+          expect(execute("while {continue; unreachable} {unreachable}")).to.eql(
+            CONTINUE()
+          );
         });
         it("should interrupt the body iteration", () => {
           expect(
             execute(
-              "set i 0; while {$i < 10} {set i [+ $i 1]; continue; error}"
+              "set i 0; while {$i < 10} {set i [+ $i 1]; continue; unreachable}"
             )
           ).to.eql(OK(NIL));
           expect(evaluate("get i")).to.eql(new IntegerValue(10));
@@ -211,65 +217,83 @@ describe("Helena control flow commands", () => {
       ).to.eql(new IntegerValue(4));
     });
     it("should skip leading false bodies", () => {
-      expect(evaluate("if false {error}")).to.eql(NIL);
-      expect(evaluate("if false {error} elseif false {error}")).to.eql(NIL);
+      expect(evaluate("if false {unreachable}")).to.eql(NIL);
       expect(
-        evaluate("if false {error} elseif false {error} elseif false {error}")
+        evaluate("if false {unreachable} elseif false {unreachable}")
+      ).to.eql(NIL);
+      expect(
+        evaluate(
+          "if false {unreachable} elseif false {unreachable} elseif false {unreachable}"
+        )
       ).to.eql(NIL);
     });
     it("should skip trailing tests and bodies", () => {
-      expect(evaluate("if true {1} else {error}")).to.eql(new IntegerValue(1));
-      expect(evaluate("if true {1} elseif {error} {error}")).to.eql(
+      expect(evaluate("if true {1} else {unreachable}")).to.eql(
+        new IntegerValue(1)
+      );
+      expect(evaluate("if true {1} elseif {unreachable} {unreachable}")).to.eql(
         new IntegerValue(1)
       );
       expect(
-        evaluate("if true {1} elseif {error} {error} else {error}")
+        evaluate(
+          "if true {1} elseif {unreachable} {unreachable} else {unreachable}"
+        )
       ).to.eql(new IntegerValue(1));
       expect(
-        evaluate("if false {1} elseif true {2} elseif {error} {error}")
+        evaluate(
+          "if false {1} elseif true {2} elseif {unreachable} {unreachable}"
+        )
       ).to.eql(new IntegerValue(2));
     });
     describe("control flow", () => {
       describe("return", () => {
         it("should interrupt tests with RETURN code", () => {
-          expect(execute("if {return val; error} {error}")).to.eql(
+          expect(execute("if {return val; unreachable} {unreachable}")).to.eql(
             RETURN(new StringValue("val"))
           );
           expect(
-            execute("if false {} elseif {return val; error} {error}")
+            execute(
+              "if false {} elseif {return val; unreachable} {unreachable}"
+            )
           ).to.eql(RETURN(new StringValue("val")));
         });
         it("should interrupt bodies with RETURN code", () => {
-          expect(execute("if true {return val; error}")).to.eql(
-            RETURN(new StringValue("val"))
-          );
-          expect(execute("if false {} elseif true {return val; error}")).to.eql(
+          expect(execute("if true {return val; unreachable}")).to.eql(
             RETURN(new StringValue("val"))
           );
           expect(
-            execute("if false {} elseif false {} else {return val; error}")
+            execute("if false {} elseif true {return val; unreachable}")
+          ).to.eql(RETURN(new StringValue("val")));
+          expect(
+            execute(
+              "if false {} elseif false {} else {return val; unreachable}"
+            )
           ).to.eql(RETURN(new StringValue("val")));
         });
       });
       describe("tailcall", () => {
         it("should interrupt tests with RETURN code", () => {
-          expect(execute("if {tailcall {idem val}; error} {error}")).to.eql(
-            RETURN(new StringValue("val"))
-          );
           expect(
-            execute("if false {} elseif {tailcall {idem val}; error} {error}")
-          ).to.eql(RETURN(new StringValue("val")));
-        });
-        it("should interrupt bodies with RETURN code", () => {
-          expect(execute("if true {tailcall {idem val}; error}")).to.eql(
-            RETURN(new StringValue("val"))
-          );
-          expect(
-            execute("if false {} elseif true {tailcall {idem val}; error}")
+            execute("if {tailcall {idem val}; unreachable} {unreachable}")
           ).to.eql(RETURN(new StringValue("val")));
           expect(
             execute(
-              "if false {} elseif false {} else {tailcall {idem val}; error}"
+              "if false {} elseif {tailcall {idem val}; unreachable} {unreachable}"
+            )
+          ).to.eql(RETURN(new StringValue("val")));
+        });
+        it("should interrupt bodies with RETURN code", () => {
+          expect(execute("if true {tailcall {idem val}; unreachable}")).to.eql(
+            RETURN(new StringValue("val"))
+          );
+          expect(
+            execute(
+              "if false {} elseif true {tailcall {idem val}; unreachable}"
+            )
+          ).to.eql(RETURN(new StringValue("val")));
+          expect(
+            execute(
+              "if false {} elseif false {} else {tailcall {idem val}; unreachable}"
             )
           ).to.eql(RETURN(new StringValue("val")));
         });
@@ -277,23 +301,25 @@ describe("Helena control flow commands", () => {
       describe("yield", () => {
         it("should interrupt tests with YIELD code", () => {
           it("should interrupt tests with ERROR code", () => {
-            expect(execute("if {yield; error} {error}").code).to.eql(
-              ResultCode.YIELD
-            );
             expect(
-              execute("if false {} elseif {yield; error} {error}").code
+              execute("if {yield; unreachable} {unreachable}").code
+            ).to.eql(ResultCode.YIELD);
+            expect(
+              execute("if false {} elseif {yield; unreachable} {unreachable}")
+                .code
             ).to.eql(ResultCode.YIELD);
           });
         });
         it("should interrupt bodies with YIELD code", () => {
-          expect(execute("if true {yield; error}").code).to.eql(
-            ResultCode.YIELD
-          );
-          expect(execute("if false {} elseif true {yield; error}").code).to.eql(
+          expect(execute("if true {yield; unreachable}").code).to.eql(
             ResultCode.YIELD
           );
           expect(
-            execute("if false {} elseif false {} else {yield; error}").code
+            execute("if false {} elseif true {yield; unreachable}").code
+          ).to.eql(ResultCode.YIELD);
+          expect(
+            execute("if false {} elseif false {} else {yield; unreachable}")
+              .code
           ).to.eql(ResultCode.YIELD);
         });
         describe("should provide a resumable state", () => {
@@ -369,52 +395,60 @@ describe("Helena control flow commands", () => {
       });
       describe("error", () => {
         it("should interrupt tests with ERROR code", () => {
-          expect(execute("if {error msg; error} {error}")).to.eql(ERROR("msg"));
-          expect(
-            execute("if false {} elseif {error msg; error} {error}")
-          ).to.eql(ERROR("msg"));
-        });
-        it("should interrupt bodies with ERROR code", () => {
-          expect(execute("if true {error msg; error}")).to.eql(ERROR("msg"));
-          expect(execute("if false {} elseif true {error msg; error}")).to.eql(
+          expect(execute("if {error msg; unreachable} {unreachable}")).to.eql(
             ERROR("msg")
           );
           expect(
-            execute("if false {} elseif false {} else {error msg; error}")
+            execute("if false {} elseif {error msg; unreachable} {unreachable}")
+          ).to.eql(ERROR("msg"));
+        });
+        it("should interrupt bodies with ERROR code", () => {
+          expect(execute("if true {error msg; unreachable}")).to.eql(
+            ERROR("msg")
+          );
+          expect(
+            execute("if false {} elseif true {error msg; unreachable}")
+          ).to.eql(ERROR("msg"));
+          expect(
+            execute("if false {} elseif false {} else {error msg; unreachable}")
           ).to.eql(ERROR("msg"));
         });
       });
       describe("break", () => {
         it("should interrupt tests with BREAK code", () => {
-          expect(execute("if {break; error} {error}")).to.eql(BREAK());
-          expect(execute("if false {} elseif {break; error} {error}")).to.eql(
-            BREAK()
-          );
-        });
-        it("should interrupt bodies with BREAK code", () => {
-          expect(execute("if true {break; error}")).to.eql(BREAK());
-          expect(execute("if false {} elseif true {break; error}")).to.eql(
+          expect(execute("if {break; unreachable} {unreachable}")).to.eql(
             BREAK()
           );
           expect(
-            execute("if false {} elseif false {} else {break; error}")
+            execute("if false {} elseif {break; unreachable} {unreachable}")
+          ).to.eql(BREAK());
+        });
+        it("should interrupt bodies with BREAK code", () => {
+          expect(execute("if true {break; unreachable}")).to.eql(BREAK());
+          expect(
+            execute("if false {} elseif true {break; unreachable}")
+          ).to.eql(BREAK());
+          expect(
+            execute("if false {} elseif false {} else {break; unreachable}")
           ).to.eql(BREAK());
         });
       });
       describe("continue", () => {
         it("should interrupt tests with CONTINUE code", () => {
-          expect(execute("if {continue; error} {error}")).to.eql(CONTINUE());
-          expect(
-            execute("if false {} elseif {continue; error} {error}")
-          ).to.eql(CONTINUE());
-        });
-        it("should interrupt bodies with CONTINUE code", () => {
-          expect(execute("if true {continue; error}")).to.eql(CONTINUE());
-          expect(execute("if false {} elseif true {continue; error}")).to.eql(
+          expect(execute("if {continue; unreachable} {unreachable}")).to.eql(
             CONTINUE()
           );
           expect(
-            execute("if false {} elseif false {} else {continue; error}")
+            execute("if false {} elseif {continue; unreachable} {unreachable}")
+          ).to.eql(CONTINUE());
+        });
+        it("should interrupt bodies with CONTINUE code", () => {
+          expect(execute("if true {continue; unreachable}")).to.eql(CONTINUE());
+          expect(
+            execute("if false {} elseif true {continue; unreachable}")
+          ).to.eql(CONTINUE());
+          expect(
+            execute("if false {} elseif false {} else {continue; unreachable}")
           ).to.eql(CONTINUE());
         });
       });
@@ -506,23 +540,29 @@ describe("Helena control flow commands", () => {
       );
     });
     it("should skip leading false bodies", () => {
-      expect(evaluate("when {false {error}}")).to.eql(NIL);
-      expect(evaluate("when {false {error} false {error}}")).to.eql(NIL);
+      expect(evaluate("when {false {unreachable}}")).to.eql(NIL);
+      expect(evaluate("when {false {unreachable} false {unreachable}}")).to.eql(
+        NIL
+      );
       expect(
-        evaluate("when {false {error} false {error} false {error}}")
+        evaluate(
+          "when {false {unreachable} false {unreachable} false {unreachable}}"
+        )
       ).to.eql(NIL);
     });
     it("should skip trailing tests and bodies", () => {
-      expect(evaluate("when {true {1} {error}}")).to.eql(new IntegerValue(1));
-      expect(evaluate("when {true {1} {error} {error}}")).to.eql(
+      expect(evaluate("when {true {1} {unreachable}}")).to.eql(
         new IntegerValue(1)
       );
-      expect(evaluate("when {true {1} {error} {error} {error}}")).to.eql(
+      expect(evaluate("when {true {1} {unreachable} {unreachable}}")).to.eql(
         new IntegerValue(1)
       );
-      expect(evaluate("when {false {1} true {2} {error} {error}}")).to.eql(
-        new IntegerValue(2)
-      );
+      expect(
+        evaluate("when {true {1} {unreachable} {unreachable} {unreachable}}")
+      ).to.eql(new IntegerValue(1));
+      expect(
+        evaluate("when {false {1} true {2} {unreachable} {unreachable}}")
+      ).to.eql(new IntegerValue(2));
     });
     describe("no command", () => {
       it("should evaluate tests as boolean conditions", () => {
@@ -631,94 +671,100 @@ describe("Helena control flow commands", () => {
     describe("control flow", () => {
       describe("return", () => {
         it("should interrupt tests with RETURN code", () => {
-          expect(execute("when {{return val; error} {error}}")).to.eql(
-            RETURN(new StringValue("val"))
-          );
-          expect(execute("when {false {} {return val; error} {error}}")).to.eql(
-            RETURN(new StringValue("val"))
-          );
+          expect(
+            execute("when {{return val; unreachable} {unreachable}}")
+          ).to.eql(RETURN(new StringValue("val")));
+          expect(
+            execute("when {false {} {return val; unreachable} {unreachable}}")
+          ).to.eql(RETURN(new StringValue("val")));
         });
         it("should interrupt script command with RETURN code", () => {
-          expect(execute("when {return val; error} {true {error}}")).to.eql(
-            RETURN(new StringValue("val"))
-          );
+          expect(
+            execute("when {return val; unreachable} {true {unreachable}}")
+          ).to.eql(RETURN(new StringValue("val")));
           expect(
             execute(
-              "set count 0; when {if {$count == 1} {return val; error} else {set count [+ $count 1]; idem idem}} {false {error} true {error} {error}}"
+              "set count 0; when {if {$count == 1} {return val; unreachable} else {set count [+ $count 1]; idem idem}} {false {unreachable} true {unreachable} {unreachable}}"
             )
           ).to.eql(RETURN(new StringValue("val")));
         });
         it("should interrupt bodies with RETURN code", () => {
-          expect(execute("when {true {return val; error}}")).to.eql(
-            RETURN(new StringValue("val"))
-          );
-          expect(execute("when {false {} true {return val; error}}")).to.eql(
+          expect(execute("when {true {return val; unreachable}}")).to.eql(
             RETURN(new StringValue("val"))
           );
           expect(
-            execute("when {false {} false {} {return val; error}}")
+            execute("when {false {} true {return val; unreachable}}")
+          ).to.eql(RETURN(new StringValue("val")));
+          expect(
+            execute("when {false {} false {} {return val; unreachable}}")
           ).to.eql(RETURN(new StringValue("val")));
         });
       });
       describe("tailcall", () => {
         it("should interrupt tests with RETURN code", () => {
-          expect(execute("when {{tailcall {idem val}; error} {error}}")).to.eql(
-            RETURN(new StringValue("val"))
-          );
           expect(
-            execute("when {false {} {tailcall {idem val}; error} {error}}")
+            execute("when {{tailcall {idem val}; unreachable} {unreachable}}")
+          ).to.eql(RETURN(new StringValue("val")));
+          expect(
+            execute(
+              "when {false {} {tailcall {idem val}; unreachable} {unreachable}}"
+            )
           ).to.eql(RETURN(new StringValue("val")));
         });
         it("should interrupt script command with RETURN code", () => {
           expect(
-            execute("when {tailcall {idem val}; error} {true {error}}")
+            execute(
+              "when {tailcall {idem val}; unreachable} {true {unreachable}}"
+            )
           ).to.eql(RETURN(new StringValue("val")));
           expect(
             execute(
-              "set count 0; when {if {$count == 1} {tailcall {idem val}; error} else {set count [+ $count 1]; idem idem}} {false {error} true {error} {error}}"
+              "set count 0; when {if {$count == 1} {tailcall {idem val}; unreachable} else {set count [+ $count 1]; idem idem}} {false {unreachable} true {unreachable} {unreachable}}"
             )
           ).to.eql(RETURN(new StringValue("val")));
         });
         it("should interrupt bodies with RETURN code", () => {
-          expect(execute("when {true {tailcall {idem val}; error}}")).to.eql(
-            RETURN(new StringValue("val"))
-          );
           expect(
-            execute("when {false {} true {tailcall {idem val}; error}}")
+            execute("when {true {tailcall {idem val}; unreachable}}")
           ).to.eql(RETURN(new StringValue("val")));
           expect(
-            execute("when {false {} false {} {tailcall {idem val}; error}}")
+            execute("when {false {} true {tailcall {idem val}; unreachable}}")
+          ).to.eql(RETURN(new StringValue("val")));
+          expect(
+            execute(
+              "when {false {} false {} {tailcall {idem val}; unreachable}}"
+            )
           ).to.eql(RETURN(new StringValue("val")));
         });
       });
       describe("yield", () => {
         it("should interrupt tests with YIELD code", () => {
-          expect(execute("when {{yield; error} {error}}").code).to.eql(
-            ResultCode.YIELD
-          );
-          expect(execute("when {false {} {yield; error} {error}}").code).to.eql(
-            ResultCode.YIELD
-          );
+          expect(
+            execute("when {{yield; unreachable} {unreachable}}").code
+          ).to.eql(ResultCode.YIELD);
+          expect(
+            execute("when {false {} {yield; unreachable} {unreachable}}").code
+          ).to.eql(ResultCode.YIELD);
         });
         it("should interrupt script commands with YIELD code", () => {
-          expect(execute("when {yield; error} {true {error}}").code).to.eql(
-            ResultCode.YIELD
-          );
+          expect(
+            execute("when {yield; unreachable} {true {unreachable}}").code
+          ).to.eql(ResultCode.YIELD);
           expect(
             execute(
-              "set count 0; when {if {$count == 1} {yield; error} else {set count [+ $count 1]; idem idem}} {false {error} true {error} {error}}"
+              "set count 0; when {if {$count == 1} {yield; unreachable} else {set count [+ $count 1]; idem idem}} {false {unreachable} true {unreachable} {unreachable}}"
             ).code
           ).to.eql(ResultCode.YIELD);
         });
         it("should interrupt bodies with YIELD code", () => {
-          expect(execute("when {true {yield; error}}").code).to.eql(
-            ResultCode.YIELD
-          );
-          expect(execute("when {false {} true {yield; error}}").code).to.eql(
+          expect(execute("when {true {yield; unreachable}}").code).to.eql(
             ResultCode.YIELD
           );
           expect(
-            execute("when {false {} false {} {yield; error}}").code
+            execute("when {false {} true {yield; unreachable}}").code
+          ).to.eql(ResultCode.YIELD);
+          expect(
+            execute("when {false {} false {} {yield; unreachable}}").code
           ).to.eql(ResultCode.YIELD);
         });
         describe("should provide a resumable state", () => {
@@ -897,87 +943,93 @@ describe("Helena control flow commands", () => {
       });
       describe("error", () => {
         it("should interrupt tests with ERROR code", () => {
-          expect(execute("when {{error msg; error} {error}}")).to.eql(
-            ERROR("msg")
-          );
-          expect(execute("when {false {} {error msg; error} {error}}")).to.eql(
-            ERROR("msg")
-          );
+          expect(
+            execute("when {{error msg; unreachable} {unreachable}}")
+          ).to.eql(ERROR("msg"));
+          expect(
+            execute("when {false {} {error msg; unreachable} {unreachable}}")
+          ).to.eql(ERROR("msg"));
         });
         it("should interrupt script command with ERROR code", () => {
-          expect(execute("when {error msg; error} {true {error}}")).to.eql(
-            ERROR("msg")
-          );
+          expect(
+            execute("when {error msg; unreachable} {true {unreachable}}")
+          ).to.eql(ERROR("msg"));
           expect(
             execute(
-              "set count 0; when {if {$count == 1} {error msg; error} else {set count [+ $count 1]; idem idem}} {false {error} true {error} {error}}"
+              "set count 0; when {if {$count == 1} {error msg; unreachable} else {set count [+ $count 1]; idem idem}} {false {unreachable} true {unreachable} {unreachable}}"
             )
           ).to.eql(ERROR("msg"));
         });
         it("should interrupt bodies with ERROR code", () => {
-          expect(execute("when {true {error msg; error}}")).to.eql(
+          expect(execute("when {true {error msg; unreachable}}")).to.eql(
             ERROR("msg")
           );
-          expect(execute("when {false {} true {error msg; error}}")).to.eql(
-            ERROR("msg")
-          );
-          expect(execute("when {false {} false {} {error msg; error}}")).to.eql(
-            ERROR("msg")
-          );
+          expect(
+            execute("when {false {} true {error msg; unreachable}}")
+          ).to.eql(ERROR("msg"));
+          expect(
+            execute("when {false {} false {} {error msg; unreachable}}")
+          ).to.eql(ERROR("msg"));
         });
       });
       describe("break", () => {
         it("should interrupt tests with BREAK code", () => {
-          expect(execute("when {{break; error} {error}}")).to.eql(BREAK());
-          expect(execute("when {false {} {break; error} {error}}")).to.eql(
+          expect(execute("when {{break; unreachable} {unreachable}}")).to.eql(
             BREAK()
           );
+          expect(
+            execute("when {false {} {break; unreachable} {unreachable}}")
+          ).to.eql(BREAK());
         });
         it("should interrupt script command with BREAK code", () => {
-          expect(execute("when {break; error} {true {error}}")).to.eql(BREAK());
+          expect(
+            execute("when {break; unreachable} {true {unreachable}}")
+          ).to.eql(BREAK());
           expect(
             execute(
-              "set count 0; when {if {$count == 1} {break; error} else {set count [+ $count 1]; idem idem}} {false {error} true {error} {error}}"
+              "set count 0; when {if {$count == 1} {break; unreachable} else {set count [+ $count 1]; idem idem}} {false {unreachable} true {unreachable} {unreachable}}"
             )
           ).to.eql(BREAK());
         });
         it("should interrupt bodies with BREAK code", () => {
-          expect(execute("when {true {break; error}}")).to.eql(BREAK());
-          expect(execute("when {false {} true {break; error}}")).to.eql(
+          expect(execute("when {true {break; unreachable}}")).to.eql(BREAK());
+          expect(execute("when {false {} true {break; unreachable}}")).to.eql(
             BREAK()
           );
-          expect(execute("when {false {} false {} {break; error}}")).to.eql(
-            BREAK()
-          );
+          expect(
+            execute("when {false {} false {} {break; unreachable}}")
+          ).to.eql(BREAK());
         });
       });
       describe("continue", () => {
         it("should interrupt tests with CONTINUE code", () => {
-          expect(execute("when {{continue; error} {error}}")).to.eql(
-            CONTINUE()
-          );
-          expect(execute("when {false {} {continue; error} {error}}")).to.eql(
-            CONTINUE()
-          );
+          expect(
+            execute("when {{continue; unreachable} {unreachable}}")
+          ).to.eql(CONTINUE());
+          expect(
+            execute("when {false {} {continue; unreachable} {unreachable}}")
+          ).to.eql(CONTINUE());
         });
         it("should interrupt script command with BREAK code", () => {
-          expect(execute("when {continue; error} {true {error}}")).to.eql(
-            CONTINUE()
-          );
+          expect(
+            execute("when {continue; unreachable} {true {unreachable}}")
+          ).to.eql(CONTINUE());
           expect(
             execute(
-              "set count 0; when {if {$count == 1} {continue; error} else {set count [+ $count 1]; idem idem}} {false {error} true {error} {error}}"
+              "set count 0; when {if {$count == 1} {continue; unreachable} else {set count [+ $count 1]; idem idem}} {false {unreachable} true {unreachable} {unreachable}}"
             )
           ).to.eql(CONTINUE());
         });
         it("should interrupt bodies with CONTINUE code", () => {
-          expect(execute("when {true {continue; error}}")).to.eql(CONTINUE());
-          expect(execute("when {false {} true {continue; error}}")).to.eql(
+          expect(execute("when {true {continue; unreachable}}")).to.eql(
             CONTINUE()
           );
-          expect(execute("when {false {} false {} {continue; error}}")).to.eql(
-            CONTINUE()
-          );
+          expect(
+            execute("when {false {} true {continue; unreachable}}")
+          ).to.eql(CONTINUE());
+          expect(
+            execute("when {false {} false {} {continue; unreachable}}")
+          ).to.eql(CONTINUE());
         });
       });
     });

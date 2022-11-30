@@ -136,7 +136,7 @@ class ArgspecCommand implements Command {
     }
   }
 
-  setArguments(values: Value[], scope: Scope): Result {
+  private setArguments(values: Value[], scope: Scope): Result {
     if (!this.value.checkArity(values, 0))
       return ERROR(`wrong # values: should be "${this.value.help()}"`);
     return this.value.applyArguments(scope, values, 0, (name, value) =>

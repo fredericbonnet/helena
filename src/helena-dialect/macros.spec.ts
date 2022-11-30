@@ -214,13 +214,13 @@ describe("Helena macros", () => {
       });
       describe("break", () => {
         it("should interrupt a macro with BREAK code", () => {
-          evaluate("macro cmd {} {break; error}");
+          evaluate("macro cmd {} {break; unreachable}");
           expect(execute("cmd")).to.eql(BREAK());
         });
       });
       describe("continue", () => {
         it("should interrupt a macro with CONTINUE code", () => {
-          evaluate("macro cmd {} {continue; error}");
+          evaluate("macro cmd {} {continue; unreachable}");
           expect(execute("cmd")).to.eql(CONTINUE());
         });
       });

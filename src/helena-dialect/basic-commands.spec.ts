@@ -87,28 +87,28 @@ describe("Helena basic commands", () => {
       expect(execute("tailcall {continue}")).to.eql(CONTINUE());
     });
     it("should return the result of the tuple body", () => {
-      expect(execute("tailcall (idem val); error")).to.eql(
+      expect(execute("tailcall (idem val); unreachable")).to.eql(
         RETURN(new StringValue("val"))
       );
-      expect(execute("tailcall (return val); error")).to.eql(
+      expect(execute("tailcall (return val); unreachable")).to.eql(
         RETURN(new StringValue("val"))
       );
-      expect(execute("tailcall (error msg); error")).to.eql(ERROR("msg"));
-      expect(execute("tailcall (break); error")).to.eql(BREAK());
-      expect(execute("tailcall (continue); error")).to.eql(CONTINUE());
+      expect(execute("tailcall (error msg); unreachable")).to.eql(ERROR("msg"));
+      expect(execute("tailcall (break); unreachable")).to.eql(BREAK());
+      expect(execute("tailcall (continue); unreachable")).to.eql(CONTINUE());
     });
     it("should interrupt the script", () => {
-      expect(execute("tailcall {idem val}; error")).to.eql(
+      expect(execute("tailcall {idem val}; unreachable")).to.eql(
         RETURN(new StringValue("val"))
       );
-      expect(execute("tailcall (idem val); error")).to.eql(
+      expect(execute("tailcall (idem val); unreachable")).to.eql(
         RETURN(new StringValue("val"))
       );
     });
     it("should work recursively", () => {
-      expect(execute("tailcall {tailcall (idem val); error}; error")).to.eql(
-        RETURN(new StringValue("val"))
-      );
+      expect(
+        execute("tailcall {tailcall (idem val); unreachable}; unreachable")
+      ).to.eql(RETURN(new StringValue("val")));
     });
     describe("exceptions", () => {
       specify("wrong arity", () => {

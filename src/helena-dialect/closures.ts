@@ -101,7 +101,7 @@ class ClosureCommand implements Command {
     state.process.yieldBack(result.value);
     return this.run(state);
   }
-  run(state: ClosureState) {
+  private run(state: ClosureState) {
     const result = state.process.run();
     if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
     return result;

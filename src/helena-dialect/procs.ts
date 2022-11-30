@@ -84,7 +84,7 @@ class ProcCommand implements Command {
     state.process.yieldBack(result.value);
     return this.run(state);
   }
-  run(state: ProcState) {
+  private run(state: ProcState) {
     const result = state.process.run();
     if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
     switch (result.code) {

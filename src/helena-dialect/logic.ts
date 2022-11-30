@@ -86,7 +86,7 @@ class AndCommand implements Command {
     state.result = YIELD_BACK(state.result, result.value);
     return this.run(result.data as AndCommandState, scope);
   }
-  run(state: AndCommandState, scope: Scope) {
+  private run(state: AndCommandState, scope: Scope) {
     let r = TRUE;
     while (state.i < state.args.length) {
       state.result = state.result
@@ -124,7 +124,7 @@ class OrCommand implements Command {
     state.result = YIELD_BACK(state.result, result.value);
     return this.run(result.data as OrCommandState, scope);
   }
-  run(state: OrCommandState, scope: Scope) {
+  private run(state: OrCommandState, scope: Scope) {
     let r = FALSE;
     while (state.i < state.args.length) {
       state.result = state.result

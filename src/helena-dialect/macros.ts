@@ -86,7 +86,7 @@ class MacroCommand implements Command {
     state.process.yieldBack(result.value);
     return this.run(state);
   }
-  run(state: MacroState) {
+  private run(state: MacroState) {
     const result = state.process.run();
     if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
     return result;
