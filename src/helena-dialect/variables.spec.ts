@@ -112,6 +112,9 @@ describe("Helena constants and variables", () => {
       evaluate("set var val");
       expect(evaluate("get var")).to.eql(new StringValue("val"));
     });
+    it("should return the default value of a non-existing variable", () => {
+      expect(evaluate("get var default")).to.eql(new StringValue("default"));
+    });
     describe("exceptions", () => {
       specify("non-existing variable", () => {
         expect(execute("get unknownVariable")).to.eql(
@@ -120,10 +123,10 @@ describe("Helena constants and variables", () => {
       });
       specify("wrong arity", () => {
         expect(execute("get")).to.eql(
-          ERROR('wrong # args: should be "get varname"')
+          ERROR('wrong # args: should be "get varname ?default?"')
         );
-        expect(execute("get a b")).to.eql(
-          ERROR('wrong # args: should be "get varname"')
+        expect(execute("get a b c")).to.eql(
+          ERROR('wrong # args: should be "get varname ?default?"')
         );
       });
     });

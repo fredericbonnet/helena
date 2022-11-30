@@ -234,9 +234,10 @@ export class Scope {
     }
     return OK(value);
   }
-  getVariable(name: string): Result {
+  getVariable(name: string, def?: Value): Result {
     const value = this.resolveVariable(name);
     if (value) return OK(value);
+    if (def) return OK(def);
     return ERROR(`cannot get "${name}": no such variable`);
   }
 

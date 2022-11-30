@@ -28,8 +28,10 @@ export const getCmd: Command = {
     switch (args.length) {
       case 2:
         return scope.getVariable(args[1].asString());
+      case 3:
+        return scope.getVariable(args[1].asString(), args[2]);
       default:
-        return ARITY_ERROR("get varname");
+        return ARITY_ERROR("get varname ?default?");
     }
   },
 };
