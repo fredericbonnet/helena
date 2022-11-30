@@ -1059,6 +1059,22 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql([["value"]]);
           });
+          specify("nested qualified words", () => {
+            variableResolver.register(
+              "var1",
+              new ListValue([
+                new StringValue("value1"),
+                new StringValue("value2"),
+              ])
+            );
+            variableResolver.register(
+              "var2",
+              new MapValue({ key: new StringValue("value3") })
+            );
+            const word = firstWord(parse("$(var1[0] var2(key))"));
+            const { value } = evaluator.evaluateWord(word);
+            expect(mapValue(value)).to.eql(["value1", "value3"]);
+          });
         });
 
         describe("blocks", () => {

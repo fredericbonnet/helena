@@ -487,15 +487,21 @@ export class InlineEvaluator implements Evaluator {
     return value;
   }
   private resolveVariables(tuple: TupleValue): TupleValue {
-    return this.mapTuple(tuple, (varname) =>
-      this.resolveVariable(varname.asString())
-    );
+    return this.mapTuple(tuple, (source) => this.resolveValue(source));
   }
   private resolveValue(source: Value) {
-    if (source.type == ValueType.TUPLE) {
-      return this.resolveVariables(source as TupleValue);
-    } else {
-      return this.resolveVariable(source.asString());
+    switch (source.type) {
+      case ValueType.TUPLE:
+        return this.resolveVariables(source as TupleValue);
+      case ValueType.QUALIFIED: {
+        const qualified = source as QualifiedValue;
+        return this.applySelectors(
+          this.resolveValue(qualified.source),
+          qualified.selectors
+        );
+      }
+      default:
+        return this.resolveVariable(source.asString());
     }
   }
   private resolveLevels(value: Value, levels: number): Value {

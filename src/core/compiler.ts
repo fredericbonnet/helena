@@ -852,19 +852,32 @@ export class Executor {
    * Resolve value
    *
    * - If source value is a tuple, resolve each of its elements recursively
+   * - If source value is a qualified word, resolve source and apply selectors
    * - Else, resolve variable from the source string value
    *
    * @param source - Value(s) to resolve
    * @returns        Resolved value(s)
    */
   private resolveValue(source: Value): Result {
-    if (source.type == ValueType.TUPLE) {
-      return this.mapTuple(source as TupleValue, (element) =>
-        this.resolveValue(element)
-      );
-    } else {
-      return this.resolveVariable(source.asString());
+    switch (source.type) {
+      case ValueType.TUPLE:
+        return this.mapTuple(source as TupleValue, (element) =>
+          this.resolveValue(element)
+        );
+      case ValueType.QUALIFIED:
+        return this.resolveQualified(source as QualifiedValue);
+      default:
+        return this.resolveVariable(source.asString());
     }
+  }
+  private resolveQualified(qualified: QualifiedValue): Result {
+    let result = this.resolveValue(qualified.source);
+    if (result.code != ResultCode.OK) return result;
+    for (const selector of qualified.selectors) {
+      result = selector.apply(result.value);
+      if (result.code != ResultCode.OK) return result;
+    }
+    return result;
   }
 
   /**
