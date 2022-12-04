@@ -220,17 +220,44 @@ export class Parser {
    * @returns        Result
    */
   parse(tokens: Token[]): ParseResult {
-    this.stream = new TokenStream(tokens);
+    const result = this.parseStream(new TokenStream(tokens));
+    if (!result.success) return result;
+    return this.closeStream();
+  }
+
+  /**
+   * Parse a token stream till the end
+   *
+   * This method is useful when parsing incomplete scripts in interactive mode,
+   * as getting an error at this stage is unrecoverable even if there is more
+   * input to parse
+   *
+   * @param stream - Stream to parse
+   *
+   * @returns        Empty result on success, else error
+   */
+  parseStream(stream): ParseResult {
     this.context = new Context({
       script: new Script(),
     });
-
+    this.stream = stream;
     while (!this.stream.end()) {
       const token = this.stream.next();
       const result = this.parseToken(token);
       if (!result.success) return result;
     }
+    return PARSE_OK();
+  }
 
+  /**
+   * Close the current tolen stream
+   *
+   * This method is useful when testing for script completeness in interactive
+   * mode and prompt for more input
+   *
+   * @returns Script on success, else error
+   */
+  closeStream(): ParseResult {
     if (this.context.node) {
       switch (this.context.node.type) {
         case MorphemeType.TUPLE:
@@ -932,7 +959,7 @@ export class Parser {
 /**
  * Array-based token stream
  */
-class TokenStream {
+export class TokenStream {
   /** Source tokens */
   tokens: Token[];
 
