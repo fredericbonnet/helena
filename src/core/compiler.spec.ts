@@ -88,7 +88,8 @@ describe("Compilation and execution", () => {
   let compiler: Compiler;
   let executor: Executor;
 
-  const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
+  const parse = (script: string) =>
+    parser.parse(tokenizer.tokenize(script)).script;
   const compileFirstWord = (script: Script) =>
     compiler.compileWord(script.sentences[0].words[0]);
 

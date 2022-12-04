@@ -11,7 +11,8 @@ describe("Helena dialect", () => {
   let tokenizer: Tokenizer;
   let parser: Parser;
 
-  const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
+  const parse = (script: string) =>
+    parser.parse(tokenizer.tokenize(script)).script;
   const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 

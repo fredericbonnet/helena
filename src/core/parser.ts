@@ -182,6 +182,24 @@ class SubstituteNextNode implements SubstituteNextMorpheme {
 
 /* eslint-enable jsdoc/require-jsdoc */
 
+/** Parse result */
+export type ParseResult = {
+  /** Success flag */
+  success: boolean;
+
+  /** Parsed script on success */
+  script?: Script;
+
+  /** Error message */
+  message?: string;
+};
+
+/* Helpers */
+/* eslint-disable jsdoc/require-jsdoc */
+export const PARSE_OK = (script?: Script) => ({ success: true, script });
+export const PARSE_ERROR = (message: string) => ({ success: false, message });
+/* eslint-enable jsdoc/require-jsdoc */
+
 /**
  * Helena parser
  *
@@ -199,9 +217,9 @@ export class Parser {
    *
    * @param tokens - Tokens to parse
    *
-   * @returns        Parsed script
+   * @returns        Result
    */
-  parse(tokens: Token[]) {
+  parse(tokens: Token[]): ParseResult {
     this.stream = new TokenStream(tokens);
     this.context = new Context({
       script: new Script(),
@@ -209,70 +227,74 @@ export class Parser {
 
     while (!this.stream.end()) {
       const token = this.stream.next();
-      switch (this.context.node?.type) {
-        case MorphemeType.TUPLE:
-          this.parseTuple(token);
-          break;
-
-        case MorphemeType.BLOCK:
-          this.parseBlock(token);
-          break;
-
-        case MorphemeType.EXPRESSION:
-          this.parseExpression(token);
-          break;
-
-        case MorphemeType.STRING:
-          this.parseString(token);
-          break;
-
-        case MorphemeType.HERE_STRING:
-          this.parseHereString(token);
-          break;
-
-        case MorphemeType.TAGGED_STRING:
-          this.parseTaggedString(token);
-          break;
-
-        case MorphemeType.LINE_COMMENT:
-          this.parseLineComment(token);
-          break;
-
-        case MorphemeType.BLOCK_COMMENT:
-          this.parseBlockComment(token);
-          break;
-
-        default:
-          this.parseScript(token);
-      }
+      const result = this.parseToken(token);
+      if (!result.success) return result;
     }
 
     if (this.context.node) {
       switch (this.context.node.type) {
         case MorphemeType.TUPLE:
-          throw new Error("unmatched left parenthesis");
+          return PARSE_ERROR("unmatched left parenthesis");
         case MorphemeType.BLOCK:
-          throw new Error("unmatched left brace");
+          return PARSE_ERROR("unmatched left brace");
         case MorphemeType.EXPRESSION:
-          throw new Error("unmatched left bracket");
+          return PARSE_ERROR("unmatched left bracket");
         case MorphemeType.STRING:
-          throw new Error("unmatched string delimiter");
+          return PARSE_ERROR("unmatched string delimiter");
         case MorphemeType.HERE_STRING:
-          throw new Error("unmatched here-string delimiter");
+          return PARSE_ERROR("unmatched here-string delimiter");
         case MorphemeType.TAGGED_STRING:
-          throw new Error("unmatched tagged string delimiter");
+          return PARSE_ERROR("unmatched tagged string delimiter");
         case MorphemeType.LINE_COMMENT:
           this.closeLineComment();
           break;
         case MorphemeType.BLOCK_COMMENT:
-          throw new Error("unmatched block comment delimiter");
+          return PARSE_ERROR("unmatched block comment delimiter");
         default:
-          throw new Error("unterminated script");
+          return PARSE_ERROR("unterminated script");
       }
     }
     this.closeSentence();
 
-    return this.context.script;
+    return PARSE_OK(this.context.script);
+  }
+
+  /**
+   * Parse a single token
+   *
+   * @param token - Token to parse
+   *
+   * @returns       Result
+   */
+  private parseToken(token: Token): ParseResult {
+    switch (this.context.node?.type) {
+      case MorphemeType.TUPLE:
+        return this.parseTuple(token);
+
+      case MorphemeType.BLOCK:
+        return this.parseBlock(token);
+
+      case MorphemeType.EXPRESSION:
+        return this.parseExpression(token);
+
+      case MorphemeType.STRING:
+        return this.parseString(token);
+
+      case MorphemeType.HERE_STRING:
+        return this.parseHereString(token);
+
+      case MorphemeType.TAGGED_STRING:
+        return this.parseTaggedString(token);
+
+      case MorphemeType.LINE_COMMENT:
+        return this.parseLineComment(token);
+
+      case MorphemeType.BLOCK_COMMENT:
+        return this.parseBlockComment(token);
+
+      default:
+        return this.parseScript(token);
+    }
   }
 
   /*
@@ -303,19 +325,19 @@ export class Parser {
    * Scripts
    */
 
-  private parseScript(token: Token) {
+  private parseScript(token: Token): ParseResult {
     switch (token.type) {
       case TokenType.CLOSE_TUPLE:
-        throw new Error("unmatched right parenthesis");
+        return PARSE_ERROR("unmatched right parenthesis");
 
       case TokenType.CLOSE_BLOCK:
-        throw new Error("unmatched right brace");
+        return PARSE_ERROR("unmatched right brace");
 
       case TokenType.CLOSE_EXPRESSION:
-        throw new Error("unmatched right bracket");
+        return PARSE_ERROR("unmatched right bracket");
 
       default:
-        this.parseWord(token);
+        return this.parseWord(token);
     }
   }
 
@@ -323,15 +345,15 @@ export class Parser {
    * Tuples
    */
 
-  private parseTuple(token: Token) {
+  private parseTuple(token: Token): ParseResult {
     switch (token.type) {
       case TokenType.CLOSE_TUPLE:
         this.closeTuple();
         if (this.expectSource()) this.continueSubstitution();
-        break;
+        return PARSE_OK();
 
       default:
-        this.parseWord(token);
+        return this.parseWord(token);
     }
   }
 
@@ -353,15 +375,15 @@ export class Parser {
    * Blocks
    */
 
-  private parseBlock(token: Token) {
+  private parseBlock(token: Token): ParseResult {
     switch (token.type) {
       case TokenType.CLOSE_BLOCK:
         this.closeBlock();
         if (this.expectSource()) this.continueSubstitution();
-        break;
+        return PARSE_OK();
 
       default:
-        this.parseWord(token);
+        return this.parseWord(token);
     }
   }
 
@@ -386,15 +408,15 @@ export class Parser {
    * Expressions
    */
 
-  private parseExpression(token: Token) {
+  private parseExpression(token: Token): ParseResult {
     switch (token.type) {
       case TokenType.CLOSE_EXPRESSION:
         this.closeExpression();
         this.continueSubstitution();
-        break;
+        return PARSE_OK();
 
       default:
-        this.parseWord(token);
+        return this.parseWord(token);
     }
   }
 
@@ -416,27 +438,27 @@ export class Parser {
    * Words
    */
 
-  private parseWord(token: Token) {
+  private parseWord(token: Token): ParseResult {
     switch (token.type) {
       case TokenType.WHITESPACE:
       case TokenType.CONTINUATION:
         this.closeWord();
-        break;
+        return PARSE_OK();
 
       case TokenType.NEWLINE:
       case TokenType.SEMICOLON:
         this.closeSentence();
-        break;
+        return PARSE_OK();
 
       case TokenType.TEXT:
       case TokenType.ESCAPE:
         this.ensureWord();
         this.addLiteral(token.literal);
-        break;
+        return PARSE_OK();
 
       case TokenType.STRING_DELIMITER:
         if (!this.ensureWord()) {
-          throw new Error("unexpected string delimiter");
+          return PARSE_ERROR("unexpected string delimiter");
         }
         if (token.literal.length == 1) {
           // Regular strings
@@ -455,57 +477,57 @@ export class Parser {
           // Here-strings
           this.openHereString(token.literal);
         }
-        break;
+        return PARSE_OK();
 
       case TokenType.OPEN_TUPLE:
         this.ensureWord();
         this.openTuple();
-        break;
+        return PARSE_OK();
 
       case TokenType.OPEN_BLOCK:
         this.ensureWord();
         this.openBlock();
-        break;
+        return PARSE_OK();
 
       case TokenType.OPEN_EXPRESSION:
         this.ensureWord();
         this.openExpression();
-        break;
+        return PARSE_OK();
 
       case TokenType.COMMENT:
         if (this.withinSubstitution() && this.expectSource()) {
-          throw new Error("unexpected comment delimiter");
+          return PARSE_ERROR("unexpected comment delimiter");
         }
         if (!this.ensureWord()) {
           this.addLiteral(token.literal);
-          break;
+          return PARSE_OK();
         }
         if (!this.openBlockComment(token.literal)) {
           this.openLineComment(token.literal);
         }
-        break;
+        return PARSE_OK();
 
       case TokenType.DOLLAR:
         this.ensureWord();
         this.beginSubstitution(token.literal);
-        break;
+        return PARSE_OK();
 
       case TokenType.ASTERISK:
         this.ensureWord();
         this.addLiteral(token.literal);
-        break;
+        return PARSE_OK();
 
       case TokenType.CLOSE_TUPLE:
-        throw new Error("mismatched right parenthesis");
+        return PARSE_ERROR("mismatched right parenthesis");
 
       case TokenType.CLOSE_BLOCK:
-        throw new Error("mismatched right brace");
+        return PARSE_ERROR("mismatched right brace");
 
       case TokenType.CLOSE_EXPRESSION:
-        throw new Error("mismatched right bracket");
+        return PARSE_ERROR("mismatched right bracket");
 
       default:
-        throw new Error("syntax error");
+        return PARSE_ERROR("syntax error");
     }
   }
 
@@ -561,7 +583,7 @@ export class Parser {
    * Strings
    */
 
-  private parseString(token: Token) {
+  private parseString(token: Token): ParseResult {
     if (this.expectSource()) {
       switch (token.type) {
         case TokenType.TEXT:
@@ -582,7 +604,7 @@ export class Parser {
 
       case TokenType.STRING_DELIMITER:
         if (token.literal.length != 1) {
-          throw new Error("extra characters after string delimiter");
+          return PARSE_ERROR("extra characters after string delimiter");
         }
         this.closeString();
         break;
@@ -610,6 +632,7 @@ export class Parser {
       default:
         this.addLiteral(token.literal);
     }
+    return PARSE_OK();
   }
 
   /** Open a string parsing context */
@@ -631,7 +654,7 @@ export class Parser {
    * Here-strings
    */
 
-  private parseHereString(token: Token) {
+  private parseHereString(token: Token): ParseResult {
     switch (token.type) {
       case TokenType.STRING_DELIMITER:
         if (this.closeHereString(token.literal)) break;
@@ -640,6 +663,7 @@ export class Parser {
       default:
         this.addHereStringSequence(token.sequence);
     }
+    return PARSE_OK();
   }
 
   /**
@@ -689,6 +713,7 @@ export class Parser {
       default:
         this.addTaggedStringSequence(token.sequence);
     }
+    return PARSE_OK();
   }
 
   /**
@@ -743,7 +768,7 @@ export class Parser {
    * Line comments
    */
 
-  private parseLineComment(token: Token) {
+  private parseLineComment(token: Token): ParseResult {
     switch (token.type) {
       case TokenType.NEWLINE:
         this.closeLineComment();
@@ -753,6 +778,7 @@ export class Parser {
       default:
         this.addLineCommentSequence(token.literal);
     }
+    return PARSE_OK();
   }
 
   /**
@@ -785,7 +811,7 @@ export class Parser {
    * Block comments
    */
 
-  private parseBlockComment(token: Token) {
+  private parseBlockComment(token: Token): ParseResult {
     switch (token.type) {
       case TokenType.COMMENT:
         if (!this.openBlockComment(token.literal, true)) {
@@ -802,6 +828,7 @@ export class Parser {
       default:
         this.addBlockCommentSequence(token.sequence);
     }
+    return PARSE_OK();
   }
 
   /**

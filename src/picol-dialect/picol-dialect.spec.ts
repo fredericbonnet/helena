@@ -26,7 +26,7 @@ describe("Picol dialect", () => {
       let evaluator: Evaluator;
 
       const parse = (script: string) =>
-        parser.parse(tokenizer.tokenize(script));
+        parser.parse(tokenizer.tokenize(script)).script;
       const execute = (script: string) =>
         evaluator.evaluateScript(parse(script));
       const evaluate = (script: string) => execute(script).value;

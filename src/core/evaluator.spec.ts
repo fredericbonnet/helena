@@ -138,7 +138,8 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
 
     let evaluator: Evaluator;
 
-    const parse = (script: string) => parser.parse(tokenizer.tokenize(script));
+    const parse = (script: string) =>
+      parser.parse(tokenizer.tokenize(script)).script;
     const firstSentence = (script: Script) => script.sentences[0];
     const firstWord = (script: Script) => firstSentence(script).words[0];
     const firstMorpheme = (script: Script) => firstWord(script).morphemes[0];

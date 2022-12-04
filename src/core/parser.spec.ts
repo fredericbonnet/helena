@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { Parser } from "./parser";
+import { Parser, PARSE_ERROR } from "./parser";
 import {
   Script,
   MorphemeType,
@@ -66,6 +66,9 @@ const toTree = (script: Script) =>
 describe("Parser", () => {
   let tokenizer: Tokenizer;
   let parser: Parser;
+  const parse = (script: string) =>
+    parser.parse(tokenizer.tokenize(script)).script;
+
   beforeEach(() => {
     tokenizer = new Tokenizer();
     parser = new Parser();
@@ -73,46 +76,37 @@ describe("Parser", () => {
 
   describe("scripts", () => {
     specify("empty script", () => {
-      const tokens = tokenizer.tokenize("");
-      const script = parser.parse(tokens);
+      const script = parse("");
       expect(script.sentences).to.be.empty;
     });
     specify("blank lines", () => {
-      const tokens = tokenizer.tokenize(" \n\n    \n");
-      const script = parser.parse(tokens);
+      const script = parse(" \n\n    \n");
       expect(script.sentences).to.be.empty;
     });
     specify("single sentence", () => {
-      const tokens = tokenizer.tokenize("sentence");
-      const script = parser.parse(tokens);
+      const script = parse("sentence");
       expect(toTree(script)).to.eql([[[{ LITERAL: "sentence" }]]]);
     });
     specify("single sentence surrounded by blank lines", () => {
-      const tokens = tokenizer.tokenize("  \nsentence\n  ");
-      const script = parser.parse(tokens);
+      const script = parse("  \nsentence\n  ");
       expect(toTree(script)).to.eql([[[{ LITERAL: "sentence" }]]]);
     });
     specify("two sentences separated by newline", () => {
-      const tokens = tokenizer.tokenize("sentence1\nsentence2");
-      const script = parser.parse(tokens);
+      const script = parse("sentence1\nsentence2");
       expect(toTree(script)).to.eql([
         [[{ LITERAL: "sentence1" }]],
         [[{ LITERAL: "sentence2" }]],
       ]);
     });
     specify("two sentences separated by semicolon", () => {
-      const tokens = tokenizer.tokenize("sentence1;sentence2");
-      const script = parser.parse(tokens);
+      const script = parse("sentence1;sentence2");
       expect(toTree(script)).to.eql([
         [[{ LITERAL: "sentence1" }]],
         [[{ LITERAL: "sentence2" }]],
       ]);
     });
     specify("blank sentences are ignored", () => {
-      const tokens = tokenizer.tokenize(
-        "\nsentence1;; \t  ;\n\n \t   \nsentence2\n"
-      );
-      const script = parser.parse(tokens);
+      const script = parse("\nsentence1;; \t  ;\n\n \t   \nsentence2\n");
       expect(toTree(script)).to.eql([
         [[{ LITERAL: "sentence1" }]],
         [[{ LITERAL: "sentence2" }]],
@@ -122,30 +116,25 @@ describe("Parser", () => {
   describe("words", () => {
     describe("literals", () => {
       specify("single literal", () => {
-        const tokens = tokenizer.tokenize("word");
-        const script = parser.parse(tokens);
+        const script = parse("word");
         expect(toTree(script)).to.eql([[[{ LITERAL: "word" }]]]);
       });
       specify("single literal surrounded by spaces", () => {
-        const tokens = tokenizer.tokenize(" word ");
-        const script = parser.parse(tokens);
+        const script = parse(" word ");
         expect(toTree(script)).to.eql([[[{ LITERAL: "word" }]]]);
       });
       specify("single literal with escape sequences", () => {
-        const tokens = tokenizer.tokenize("one\\tword");
-        const script = parser.parse(tokens);
+        const script = parse("one\\tword");
         expect(toTree(script)).to.eql([[[{ LITERAL: "one\tword" }]]]);
       });
       specify("two literals separated by whitespace", () => {
-        const tokens = tokenizer.tokenize("word1 word2");
-        const script = parser.parse(tokens);
+        const script = parse("word1 word2");
         expect(toTree(script)).to.eql([
           [[{ LITERAL: "word1" }], [{ LITERAL: "word2" }]],
         ]);
       });
       specify("two literals separated by continuation", () => {
-        const tokens = tokenizer.tokenize("word1\\\nword2");
-        const script = parser.parse(tokens);
+        const script = parse("word1\\\nword2");
         expect(toTree(script)).to.eql([
           [[{ LITERAL: "word1" }], [{ LITERAL: "word2" }]],
         ]);
@@ -153,20 +142,17 @@ describe("Parser", () => {
     });
     describe("tuples", () => {
       specify("empty tuple", () => {
-        const tokens = tokenizer.tokenize("()");
-        const script = parser.parse(tokens);
+        const script = parse("()");
         expect(toTree(script)).to.eql([[[{ TUPLE: [] }]]]);
       });
       specify("tuple with one word", () => {
-        const tokens = tokenizer.tokenize("(word)");
-        const script = parser.parse(tokens);
+        const script = parse("(word)");
         expect(toTree(script)).to.eql([
           [[{ TUPLE: [[[{ LITERAL: "word" }]]] }]],
         ]);
       });
       specify("tuple with two levels", () => {
-        const tokens = tokenizer.tokenize("(word1 (subword1 subword2) word2)");
-        const script = parser.parse(tokens);
+        const script = parse("(word1 (subword1 subword2) word2)");
         expect(toTree(script)).to.eql([
           [
             [
@@ -195,46 +181,43 @@ describe("Parser", () => {
       describe("exceptions", () => {
         specify("unterminated tuple", () => {
           const tokens = tokenizer.tokenize("(");
-          expect(() => parser.parse(tokens)).to.throws(
-            "unmatched left parenthesis"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("unmatched left parenthesis")
           );
         });
         specify("unmatched right parenthesis", () => {
           const tokens = tokenizer.tokenize(")");
-          expect(() => parser.parse(tokens)).to.throws(
-            "unmatched right parenthesis"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("unmatched right parenthesis")
           );
         });
         specify("mismatched right brace", () => {
           const tokens = tokenizer.tokenize("(}");
-          expect(() => parser.parse(tokens)).to.throws(
-            "mismatched right brace"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("mismatched right brace")
           );
         });
         specify("mismatched right bracket", () => {
           const tokens = tokenizer.tokenize("(]");
-          expect(() => parser.parse(tokens)).to.throws(
-            "mismatched right bracket"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("mismatched right bracket")
           );
         });
       });
     });
     describe("blocks", () => {
       specify("empty block", () => {
-        const tokens = tokenizer.tokenize("{}");
-        const script = parser.parse(tokens);
+        const script = parse("{}");
         expect(toTree(script)).to.eql([[[{ BLOCK: [] }]]]);
       });
       specify("block with one word", () => {
-        const tokens = tokenizer.tokenize("{word}");
-        const script = parser.parse(tokens);
+        const script = parse("{word}");
         expect(toTree(script)).to.eql([
           [[{ BLOCK: [[[{ LITERAL: "word" }]]] }]],
         ]);
       });
       specify("block with two levels", () => {
-        const tokens = tokenizer.tokenize("{word1 {subword1 subword2} word2}");
-        const script = parser.parse(tokens);
+        const script = parse("{word1 {subword1 subword2} word2}");
         expect(toTree(script)).to.eql([
           [
             [
@@ -264,34 +247,29 @@ describe("Parser", () => {
         const getBlock = (script: Script, wordIndex: number) =>
           script.sentences[0].words[wordIndex].morphemes[0] as BlockMorpheme;
         specify("empty", () => {
-          const tokens = tokenizer.tokenize("{}");
-          const script = parser.parse(tokens);
+          const script = parse("{}");
           const block = getBlock(script, 0);
           expect(block.value).to.eql("");
         });
         specify("one word", () => {
-          const tokens = tokenizer.tokenize("{word}");
-          const script = parser.parse(tokens);
+          const script = parse("{word}");
           const block = getBlock(script, 0);
           expect(block.value).to.eql("word");
         });
         specify("two levels", () => {
-          const tokens = tokenizer.tokenize("{word1 {word2 word3} word4}");
-          const script = parser.parse(tokens);
+          const script = parse("{word1 {word2 word3} word4}");
           const block = getBlock(script, 0);
           expect(block.value).to.eql("word1 {word2 word3} word4");
           const subblock = getBlock(block.subscript, 1);
           expect(subblock.value).to.eql("word2 word3");
         });
         specify("space preservation", () => {
-          const tokens = tokenizer.tokenize("{ word1  \nword2\t}");
-          const script = parser.parse(tokens);
+          const script = parse("{ word1  \nword2\t}");
           const block = getBlock(script, 0);
           expect(block.value).to.eql(" word1  \nword2\t");
         });
         specify("continuations", () => {
-          const tokens = tokenizer.tokenize("{word1 \\\n \t  word2}");
-          const script = parser.parse(tokens);
+          const script = parse("{word1 \\\n \t  word2}");
           const block = getBlock(script, 0);
           expect(block.value).to.eql("word1  word2");
         });
@@ -299,42 +277,43 @@ describe("Parser", () => {
       describe("exceptions", () => {
         specify("unterminated block", () => {
           const tokens = tokenizer.tokenize("{");
-          expect(() => parser.parse(tokens)).to.throws("unmatched left brace");
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("unmatched left brace")
+          );
         });
         specify("unmatched right brace", () => {
           const tokens = tokenizer.tokenize("}");
-          expect(() => parser.parse(tokens)).to.throws("unmatched right brace");
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("unmatched right brace")
+          );
         });
         specify("mismatched right parenthesis", () => {
           const tokens = tokenizer.tokenize("{)");
-          expect(() => parser.parse(tokens)).to.throws(
-            "mismatched right parenthesis"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("mismatched right parenthesis")
           );
         });
         specify("mismatched right bracket", () => {
           const tokens = tokenizer.tokenize("{]");
-          expect(() => parser.parse(tokens)).to.throws(
-            "mismatched right bracket"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("mismatched right bracket")
           );
         });
       });
     });
     describe("expressions", () => {
       specify("empty expression", () => {
-        const tokens = tokenizer.tokenize("[]");
-        const script = parser.parse(tokens);
+        const script = parse("[]");
         expect(toTree(script)).to.eql([[[{ EXPRESSION: [] }]]]);
       });
       specify("expression with one word", () => {
-        const tokens = tokenizer.tokenize("[word]");
-        const script = parser.parse(tokens);
+        const script = parse("[word]");
         expect(toTree(script)).to.eql([
           [[{ EXPRESSION: [[[{ LITERAL: "word" }]]] }]],
         ]);
       });
       specify("expression with two levels", () => {
-        const tokens = tokenizer.tokenize("[word1 [subword1 subword2] word2]");
-        const script = parser.parse(tokens);
+        const script = parse("[word1 [subword1 subword2] word2]");
         expect(toTree(script)).to.eql([
           [
             [
@@ -363,84 +342,72 @@ describe("Parser", () => {
       describe("exceptions", () => {
         specify("unterminated expression", () => {
           const tokens = tokenizer.tokenize("[");
-          expect(() => parser.parse(tokens)).to.throws(
-            "unmatched left bracket"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("unmatched left bracket")
           );
         });
         specify("unmatched right bracket", () => {
           const tokens = tokenizer.tokenize("]");
-          expect(() => parser.parse(tokens)).to.throws(
-            "unmatched right bracket"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("unmatched right bracket")
           );
         });
         specify("mismatched right parenthesis", () => {
           const tokens = tokenizer.tokenize("[)");
-          expect(() => parser.parse(tokens)).to.throws(
-            "mismatched right parenthesis"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("mismatched right parenthesis")
           );
         });
         specify("mismatched right brace", () => {
           const tokens = tokenizer.tokenize("[}");
-          expect(() => parser.parse(tokens)).to.throws(
-            "mismatched right brace"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("mismatched right brace")
           );
         });
       });
     });
     describe("strings", () => {
       specify("empty string", () => {
-        const tokens = tokenizer.tokenize('""');
-        const script = parser.parse(tokens);
+        const script = parse('""');
         expect(toTree(script)).to.eql([[[{ STRING: [] }]]]);
       });
       specify("simple string", () => {
-        const tokens = tokenizer.tokenize('"string"');
-        const script = parser.parse(tokens);
+        const script = parse('"string"');
         expect(toTree(script)).to.eql([
           [[{ STRING: [{ LITERAL: "string" }] }]],
         ]);
       });
       specify("longer string", () => {
-        const tokens = tokenizer.tokenize('"this is a string"');
-        const script = parser.parse(tokens);
+        const script = parse('"this is a string"');
         expect(toTree(script)).to.eql([
           [[{ STRING: [{ LITERAL: "this is a string" }] }]],
         ]);
       });
       specify("string with whitespaces and continuations", () => {
-        const tokens = tokenizer.tokenize(
-          '"this  \t  is\r\f a   \\\n  \t  string"'
-        );
-        const script = parser.parse(tokens);
+        const script = parse('"this  \t  is\r\f a   \\\n  \t  string"');
         expect(toTree(script)).to.eql([
           [[{ STRING: [{ LITERAL: "this  \t  is\r\f a    string" }] }]],
         ]);
       });
       specify("string with special characters", () => {
-        const tokens = tokenizer.tokenize('"this {is (a #string"');
-        const script = parser.parse(tokens);
+        const script = parse('"this {is (a #string"');
         expect(toTree(script)).to.eql([
           [[{ STRING: [{ LITERAL: "this {is (a #string" }] }]],
         ]);
       });
       describe("expressions", () => {
         specify("empty expression", () => {
-          const tokens = tokenizer.tokenize('"[]"');
-          const script = parser.parse(tokens);
+          const script = parse('"[]"');
           expect(toTree(script)).to.eql([[[{ STRING: [{ EXPRESSION: [] }] }]]]);
         });
         specify("expression with one word", () => {
-          const tokens = tokenizer.tokenize('"[word]"');
-          const script = parser.parse(tokens);
+          const script = parse('"[word]"');
           expect(toTree(script)).to.eql([
             [[{ STRING: [{ EXPRESSION: [[[{ LITERAL: "word" }]]] }] }]],
           ]);
         });
         specify("expression with two levels", () => {
-          const tokens = tokenizer.tokenize(
-            '"[word1 [subword1 subword2] word2]"'
-          );
-          const script = parser.parse(tokens);
+          const script = parse('"[word1 [subword1 subword2] word2]"');
           expect(toTree(script)).to.eql([
             [
               [
@@ -473,47 +440,43 @@ describe("Parser", () => {
         describe("exceptions", () => {
           specify("unterminated expression", () => {
             const tokens = tokenizer.tokenize('"[');
-            expect(() => parser.parse(tokens)).to.throws(
-              "unmatched left bracket"
+            expect(parser.parse(tokens)).to.eql(
+              PARSE_ERROR("unmatched left bracket")
             );
           });
           specify("mismatched right parenthesis", () => {
             const tokens = tokenizer.tokenize('"[)"');
-            expect(() => parser.parse(tokens)).to.throws(
-              "mismatched right parenthesis"
+            expect(parser.parse(tokens)).to.eql(
+              PARSE_ERROR("mismatched right parenthesis")
             );
           });
           specify("mismatched right brace", () => {
             const tokens = tokenizer.tokenize('"[}"');
-            expect(() => parser.parse(tokens)).to.throws(
-              "mismatched right brace"
+            expect(parser.parse(tokens)).to.eql(
+              PARSE_ERROR("mismatched right brace")
             );
           });
         });
       });
       describe("substitutions", () => {
         specify("lone dollar", () => {
-          const tokens = tokenizer.tokenize('"$"');
-          const script = parser.parse(tokens);
+          const script = parse('"$"');
           expect(toTree(script)).to.eql([[[{ STRING: [{ LITERAL: "$" }] }]]]);
         });
         specify("simple variable", () => {
-          const tokens = tokenizer.tokenize('"$a"');
-          const script = parser.parse(tokens);
+          const script = parse('"$a"');
           expect(toTree(script)).to.eql([
             [[{ STRING: [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a" }] }]],
           ]);
         });
         specify("Unicode variable name", () => {
-          const tokens = tokenizer.tokenize('"$a\u1234"');
-          const script = parser.parse(tokens);
+          const script = parse('"$a\u1234"');
           expect(toTree(script)).to.eql([
             [[{ STRING: [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a\u1234" }] }]],
           ]);
         });
         specify("tuple", () => {
-          const tokens = tokenizer.tokenize('"$(a)"');
-          const script = parser.parse(tokens);
+          const script = parse('"$(a)"');
           expect(toTree(script)).to.eql([
             [
               [
@@ -528,8 +491,7 @@ describe("Parser", () => {
           ]);
         });
         specify("block", () => {
-          const tokens = tokenizer.tokenize('"${a}"');
-          const script = parser.parse(tokens);
+          const script = parse('"${a}"');
           expect(toTree(script)).to.eql([
             [
               [
@@ -544,8 +506,7 @@ describe("Parser", () => {
           ]);
         });
         specify("expression", () => {
-          const tokens = tokenizer.tokenize('"$[a]"');
-          const script = parser.parse(tokens);
+          const script = parse('"$[a]"');
           expect(toTree(script)).to.eql([
             [
               [
@@ -560,8 +521,7 @@ describe("Parser", () => {
           ]);
         });
         specify("multiple substitution", () => {
-          const tokens = tokenizer.tokenize('"$$a $$$b $$$$[c]"');
-          const script = parser.parse(tokens);
+          const script = parse('"$$a $$$b $$$$[c]"');
           expect(toTree(script)).to.eql([
             [
               [
@@ -582,8 +542,7 @@ describe("Parser", () => {
           ]);
         });
         specify("expansion", () => {
-          const tokens = tokenizer.tokenize('"$*$$*a $*$[b]"');
-          const script = parser.parse(tokens);
+          const script = parse('"$*$$*a $*$[b]"');
           expect(toTree(script)).to.eql([
             [
               [
@@ -602,15 +561,13 @@ describe("Parser", () => {
         });
         describe("variable name delimiters", () => {
           specify("trailing dollars", () => {
-            const tokens = tokenizer.tokenize('"a$ b$*$ c$$*$"');
-            const script = parser.parse(tokens);
+            const script = parse('"a$ b$*$ c$$*$"');
             expect(toTree(script)).to.eql([
               [[{ STRING: [{ LITERAL: "a$ b$*$ c$$*$" }] }]],
             ]);
           });
           specify("escapes", () => {
-            const tokens = tokenizer.tokenize("$a\\x62 $c\\d");
-            const script = parser.parse(tokens);
+            const script = parse("$a\\x62 $c\\d");
             expect(toTree(script)).to.eql([
               [
                 [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a" }, { LITERAL: "b" }],
@@ -619,8 +576,7 @@ describe("Parser", () => {
             ]);
           });
           specify("special characters", () => {
-            const tokens = tokenizer.tokenize("$a# $b*");
-            const script = parser.parse(tokens);
+            const script = parse("$a# $b*");
             expect(toTree(script)).to.eql([
               [
                 [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a" }, { LITERAL: "#" }],
@@ -632,10 +588,7 @@ describe("Parser", () => {
         describe("selectors", () => {
           describe("indexed selectors", () => {
             specify("single", () => {
-              const tokens = tokenizer.tokenize(
-                '"$name[index1] $[expression][index2]"'
-              );
-              const script = parser.parse(tokens);
+              const script = parse('"$name[index1] $[expression][index2]"');
               expect(toTree(script)).to.eql([
                 [
                   [
@@ -655,10 +608,9 @@ describe("Parser", () => {
               ]);
             });
             specify("chained", () => {
-              const tokens = tokenizer.tokenize(
+              const script = parse(
                 '"$name[index1][index2][index3] $[expression][index4][index5][index6]"'
               );
-              const script = parser.parse(tokens);
               expect(toTree(script)).to.eql([
                 [
                   [
@@ -690,10 +642,7 @@ describe("Parser", () => {
           });
           describe("keyed selectors", () => {
             specify("single", () => {
-              const tokens = tokenizer.tokenize(
-                '"$name(key1) $[expression](key2)"'
-              );
-              const script = parser.parse(tokens);
+              const script = parse('"$name(key1) $[expression](key2)"');
               expect(toTree(script)).to.eql([
                 [
                   [
@@ -713,10 +662,9 @@ describe("Parser", () => {
               ]);
             });
             specify("multiple", () => {
-              const tokens = tokenizer.tokenize(
+              const script = parse(
                 '"$name(key1 key2) $[expression](key3 key4)"'
               );
-              const script = parser.parse(tokens);
               expect(toTree(script)).to.eql([
                 [
                   [
@@ -744,10 +692,9 @@ describe("Parser", () => {
               ]);
             });
             specify("chained", () => {
-              const tokens = tokenizer.tokenize(
+              const script = parse(
                 '"$name(key1)(key2 key3)(key4) $[expression](key5 key6)(key7)(key8 key9)"'
               );
-              const script = parser.parse(tokens);
               expect(toTree(script)).to.eql([
                 [
                   [
@@ -785,10 +732,9 @@ describe("Parser", () => {
           });
           describe("generic selectors", () => {
             specify("single", () => {
-              const tokens = tokenizer.tokenize(
+              const script = parse(
                 '"$name{selector1 arg1} $[expression]{selector2 arg2}"'
               );
-              const script = parser.parse(tokens);
               expect(toTree(script)).to.eql([
                 [
                   [
@@ -816,10 +762,9 @@ describe("Parser", () => {
               ]);
             });
             specify("chained", () => {
-              const tokens = tokenizer.tokenize(
+              const script = parse(
                 '"$name{selector1 arg1}{selector2}{selector3 arg2 arg3} $[expression]{selector4}{selector5 arg4 arg5}{selector6 arg6}"'
               );
-              const script = parser.parse(tokens);
               expect(toTree(script)).to.eql([
                 [
                   [
@@ -872,10 +817,9 @@ describe("Parser", () => {
             });
           });
           specify("mixed selectors", () => {
-            const tokens = tokenizer.tokenize(
+            const script = parse(
               '"$name(key1 key2){selector1}(key3){selector2 selector3} $[expression]{selector4 selector5}(key4 key5){selector6}(key6)"'
             );
-            const script = parser.parse(tokens);
             expect(toTree(script)).to.eql([
               [
                 [
@@ -919,10 +863,9 @@ describe("Parser", () => {
             ]);
           });
           specify("nested selectors", () => {
-            const tokens = tokenizer.tokenize(
+            const script = parse(
               '"$name1(key1 $name2{selector1} $[expression1](key2)) $[expression2]{selector2 $name3(key3)}"'
             );
-            const script = parser.parse(tokens);
             expect(toTree(script)).to.eql([
               [
                 [
@@ -973,24 +916,23 @@ describe("Parser", () => {
       describe("exceptions", () => {
         specify("unterminated string", () => {
           const tokens = tokenizer.tokenize('"');
-          expect(() => parser.parse(tokens)).to.throws(
-            "unmatched string delimiter"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("unmatched string delimiter")
           );
         });
         specify("extra quotes", () => {
           const tokens = tokenizer.tokenize('"hello""');
-          expect(() => parser.parse(tokens)).to.throws(
-            "extra characters after string delimiter"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("extra characters after string delimiter")
           );
         });
       });
     });
     describe("here-strings", () => {
       specify("3-quote delimiter", () => {
-        const tokens = tokenizer.tokenize(
+        const script = parse(
           '"""some " \\\n    $arbitrary [character\n  "" sequence"""'
         );
-        const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([
           [
             [
@@ -1003,8 +945,7 @@ describe("Parser", () => {
         ]);
       });
       specify("4-quote delimiter", () => {
-        const tokens = tokenizer.tokenize('""""here is """ some text""""');
-        const script = parser.parse(tokens);
+        const script = parse('""""here is """ some text""""');
         expect(toTree(script)).to.eql([
           [
             [
@@ -1016,10 +957,9 @@ describe("Parser", () => {
         ]);
       });
       specify("4-quote sequence between 3-quote delimiters", () => {
-        const tokens = tokenizer.tokenize(
+        const script = parse(
           '""" <- 3 quotes here / 4 quotes there -> """" / 3 quotes here -> """'
         );
-        const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([
           [
             [
@@ -1034,52 +974,47 @@ describe("Parser", () => {
       describe("exceptions", () => {
         specify("unterminated here-string", () => {
           const tokens = tokenizer.tokenize('"""hello');
-          expect(() => parser.parse(tokens)).to.throws(
-            "unmatched here-string delimiter"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("unmatched here-string delimiter")
           );
         });
         specify("extra quotes", () => {
           const tokens = tokenizer.tokenize(
             '""" <- 3 quotes here / 4 quotes there -> """"'
           );
-          expect(() => parser.parse(tokens)).to.throws(
-            "unmatched here-string delimiter"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("unmatched here-string delimiter")
           );
         });
       });
     });
     describe("tagged strings", () => {
       specify("empty tagged string", () => {
-        const tokens = tokenizer.tokenize('""EOF\nEOF""');
-        const script = parser.parse(tokens);
+        const script = parse('""EOF\nEOF""');
         expect(toTree(script)).to.eql([[[{ TAGGED_STRING: "" }]]]);
       });
       specify("single empty line", () => {
-        const tokens = tokenizer.tokenize('""EOF\n\nEOF""');
-        const script = parser.parse(tokens);
+        const script = parse('""EOF\n\nEOF""');
         expect(toTree(script)).to.eql([[[{ TAGGED_STRING: "\n" }]]]);
       });
       specify("extra characters after open delimiter", () => {
-        const tokens = tokenizer.tokenize(
+        const script = parse(
           '""EOF some $arbitrary[ }text\\\n (with continuation\nfoo\nbar\nEOF""'
         );
-        const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([[[{ TAGGED_STRING: "foo\nbar\n" }]]]);
       });
       specify("tag within string", () => {
-        const tokens = tokenizer.tokenize('""EOF\nEOF ""\nEOF""');
-        const script = parser.parse(tokens);
+        const script = parse('""EOF\nEOF ""\nEOF""');
         expect(toTree(script)).to.eql([[[{ TAGGED_STRING: 'EOF ""\n' }]]]);
       });
       specify("continuations", () => {
-        const tokens = tokenizer.tokenize('""EOF\nsome\\\n   string\nEOF""');
-        const script = parser.parse(tokens);
+        const script = parse('""EOF\nsome\\\n   string\nEOF""');
         expect(toTree(script)).to.eql([
           [[{ TAGGED_STRING: "some\\\n   string\n" }]],
         ]);
       });
       specify("indentation", () => {
-        const tokens = tokenizer.tokenize(`""EOF
+        const script = parse(`""EOF
           #include <stdio.h>
           
           int main(void) {
@@ -1087,7 +1022,6 @@ describe("Parser", () => {
             return 0;
           }
           EOF""`);
-        const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([
           [
             [
@@ -1105,7 +1039,7 @@ int main(void) {
         ]);
       });
       specify("line prefix", () => {
-        const tokens = tokenizer.tokenize(`""EOF
+        const script = parse(`""EOF
 1  #include <stdio.h>
 2  
 3  int main(void) {
@@ -1113,7 +1047,6 @@ int main(void) {
 5    return 0;
 6  }
    EOF""`);
-        const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([
           [
             [
@@ -1133,53 +1066,47 @@ int main(void) {
       describe("exceptions", () => {
         specify("unterminated tagged string", () => {
           const tokens = tokenizer.tokenize('""EOF\nhello');
-          expect(() => parser.parse(tokens)).to.throws(
-            "unmatched tagged string delimiter"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("unmatched tagged string delimiter")
           );
         });
         specify("extra quotes", () => {
           const tokens = tokenizer.tokenize('""EOF\nhello\nEOF"""');
-          expect(() => parser.parse(tokens)).to.throws(
-            "unmatched tagged string delimiter"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("unmatched tagged string delimiter")
           );
         });
       });
     });
     describe("line comments", () => {
       specify("empty line comment", () => {
-        const tokens = tokenizer.tokenize("#");
-        const script = parser.parse(tokens);
+        const script = parse("#");
         expect(toTree(script)).to.eql([[[{ LINE_COMMENT: "" }]]]);
       });
       specify("simple line comment", () => {
-        const tokens = tokenizer.tokenize("# this is a comment");
-        const script = parser.parse(tokens);
+        const script = parse("# this is a comment");
         expect(toTree(script)).to.eql([
           [[{ LINE_COMMENT: " this is a comment" }]],
         ]);
       });
       specify("line comment with special characters", () => {
-        const tokens = tokenizer.tokenize("# this ; is$ (a [comment{");
-        const script = parser.parse(tokens);
+        const script = parse("# this ; is$ (a [comment{");
         expect(toTree(script)).to.eql([
           [[{ LINE_COMMENT: " this ; is$ (a [comment{" }]],
         ]);
       });
       specify("line comment with continuation", () => {
-        const tokens = tokenizer.tokenize("# this is\\\na comment");
-        const script = parser.parse(tokens);
+        const script = parse("# this is\\\na comment");
         expect(toTree(script)).to.eql([
           [[{ LINE_COMMENT: " this is a comment" }]],
         ]);
       });
       specify("line comment with escapes", () => {
-        const tokens = tokenizer.tokenize("# hello \\x41\\t");
-        const script = parser.parse(tokens);
+        const script = parse("# hello \\x41\\t");
         expect(toTree(script)).to.eql([[[{ LINE_COMMENT: " hello A\t" }]]]);
       });
       specify("line comment with multiple hashes", () => {
-        const tokens = tokenizer.tokenize("### this is a comment");
-        const script = parser.parse(tokens);
+        const script = parse("### this is a comment");
         expect(toTree(script)).to.eql([
           [[{ LINE_COMMENT: " this is a comment" }]],
         ]);
@@ -1187,112 +1114,97 @@ int main(void) {
     });
     describe("block comments", () => {
       specify("empty block comment", () => {
-        const tokens = tokenizer.tokenize("#{}#");
-        const script = parser.parse(tokens);
+        const script = parse("#{}#");
         expect(toTree(script)).to.eql([[[{ BLOCK_COMMENT: "" }]]]);
       });
       specify("simple block comment", () => {
-        const tokens = tokenizer.tokenize("#{comment}#");
-        const script = parser.parse(tokens);
+        const script = parse("#{comment}#");
         expect(toTree(script)).to.eql([[[{ BLOCK_COMMENT: "comment" }]]]);
       });
       specify("multiple line block comment", () => {
-        const tokens = tokenizer.tokenize("#{\ncomment\n}#");
-        const script = parser.parse(tokens);
+        const script = parse("#{\ncomment\n}#");
         expect(toTree(script)).to.eql([[[{ BLOCK_COMMENT: "\ncomment\n" }]]]);
       });
       specify("block comment with continuation", () => {
-        const tokens = tokenizer.tokenize("#{this is\\\na comment}#");
-        const script = parser.parse(tokens);
+        const script = parse("#{this is\\\na comment}#");
         expect(toTree(script)).to.eql([
           [[{ BLOCK_COMMENT: "this is\\\na comment" }]],
         ]);
       });
       specify("block comment with escapes", () => {
-        const tokens = tokenizer.tokenize("#{hello \\x41\\t}#");
-        const script = parser.parse(tokens);
+        const script = parse("#{hello \\x41\\t}#");
         expect(toTree(script)).to.eql([
           [[{ BLOCK_COMMENT: "hello \\x41\\t" }]],
         ]);
       });
       specify("block comment with multiple hashes", () => {
-        const tokens = tokenizer.tokenize("##{comment}##");
-        const script = parser.parse(tokens);
+        const script = parse("##{comment}##");
         expect(toTree(script)).to.eql([[[{ BLOCK_COMMENT: "comment" }]]]);
       });
       specify("nested block comments", () => {
-        const tokens = tokenizer.tokenize("##{comment ##{}##}##");
-        const script = parser.parse(tokens);
+        const script = parse("##{comment ##{}##}##");
         expect(toTree(script)).to.eql([
           [[{ BLOCK_COMMENT: "comment ##{}##" }]],
         ]);
       });
       specify("nested block comments with different prefixes", () => {
-        const tokens = tokenizer.tokenize("##{comment #{}##");
-        const script = parser.parse(tokens);
+        const script = parse("##{comment #{}##");
         expect(toTree(script)).to.eql([[[{ BLOCK_COMMENT: "comment #{" }]]]);
       });
       describe("exceptions", () => {
         specify("unterminated block comment", () => {
           const tokens = tokenizer.tokenize("#{hello");
-          expect(() => parser.parse(tokens)).to.throws(
-            "unmatched block comment delimiter"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("unmatched block comment delimiter")
           );
         });
         specify("extra hashes", () => {
           const tokens = tokenizer.tokenize(
             "#{ <- 1 hash here / 2 hashes there -> }##"
           );
-          expect(() => parser.parse(tokens)).to.throws(
-            "unmatched block comment delimiter"
+          expect(parser.parse(tokens)).to.eql(
+            PARSE_ERROR("unmatched block comment delimiter")
           );
         });
       });
     });
     describe("substitutions", () => {
       specify("lone dollar", () => {
-        const tokens = tokenizer.tokenize("$");
-        const script = parser.parse(tokens);
+        const script = parse("$");
         expect(toTree(script)).to.eql([[[{ LITERAL: "$" }]]]);
       });
       specify("simple variable", () => {
-        const tokens = tokenizer.tokenize("$a");
-        const script = parser.parse(tokens);
+        const script = parse("$a");
         expect(toTree(script)).to.eql([
           [[{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a" }]],
         ]);
       });
       specify("Unicode variable name", () => {
-        const tokens = tokenizer.tokenize("$a\u1234");
-        const script = parser.parse(tokens);
+        const script = parse("$a\u1234");
         expect(toTree(script)).to.eql([
           [[{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a\u1234" }]],
         ]);
       });
       specify("tuple", () => {
-        const tokens = tokenizer.tokenize("$(a)");
-        const script = parser.parse(tokens);
+        const script = parse("$(a)");
         expect(toTree(script)).to.eql([
           [[{ SUBSTITUTE_NEXT: 1 }, { TUPLE: [[[{ LITERAL: "a" }]]] }]],
         ]);
       });
       specify("block", () => {
-        const tokens = tokenizer.tokenize("${a}");
-        const script = parser.parse(tokens);
+        const script = parse("${a}");
         expect(toTree(script)).to.eql([
           [[{ SUBSTITUTE_NEXT: 1 }, { BLOCK: [[[{ LITERAL: "a" }]]] }]],
         ]);
       });
       specify("expression", () => {
-        const tokens = tokenizer.tokenize("$[a]");
-        const script = parser.parse(tokens);
+        const script = parse("$[a]");
         expect(toTree(script)).to.eql([
           [[{ SUBSTITUTE_NEXT: 1 }, { EXPRESSION: [[[{ LITERAL: "a" }]]] }]],
         ]);
       });
       specify("multiple substitution", () => {
-        const tokens = tokenizer.tokenize("$$a $$$b $$$$[c]");
-        const script = parser.parse(tokens);
+        const script = parse("$$a $$$b $$$$[c]");
         expect(toTree(script)).to.eql([
           [
             [{ SUBSTITUTE_NEXT: 2 }, { LITERAL: "a" }],
@@ -1302,8 +1214,7 @@ int main(void) {
         ]);
       });
       specify("expansion", () => {
-        const tokens = tokenizer.tokenize("$*$$*a $*$[b]");
-        const script = parser.parse(tokens);
+        const script = parse("$*$$*a $*$[b]");
         expect(toTree(script)).to.eql([
           [
             [{ EXPAND_NEXT: 3 }, { LITERAL: "a" }],
@@ -1313,8 +1224,7 @@ int main(void) {
       });
       describe("variable name delimiters", () => {
         specify("trailing dollars", () => {
-          const tokens = tokenizer.tokenize("a$ b$*$ c$$*$");
-          const script = parser.parse(tokens);
+          const script = parse("a$ b$*$ c$$*$");
           expect(toTree(script)).to.eql([
             [
               [{ LITERAL: "a$" }],
@@ -1324,8 +1234,7 @@ int main(void) {
           ]);
         });
         specify("escapes", () => {
-          const tokens = tokenizer.tokenize("$a\\x62 $c\\d");
-          const script = parser.parse(tokens);
+          const script = parse("$a\\x62 $c\\d");
           expect(toTree(script)).to.eql([
             [
               [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a" }, { LITERAL: "b" }],
@@ -1334,8 +1243,7 @@ int main(void) {
           ]);
         });
         specify("special characters", () => {
-          const tokens = tokenizer.tokenize("$a# $b*");
-          const script = parser.parse(tokens);
+          const script = parse("$a# $b*");
           expect(toTree(script)).to.eql([
             [
               [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a" }, { LITERAL: "#" }],
@@ -1346,14 +1254,14 @@ int main(void) {
         describe("exceptions", () => {
           specify("leading hash", () => {
             const tokens = tokenizer.tokenize("$#");
-            expect(() => parser.parse(tokens)).to.throws(
-              "unexpected comment delimiter"
+            expect(parser.parse(tokens)).to.eql(
+              PARSE_ERROR("unexpected comment delimiter")
             );
           });
           specify("leading quote", () => {
             const tokens = tokenizer.tokenize('$"');
-            expect(() => parser.parse(tokens)).to.throws(
-              "unexpected string delimiter"
+            expect(parser.parse(tokens)).to.eql(
+              PARSE_ERROR("unexpected string delimiter")
             );
           });
         });
@@ -1361,10 +1269,7 @@ int main(void) {
       describe("selectors", () => {
         describe("indexed selectors", () => {
           specify("single", () => {
-            const tokens = tokenizer.tokenize(
-              "$name[index1] $[expression][index2]"
-            );
-            const script = parser.parse(tokens);
+            const script = parse("$name[index1] $[expression][index2]");
             expect(toTree(script)).to.eql([
               [
                 [
@@ -1381,10 +1286,9 @@ int main(void) {
             ]);
           });
           specify("chained", () => {
-            const tokens = tokenizer.tokenize(
+            const script = parse(
               "$name[index1][index2][index3] $[expression][index4][index5][index6]"
             );
-            const script = parser.parse(tokens);
             expect(toTree(script)).to.eql([
               [
                 [
@@ -1407,10 +1311,7 @@ int main(void) {
         });
         describe("keyed selectors", () => {
           specify("single", () => {
-            const tokens = tokenizer.tokenize(
-              "$name(key1) $[expression](key2)"
-            );
-            const script = parser.parse(tokens);
+            const script = parse("$name(key1) $[expression](key2)");
             expect(toTree(script)).to.eql([
               [
                 [
@@ -1427,10 +1328,7 @@ int main(void) {
             ]);
           });
           specify("multiple", () => {
-            const tokens = tokenizer.tokenize(
-              "$name(key1 key2) $[expression](key3 key4)"
-            );
-            const script = parser.parse(tokens);
+            const script = parse("$name(key1 key2) $[expression](key3 key4)");
             expect(toTree(script)).to.eql([
               [
                 [
@@ -1447,10 +1345,9 @@ int main(void) {
             ]);
           });
           specify("chained", () => {
-            const tokens = tokenizer.tokenize(
+            const script = parse(
               "$name(key1)(key2 key3)(key4) $[expression](key5 key6)(key7)(key8 key9)"
             );
-            const script = parser.parse(tokens);
             expect(toTree(script)).to.eql([
               [
                 [
@@ -1473,10 +1370,7 @@ int main(void) {
         });
         describe("generic selectors", () => {
           specify("single", () => {
-            const tokens = tokenizer.tokenize(
-              "$name{selector1} $[expression]{selector2}"
-            );
-            const script = parser.parse(tokens);
+            const script = parse("$name{selector1} $[expression]{selector2}");
             expect(toTree(script)).to.eql([
               [
                 [
@@ -1493,10 +1387,9 @@ int main(void) {
             ]);
           });
           specify("chained", () => {
-            const tokens = tokenizer.tokenize(
+            const script = parse(
               "$name{selector1}{selector2 arg1}{selector3} $[expression]{selector4 arg2 arg3}{selector5}{selector6 arg4}"
             );
-            const script = parser.parse(tokens);
             expect(toTree(script)).to.eql([
               [
                 [
@@ -1534,10 +1427,9 @@ int main(void) {
           });
         });
         specify("mixed selectors", () => {
-          const tokens = tokenizer.tokenize(
+          const script = parse(
             "$name(key1 key2){selector1}(key3){selector2 selector3} $[expression]{selector4 selector5}(key4 key5){selector6}(key6)"
           );
-          const script = parser.parse(tokens);
           expect(toTree(script)).to.eql([
             [
               [
@@ -1568,10 +1460,9 @@ int main(void) {
           ]);
         });
         specify("nested selectors", () => {
-          const tokens = tokenizer.tokenize(
+          const script = parse(
             "$name1(key1 $name2{selector1} $[expression1](key2)) $[expression2]{selector2 $name3(key3)}"
           );
-          const script = parser.parse(tokens);
           expect(toTree(script)).to.eql([
             [
               [
@@ -1619,15 +1510,13 @@ int main(void) {
     describe("qualified words", () => {
       describe("indexed selectors", () => {
         specify("single", () => {
-          const tokens = tokenizer.tokenize("name[index]");
-          const script = parser.parse(tokens);
+          const script = parse("name[index]");
           expect(toTree(script)).to.eql([
             [[{ LITERAL: "name" }, { EXPRESSION: [[[{ LITERAL: "index" }]]] }]],
           ]);
         });
         specify("chained", () => {
-          const tokens = tokenizer.tokenize("name[index1][index2][index3]");
-          const script = parser.parse(tokens);
+          const script = parse("name[index1][index2][index3]");
           expect(toTree(script)).to.eql([
             [
               [
@@ -1642,15 +1531,13 @@ int main(void) {
       });
       describe("keyed selectors", () => {
         specify("single", () => {
-          const tokens = tokenizer.tokenize("name(key)");
-          const script = parser.parse(tokens);
+          const script = parse("name(key)");
           expect(toTree(script)).to.eql([
             [[{ LITERAL: "name" }, { TUPLE: [[[{ LITERAL: "key" }]]] }]],
           ]);
         });
         specify("multiple", () => {
-          const tokens = tokenizer.tokenize("name(key1 key2)");
-          const script = parser.parse(tokens);
+          const script = parse("name(key1 key2)");
           expect(toTree(script)).to.eql([
             [
               [
@@ -1661,8 +1548,7 @@ int main(void) {
           ]);
         });
         specify("chained", () => {
-          const tokens = tokenizer.tokenize("name(key1)(key2 key3)(key4)");
-          const script = parser.parse(tokens);
+          const script = parse("name(key1)(key2 key3)(key4)");
           expect(toTree(script)).to.eql([
             [
               [
@@ -1677,15 +1563,13 @@ int main(void) {
       });
       describe("generic selectors", () => {
         specify("single", () => {
-          const tokens = tokenizer.tokenize("name{selector}");
-          const script = parser.parse(tokens);
+          const script = parse("name{selector}");
           expect(toTree(script)).to.eql([
             [[{ LITERAL: "name" }, { BLOCK: [[[{ LITERAL: "selector" }]]] }]],
           ]);
         });
         specify("multiple", () => {
-          const tokens = tokenizer.tokenize("name{selector1 selector2}");
-          const script = parser.parse(tokens);
+          const script = parse("name{selector1 selector2}");
           expect(toTree(script)).to.eql([
             [
               [
@@ -1700,10 +1584,9 @@ int main(void) {
           ]);
         });
         specify("chained", () => {
-          const tokens = tokenizer.tokenize(
+          const script = parse(
             "name{selector1}{selector2 selector3}{selector4}"
           );
-          const script = parser.parse(tokens);
           expect(toTree(script)).to.eql([
             [
               [
@@ -1721,10 +1604,9 @@ int main(void) {
         });
       });
       specify("mixed selectors", () => {
-        const tokens = tokenizer.tokenize(
+        const script = parse(
           "name(key1 key2){selector1}(key3){selector2 selector3}"
         );
-        const script = parser.parse(tokens);
         expect(toTree(script)).to.eql([
           [
             [
@@ -1742,8 +1624,7 @@ int main(void) {
         ]);
       });
       specify("nested selectors", () => {
-        const tokens = tokenizer.tokenize("name1(key1 name2{selector1})");
-        const script = parser.parse(tokens);
+        const script = parse("name1(key1 name2{selector1})");
         expect(toTree(script)).to.eql([
           [
             [
