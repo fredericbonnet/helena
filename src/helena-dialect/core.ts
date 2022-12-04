@@ -240,6 +240,13 @@ export class Scope {
     if (def) return OK(def);
     return ERROR(`cannot get "${name}": no such variable`);
   }
+  resolveValue(value: Value): Result {
+    const program = new Program();
+    program.pushOpCode(OpCode.PUSH_CONSTANT);
+    program.pushOpCode(OpCode.RESOLVE_VALUE);
+    program.pushConstant(value);
+    return this.executor.execute(program);
+  }
 
   registerCommand(name: string, command: Command) {
     this.context.commands.set(name, command);

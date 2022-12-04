@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ERROR } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { StringValue } from "../core/values";
+import { ListValue, MapValue, StringValue } from "../core/values";
 import { Scope, Variable } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -112,8 +112,62 @@ describe("Helena constants and variables", () => {
       evaluate("set var val");
       expect(evaluate("get var")).to.eql(new StringValue("val"));
     });
-    it("should return the default value of a non-existing variable", () => {
+    it("should return the default value for a non-existing variable", () => {
       expect(evaluate("get var default")).to.eql(new StringValue("default"));
+      expect(evaluate("get var(key) default")).to.eql(
+        new StringValue("default")
+      );
+      expect(evaluate("get var[1] default")).to.eql(new StringValue("default"));
+    });
+    it("should support name tuples", () => {
+      evaluate("set var1 val1");
+      evaluate("set var2 val2");
+      evaluate("set var3 val3");
+      expect(evaluate("get (var1 (var2 var3))")).to.eql(
+        evaluate("idem (val1 (val2 val3))")
+      );
+    });
+    describe("should support qualified names", () => {
+      specify("indexed selector", () => {
+        rootScope.setVariable(
+          "var",
+          new ListValue([new StringValue("val1"), new StringValue("val2")])
+        );
+        expect(evaluate("get var[1]")).to.eql(new StringValue("val2"));
+      });
+      specify("keyed selector", () => {
+        rootScope.setVariable(
+          "var",
+          new MapValue({ key: new StringValue("val") })
+        );
+        expect(evaluate("get var(key)")).to.eql(new StringValue("val"));
+      });
+      specify("complex case", () => {
+        rootScope.setVariable(
+          "var1",
+          new ListValue([new StringValue("val1"), new StringValue("val2")])
+        );
+        rootScope.setVariable(
+          "var2",
+          new ListValue([new StringValue("val3"), new StringValue("val4")])
+        );
+        rootScope.setVariable(
+          "var3",
+          new ListValue([new StringValue("val5"), new StringValue("val6")])
+        );
+        expect(evaluate("get (var1 (var2 var3))[1]")).to.eql(
+          evaluate("idem (val2 (val4 val6))")
+        );
+        expect(evaluate("get (var1[1])")).to.eql(evaluate("idem (val2)"));
+      });
+    });
+    it("should return the default value when a selector fails", () => {
+      rootScope.setConstant("l", new ListValue([]));
+      rootScope.setConstant("m", new MapValue({}));
+      expect(evaluate("get l[1] default")).to.eql(new StringValue("default"));
+      expect(evaluate("get l(key) default")).to.eql(new StringValue("default"));
+      expect(evaluate("get m[1] default")).to.eql(new StringValue("default"));
+      expect(evaluate("get m(key) default")).to.eql(new StringValue("default"));
     });
     describe("exceptions", () => {
       specify("non-existing variable", () => {
@@ -127,6 +181,11 @@ describe("Helena constants and variables", () => {
         );
         expect(execute("get a b c")).to.eql(
           ERROR('wrong # args: should be "get varname ?default?"')
+        );
+      });
+      specify("name tuples with default", () => {
+        expect(execute("get (var) default")).to.eql(
+          ERROR("cannot use default with name tuples")
         );
       });
     });
