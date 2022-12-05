@@ -1,7 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
 import { ERROR, OK, ResultCode } from "../core/results";
-import { ValueType } from "../core/values";
+import { FALSE, TRUE, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Scope } from "./core";
 
@@ -50,6 +50,42 @@ export const getCmd: Command = {
         }
       default:
         return ARITY_ERROR("get varname ?default?");
+    }
+  },
+};
+export const existsCmd: Command = {
+  execute: (args, scope: Scope) => {
+    switch (args.length) {
+      case 2:
+        switch (args[1].type) {
+          case ValueType.TUPLE:
+            return ERROR("invalid value");
+          case ValueType.QUALIFIED: {
+            const result = scope.resolveValue(args[1]);
+            if (result.code != ResultCode.OK) return OK(FALSE);
+            return OK(
+              scope.resolveValue(args[1]).code == ResultCode.OK ? TRUE : FALSE
+            );
+          }
+          default:
+            return OK(
+              scope.getVariable(args[1].asString()).code == ResultCode.OK
+                ? TRUE
+                : FALSE
+            );
+        }
+      default:
+        return ARITY_ERROR("exists varname");
+    }
+  },
+};
+export const unsetCmd: Command = {
+  execute: (args, scope: Scope) => {
+    switch (args.length) {
+      case 2:
+        return scope.unsetVariable(args[1].asString());
+      default:
+        return ARITY_ERROR("unset varname");
     }
   },
 };

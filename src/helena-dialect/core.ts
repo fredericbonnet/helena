@@ -234,6 +234,20 @@ export class Scope {
     }
     return OK(value);
   }
+  unsetVariable(name: string): Result {
+    if (this.context.locals?.has(name)) {
+      return ERROR(`cannot unset local "${name}"`);
+    }
+    if (this.context.constants.has(name)) {
+      return ERROR(`cannot unset constant "${name}"`);
+    }
+    if (!this.context.variables.has(name)) {
+      return ERROR(`cannot unset "${name}": no such variable`);
+    }
+
+    this.context.variables.delete(name);
+    return OK(NIL);
+  }
   getVariable(name: string, def?: Value): Result {
     const value = this.resolveVariable(name);
     if (value) return OK(value);

@@ -11,7 +11,7 @@ import {
 } from "./basic-commands";
 import { macroCmd } from "./macros";
 import { Scope } from "./core";
-import { letCmd, setCmd, getCmd } from "./variables";
+import { letCmd, setCmd, getCmd, existsCmd, unsetCmd } from "./variables";
 import { scopeCmd } from "./scopes";
 import { closureCmd } from "./closures";
 import { coroutineCmd } from "./coroutines";
@@ -46,6 +46,8 @@ export function initCommands(scope: Scope) {
   scope.registerCommand("let", letCmd);
   scope.registerCommand("set", setCmd);
   scope.registerCommand("get", getCmd);
+  scope.registerCommand("exists", existsCmd);
+  scope.registerCommand("unset", unsetCmd);
 
   scope.registerCommand("argspec", argspecCmd);
 

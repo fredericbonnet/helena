@@ -2,7 +2,14 @@ import { expect } from "chai";
 import { ERROR } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { ListValue, MapValue, StringValue } from "../core/values";
+import {
+  FALSE,
+  ListValue,
+  MapValue,
+  NIL,
+  StringValue,
+  TRUE,
+} from "../core/values";
 import { Scope, Variable } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -36,13 +43,13 @@ describe("Helena constants and variables", () => {
       expect(evaluate("let cst val")).to.eql(new StringValue("val"));
     });
     describe("exceptions", () => {
-      it("existing constant", () => {
+      specify("existing constant", () => {
         rootScope.context.constants.set("cst", new StringValue("old"));
         expect(execute("let cst val")).to.eql(
           ERROR('cannot redefine constant "cst"')
         );
       });
-      it("existing variable", () => {
+      specify("existing variable", () => {
         rootScope.context.variables.set(
           "var",
           new Variable(new StringValue("old"))
@@ -85,7 +92,7 @@ describe("Helena constants and variables", () => {
       expect(evaluate("set var val")).to.eql(new StringValue("val"));
     });
     describe("exceptions", () => {
-      it("existing constant", () => {
+      specify("existing constant", () => {
         rootScope.context.constants.set("cst", new StringValue("old"));
         expect(execute("set cst val")).to.eql(
           ERROR('cannot redefine constant "cst"')
@@ -187,6 +194,91 @@ describe("Helena constants and variables", () => {
       specify("name tuples with default", () => {
         expect(execute("get (var) default")).to.eql(
           ERROR("cannot use default with name tuples")
+        );
+      });
+    });
+  });
+  describe("exists", () => {
+    it("should return true for an existing variable", () => {
+      evaluate("let cst val");
+      expect(evaluate("exists cst")).to.eql(TRUE);
+    });
+    it("should return true for an existing constant", () => {
+      evaluate("set var val");
+      expect(evaluate("exists var")).to.eql(TRUE);
+    });
+    it("should return false for a non-existing variable", () => {
+      expect(evaluate("exists var")).to.eql(FALSE);
+      expect(evaluate("exists var(key)")).to.eql(FALSE);
+      expect(evaluate("exists var[1]")).to.eql(FALSE);
+    });
+    describe("should support qualified names", () => {
+      specify("indexed selector", () => {
+        rootScope.setVariable(
+          "var",
+          new ListValue([new StringValue("val1"), new StringValue("val2")])
+        );
+        expect(evaluate("exists var[1]")).to.eql(TRUE);
+      });
+      specify("keyed selector", () => {
+        rootScope.setVariable(
+          "var",
+          new MapValue({ key: new StringValue("val") })
+        );
+        expect(evaluate("exists var(key)")).to.eql(TRUE);
+      });
+    });
+    it("should return false when a selector fails", () => {
+      rootScope.setConstant("l", new ListValue([]));
+      rootScope.setConstant("m", new MapValue({}));
+      expect(evaluate("exists l[1]")).to.eql(FALSE);
+      expect(evaluate("exists l(key)")).to.eql(FALSE);
+      expect(evaluate("exists m[1]")).to.eql(FALSE);
+      expect(evaluate("exists m(key)")).to.eql(FALSE);
+    });
+    describe("exceptions", () => {
+      specify("wrong arity", () => {
+        expect(execute("exists")).to.eql(
+          ERROR('wrong # args: should be "exists varname"')
+        );
+        expect(execute("exists a b")).to.eql(
+          ERROR('wrong # args: should be "exists varname"')
+        );
+      });
+      specify("name tuples", () => {
+        expect(execute("exists (var)")).to.eql(ERROR("invalid value"));
+      });
+    });
+  });
+  describe("unset", () => {
+    it("should unset an existing variable", () => {
+      evaluate("set var val");
+      expect(evaluate("exists var")).to.eql(TRUE);
+      evaluate("unset var");
+      expect(evaluate("exists var")).to.eql(FALSE);
+    });
+    it("should return nil", () => {
+      evaluate("set var val");
+      expect(evaluate("unset var")).to.eql(NIL);
+    });
+    describe("exceptions", () => {
+      specify("existing constant", () => {
+        rootScope.context.constants.set("cst", new StringValue("old"));
+        expect(execute("unset cst")).to.eql(
+          ERROR('cannot unset constant "cst"')
+        );
+      });
+      specify("non-existing variable", () => {
+        expect(execute("unset unknownVariable")).to.eql(
+          ERROR('cannot unset "unknownVariable": no such variable')
+        );
+      });
+      specify("wrong arity", () => {
+        expect(execute("unset")).to.eql(
+          ERROR('wrong # args: should be "unset varname"')
+        );
+        expect(execute("unset a b")).to.eql(
+          ERROR('wrong # args: should be "unset varname"')
         );
       });
     });
