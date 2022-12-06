@@ -72,9 +72,7 @@ class ClosureCommand implements Command {
 
   execute(args: Value[]): Result {
     if (!this.value.argspec.checkArity(args, 1)) {
-      return ERROR(
-        `wrong # args: should be "${args[0].asString()} ${this.value.argspec.help()}"`
-      );
+      return ARITY_ERROR(`${args[0].asString()} ${this.value.argspec.help()}`);
     }
     const locals: Map<string, Value> = new Map();
     const setarg = (name, value) => {

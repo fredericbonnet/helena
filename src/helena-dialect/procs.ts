@@ -65,9 +65,7 @@ class ProcCommand implements Command {
 
   execute(args: Value[], scope: Scope): Result {
     if (!this.value.argspec.checkArity(args, 1)) {
-      return ERROR(
-        `wrong # args: should be "${args[0].asString()} ${this.value.argspec.help()}"`
-      );
+      return ARITY_ERROR(`${args[0].asString()} ${this.value.argspec.help()}`);
     }
     const subscope = new Scope(scope);
     const setarg = (name, value) => {
