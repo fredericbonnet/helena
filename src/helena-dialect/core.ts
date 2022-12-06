@@ -26,7 +26,7 @@ import {
   TupleValue,
   NIL,
 } from "../core/values";
-import { numberCmd } from "./math";
+import { numberCmd } from "./numbers";
 
 export class Variable {
   value: Value;
