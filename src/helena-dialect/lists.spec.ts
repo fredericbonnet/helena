@@ -343,13 +343,18 @@ describe("Helena lists", () => {
           );
         });
       });
+      it("should be extensible", () => {
+        evaluate(
+          `[list] eval {
+            macro last {value} {
+              list $value at [- [list $value length] 1]
+            }
+          }`
+        );
+        expect(evaluate("list (a b c) last")).to.eql(new StringValue("c"));
+      });
     });
     describe("exceptions", () => {
-      specify("wrong arity", () => {
-        expect(execute("list")).to.eql(
-          ERROR('wrong # args: should be "list value ?subcommand? ?arg ...?"')
-        );
-      });
       specify("invalid values", () => {
         expect(execute("list []")).to.eql(ERROR("invalid list"));
         expect(execute("list [1]")).to.eql(ERROR("invalid list"));

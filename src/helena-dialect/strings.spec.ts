@@ -480,6 +480,16 @@ describe("Helena strings", () => {
           });
         });
       });
+      it("should be extensible", () => {
+        evaluate(
+          `[string] eval {
+            macro last {value} {
+              string $value at [- [string $value length] 1]
+            }
+          }`
+        );
+        expect(evaluate("string example last")).to.eql(new StringValue("e"));
+      });
       describe("exceptions", () => {
         specify("non-existing subcommand", () => {
           expect(execute('string "" unknownSubcommand')).to.eql(
@@ -489,11 +499,6 @@ describe("Helena strings", () => {
       });
     });
     describe("exceptions", () => {
-      specify("wrong arity", () => {
-        expect(execute("string")).to.eql(
-          ERROR('wrong # args: should be "string value ?subcommand? ?arg ...?"')
-        );
-      });
       specify("values with no string representation", () => {
         expect(execute("string []")).to.eql(
           ERROR("nil has no string representation")

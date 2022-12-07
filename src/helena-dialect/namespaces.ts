@@ -18,7 +18,7 @@ class NamespaceValue extends CommandValue {
     return this.scope.getVariable(key.asString());
   }
 }
-class NamespaceValueCommand implements Command {
+export class NamespaceValueCommand implements Command {
   readonly value: NamespaceValue;
   constructor(scope: Scope) {
     this.value = new NamespaceValue(this, scope);
