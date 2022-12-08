@@ -127,6 +127,8 @@ describe("Helena procedures", () => {
           const state = rootScope.prepareScript(parse("cmd"));
 
           let result = state.run();
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(new StringValue("val1"));
           expect(result.data).to.exist;
 
           state.yieldBack(new StringValue("val2"));

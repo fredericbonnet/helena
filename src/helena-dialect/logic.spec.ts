@@ -143,10 +143,12 @@ describe("Helena logic operations", () => {
               );
 
               let result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("val1"));
               expect(result.data).to.exist;
 
               result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("val2"));
               expect(result.data).to.exist;
 
@@ -233,11 +235,13 @@ describe("Helena logic operations", () => {
               );
 
               let result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("val1"));
               expect(result.data).to.exist;
 
               state.yieldBack(TRUE);
               result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("val2"));
               expect(result.data).to.exist;
 
@@ -328,11 +332,13 @@ describe("Helena logic operations", () => {
               );
 
               let result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("val1"));
               expect(result.data).to.exist;
 
               state.yieldBack(FALSE);
               result = state.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("val2"));
               expect(result.data).to.exist;
 

@@ -392,7 +392,6 @@ describe("Helena scopes", () => {
               let result = state.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("val2"));
-              expect(result.data).to.exist;
 
               state.yieldBack(new StringValue("val3"));
               result = state.run();

@@ -1,42 +1,33 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Result, ResultCode, YIELD, OK, ERROR } from "../core/results";
 import { Command } from "../core/command";
-import { Program } from "../core/compiler";
 import { ScriptValue, Value, ValueType } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, CommandValue, ScopeContext, Process } from "./core";
+import { Scope, CommandValue, ScopeContext, DeferredValue } from "./core";
 
 class ClosureValue extends CommandValue {
   readonly scope: Scope;
   readonly argspec: ArgspecValue;
   readonly body: ScriptValue;
-  readonly program: Program;
   readonly closure: Command;
   constructor(
     command: Command,
     scope: Scope,
     argspec: ArgspecValue,
-    body: ScriptValue,
-    program: Program
+    body: ScriptValue
   ) {
     super(command);
     this.scope = scope;
     this.argspec = argspec;
     this.body = body;
-    this.program = program;
     this.closure = new ClosureCommand(this);
   }
 }
 class ClosureValueCommand implements Command {
   readonly value: ClosureValue;
-  constructor(
-    scope: Scope,
-    argspec: ArgspecValue,
-    body: ScriptValue,
-    program: Program
-  ) {
-    this.value = new ClosureValue(this, scope, argspec, body, program);
+  constructor(scope: Scope, argspec: ArgspecValue, body: ScriptValue) {
+    this.value = new ClosureValue(this, scope, argspec, body);
   }
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.value);
@@ -55,15 +46,7 @@ class ClosureValueCommand implements Command {
         return ERROR(`invalid method name "${method.asString()}"`);
     }
   }
-  resume(result: Result, scope: Scope): Result {
-    return this.value.closure.resume(result, scope);
-  }
 }
-
-type ClosureState = {
-  scope: Scope;
-  process: Process;
-};
 class ClosureCommand implements Command {
   readonly value: ClosureValue;
   constructor(value: ClosureValue) {
@@ -91,18 +74,7 @@ class ClosureCommand implements Command {
       this.value.scope,
       new ScopeContext(this.value.scope.context, locals)
     );
-    const process = subscope.prepareProcess(this.value.program);
-    return this.run({ scope: subscope, process });
-  }
-  resume(result: Result): Result {
-    const state = result.data as ClosureState;
-    state.process.yieldBack(result.value);
-    return this.run(state);
-  }
-  private run(state: ClosureState) {
-    const result = state.process.run();
-    if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
-    return result;
+    return YIELD(new DeferredValue(this.value.body, subscope));
   }
 }
 export const closureCmd: Command = {
@@ -123,12 +95,10 @@ export const closureCmd: Command = {
     const result = ArgspecValue.fromValue(specs);
     if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
-    const program = scope.compile((body as ScriptValue).script);
     const command = new ClosureValueCommand(
       scope,
       argspec,
-      body as ScriptValue,
-      program
+      body as ScriptValue
     );
     if (name) {
       scope.registerCommand(name.asString(), command.value.closure);

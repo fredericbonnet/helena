@@ -69,7 +69,8 @@ describe("Helena dialect", () => {
         const state = rootScope.prepareScript(parse("cmd a b c"));
 
         let result = state.run();
-        expect(result.data).to.exist;
+        expect(result.code).to.eql(ResultCode.YIELD);
+        expect(result.value).to.eql(new StringValue("val1"));
 
         result = state.run();
         expect(result).to.eql(OK(new StringValue("val2")));
