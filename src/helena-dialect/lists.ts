@@ -40,18 +40,16 @@ class ListCommand implements Command {
 const listLengthCmd: Command = {
   execute(args) {
     if (args.length != 2) return ARITY_ERROR("list value length");
-    const result = valueToArray(args[1]);
+    const { data: values, ...result } = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const values = result.data;
     return OK(new IntegerValue(values.length));
   },
 };
 const listAtCmd: Command = {
   execute(args) {
     if (args.length != 3) return ARITY_ERROR("list value at index");
-    const result = valueToArray(args[1]);
+    const { data: values, ...result } = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const values = result.data;
     return ListValue.at(values, args[2]);
   },
 };
@@ -59,9 +57,8 @@ const listRangeCmd: Command = {
   execute(args) {
     if (args.length != 3 && args.length != 4)
       return ARITY_ERROR("list value range first ?last?");
-    const result = valueToArray(args[1]);
+    const { data: values, ...result } = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const values = result.data;
     const firstResult = IntegerValue.toInteger(args[2]);
     if (firstResult.code != ResultCode.OK) return firstResult;
     const first = Math.max(0, firstResult.data);
@@ -80,14 +77,13 @@ const listRangeCmd: Command = {
 };
 const listAppendCmd: Command = {
   execute(args) {
-    const result = valueToArray(args[1]);
+    const { data: values, ...result } = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const values = result.data;
     const values2 = [...values];
     for (let i = 2; i < args.length; i++) {
-      const newResult = valueToArray(args[i]);
-      if (newResult.code != ResultCode.OK) return newResult;
-      values2.push(...newResult.data);
+      const { data: values, ...result } = valueToArray(args[i]);
+      if (result.code != ResultCode.OK) return result;
+      values2.push(...values);
     }
     return OK(new ListValue(values2));
   },
@@ -96,9 +92,8 @@ const listRemoveCmd: Command = {
   execute(args) {
     if (args.length != 4 && args.length != 5)
       return ARITY_ERROR("list value remove first last");
-    const result = valueToArray(args[1]);
+    const { data: values, ...result } = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const values = result.data;
     const firstResult = IntegerValue.toInteger(args[2]);
     if (firstResult.code != ResultCode.OK) return firstResult;
     const first = Math.max(0, firstResult.data);
@@ -113,26 +108,24 @@ const listRemoveCmd: Command = {
 const listInsertCmd: Command = {
   execute(args) {
     if (args.length != 4) return ARITY_ERROR("list value insert index new");
-    const result = valueToArray(args[1]);
+    const { data: values, ...result } = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const values = result.data;
     const indexResult = IntegerValue.toInteger(args[2]);
     if (indexResult.code != ResultCode.OK) return indexResult;
     const index = Math.max(0, indexResult.data);
-    const newResult = valueToArray(args[3]);
-    if (newResult.code != ResultCode.OK) return newResult;
+    const { data: insert, ...result2 } = valueToArray(args[3]);
+    if (result2.code != ResultCode.OK) return result2;
     const head = values.slice(0, index);
     const tail = values.slice(index);
-    return OK(new ListValue([...head, ...newResult.data, ...tail]));
+    return OK(new ListValue([...head, ...insert, ...tail]));
   },
 };
 const listReplaceCmd: Command = {
   execute(args) {
     if (args.length != 5)
       return ARITY_ERROR("list value replace first last new");
-    const result = valueToArray(args[1]);
+    const { data: values, ...result } = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const values = result.data;
     const firstResult = IntegerValue.toInteger(args[2]);
     if (firstResult.code != ResultCode.OK) return firstResult;
     const first = Math.max(0, firstResult.data);
@@ -141,9 +134,9 @@ const listReplaceCmd: Command = {
     const last = lastResult.data;
     const head = values.slice(0, first);
     const tail = values.slice(Math.max(first, last + 1));
-    const newResult = valueToArray(args[4]);
-    if (newResult.code != ResultCode.OK) return newResult;
-    return OK(new ListValue([...head, ...newResult.data, ...tail]));
+    const { data: insert, ...result2 } = valueToArray(args[4]);
+    if (result2.code != ResultCode.OK) return result2;
+    return OK(new ListValue([...head, ...insert, ...tail]));
   },
 };
 

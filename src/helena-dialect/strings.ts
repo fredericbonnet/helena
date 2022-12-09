@@ -41,18 +41,16 @@ class StringCommand implements Command {
 const stringLengthCmd: Command = {
   execute(args) {
     if (args.length != 2) return ARITY_ERROR("string value length");
-    const result = StringValue.toString(args[1]);
+    const { data: str, ...result } = StringValue.toString(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const str = result.data;
     return OK(new IntegerValue(str.length));
   },
 };
 const stringAtCmd: Command = {
   execute(args) {
     if (args.length != 3) return ARITY_ERROR("string value at index");
-    const result = StringValue.toString(args[1]);
+    const { data: str, ...result } = StringValue.toString(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const str = result.data;
     return StringValue.at(str, args[2]);
   },
 };
@@ -60,9 +58,8 @@ const stringRangeCmd: Command = {
   execute(args) {
     if (args.length != 3 && args.length != 4)
       return ARITY_ERROR("string value range first ?last?");
-    const result = StringValue.toString(args[1]);
+    const { data: str, ...result } = StringValue.toString(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const str = result.data;
     const firstResult = IntegerValue.toInteger(args[2]);
     if (firstResult.code != ResultCode.OK) return firstResult;
     const first = firstResult.data;
@@ -80,14 +77,13 @@ const stringRangeCmd: Command = {
 };
 const stringAppendCmd: Command = {
   execute(args) {
-    const result = StringValue.toString(args[1]);
+    const { data: str, ...result } = StringValue.toString(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const str = result.data;
     let str2 = str;
     for (let i = 2; i < args.length; i++) {
-      const newResult = StringValue.toString(args[i]);
-      if (newResult.code != ResultCode.OK) return newResult;
-      str2 += newResult.data;
+      const { data: append, ...result } = StringValue.toString(args[i]);
+      if (result.code != ResultCode.OK) return result;
+      str2 += append;
     }
     return OK(new StringValue(str2));
   },
@@ -96,9 +92,8 @@ const stringRemoveCmd: Command = {
   execute(args) {
     if (args.length != 4 && args.length != 5)
       return ARITY_ERROR("string value remove first last");
-    const result = StringValue.toString(args[1]);
+    const { data: str, ...result } = StringValue.toString(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const str = result.data;
     const firstResult = IntegerValue.toInteger(args[2]);
     if (firstResult.code != ResultCode.OK) return firstResult;
     const first = firstResult.data;
@@ -113,26 +108,24 @@ const stringRemoveCmd: Command = {
 const stringInsertCmd: Command = {
   execute(args) {
     if (args.length != 4) return ARITY_ERROR("string value insert index new");
-    const result = StringValue.toString(args[1]);
+    const { data: str, ...result } = StringValue.toString(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const str = result.data;
     const indexResult = IntegerValue.toInteger(args[2]);
     if (indexResult.code != ResultCode.OK) return indexResult;
     const index = indexResult.data;
-    const newResult = StringValue.toString(args[3]);
-    if (newResult.code != ResultCode.OK) return newResult;
+    const { data: insert, ...result2 } = StringValue.toString(args[3]);
+    if (result2.code != ResultCode.OK) return result2;
     const head = str.substring(0, index);
     const tail = str.substring(index);
-    return OK(new StringValue(head + newResult.data + tail));
+    return OK(new StringValue(head + insert + tail));
   },
 };
 const stringReplaceCmd: Command = {
   execute(args) {
     if (args.length != 5)
       return ARITY_ERROR("string value replace first last new");
-    const result = StringValue.toString(args[1]);
+    const { data: str, ...result } = StringValue.toString(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const str = result.data;
     const firstResult = IntegerValue.toInteger(args[2]);
     if (firstResult.code != ResultCode.OK) return firstResult;
     const first = firstResult.data;
@@ -141,9 +134,9 @@ const stringReplaceCmd: Command = {
     const last = lastResult.data;
     const head = str.substring(0, first);
     const tail = str.substring(Math.max(first, last + 1));
-    const newResult = StringValue.toString(args[4]);
-    if (newResult.code != ResultCode.OK) return newResult;
-    return OK(new StringValue(head + newResult.data + tail));
+    const { data: insert, ...result2 } = StringValue.toString(args[4]);
+    if (result2.code != ResultCode.OK) return result2;
+    return OK(new StringValue(head + insert + tail));
   },
 };
 
@@ -154,12 +147,10 @@ const binaryCmd = (
   execute(args: Value[]): Result {
     if (args.length != 3) return OPERATOR_ARITY_ERROR(args[0].asString());
     if (args[1] == args[2]) return OK(whenEqual ? TRUE : FALSE);
-    let result = StringValue.toString(args[1]);
-    if (result.code != ResultCode.OK) return result;
-    const operand1 = result.data;
-    result = StringValue.toString(args[2]);
-    if (result.code != ResultCode.OK) return result;
-    const operand2 = result.data;
+    const { data: operand1, ...result1 } = StringValue.toString(args[1]);
+    if (result1.code != ResultCode.OK) return result1;
+    const { data: operand2, ...result2 } = StringValue.toString(args[2]);
+    if (result2.code != ResultCode.OK) return result2;
     return OK(fn(operand1, operand2) ? TRUE : FALSE);
   },
 });

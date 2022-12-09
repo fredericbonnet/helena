@@ -35,10 +35,10 @@ describe("Helena dictionaries", () => {
   });
 
   describe("dict", () => {
-    specify("should return map value", () => {
+    it("should return map value", () => {
       expect(evaluate("dict ()")).to.eql(new MapValue({}));
     });
-    specify("should convert key-value tuples to maps", () => {
+    it("should convert key-value tuples to maps", () => {
       expect(evaluate("dict (a b c d)")).to.eql(
         new MapValue({
           a: new StringValue("b"),
@@ -46,15 +46,15 @@ describe("Helena dictionaries", () => {
         })
       );
     });
-    specify("should convert key-value blocks to maps", () => {
+    it("should convert key-value blocks to maps", () => {
       expect(evaluate("dict {a b c d}")).to.eql(evaluate("dict (a b c d)"));
     });
-    specify("should convert key-value lists to maps", () => {
+    it("should convert key-value lists to maps", () => {
       expect(evaluate("dict [list (a b c d)]")).to.eql(
         evaluate("dict (a b c d)")
       );
     });
-    specify("should convert non-string keys to strings", () => {
+    it("should convert non-string keys to strings", () => {
       expect(evaluate("dict ([1] a [2.5] b [true] c {block} d)")).to.eql(
         new MapValue({
           "1": new StringValue("a"),
@@ -64,7 +64,7 @@ describe("Helena dictionaries", () => {
         })
       );
     });
-    specify("should preserve values", () => {
+    it("should preserve values", () => {
       expect(evaluate("dict (a [1] b () c [])")).to.eql(
         new MapValue({
           a: new IntegerValue(1),

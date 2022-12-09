@@ -26,10 +26,10 @@ describe("Helena lists", () => {
   });
 
   describe("list", () => {
-    specify("should return list value", () => {
+    it("should return list value", () => {
       expect(evaluate("list ()")).to.eql(new ListValue([]));
     });
-    specify("should convert tuples to lists", () => {
+    it("should convert tuples to lists", () => {
       expect(evaluate("list (a b c)")).to.eql(
         new ListValue([
           new StringValue("a"),
@@ -38,18 +38,12 @@ describe("Helena lists", () => {
         ])
       );
     });
-    specify("should convert blocks to lists", () => {
-      expect(evaluate("list {a b c}")).to.eql(
-        new ListValue([
-          new StringValue("a"),
-          new StringValue("b"),
-          new StringValue("c"),
-        ])
-      );
+    it("should convert blocks to lists", () => {
+      expect(evaluate("list {a b c}")).to.eql(evaluate("list (a b c)"));
     });
     describe("subcommands", () => {
       describe("length", () => {
-        it("should return the string length", () => {
+        it("should return the list length", () => {
           expect(evaluate("list () length")).to.eql(new IntegerValue(0));
           expect(evaluate("list (a b c) length")).to.eql(new IntegerValue(3));
         });
@@ -62,7 +56,7 @@ describe("Helena lists", () => {
         });
       });
       describe("at", () => {
-        it("should return the character at the given index", () => {
+        it("should return the element at the given index", () => {
           expect(evaluate("list (a b c) at 1")).to.eql(new StringValue("b"));
         });
         describe("exceptions", () => {
@@ -95,7 +89,7 @@ describe("Helena lists", () => {
             evaluate("list (b c d)")
           );
         });
-        it("should return the remainder of the string when given first only", () => {
+        it("should return the remainder of the list when given first only", () => {
           expect(evaluate("list (a b c) range 2")).to.eql(evaluate("list (c)"));
         });
         it("should truncate out of range boundaries", () => {
@@ -115,7 +109,7 @@ describe("Helena lists", () => {
         it("should return an empty list when last is before first", () => {
           expect(evaluate("list (a b c) range 2 0")).to.eql(new ListValue([]));
         });
-        it("should return an empty list when first is past the string length", () => {
+        it("should return an empty list when first is past the list length", () => {
           expect(evaluate("list (a b c) range 10 12")).to.eql(
             evaluate("list ()")
           );
@@ -171,7 +165,7 @@ describe("Helena lists", () => {
             evaluate("list (a b c)")
           );
         });
-        it("should do nothing when first is past the string length", () => {
+        it("should do nothing when first is past the list length", () => {
           expect(evaluate("list (a b c) remove 10 12")).to.eql(
             evaluate("list (a b c)")
           );
@@ -270,7 +264,7 @@ describe("Helena lists", () => {
           });
         });
         describe("replace", () => {
-          it("should replace the range included within [first, last] with the given string", () => {
+          it("should replace the range included within [first, last] with the given list", () => {
             expect(evaluate("list (a b c d e) replace 1 3 (foo bar)")).to.eql(
               evaluate("list (a foo bar e)")
             );
@@ -286,17 +280,17 @@ describe("Helena lists", () => {
               evaluate("list (foo bar)")
             );
           });
-          it("should insert the string at first index when last is before first", () => {
+          it("should insert the list at first index when last is before first", () => {
             expect(evaluate("list (a b c) replace 2 0 (foo bar)")).to.eql(
               evaluate("list (a b foo bar c)")
             );
           });
-          it("should prepend the string when last is negative", () => {
+          it("should prepend the list when last is negative", () => {
             expect(evaluate("list (a b c) replace -3 -1 (foo bar)")).to.eql(
               evaluate("list (foo bar a b c)")
             );
           });
-          it("should append the string when first is past the string length", () => {
+          it("should append the list when first is past the list length", () => {
             expect(evaluate("list (a b c) replace 10 12 (foo bar)")).to.eql(
               evaluate("list (a b c foo bar)")
             );
@@ -372,13 +366,7 @@ describe("Helena lists", () => {
   describe("currying", () => {
     specify("identity", () => {
       evaluate("set l (list (a b c))");
-      expect(evaluate("$l")).to.eql(
-        new ListValue([
-          new StringValue("a"),
-          new StringValue("b"),
-          new StringValue("c"),
-        ])
-      );
+      expect(evaluate("$l")).to.eql(evaluate("list (a b c)"));
     });
     specify("length", () => {
       evaluate("set l (list (a b c))");

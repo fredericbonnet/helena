@@ -26,10 +26,10 @@ describe("Helena strings", () => {
   });
 
   describe("string", () => {
-    specify("should return string value", () => {
+    it("should return string value", () => {
       expect(evaluate("string example")).to.eql(new StringValue("example"));
     });
-    specify("should convert non-string values to strings", () => {
+    it("should convert non-string values to strings", () => {
       expect(evaluate("string [+ 1 3]")).to.eql(new StringValue("4"));
     });
     describe("subcommands", () => {
