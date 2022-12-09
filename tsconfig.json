@@ -1,1 +1,3 @@
-{}
+{
+  "compilerOptions": { "lib": ["es2019"], "target": "es2019" }
+}

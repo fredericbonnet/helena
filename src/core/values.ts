@@ -399,8 +399,8 @@ export class ListValue implements Value {
 
   /**
    * Convert value to array of values:
-   * - Booleans: use boolean value
-   * - Strings: true, false
+   * - Lists
+   * - Tuples
    *
    * @param value - Value to convert
    *
@@ -460,8 +460,8 @@ export class MapValue implements Value {
   /**
    * @param value - Key-value map to encapsulate
    */
-  constructor(value: { [key: string]: Value }) {
-    this.map = new Map(Object.entries(value));
+  constructor(value: { [key: string]: Value } | Map<string, Value>) {
+    this.map = new Map(value instanceof Map ? value : Object.entries(value));
   }
 
   /** @override */

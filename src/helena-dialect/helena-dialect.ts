@@ -24,6 +24,7 @@ import { procCmd } from "./procs";
 import { namespaceCmd } from "./namespaces";
 import { registerStringCommands } from "./strings";
 import { registerListCommands } from "./lists";
+import { registerDictCommands } from "./dicts";
 
 export { Scope, Variable, CommandValue } from "./core";
 
@@ -42,6 +43,7 @@ export function initCommands(scope: Scope) {
 
   registerStringCommands(scope);
   registerListCommands(scope);
+  registerDictCommands(scope);
 
   scope.registerCommand("let", letCmd);
   scope.registerCommand("set", setCmd);
