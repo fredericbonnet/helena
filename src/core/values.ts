@@ -436,7 +436,7 @@ export class ListValue implements Value {
 
   /** @override */
   asString(): string {
-    throw new Error("value has no string representation");
+    throw new Error("lists have no string representation");
   }
 
   /** @override */
@@ -466,7 +466,7 @@ export class MapValue implements Value {
 
   /** @override */
   asString(): string {
-    throw new Error("value has no string representation");
+    throw new Error("maps have no string representation");
   }
 
   /** @override */
@@ -499,7 +499,7 @@ export class TupleValue implements Value {
 
   /** @override */
   asString(): string {
-    throw new Error("value has no string representation");
+    throw new Error("tuples have no string representation");
   }
 
   /** @override */
@@ -595,7 +595,7 @@ export class QualifiedValue implements Value {
 
   /** @override */
   asString(): string {
-    throw new Error("value has no string representation");
+    throw new Error("qualified values have no string representation");
   }
 
   /** @override */

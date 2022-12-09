@@ -256,7 +256,7 @@ describe("values", () => {
     it("should have no string representation", () => {
       const value = new ListValue([]);
       expect(() => value.asString()).to.throw(
-        "value has no string representation"
+        "lists have no string representation"
       );
     });
     describe("fromValue()", () => {
@@ -351,7 +351,7 @@ describe("values", () => {
     it("should have no string representation", () => {
       const value = new MapValue({});
       expect(() => value.asString()).to.throw(
-        "value has no string representation"
+        "maps have no string representation"
       );
     });
     it("should not be index-selectable", () => {
@@ -397,7 +397,7 @@ describe("values", () => {
     it("should have no string representation", () => {
       const value = new TupleValue([]);
       expect(() => value.asString()).to.throw(
-        "value has no string representation"
+        "tuples have no string representation"
       );
     });
     describe("indexed selectors", () => {
@@ -563,7 +563,7 @@ describe("values", () => {
     it("should have no string representation", () => {
       const value = new QualifiedValue(new StringValue("name"), []);
       expect(() => value.asString()).to.throw(
-        "value has no string representation"
+        "qualified values have no string representation"
       );
     });
     describe("indexed selectors", () => {
