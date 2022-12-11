@@ -394,6 +394,12 @@ describe("Parser", () => {
         expect(toTree(script)).to.eql([
           [[{ STRING: [{ LITERAL: "this {is (a #string" }] }]],
         ]);
+        expect(toTree(parse('"("'))).to.eql([
+          [[{ STRING: [{ LITERAL: "(" }] }]],
+        ]);
+        expect(toTree(parse('"{"'))).to.eql([
+          [[{ STRING: [{ LITERAL: "{" }] }]],
+        ]);
       });
       describe("expressions", () => {
         specify("empty expression", () => {

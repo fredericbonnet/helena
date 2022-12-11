@@ -55,6 +55,7 @@ class Context {
     this.sentence = ctx.sentence;
     this.word = ctx.word;
     this.morphemes = ctx.morphemes;
+    this.substitutionMode = "";
   }
 
   /** @returns Current morpheme (if any) */
@@ -522,7 +523,7 @@ export class Parser {
         return PARSE_OK();
 
       case TokenType.COMMENT:
-        if (this.withinSubstitution() && this.expectSource()) {
+        if (this.expectSource()) {
           return PARSE_ERROR("unexpected comment delimiter");
         }
         if (!this.ensureWord()) {
