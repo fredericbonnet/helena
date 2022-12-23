@@ -269,21 +269,25 @@ export class InlineEvaluator implements Evaluator {
         throw new Error("unknown word type");
     }
   }
-  private getWordValues(words: Word[]): Value[] {
+  private getWordValues(words: (Word | Value)[]): Value[] {
     const values: Value[] = [];
     for (const word of words) {
-      const type = this.syntaxChecker.checkWord(word);
-      if (type == WordType.INVALID) throw new Error("invalid word structure");
-      const value = this.getWordValue(word, type);
-      if (value == NIL) continue;
-      if (
-        type == WordType.SUBSTITUTION &&
-        (word.morphemes[0] as SubstituteNextMorpheme).expansion &&
-        value.type == ValueType.TUPLE
-      ) {
-        values.push(...(value as TupleValue).values);
+      if (word instanceof Word) {
+        const type = this.syntaxChecker.checkWord(word);
+        if (type == WordType.INVALID) throw new Error("invalid word structure");
+        if (type == WordType.IGNORED) continue;
+        const value = this.getWordValue(word, type);
+        if (
+          type == WordType.SUBSTITUTION &&
+          (word.morphemes[0] as SubstituteNextMorpheme).expansion &&
+          value.type == ValueType.TUPLE
+        ) {
+          values.push(...(value as TupleValue).values);
+        } else {
+          values.push(value);
+        }
       } else {
-        values.push(value);
+        values.push(word);
       }
     }
     return values;
@@ -559,9 +563,13 @@ export class InlineEvaluator implements Evaluator {
     if (sentence.words.length == 0) throw new Error("empty selector rule");
     const words: Value[] = [];
     for (const word of sentence.words) {
-      const result = this.evaluateWord(word);
-      if (result.code != ResultCode.OK) throw new Interrupt(result);
-      words.push(result.value);
+      if (word instanceof Word) {
+        const result = this.evaluateWord(word);
+        if (result.code != ResultCode.OK) throw new Interrupt(result);
+        words.push(result.value);
+      } else {
+        words.push(word);
+      }
     }
     return new TupleValue(words);
   }

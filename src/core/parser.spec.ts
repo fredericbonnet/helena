@@ -14,6 +14,7 @@ import {
   LineCommentMorpheme,
   BlockCommentMorpheme,
   SubstituteNextMorpheme,
+  Word,
 } from "./syntax";
 import { Tokenizer } from "./tokenizer";
 
@@ -60,7 +61,7 @@ const mapMorpheme = (morpheme: Morpheme) => {
 };
 const toTree = (script: Script) =>
   script.sentences.map((sentence) =>
-    sentence.words.map((word) => word.morphemes.map(mapMorpheme))
+    sentence.words.map((word) => (word as Word).morphemes.map(mapMorpheme))
   );
 
 describe("Parser", () => {
@@ -245,7 +246,8 @@ describe("Parser", () => {
       });
       describe("string value", () => {
         const getBlock = (script: Script, wordIndex: number) =>
-          script.sentences[0].words[wordIndex].morphemes[0] as BlockMorpheme;
+          (script.sentences[0].words[wordIndex] as Word)
+            .morphemes[0] as BlockMorpheme;
         specify("empty", () => {
           const script = parse("{}");
           const block = getBlock(script, 0);

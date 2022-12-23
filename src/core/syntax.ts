@@ -2,6 +2,8 @@
  * @file Helena syntax checking and AST
  */
 
+import { Value } from "./values";
+
 /**
  * Helena script
  *
@@ -15,11 +17,11 @@ export class Script {
 /**
  * Helena sentence
  *
- * Sentences are lists of words
+ * Sentences are lists of words or values
  */
 export class Sentence {
   /** Words that compose the sentence */
-  readonly words: Word[] = [];
+  readonly words: (Word | Value)[] = [];
 }
 
 /**

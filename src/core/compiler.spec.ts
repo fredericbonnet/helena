@@ -14,7 +14,7 @@ import {
   KeyedSelector,
   Selector,
 } from "./selectors";
-import { BlockMorpheme, Script } from "./syntax";
+import { BlockMorpheme, Script, Word } from "./syntax";
 import { Tokenizer } from "./tokenizer";
 import {
   IntegerValue,
@@ -90,8 +90,14 @@ describe("Compilation and execution", () => {
 
   const parse = (script: string) =>
     parser.parse(tokenizer.tokenize(script)).script;
-  const compileFirstWord = (script: Script) =>
-    compiler.compileWord(script.sentences[0].words[0]);
+  const compileFirstWord = (script: Script) => {
+    const word = script.sentences[0].words[0];
+    if (word instanceof Word) {
+      return compiler.compileWord(word);
+    } else {
+      return compiler.compileConstant(word);
+    }
+  };
 
   const executionModes = [
     {
@@ -246,7 +252,7 @@ describe("Compilation and execution", () => {
               specify("complex case", () => {
                 const source = ' this [cmd] $var1 "complex" ${var2}(key) ';
                 const script = parse(`{${source}}`);
-                const block = script.sentences[0].words[0]
+                const block = (script.sentences[0].words[0] as Word)
                   .morphemes[0] as BlockMorpheme;
                 const value = new ScriptValue(block.subscript, source);
                 const program = compileFirstWord(script);
@@ -2461,6 +2467,15 @@ describe("Compilation and execution", () => {
               expect(program.opCodes).to.eql([]);
             });
           });
+        });
+
+        specify("constants", () => {
+          const value = new StringValue("value");
+          const program = compiler.compileConstant(value);
+          expect(program.opCodes).to.eql([OpCode.PUSH_CONSTANT]);
+          expect(program.constants).to.eql([new StringValue("value")]);
+
+          expect(evaluate(program)).to.eql(new StringValue("value"));
         });
 
         describe("word expansion", () => {

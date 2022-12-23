@@ -9,7 +9,7 @@ import {
 } from "./evaluator";
 import { Parser } from "./parser";
 import { Tokenizer } from "./tokenizer";
-import { Script } from "./syntax";
+import { Script, Word } from "./syntax";
 import {
   Value,
   StringValue,
@@ -141,7 +141,8 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
     const parse = (script: string) =>
       parser.parse(tokenizer.tokenize(script)).script;
     const firstSentence = (script: Script) => script.sentences[0];
-    const firstWord = (script: Script) => firstSentence(script).words[0];
+    const firstWord = (script: Script) =>
+      firstSentence(script).words[0] as Word;
     const firstMorpheme = (script: Script) => firstWord(script).morphemes[0];
 
     beforeEach(() => {

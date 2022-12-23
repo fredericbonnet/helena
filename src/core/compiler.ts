@@ -166,7 +166,11 @@ export class Compiler {
   }
   private emitSentence(program: Program, sentence: Sentence) {
     for (const word of sentence.words) {
-      this.emitWord(program, word);
+      if (word instanceof Word) {
+        this.emitWord(program, word);
+      } else {
+        this.emitConstant(program, word);
+      }
     }
   }
 
@@ -179,11 +183,24 @@ export class Compiler {
    *
    * @param word - Word to compile
    *
-   * @returns      Compile program
+   * @returns      Compiled program
    */
   compileWord(word: Word): Program {
     const program: Program = new Program();
     this.emitWord(program, word);
+    return program;
+  }
+
+  /**
+   * Compile the given constant value into a program
+   *
+   * @param value - Constant to compile
+   *
+   * @returns       Compiled program
+   */
+  compileConstant(value: Value): Program {
+    const program: Program = new Program();
+    this.emitConstant(program, value);
     return program;
   }
 

@@ -29,6 +29,7 @@ import {
   BooleanValue,
   IntegerValue,
 } from "../core/values";
+import { Word } from "../core/syntax";
 
 export class PicolScope {
   readonly parent?: PicolScope;
@@ -413,9 +414,13 @@ function valueToArray(value: Value): Result<Value[]> {
       const values = [];
       for (const sentence of (value as ScriptValue).script.sentences) {
         for (const word of sentence.words) {
-          const result = evaluator.evaluateWord(word);
-          if (result.code != ResultCode.OK) return result as Result<Value[]>;
-          values.push(result.value);
+          if (word instanceof Word) {
+            const result = evaluator.evaluateWord(word);
+            if (result.code != ResultCode.OK) return result as Result<Value[]>;
+            values.push(result.value);
+          } else {
+            values.push(word);
+          }
         }
       }
       return OK(NIL, values);
