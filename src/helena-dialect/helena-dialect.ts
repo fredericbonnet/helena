@@ -26,6 +26,7 @@ import { registerStringCommands } from "./strings";
 import { registerListCommands } from "./lists";
 import { registerDictCommands } from "./dicts";
 import { registerScriptCommands } from "./scripts";
+import { registerTupleCommands } from "./tuples";
 
 export { Scope, Variable, CommandValue } from "./core";
 
@@ -45,6 +46,7 @@ export function initCommands(scope: Scope) {
   registerStringCommands(scope);
   registerListCommands(scope);
   registerDictCommands(scope);
+  registerTupleCommands(scope);
   registerScriptCommands(scope);
 
   scope.registerCommand("let", letCmd);
