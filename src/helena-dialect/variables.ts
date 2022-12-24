@@ -5,7 +5,7 @@ import { FALSE, TRUE, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Scope } from "./core";
 
-export const letCmd: Command = {
+const letCmd: Command = {
   execute: (args, scope: Scope) => {
     switch (args.length) {
       case 3:
@@ -15,7 +15,7 @@ export const letCmd: Command = {
     }
   },
 };
-export const setCmd: Command = {
+const setCmd: Command = {
   execute: (args, scope: Scope) => {
     switch (args.length) {
       case 3:
@@ -25,7 +25,7 @@ export const setCmd: Command = {
     }
   },
 };
-export const getCmd: Command = {
+const getCmd: Command = {
   execute: (args, scope: Scope) => {
     switch (args.length) {
       case 2:
@@ -53,7 +53,7 @@ export const getCmd: Command = {
     }
   },
 };
-export const existsCmd: Command = {
+const existsCmd: Command = {
   execute: (args, scope: Scope) => {
     switch (args.length) {
       case 2:
@@ -79,7 +79,7 @@ export const existsCmd: Command = {
     }
   },
 };
-export const unsetCmd: Command = {
+const unsetCmd: Command = {
   execute: (args, scope: Scope) => {
     switch (args.length) {
       case 2:
@@ -89,3 +89,11 @@ export const unsetCmd: Command = {
     }
   },
 };
+
+export function registerVariableCommands(scope: Scope) {
+  scope.registerCommand("let", letCmd);
+  scope.registerCommand("set", setCmd);
+  scope.registerCommand("get", getCmd);
+  scope.registerCommand("exists", existsCmd);
+  scope.registerCommand("unset", unsetCmd);
+}

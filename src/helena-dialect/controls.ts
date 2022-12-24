@@ -112,7 +112,7 @@ class WhileCommand implements Command {
     return BooleanValue.fromValue(result.value);
   }
 }
-export const whileCmd = new WhileCommand();
+const whileCmd = new WhileCommand();
 
 class IfState {
   args: Value[];
@@ -221,7 +221,7 @@ class IfCommand implements Command {
     return ARITY_ERROR("if test body ?elseif test body ...? ?else? ?body?");
   }
 }
-export const ifCmd = new IfCommand();
+const ifCmd = new IfCommand();
 
 class WhenState {
   command?: Value;
@@ -378,4 +378,10 @@ class WhenCommand implements Command {
     return BooleanValue.fromValue(result.value);
   }
 }
-export const whenCmd = new WhenCommand();
+const whenCmd = new WhenCommand();
+
+export function registerControlCommands(scope: Scope) {
+  scope.registerCommand("while", whileCmd);
+  scope.registerCommand("if", ifCmd);
+  scope.registerCommand("when", whenCmd);
+}

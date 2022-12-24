@@ -5,58 +5,69 @@ import { NIL } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { DeferredValue, Scope } from "./core";
 
-export const idemCmd: Command = {
+const idemCmd: Command = {
   execute: (args) => {
     if (args.length != 2) return ARITY_ERROR("idem value");
     return OK(args[1]);
   },
 };
 
-export const returnCmd: Command = {
+const returnCmd: Command = {
   execute: (args) => {
     if (args.length > 2) return ARITY_ERROR("return ?result?");
     return RETURN(args.length == 2 ? args[1] : NIL);
   },
 };
 
-export const yieldCmd: Command = {
+const yieldCmd: Command = {
   execute: (args) => {
     if (args.length > 2) return ARITY_ERROR("yield ?result?");
     return YIELD(args.length == 2 ? args[1] : NIL);
   },
 };
 
-export const tailcallCmd: Command = {
+const tailcallCmd: Command = {
   execute: (args, scope: Scope) => {
     if (args.length != 2) return ARITY_ERROR("tailcall body");
     return RETURN(new DeferredValue(args[1], scope));
   },
 };
 
-export const errorCmd: Command = {
+const errorCmd: Command = {
   execute: (args) => {
     if (args.length != 2) return ARITY_ERROR("error message");
     return ERROR(args[1].asString());
   },
 };
 
-export const breakCmd: Command = {
+const breakCmd: Command = {
   execute: (args) => {
     if (args.length != 1) return ARITY_ERROR("break");
     return BREAK();
   },
 };
 
-export const continueCmd: Command = {
+const continueCmd: Command = {
   execute: (args) => {
     if (args.length != 1) return ARITY_ERROR("continue");
     return CONTINUE();
   },
 };
 
-export const evalCmd: Command = {
+const evalCmd: Command = {
   execute: (args, scope: Scope) => {
     if (args.length != 2) return ARITY_ERROR("eval body");
     return YIELD(new DeferredValue(args[1], scope));
   },
 };
+
+export function registerBasicCommands(scope: Scope) {
+  scope.registerCommand("idem", idemCmd);
+  scope.registerCommand("return", returnCmd);
+  scope.registerCommand("tailcall", tailcallCmd);
+  scope.registerCommand("yield", yieldCmd);
+  scope.registerCommand("error", errorCmd);
+  scope.registerCommand("break", breakCmd);
+  scope.registerCommand("continue", continueCmd);
+  scope.registerCommand("eval", evalCmd);
+}
