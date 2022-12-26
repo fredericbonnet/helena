@@ -6,12 +6,13 @@ import {
   BooleanValue,
   NIL,
   ScriptValue,
+  StringValue,
   TupleValue,
   Value,
   ValueType,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { Process, Scope } from "./core";
+import { Process, Scope, ScopeContext } from "./core";
 import { valueToArray } from "./lists";
 
 type WhileState = {
@@ -46,12 +47,7 @@ class WhileCommand implements Command {
   }
   resume(result: Result, scope: Scope) {
     const state = result.data as WhileState;
-    switch (state.step) {
-      case "inTest":
-      case "inBody":
-        state.process.yieldBack(result.value);
-        break;
-    }
+    state.process.yieldBack(result.value);
     return this.run(state, scope);
   }
   private run(state: WhileState, scope: Scope) {
@@ -129,12 +125,7 @@ class IfCommand implements Command {
   }
   resume(result: Result, scope: Scope): Result {
     const state = result.data as IfState;
-    switch (state.step) {
-      case "inTest":
-      case "inBody":
-        state.process.yieldBack(result.value);
-        break;
-    }
+    state.process.yieldBack(result.value);
     return this.run(state, scope);
   }
   private run(state: IfState, scope: Scope): Result {
@@ -259,13 +250,7 @@ class WhenCommand implements Command {
   }
   resume(result: Result, scope: Scope): Result {
     const state = result.data as WhenState;
-    switch (state.step) {
-      case "inCommand":
-      case "inTest":
-      case "inBody":
-        state.process.yieldBack(result.value);
-        break;
-    }
+    state.process.yieldBack(result.value);
     return this.run(state, scope);
   }
   private run(state: WhenState, scope: Scope): Result {
@@ -380,8 +365,247 @@ class WhenCommand implements Command {
 }
 const whenCmd = new WhenCommand();
 
+type CatchState = {
+  args: Value[];
+  step:
+    | "beforeHandler"
+    | "inHandler"
+    | "afterHandler"
+    | "beforeFinally"
+    | "inFinally";
+  result: Result;
+  process?: Process;
+};
+class CatchCommand implements Command {
+  execute(args: Value[], scope: Scope): Result {
+    const checkResult = this.checkArgs(args);
+    if (checkResult.code != ResultCode.OK) return checkResult;
+    const body = args[1];
+    if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
+    const result = scope.executeScriptValue(body as ScriptValue);
+    if (args.length == 2) {
+      switch (result.code) {
+        case ResultCode.OK:
+          return OK(new TupleValue([new StringValue("ok"), result.value]));
+        case ResultCode.RETURN:
+          return OK(new TupleValue([new StringValue("return"), result.value]));
+        case ResultCode.YIELD:
+          return OK(new TupleValue([new StringValue("yield"), result.value]));
+        case ResultCode.ERROR:
+          return OK(new TupleValue([new StringValue("error"), result.value]));
+        case ResultCode.BREAK:
+          return OK(new TupleValue([new StringValue("break")]));
+        case ResultCode.CONTINUE:
+          return OK(new TupleValue([new StringValue("continue")]));
+        default:
+          return ERROR("CANTHAPPEN");
+      }
+    }
+    return this.run({ step: "beforeHandler", args, result }, scope);
+  }
+  resume(result: Result, scope: Scope): Result {
+    const state = result.data as CatchState;
+    state.process.yieldBack(result.value);
+    return this.run(state, scope);
+  }
+  private run(state: CatchState, scope: Scope) {
+    for (;;) {
+      switch (state.step) {
+        case "beforeHandler": {
+          if (state.result.code == ResultCode.OK) {
+            state.step = "beforeFinally";
+            break;
+          }
+          const i = this.findHandlerIndex(state.result.code, state.args);
+          if (i < 0) {
+            state.step = "beforeFinally";
+            break;
+          }
+          switch (state.result.code) {
+            case ResultCode.RETURN:
+            case ResultCode.YIELD:
+            case ResultCode.ERROR: {
+              const varname = state.args[i + 1];
+              const handler = state.args[i + 2];
+              const locals: Map<string, Value> = new Map();
+              locals.set(varname.asString(), state.result.value);
+              const subscope = new Scope(
+                scope,
+                new ScopeContext(scope.context, locals)
+              );
+              state.process = subscope.prepareScriptValue(
+                handler as ScriptValue
+              ); // TODO check type
+              break;
+            }
+            case ResultCode.BREAK:
+            case ResultCode.CONTINUE: {
+              const handler = state.args[i + 1];
+              state.process = scope.prepareScriptValue(handler as ScriptValue); // TODO check type
+              break;
+            }
+          }
+          state.step = "inHandler";
+          break;
+        }
+        case "inHandler": {
+          state.result = state.process.run();
+          if (state.result.code == ResultCode.YIELD)
+            return YIELD(state.result.value, state);
+          if (state.result.code != ResultCode.OK) return state.result;
+          state.step = "beforeFinally";
+          break;
+        }
+        case "beforeFinally": {
+          const i = this.findFinallyIndex(state.args);
+          if (i < 0) return state.result;
+          const handler = state.args[i + 1];
+          state.process = scope.prepareScriptValue(handler as ScriptValue); // TODO check type
+          state.step = "inFinally";
+          break;
+        }
+        case "inFinally": {
+          const result = state.process.run();
+          if (result.code == ResultCode.YIELD)
+            return YIELD(result.value, state);
+          if (result.code != ResultCode.OK) return result;
+          return state.result;
+        }
+      }
+    }
+  }
+  private findHandlerIndex(code: ResultCode, args: Value[]): number {
+    let i = 2;
+    while (i < args.length) {
+      const keyword = args[i].asString();
+      switch (keyword) {
+        case "return":
+          if (code == ResultCode.RETURN) return i;
+          i += 3;
+          break;
+        case "yield":
+          if (code == ResultCode.YIELD) return i;
+          i += 3;
+          break;
+        case "error":
+          if (code == ResultCode.ERROR) return i;
+          i += 3;
+          break;
+        case "break":
+          if (code == ResultCode.BREAK) return i;
+          i += 2;
+          break;
+        case "continue":
+          if (code == ResultCode.CONTINUE) return i;
+          i += 2;
+          break;
+        case "finally":
+          i += 2;
+          break;
+      }
+    }
+    return -1;
+  }
+  private findFinallyIndex(args: Value[]): number {
+    let i = 2;
+    while (i < args.length) {
+      const keyword = args[i].asString();
+      switch (keyword) {
+        case "return":
+          i += 3;
+          break;
+        case "yield":
+          i += 3;
+          break;
+        case "error":
+          i += 3;
+          break;
+        case "break":
+          i += 2;
+          break;
+        case "continue":
+          i += 2;
+          break;
+        case "finally":
+          return i;
+      }
+    }
+    return -1;
+  }
+  private checkArgs(args: Value[]): Result {
+    let i = 2;
+    while (i < args.length) {
+      const keyword = args[i].asString();
+      switch (keyword) {
+        case "return":
+          switch (args.length - i) {
+            case 1:
+              return ERROR("missing return handler value");
+            case 2:
+              return ERROR("missing return handler body");
+            default:
+              i += 3;
+          }
+          break;
+        case "yield":
+          switch (args.length - i) {
+            case 1:
+              return ERROR("missing yield handler value");
+            case 2:
+              return ERROR("missing yield handler body");
+            default:
+              i += 3;
+          }
+          break;
+        case "error":
+          switch (args.length - i) {
+            case 1:
+              return ERROR("missing error handler message");
+            case 2:
+              return ERROR("missing error handler body");
+            default:
+              i += 3;
+          }
+          break;
+        case "break":
+          switch (args.length - i) {
+            case 1:
+              return ERROR("missing break handler body");
+            default:
+              i += 2;
+          }
+          break;
+        case "continue":
+          switch (args.length - i) {
+            case 1:
+              return ERROR("missing continue handler body");
+            default:
+              i += 2;
+          }
+          break;
+        case "finally":
+          switch (args.length - i) {
+            case 1:
+              return ERROR("missing finally handler body");
+            default:
+              i += 2;
+          }
+          break;
+        default:
+          return ERROR(`invalid keyword "${keyword}"`);
+      }
+    }
+    if (i == args.length) return OK(NIL);
+    return ARITY_ERROR(
+      "catch body ?return value handler? ?yield value handler? ?error message handler? ?break handler? ?continue handler? ?finally handler?"
+    );
+  }
+}
+const catchCmd = new CatchCommand();
+
 export function registerControlCommands(scope: Scope) {
   scope.registerCommand("while", whileCmd);
   scope.registerCommand("if", ifCmd);
   scope.registerCommand("when", whenCmd);
+  scope.registerCommand("catch", catchCmd);
 }

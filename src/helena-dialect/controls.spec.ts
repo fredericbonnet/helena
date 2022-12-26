@@ -6,6 +6,7 @@ import {
   OK,
   ResultCode,
   RETURN,
+  YIELD,
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
@@ -124,8 +125,7 @@ describe("Helena control flow commands", () => {
 
           state.yieldBack(FALSE);
           result = state.run();
-          expect(result.code).to.eql(ResultCode.OK);
-          expect(result.value).to.eql(new StringValue("step 2"));
+          expect(result).to.eql(OK(new StringValue("step 2")));
         });
       });
       describe("error", () => {
@@ -1051,6 +1051,933 @@ describe("Helena control flow commands", () => {
         expect(execute("when a")).to.eql(ERROR("invalid list"));
         expect(execute("when []")).to.eql(ERROR("invalid list"));
         expect(execute("when {$a}")).to.eql(ERROR("invalid list"));
+      });
+    });
+  });
+
+  describe("catch", () => {
+    describe("without handler", () => {
+      specify("OK code should return (ok value) tuple", () => {
+        expect(execute("catch {}")).to.eql(execute("tuple (ok [])"));
+        expect(execute("catch {idem value}")).to.eql(
+          execute("tuple (ok value)")
+        );
+      });
+      specify("RETURN code should return (return value) tuple", () => {
+        expect(execute("catch {return}")).to.eql(execute("tuple (return [])"));
+        expect(execute("catch {return value}")).to.eql(
+          execute("tuple (return value)")
+        );
+      });
+      specify("YIELD code should return (yield value) tuple", () => {
+        expect(execute("catch {yield}")).to.eql(execute("tuple (yield [])"));
+        expect(execute("catch {yield}")).to.eql(execute("tuple (yield [])"));
+        expect(execute("catch {yield value}")).to.eql(
+          execute("tuple (yield value)")
+        );
+      });
+      specify("ERROR code should return (error message) tuple", () => {
+        expect(execute("catch {error value}")).to.eql(
+          execute("tuple (error value)")
+        );
+        expect(execute("catch {error value}")).to.eql(
+          execute("tuple (error value)")
+        );
+      });
+      specify("BREAK code should return (break) tuple", () => {
+        expect(execute("catch {break}")).to.eql(execute("tuple (break)"));
+      });
+      specify("CONTINUE code should return (continue) tuple", () => {
+        expect(execute("catch {continue}")).to.eql(execute("tuple (continue)"));
+      });
+      specify("arbitrary errors", () => {
+        expect(execute("catch {idem}")).to.eql(
+          execute('tuple (error "wrong # args: should be \\"idem value\\"")')
+        );
+        expect(execute("catch {get var}")).to.eql(
+          execute('tuple (error "cannot get \\"var\\": no such variable")')
+        );
+        expect(execute("catch {cmd a b}")).to.eql(
+          execute('tuple (error "cannot resolve command cmd")')
+        );
+      });
+    });
+    describe("return handler", () => {
+      it("should catch RETURN code", () => {
+        evaluate("catch {return} return res {set var handler}");
+        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+      });
+      it("should let other codes pass through", () => {
+        expect(execute("catch {idem value} return res {unreachable}")).to.eql(
+          OK(new StringValue("value"))
+        );
+        expect(execute("catch {yield value} return res {unreachable}")).to.eql(
+          YIELD(new StringValue("value"))
+        );
+        expect(
+          execute("catch {error message} return res {unreachable}")
+        ).to.eql(ERROR("message"));
+        expect(execute("catch {break} return res {unreachable}")).to.eql(
+          BREAK()
+        );
+        expect(execute("catch {continue} return res {unreachable}")).to.eql(
+          CONTINUE()
+        );
+      });
+      it("should return handler result", () => {
+        expect(evaluate("catch {return} return res {idem handler}")).to.eql(
+          new StringValue("handler")
+        );
+      });
+      specify("handler value should be handler-local", () => {
+        expect(evaluate("catch {return value} return res {idem _$res}")).to.eql(
+          new StringValue("_value")
+        );
+        expect(evaluate("exists res")).to.eql(FALSE);
+      });
+      describe("control flow", () => {
+        describe("return", () => {
+          it("should interrupt handler with RETURN code", () => {
+            expect(
+              execute(
+                "catch {return val} return res {return handler; unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {return val} return res {return handler; unreachable} finally {unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+        });
+        describe("tailcall", () => {
+          it("should interrupt handler with RETURN code", () => {
+            expect(
+              execute(
+                "catch {return val} return res {tailcall {idem handler}; unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {return val} return res {tailcall {idem handler}; unreachable} finally {unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+        });
+        describe("yield", () => {
+          it("should interrupt handler with YIELD code", () => {
+            expect(
+              execute("catch {return val} return res {yield; unreachable}").code
+            ).to.eql(ResultCode.YIELD);
+          });
+          it("should provide a resumable state", () => {
+            const state = rootScope.prepareScript(
+              parse("catch {return val} return res {idem _$[yield handler]}")
+            );
+
+            let result = state.run();
+            expect(result.code).to.eql(ResultCode.YIELD);
+            expect(result.value).to.eql(new StringValue("handler"));
+            expect(result.data).to.exist;
+
+            state.yieldBack(new StringValue("value"));
+            result = state.run();
+            expect(result).to.eql(OK(new StringValue("_value")));
+          });
+          it("should not bypass finally handler", () => {
+            const state = rootScope.prepareScript(
+              parse(
+                "catch {return val} return res {yield; idem handler} finally {set var finally}"
+              )
+            );
+
+            let result = state.run();
+            result = state.run();
+            expect(result).to.eql(OK(new StringValue("handler")));
+            expect(evaluate("get var")).to.eql(new StringValue("finally"));
+          });
+        });
+        describe("error", () => {
+          it("should interrupt handler with ERROR code", () => {
+            expect(
+              execute(
+                "catch {return val} return res {error message; unreachable}"
+              )
+            ).to.eql(ERROR("message"));
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {return val} return res {error message; unreachable} finally {unreachable}"
+              )
+            ).to.eql(ERROR("message"));
+          });
+        });
+        describe("break", () => {
+          it("should interrupt handler with BREAK code", () => {
+            expect(
+              execute("catch {return val} return res {break; unreachable}")
+            ).to.eql(BREAK());
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {return val} return res {break; unreachable} finally {unreachable}"
+              )
+            ).to.eql(BREAK());
+          });
+        });
+        describe("continue", () => {
+          it("should interrupt handler with CONTINUE code", () => {
+            expect(
+              execute("catch {return val} return res {continue; unreachable}")
+            ).to.eql(CONTINUE());
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {return val} return res {continue; unreachable} finally {unreachable}"
+              )
+            ).to.eql(CONTINUE());
+          });
+        });
+      });
+      describe("exceptions", () => {
+        specify("wrong arity", () => {
+          expect(execute("catch {} return")).to.eql(
+            ERROR("missing return handler value")
+          );
+          expect(execute("catch {} return a")).to.eql(
+            ERROR("missing return handler body")
+          );
+        });
+      });
+    });
+    describe("yield handler", () => {
+      it("should catch YIELD code", () => {
+        evaluate("catch {yield} yield res {set var handler}");
+        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+      });
+      it("should let other codes pass through", () => {
+        expect(execute("catch {idem value} yield res {unreachable}")).to.eql(
+          OK(new StringValue("value"))
+        );
+        expect(execute("catch {return value} yield res {unreachable}")).to.eql(
+          RETURN(new StringValue("value"))
+        );
+        expect(execute("catch {error message} yield res {unreachable}")).to.eql(
+          ERROR("message")
+        );
+        expect(execute("catch {break} yield res {unreachable}")).to.eql(
+          BREAK()
+        );
+        expect(execute("catch {continue} yield res {unreachable}")).to.eql(
+          CONTINUE()
+        );
+      });
+      it("should return handler result", () => {
+        expect(evaluate("catch {yield} yield res {idem handler}")).to.eql(
+          new StringValue("handler")
+        );
+      });
+      specify("handler value should be handler-local", () => {
+        expect(evaluate("catch {yield value} yield res {idem _$res}")).to.eql(
+          new StringValue("_value")
+        );
+        expect(evaluate("exists res")).to.eql(FALSE);
+      });
+      describe("control flow", () => {
+        describe("return", () => {
+          it("should interrupt handler with RETURN code", () => {
+            expect(
+              execute(
+                "catch {yield val} yield res {return handler; unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {yield val} yield res {return handler; unreachable} finally {unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+        });
+        describe("tailcall", () => {
+          it("should interrupt handler with RETURN code", () => {
+            expect(
+              execute(
+                "catch {yield val} yield res {tailcall {idem handler}; unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {yield val} yield res {tailcall {idem handler}; unreachable} finally {unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+        });
+        describe("yield", () => {
+          it("should interrupt handler with YIELD code", () => {
+            expect(
+              execute("catch {yield val} yield res {yield; unreachable}").code
+            ).to.eql(ResultCode.YIELD);
+          });
+          it("should provide a resumable state", () => {
+            const state = rootScope.prepareScript(
+              parse("catch {yield val} yield res {idem _$[yield handler]}")
+            );
+
+            let result = state.run();
+            expect(result.code).to.eql(ResultCode.YIELD);
+            expect(result.value).to.eql(new StringValue("handler"));
+            expect(result.data).to.exist;
+
+            state.yieldBack(new StringValue("value"));
+            result = state.run();
+            expect(result).to.eql(OK(new StringValue("_value")));
+          });
+          it("should not bypass finally handler", () => {
+            const state = rootScope.prepareScript(
+              parse(
+                "catch {yield val} yield res {yield; idem handler} finally {set var finally}"
+              )
+            );
+
+            let result = state.run();
+            result = state.run();
+            expect(result).to.eql(OK(new StringValue("handler")));
+            expect(evaluate("get var")).to.eql(new StringValue("finally"));
+          });
+        });
+        describe("error", () => {
+          it("should interrupt handler with ERROR code", () => {
+            expect(
+              execute(
+                "catch {yield val} yield res {error message; unreachable}"
+              )
+            ).to.eql(ERROR("message"));
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {yield val} yield res {error message; unreachable} finally {unreachable}"
+              )
+            ).to.eql(ERROR("message"));
+          });
+        });
+        describe("break", () => {
+          it("should interrupt handler with BREAK code", () => {
+            expect(
+              execute("catch {yield val} yield res {break; unreachable}")
+            ).to.eql(BREAK());
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {yield val} yield res {break; unreachable} finally {unreachable}"
+              )
+            ).to.eql(BREAK());
+          });
+        });
+        describe("continue", () => {
+          it("should interrupt handler with CONTINUE code", () => {
+            expect(
+              execute("catch {yield val} yield res {continue; unreachable}")
+            ).to.eql(CONTINUE());
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {yield val} yield res {continue; unreachable} finally {unreachable}"
+              )
+            ).to.eql(CONTINUE());
+          });
+        });
+      });
+      describe("exceptions", () => {
+        specify("wrong arity", () => {
+          expect(execute("catch {} yield")).to.eql(
+            ERROR("missing yield handler value")
+          );
+          expect(execute("catch {} yield a")).to.eql(
+            ERROR("missing yield handler body")
+          );
+        });
+      });
+    });
+    describe("error handler", () => {
+      it("should catch ERROR code", () => {
+        evaluate("catch {error message} error msg {set var handler}");
+        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+      });
+      it("should let other codes pass through", () => {
+        expect(execute("catch {idem value} error msg {unreachable}")).to.eql(
+          OK(new StringValue("value"))
+        );
+        expect(execute("catch {return value} error msg {unreachable}")).to.eql(
+          RETURN(new StringValue("value"))
+        );
+        expect(execute("catch {yield value} error msg {unreachable}")).to.eql(
+          YIELD(new StringValue("value"))
+        );
+        expect(execute("catch {break} error msg {unreachable}")).to.eql(
+          BREAK()
+        );
+        expect(execute("catch {continue} error msg {unreachable}")).to.eql(
+          CONTINUE()
+        );
+      });
+      it("should return handler result", () => {
+        expect(
+          evaluate("catch {error message} error msg {idem handler}")
+        ).to.eql(new StringValue("handler"));
+      });
+      specify("handler value should be handler-local", () => {
+        expect(evaluate("catch {error message} error msg {idem _$msg}")).to.eql(
+          new StringValue("_message")
+        );
+        expect(evaluate("exists msg")).to.eql(FALSE);
+      });
+      describe("control flow", () => {
+        describe("return", () => {
+          it("should interrupt handler with RETURN code", () => {
+            expect(
+              execute(
+                "catch {error message} error msg {return handler; unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {error message} error msg {return handler; unreachable} finally {unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+        });
+        describe("tailcall", () => {
+          it("should interrupt handler with RETURN code", () => {
+            expect(
+              execute(
+                "catch {error message} error msg {tailcall {idem handler}; unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {error message} error msg {tailcall {idem handler}; unreachable} finally {unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+        });
+        describe("yield", () => {
+          it("should interrupt handler with YIELD code", () => {
+            expect(
+              execute("catch {error message} error msg {yield; unreachable}")
+                .code
+            ).to.eql(ResultCode.YIELD);
+          });
+          it("should provide a resumable state", () => {
+            const state = rootScope.prepareScript(
+              parse("catch {error message} error msg {idem _$[yield handler]}")
+            );
+
+            let result = state.run();
+            expect(result.code).to.eql(ResultCode.YIELD);
+            expect(result.value).to.eql(new StringValue("handler"));
+            expect(result.data).to.exist;
+
+            state.yieldBack(new StringValue("value"));
+            result = state.run();
+            expect(result).to.eql(OK(new StringValue("_value")));
+          });
+          it("should not bypass finally handler", () => {
+            const state = rootScope.prepareScript(
+              parse(
+                "catch {error message} error msg {yield; idem handler} finally {set var finally}"
+              )
+            );
+
+            let result = state.run();
+            result = state.run();
+            expect(result).to.eql(OK(new StringValue("handler")));
+            expect(evaluate("get var")).to.eql(new StringValue("finally"));
+          });
+        });
+        describe("error", () => {
+          it("should interrupt handler with ERROR code", () => {
+            expect(
+              execute(
+                "catch {error message} error msg {error message; unreachable}"
+              )
+            ).to.eql(ERROR("message"));
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {error message} error msg {error message; unreachable} finally {unreachable}"
+              )
+            ).to.eql(ERROR("message"));
+          });
+        });
+        describe("break", () => {
+          it("should interrupt handler with BREAK code", () => {
+            expect(
+              execute("catch {error message} error msg {break; unreachable}")
+            ).to.eql(BREAK());
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {error message} error msg {break; unreachable} finally {unreachable}"
+              )
+            ).to.eql(BREAK());
+          });
+        });
+        describe("continue", () => {
+          it("should interrupt handler with CONTINUE code", () => {
+            expect(
+              execute("catch {error message} error msg {continue; unreachable}")
+            ).to.eql(CONTINUE());
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {error message} error msg {continue; unreachable} finally {unreachable}"
+              )
+            ).to.eql(CONTINUE());
+          });
+        });
+      });
+      describe("exceptions", () => {
+        specify("wrong arity", () => {
+          expect(execute("catch {} error")).to.eql(
+            ERROR("missing error handler message")
+          );
+          expect(execute("catch {} error a")).to.eql(
+            ERROR("missing error handler body")
+          );
+        });
+      });
+    });
+    describe("break handler", () => {
+      it("should catch BREAK code", () => {
+        evaluate("catch {break} break {set var handler}");
+        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+      });
+      it("should let other codes pass through", () => {
+        expect(execute("catch {idem value} break {unreachable}")).to.eql(
+          OK(new StringValue("value"))
+        );
+        expect(execute("catch {return value} break {unreachable}")).to.eql(
+          RETURN(new StringValue("value"))
+        );
+        expect(execute("catch {yield value} break {unreachable}")).to.eql(
+          YIELD(new StringValue("value"))
+        );
+        expect(execute("catch {error message} break {unreachable}")).to.eql(
+          ERROR("message")
+        );
+        expect(execute("catch {continue} break {unreachable}")).to.eql(
+          CONTINUE()
+        );
+      });
+      it("should return handler result", () => {
+        expect(evaluate("catch {break} break {idem handler}")).to.eql(
+          new StringValue("handler")
+        );
+      });
+      describe("control flow", () => {
+        describe("return", () => {
+          it("should interrupt handler with RETURN code", () => {
+            expect(
+              execute("catch {break} break {return handler; unreachable}")
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {break} break {return handler; unreachable} finally {unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+        });
+        describe("tailcall", () => {
+          it("should interrupt handler with RETURN code", () => {
+            expect(
+              execute(
+                "catch {break} break {tailcall {idem handler}; unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {break} break {tailcall {idem handler}; unreachable} finally {unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+        });
+        describe("yield", () => {
+          it("should interrupt handler with YIELD code", () => {
+            expect(
+              execute("catch {break} break {yield; unreachable}").code
+            ).to.eql(ResultCode.YIELD);
+          });
+          it("should provide a resumable state", () => {
+            const state = rootScope.prepareScript(
+              parse("catch {break} break {idem _$[yield handler]}")
+            );
+
+            let result = state.run();
+            expect(result.code).to.eql(ResultCode.YIELD);
+            expect(result.value).to.eql(new StringValue("handler"));
+            expect(result.data).to.exist;
+
+            state.yieldBack(new StringValue("value"));
+            result = state.run();
+            expect(result).to.eql(OK(new StringValue("_value")));
+          });
+          it("should not bypass finally handler", () => {
+            const state = rootScope.prepareScript(
+              parse(
+                "catch {break} break {yield; idem handler} finally {set var finally}"
+              )
+            );
+
+            let result = state.run();
+            result = state.run();
+            expect(result).to.eql(OK(new StringValue("handler")));
+            expect(evaluate("get var")).to.eql(new StringValue("finally"));
+          });
+        });
+        describe("error", () => {
+          it("should interrupt handler with ERROR code", () => {
+            expect(
+              execute("catch {break} break {error message; unreachable}")
+            ).to.eql(ERROR("message"));
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {break} break {error message; unreachable} finally {unreachable}"
+              )
+            ).to.eql(ERROR("message"));
+          });
+        });
+        describe("break", () => {
+          it("should interrupt handler with BREAK code", () => {
+            expect(execute("catch {break} break {break; unreachable}")).to.eql(
+              BREAK()
+            );
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {break} break {break; unreachable} finally {unreachable}"
+              )
+            ).to.eql(BREAK());
+          });
+        });
+        describe("continue", () => {
+          it("should interrupt handler with CONTINUE code", () => {
+            expect(
+              execute("catch {break} break {continue; unreachable}")
+            ).to.eql(CONTINUE());
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {break} break {continue; unreachable} finally {unreachable}"
+              )
+            ).to.eql(CONTINUE());
+          });
+        });
+      });
+      describe("exceptions", () => {
+        specify("wrong arity", () => {
+          expect(execute("catch {} break")).to.eql(
+            ERROR("missing break handler body")
+          );
+        });
+      });
+    });
+    describe("continue handler", () => {
+      it("should catch CONTINUE code", () => {
+        evaluate("catch {continue} continue {set var handler}");
+        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+      });
+      it("should let other codes pass through", () => {
+        expect(execute("catch {idem value} continue {unreachable}")).to.eql(
+          OK(new StringValue("value"))
+        );
+        expect(execute("catch {return value} continue {unreachable}")).to.eql(
+          RETURN(new StringValue("value"))
+        );
+        expect(execute("catch {yield value} continue {unreachable}")).to.eql(
+          YIELD(new StringValue("value"))
+        );
+        expect(execute("catch {error message} continue {unreachable}")).to.eql(
+          ERROR("message")
+        );
+        expect(execute("catch {break} continue {unreachable}")).to.eql(BREAK());
+      });
+      it("should return handler result", () => {
+        expect(evaluate("catch {continue} continue {idem handler}")).to.eql(
+          new StringValue("handler")
+        );
+      });
+      describe("control flow", () => {
+        describe("return", () => {
+          it("should interrupt handler with RETURN code", () => {
+            expect(
+              execute("catch {continue} continue {return handler; unreachable}")
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {continue} continue {return handler; unreachable} finally {unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+        });
+        describe("tailcall", () => {
+          it("should interrupt handler with RETURN code", () => {
+            expect(
+              execute(
+                "catch {continue} continue {tailcall {idem handler}; unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {continue} continue {tailcall {idem handler}; unreachable} finally {unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+        });
+        describe("yield", () => {
+          it("should interrupt handler with YIELD code", () => {
+            expect(
+              execute("catch {continue} continue {yield; unreachable}").code
+            ).to.eql(ResultCode.YIELD);
+          });
+          it("should provide a resumable state", () => {
+            const state = rootScope.prepareScript(
+              parse("catch {continue} continue {idem _$[yield handler]}")
+            );
+
+            let result = state.run();
+            expect(result.code).to.eql(ResultCode.YIELD);
+            expect(result.value).to.eql(new StringValue("handler"));
+            expect(result.data).to.exist;
+
+            state.yieldBack(new StringValue("value"));
+            result = state.run();
+            expect(result).to.eql(OK(new StringValue("_value")));
+          });
+          it("should not bypass finally handler", () => {
+            const state = rootScope.prepareScript(
+              parse(
+                "catch {continue} continue {yield; idem handler} finally {set var finally}"
+              )
+            );
+
+            let result = state.run();
+            result = state.run();
+            expect(result).to.eql(OK(new StringValue("handler")));
+            expect(evaluate("get var")).to.eql(new StringValue("finally"));
+          });
+        });
+        describe("error", () => {
+          it("should interrupt handler with ERROR code", () => {
+            expect(
+              execute("catch {continue} continue {error message; unreachable}")
+            ).to.eql(ERROR("message"));
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {continue} continue {error message; unreachable} finally {unreachable}"
+              )
+            ).to.eql(ERROR("message"));
+          });
+        });
+        describe("break", () => {
+          it("should interrupt handler with BREAK code", () => {
+            expect(
+              execute("catch {continue} continue {break; unreachable}")
+            ).to.eql(BREAK());
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {continue} continue {break; unreachable} finally {unreachable}"
+              )
+            ).to.eql(BREAK());
+          });
+        });
+        describe("continue", () => {
+          it("should interrupt handler with CONTINUE code", () => {
+            expect(
+              execute("catch {continue} continue {continue; unreachable}")
+            ).to.eql(CONTINUE());
+          });
+          it("should bypass finally handler", () => {
+            expect(
+              execute(
+                "catch {continue} continue {continue; unreachable} finally {unreachable}"
+              )
+            ).to.eql(CONTINUE());
+          });
+        });
+      });
+      describe("exceptions", () => {
+        specify("wrong arity", () => {
+          expect(execute("catch {} continue")).to.eql(
+            ERROR("missing continue handler body")
+          );
+        });
+      });
+    });
+    describe("finally handler", () => {
+      it("should execute for OK code", () => {
+        evaluate("catch {idem value} finally {set var handler}");
+        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+      });
+      it("should execute for RETURN code", () => {
+        evaluate("catch {return} finally {set var handler}");
+        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+      });
+      it("should execute for YIELD code", () => {
+        evaluate("catch {yield} finally {set var handler}");
+        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+      });
+      it("should execute for ERROR code", () => {
+        evaluate("catch {error message} finally {set var handler}");
+        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+      });
+      it("should execute for BREAK code", () => {
+        evaluate("catch {break} finally {set var handler}");
+        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+      });
+      it("should execute for CONTINUE code", () => {
+        evaluate("catch {continue} finally {set var handler}");
+        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+      });
+      it("should let all codes pass through", () => {
+        expect(execute("catch {idem value} finally {idem handler}")).to.eql(
+          OK(new StringValue("value"))
+        );
+        expect(execute("catch {return value} finally {idem handler}")).to.eql(
+          RETURN(new StringValue("value"))
+        );
+        expect(execute("catch {yield value} finally {idem handler}")).to.eql(
+          YIELD(new StringValue("value"))
+        );
+        expect(execute("catch {error message} finally {idem handler}")).to.eql(
+          ERROR("message")
+        );
+        expect(execute("catch {break} finally {idem handler}")).to.eql(BREAK());
+        expect(execute("catch {continue} finally {idem handler}")).to.eql(
+          CONTINUE()
+        );
+      });
+      describe("control flow", () => {
+        describe("return", () => {
+          it("should interrupt handler with RETURN code", () => {
+            expect(
+              execute(
+                "catch {error message} finally {return handler; unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+        });
+        describe("tailcall", () => {
+          it("should interrupt handler with RETURN code", () => {
+            expect(
+              execute(
+                "catch {error message} finally {tailcall {idem handler}; unreachable}"
+              )
+            ).to.eql(RETURN(new StringValue("handler")));
+          });
+        });
+        describe("yield", () => {
+          it("should interrupt handler with YIELD code", () => {
+            expect(
+              execute("catch {error message} finally {yield; unreachable}").code
+            ).to.eql(ResultCode.YIELD);
+          });
+          it("should provide a resumable state", () => {
+            const state = rootScope.prepareScript(
+              parse("catch {error message} finally {idem _$[yield handler]}")
+            );
+
+            let result = state.run();
+            expect(result.code).to.eql(ResultCode.YIELD);
+            expect(result.value).to.eql(new StringValue("handler"));
+            expect(result.data).to.exist;
+
+            state.yieldBack(new StringValue("value"));
+            result = state.run();
+            console.log(result);
+            expect(result).to.eql(ERROR("message"));
+          });
+        });
+        describe("error", () => {
+          it("should interrupt handler with ERROR code", () => {
+            expect(
+              execute(
+                "catch {error message} finally {error message; unreachable}"
+              )
+            ).to.eql(ERROR("message"));
+          });
+        });
+        describe("break", () => {
+          it("should interrupt handler with BREAK code", () => {
+            expect(
+              execute("catch {error message} finally {break; unreachable}")
+            ).to.eql(BREAK());
+          });
+        });
+        describe("continue", () => {
+          it("should interrupt handler with CONTINUE code", () => {
+            expect(
+              execute("catch {error message} finally {continue; unreachable}")
+            ).to.eql(CONTINUE());
+          });
+        });
+      });
+      describe("exceptions", () => {
+        specify("wrong arity", () => {
+          expect(execute("catch {} finally")).to.eql(
+            ERROR("missing finally handler body")
+          );
+        });
+      });
+    });
+    describe("exceptions", () => {
+      specify("wrong arity", () => {
+        expect(execute("catch")).to.eql(
+          ERROR(
+            'wrong # args: should be "catch body ?return value handler? ?yield value handler? ?error message handler? ?break handler? ?continue handler? ?finally handler?"'
+          )
+        );
+      });
+      specify("invalid body", () => {
+        expect(execute("catch a")).to.eql(ERROR("body must be a script"));
+        expect(execute("catch []")).to.eql(ERROR("body must be a script"));
+        expect(execute("catch [1]")).to.eql(ERROR("body must be a script"));
       });
     });
   });

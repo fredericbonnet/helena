@@ -94,8 +94,7 @@ describe("Helena dialect", () => {
         expect(result.value).to.eql(new StringValue("val3"));
 
         result = state.run();
-        expect(result.code).to.eql(ResultCode.OK);
-        expect(result.value).to.eql(new StringValue("val4"));
+        expect(result).to.eql(OK(new StringValue("val4")));
       });
     });
   });
