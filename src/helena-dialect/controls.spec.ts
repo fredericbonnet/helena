@@ -461,30 +461,18 @@ describe("Helena control flow commands", () => {
             'wrong # args: should be "if test body ?elseif test body ...? ?else? ?body?"'
           )
         );
-        expect(execute("if a")).to.eql(
-          ERROR(
-            'wrong # args: should be "if test body ?elseif test body ...? ?else? ?body?"'
-          )
-        );
+        expect(execute("if a")).to.eql(ERROR("wrong # args: missing if body"));
         expect(execute("if a b else")).to.eql(
-          ERROR(
-            'wrong # args: should be "if test body ?elseif test body ...? ?else? ?body?"'
-          )
+          ERROR("wrong # args: missing else body")
         );
         expect(execute("if a b elseif")).to.eql(
-          ERROR(
-            'wrong # args: should be "if test body ?elseif test body ...? ?else? ?body?"'
-          )
+          ERROR("wrong # args: missing elseif test")
         );
         expect(execute("if a b elseif c")).to.eql(
-          ERROR(
-            'wrong # args: should be "if test body ?elseif test body ...? ?else? ?body?"'
-          )
+          ERROR("wrong # args: missing elseif body")
         );
         expect(execute("if a b elseif c d else")).to.eql(
-          ERROR(
-            'wrong # args: should be "if test body ?elseif test body ...? ?else? ?body?"'
-          )
+          ERROR("wrong # args: missing else body")
         );
       });
       specify("invalid keyword", () => {
@@ -1249,10 +1237,10 @@ describe("Helena control flow commands", () => {
       describe("exceptions", () => {
         specify("wrong arity", () => {
           expect(execute("catch {} return")).to.eql(
-            ERROR("missing return handler value")
+            ERROR("wrong #args: missing return handler value")
           );
           expect(execute("catch {} return a")).to.eql(
-            ERROR("missing return handler body")
+            ERROR("wrong #args: missing return handler body")
           );
         });
       });
@@ -1404,10 +1392,10 @@ describe("Helena control flow commands", () => {
       describe("exceptions", () => {
         specify("wrong arity", () => {
           expect(execute("catch {} yield")).to.eql(
-            ERROR("missing yield handler value")
+            ERROR("wrong #args: missing yield handler value")
           );
           expect(execute("catch {} yield a")).to.eql(
-            ERROR("missing yield handler body")
+            ERROR("wrong #args: missing yield handler body")
           );
         });
       });
@@ -1560,10 +1548,10 @@ describe("Helena control flow commands", () => {
       describe("exceptions", () => {
         specify("wrong arity", () => {
           expect(execute("catch {} error")).to.eql(
-            ERROR("missing error handler message")
+            ERROR("wrong #args: missing error handler message")
           );
           expect(execute("catch {} error a")).to.eql(
-            ERROR("missing error handler body")
+            ERROR("wrong #args: missing error handler body")
           );
         });
       });
@@ -1705,7 +1693,7 @@ describe("Helena control flow commands", () => {
       describe("exceptions", () => {
         specify("wrong arity", () => {
           expect(execute("catch {} break")).to.eql(
-            ERROR("missing break handler body")
+            ERROR("wrong #args: missing break handler body")
           );
         });
       });
@@ -1845,7 +1833,7 @@ describe("Helena control flow commands", () => {
       describe("exceptions", () => {
         specify("wrong arity", () => {
           expect(execute("catch {} continue")).to.eql(
-            ERROR("missing continue handler body")
+            ERROR("wrong #args: missing continue handler body")
           );
         });
       });
@@ -1961,7 +1949,7 @@ describe("Helena control flow commands", () => {
       describe("exceptions", () => {
         specify("wrong arity", () => {
           expect(execute("catch {} finally")).to.eql(
-            ERROR("missing finally handler body")
+            ERROR("wrong #args: missing finally handler body")
           );
         });
       });

@@ -202,15 +202,28 @@ class IfCommand implements Command {
     return BooleanValue.fromValue(result.value);
   }
   private checkArgs(args: Value[]): Result {
+    if (args.length == 2) return ERROR("wrong # args: missing if body");
     let i = 3;
     while (i < args.length) {
       const keyword = args[i].asString();
       switch (keyword) {
         case "elseif":
-          i += 3;
+          switch (args.length - i) {
+            case 1:
+              return ERROR("wrong # args: missing elseif test");
+            case 2:
+              return ERROR("wrong # args: missing elseif body");
+            default:
+              i += 3;
+          }
           break;
         case "else":
-          i += 2;
+          switch (args.length - i) {
+            case 1:
+              return ERROR("wrong # args: missing else body");
+            default:
+              i += 2;
+          }
           break;
         default:
           return ERROR(`invalid keyword "${keyword}"`);
@@ -580,9 +593,9 @@ class CatchCommand implements Command {
         case "return":
           switch (args.length - i) {
             case 1:
-              return ERROR("missing return handler value");
+              return ERROR("wrong #args: missing return handler value");
             case 2:
-              return ERROR("missing return handler body");
+              return ERROR("wrong #args: missing return handler body");
             default:
               i += 3;
           }
@@ -590,9 +603,9 @@ class CatchCommand implements Command {
         case "yield":
           switch (args.length - i) {
             case 1:
-              return ERROR("missing yield handler value");
+              return ERROR("wrong #args: missing yield handler value");
             case 2:
-              return ERROR("missing yield handler body");
+              return ERROR("wrong #args: missing yield handler body");
             default:
               i += 3;
           }
@@ -600,9 +613,9 @@ class CatchCommand implements Command {
         case "error":
           switch (args.length - i) {
             case 1:
-              return ERROR("missing error handler message");
+              return ERROR("wrong #args: missing error handler message");
             case 2:
-              return ERROR("missing error handler body");
+              return ERROR("wrong #args: missing error handler body");
             default:
               i += 3;
           }
@@ -610,7 +623,7 @@ class CatchCommand implements Command {
         case "break":
           switch (args.length - i) {
             case 1:
-              return ERROR("missing break handler body");
+              return ERROR("wrong #args: missing break handler body");
             default:
               i += 2;
           }
@@ -618,7 +631,7 @@ class CatchCommand implements Command {
         case "continue":
           switch (args.length - i) {
             case 1:
-              return ERROR("missing continue handler body");
+              return ERROR("wrong #args: missing continue handler body");
             default:
               i += 2;
           }
@@ -626,7 +639,7 @@ class CatchCommand implements Command {
         case "finally":
           switch (args.length - i) {
             case 1:
-              return ERROR("missing finally handler body");
+              return ERROR("wrong #args: missing finally handler body");
             default:
               i += 2;
           }
