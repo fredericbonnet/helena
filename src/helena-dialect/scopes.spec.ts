@@ -138,29 +138,29 @@ describe("Helena scopes", () => {
           it("should provide a resumable state", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {val} {set var $val}");
-            const state = rootScope.prepareScript(
+            const process = rootScope.prepareScript(
               parse("scope cmd {cmd1; cmd2 _[yield val2]_}")
             );
 
-            let result = state.run();
+            let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(new StringValue("val2"));
             expect(result.data).to.exist;
 
-            state.yieldBack(new StringValue("val3"));
-            result = state.run();
+            process.yieldBack(new StringValue("val3"));
+            result = process.run();
             expect(result.code).to.eql(ResultCode.OK);
             expect(result.value).to.be.instanceof(CommandValue);
             expect(evaluate("get var")).to.eql(new StringValue("_val3_"));
           });
           it("should delay the definition of scope command until resumed", () => {
-            const state = rootScope.prepareScript(parse("scope cmd {yield}"));
+            const process = rootScope.prepareScript(parse("scope cmd {yield}"));
 
-            let result = state.run();
+            let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(rootScope.context.commands.has("cmd")).to.be.false;
 
-            result = state.run();
+            result = process.run();
             expect(result.code).to.eql(ResultCode.OK);
             expect(rootScope.context.commands.has("cmd")).to.be.true;
           });
@@ -271,16 +271,16 @@ describe("Helena scopes", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {val} {set var $val}");
               evaluate("scope cmd {}");
-              const state = rootScope.prepareScript(
+              const process = rootScope.prepareScript(
                 parse("cmd eval {cmd1; cmd2 _[yield val2]_}")
               );
 
-              let result = state.run();
+              let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("val2"));
 
-              state.yieldBack(new StringValue("val3"));
-              result = state.run();
+              process.yieldBack(new StringValue("val3"));
+              result = process.run();
               expect(result).to.eql(OK(new StringValue("_val3_")));
               expect(evaluate("get var")).to.eql(new StringValue("_val3_"));
             });
@@ -387,14 +387,14 @@ describe("Helena scopes", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {val} {set var $val}");
               evaluate("scope cmd {macro mac {} {cmd1; cmd2 _[yield val2]_}}");
-              const state = rootScope.prepareScript(parse("cmd call mac"));
+              const process = rootScope.prepareScript(parse("cmd call mac"));
 
-              let result = state.run();
+              let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("val2"));
 
-              state.yieldBack(new StringValue("val3"));
-              result = state.run();
+              process.yieldBack(new StringValue("val3"));
+              result = process.run();
               expect(result).to.eql(OK(new StringValue("_val3_")));
               expect(evaluate("get var")).to.eql(new StringValue("_val3_"));
             });

@@ -90,41 +90,41 @@ describe("Helena control flow commands", () => {
           );
         });
         it("should provide a resumable state", () => {
-          const state = rootScope.prepareScript(
+          const process = rootScope.prepareScript(
             parse("while {yield test} {yield body}")
           );
 
-          let result = state.run();
+          let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("test"));
           expect(result.data).to.exist;
 
-          state.yieldBack(TRUE);
-          result = state.run();
+          process.yieldBack(TRUE);
+          result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("body"));
           expect(result.data).to.exist;
 
-          state.yieldBack(new StringValue("step 1"));
-          result = state.run();
+          process.yieldBack(new StringValue("step 1"));
+          result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("test"));
           expect(result.data).to.exist;
 
-          state.yieldBack(TRUE);
-          result = state.run();
+          process.yieldBack(TRUE);
+          result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("body"));
           expect(result.data).to.exist;
 
-          state.yieldBack(new StringValue("step 2"));
-          result = state.run();
+          process.yieldBack(new StringValue("step 2"));
+          result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("test"));
           expect(result.data).to.exist;
 
-          state.yieldBack(FALSE);
-          result = state.run();
+          process.yieldBack(FALSE);
+          result = process.run();
           expect(result).to.eql(OK(new StringValue("step 2")));
         });
       });
@@ -324,72 +324,72 @@ describe("Helena control flow commands", () => {
           ).to.eql(ResultCode.YIELD);
         });
         describe("should provide a resumable state", () => {
-          let state;
+          let process;
           beforeEach(() => {
-            state = rootScope.prepareScript(
+            process = rootScope.prepareScript(
               parse(
                 "if {yield test1} {yield body1} elseif {yield test2} {yield body2} else {yield body3}"
               )
             );
           });
           specify("if", () => {
-            let result = state.run();
+            let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(new StringValue("test1"));
             expect(result.data).to.exist;
 
-            state.yieldBack(TRUE);
-            result = state.run();
+            process.yieldBack(TRUE);
+            result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(new StringValue("body1"));
             expect(result.data).to.exist;
 
-            state.yieldBack(new StringValue("result"));
-            result = state.run();
+            process.yieldBack(new StringValue("result"));
+            result = process.run();
             expect(result).to.eql(OK(new StringValue("result")));
           });
           specify("elseif", () => {
-            let result = state.run();
+            let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(new StringValue("test1"));
             expect(result.data).to.exist;
 
-            state.yieldBack(FALSE);
-            result = state.run();
+            process.yieldBack(FALSE);
+            result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(new StringValue("test2"));
             expect(result.data).to.exist;
 
-            state.yieldBack(TRUE);
-            result = state.run();
+            process.yieldBack(TRUE);
+            result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(new StringValue("body2"));
             expect(result.data).to.exist;
 
-            state.yieldBack(new StringValue("result"));
-            result = state.run();
+            process.yieldBack(new StringValue("result"));
+            result = process.run();
             expect(result).to.eql(OK(new StringValue("result")));
           });
           specify("else", () => {
-            let result = state.run();
+            let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(new StringValue("test1"));
             expect(result.data).to.exist;
 
-            state.yieldBack(FALSE);
-            result = state.run();
+            process.yieldBack(FALSE);
+            result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(new StringValue("test2"));
             expect(result.data).to.exist;
 
-            state.yieldBack(FALSE);
-            result = state.run();
+            process.yieldBack(FALSE);
+            result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(new StringValue("body3"));
             expect(result.data).to.exist;
 
-            state.yieldBack(new StringValue("result"));
-            result = state.run();
+            process.yieldBack(new StringValue("result"));
+            result = process.run();
             expect(result).to.eql(OK(new StringValue("result")));
           });
         });
@@ -758,173 +758,173 @@ describe("Helena control flow commands", () => {
         });
         describe("should provide a resumable state", () => {
           describe("no command", () => {
-            let state;
+            let process;
             beforeEach(() => {
-              state = rootScope.prepareScript(
+              process = rootScope.prepareScript(
                 parse(
                   "when {{yield test1} {yield body1} {yield test2} {yield body2} {yield body3}}"
                 )
               );
             });
             specify("first", () => {
-              let result = state.run();
+              let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("test1"));
               expect(result.data).to.exist;
 
-              state.yieldBack(TRUE);
-              result = state.run();
+              process.yieldBack(TRUE);
+              result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("body1"));
               expect(result.data).to.exist;
 
-              state.yieldBack(new StringValue("result"));
-              result = state.run();
+              process.yieldBack(new StringValue("result"));
+              result = process.run();
               expect(result).to.eql(OK(new StringValue("result")));
             });
             specify("second", () => {
-              let result = state.run();
+              let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("test1"));
               expect(result.data).to.exist;
 
-              state.yieldBack(FALSE);
-              result = state.run();
+              process.yieldBack(FALSE);
+              result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("test2"));
               expect(result.data).to.exist;
 
-              state.yieldBack(TRUE);
-              result = state.run();
+              process.yieldBack(TRUE);
+              result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("body2"));
               expect(result.data).to.exist;
 
-              state.yieldBack(new StringValue("result"));
-              result = state.run();
+              process.yieldBack(new StringValue("result"));
+              result = process.run();
               expect(result).to.eql(OK(new StringValue("result")));
             });
             specify("default", () => {
-              let result = state.run();
+              let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("test1"));
               expect(result.data).to.exist;
 
-              state.yieldBack(FALSE);
-              result = state.run();
+              process.yieldBack(FALSE);
+              result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("test2"));
               expect(result.data).to.exist;
 
-              state.yieldBack(FALSE);
-              result = state.run();
+              process.yieldBack(FALSE);
+              result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("body3"));
               expect(result.data).to.exist;
 
-              state.yieldBack(new StringValue("result"));
-              result = state.run();
+              process.yieldBack(new StringValue("result"));
+              result = process.run();
               expect(result).to.eql(OK(new StringValue("result")));
             });
           });
           describe("script command", () => {
-            let state;
+            let process;
             beforeEach(() => {
               evaluate("macro test {v} {yield $v}");
-              state = rootScope.prepareScript(
+              process = rootScope.prepareScript(
                 parse(
                   "when {yield command} {test1 {yield body1} test2 {yield body2} {yield body3}}"
                 )
               );
             });
             specify("first", () => {
-              let result = state.run();
+              let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("command"));
               expect(result.data).to.exist;
 
-              state.yieldBack(new StringValue("test"));
-              result = state.run();
+              process.yieldBack(new StringValue("test"));
+              result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("test1"));
               expect(result.data).to.exist;
 
-              state.yieldBack(TRUE);
-              result = state.run();
+              process.yieldBack(TRUE);
+              result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("body1"));
               expect(result.data).to.exist;
 
-              state.yieldBack(new StringValue("result"));
-              result = state.run();
+              process.yieldBack(new StringValue("result"));
+              result = process.run();
               expect(result).to.eql(OK(new StringValue("result")));
             });
             specify("second", () => {
-              let result = state.run();
+              let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("command"));
               expect(result.data).to.exist;
 
-              state.yieldBack(new StringValue("test"));
-              result = state.run();
+              process.yieldBack(new StringValue("test"));
+              result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("test1"));
               expect(result.data).to.exist;
 
-              state.yieldBack(FALSE);
-              result = state.run();
+              process.yieldBack(FALSE);
+              result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("command"));
               expect(result.data).to.exist;
 
-              state.yieldBack(new StringValue("test"));
-              result = state.run();
+              process.yieldBack(new StringValue("test"));
+              result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("test2"));
               expect(result.data).to.exist;
 
-              state.yieldBack(TRUE);
-              result = state.run();
+              process.yieldBack(TRUE);
+              result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("body2"));
               expect(result.data).to.exist;
 
-              state.yieldBack(new StringValue("result"));
-              result = state.run();
+              process.yieldBack(new StringValue("result"));
+              result = process.run();
               expect(result).to.eql(OK(new StringValue("result")));
             });
             specify("default", () => {
-              let result = state.run();
+              let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("command"));
               expect(result.data).to.exist;
 
-              state.yieldBack(new StringValue("test"));
-              result = state.run();
+              process.yieldBack(new StringValue("test"));
+              result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("test1"));
               expect(result.data).to.exist;
 
-              state.yieldBack(FALSE);
-              result = state.run();
+              process.yieldBack(FALSE);
+              result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("command"));
               expect(result.data).to.exist;
 
-              state.yieldBack(new StringValue("test"));
-              result = state.run();
+              process.yieldBack(new StringValue("test"));
+              result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("test2"));
               expect(result.data).to.exist;
 
-              state.yieldBack(FALSE);
-              result = state.run();
+              process.yieldBack(FALSE);
+              result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("body3"));
               expect(result.data).to.exist;
 
-              state.yieldBack(new StringValue("result"));
-              result = state.run();
+              process.yieldBack(new StringValue("result"));
+              result = process.run();
               expect(result).to.eql(OK(new StringValue("result")));
             });
           });
@@ -1163,28 +1163,28 @@ describe("Helena control flow commands", () => {
             ).to.eql(ResultCode.YIELD);
           });
           it("should provide a resumable state", () => {
-            const state = rootScope.prepareScript(
+            const process = rootScope.prepareScript(
               parse("catch {return val} return res {idem _$[yield handler]}")
             );
 
-            let result = state.run();
+            let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(new StringValue("handler"));
             expect(result.data).to.exist;
 
-            state.yieldBack(new StringValue("value"));
-            result = state.run();
+            process.yieldBack(new StringValue("value"));
+            result = process.run();
             expect(result).to.eql(OK(new StringValue("_value")));
           });
           it("should not bypass finally handler", () => {
-            const state = rootScope.prepareScript(
+            const process = rootScope.prepareScript(
               parse(
                 "catch {return val} return res {yield; idem handler} finally {set var finally}"
               )
             );
 
-            let result = state.run();
-            result = state.run();
+            let result = process.run();
+            result = process.run();
             expect(result).to.eql(OK(new StringValue("handler")));
             expect(evaluate("get var")).to.eql(new StringValue("finally"));
           });
@@ -1318,28 +1318,28 @@ describe("Helena control flow commands", () => {
             ).to.eql(ResultCode.YIELD);
           });
           it("should provide a resumable state", () => {
-            const state = rootScope.prepareScript(
+            const process = rootScope.prepareScript(
               parse("catch {yield val} yield res {idem _$[yield handler]}")
             );
 
-            let result = state.run();
+            let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(new StringValue("handler"));
             expect(result.data).to.exist;
 
-            state.yieldBack(new StringValue("value"));
-            result = state.run();
+            process.yieldBack(new StringValue("value"));
+            result = process.run();
             expect(result).to.eql(OK(new StringValue("_value")));
           });
           it("should not bypass finally handler", () => {
-            const state = rootScope.prepareScript(
+            const process = rootScope.prepareScript(
               parse(
                 "catch {yield val} yield res {yield; idem handler} finally {set var finally}"
               )
             );
 
-            let result = state.run();
-            result = state.run();
+            let result = process.run();
+            result = process.run();
             expect(result).to.eql(OK(new StringValue("handler")));
             expect(evaluate("get var")).to.eql(new StringValue("finally"));
           });
@@ -1474,28 +1474,28 @@ describe("Helena control flow commands", () => {
             ).to.eql(ResultCode.YIELD);
           });
           it("should provide a resumable state", () => {
-            const state = rootScope.prepareScript(
+            const process = rootScope.prepareScript(
               parse("catch {error message} error msg {idem _$[yield handler]}")
             );
 
-            let result = state.run();
+            let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(new StringValue("handler"));
             expect(result.data).to.exist;
 
-            state.yieldBack(new StringValue("value"));
-            result = state.run();
+            process.yieldBack(new StringValue("value"));
+            result = process.run();
             expect(result).to.eql(OK(new StringValue("_value")));
           });
           it("should not bypass finally handler", () => {
-            const state = rootScope.prepareScript(
+            const process = rootScope.prepareScript(
               parse(
                 "catch {error message} error msg {yield; idem handler} finally {set var finally}"
               )
             );
 
-            let result = state.run();
-            result = state.run();
+            let result = process.run();
+            result = process.run();
             expect(result).to.eql(OK(new StringValue("handler")));
             expect(evaluate("get var")).to.eql(new StringValue("finally"));
           });
@@ -1621,28 +1621,28 @@ describe("Helena control flow commands", () => {
             ).to.eql(ResultCode.YIELD);
           });
           it("should provide a resumable state", () => {
-            const state = rootScope.prepareScript(
+            const process = rootScope.prepareScript(
               parse("catch {break} break {idem _$[yield handler]}")
             );
 
-            let result = state.run();
+            let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(new StringValue("handler"));
             expect(result.data).to.exist;
 
-            state.yieldBack(new StringValue("value"));
-            result = state.run();
+            process.yieldBack(new StringValue("value"));
+            result = process.run();
             expect(result).to.eql(OK(new StringValue("_value")));
           });
           it("should not bypass finally handler", () => {
-            const state = rootScope.prepareScript(
+            const process = rootScope.prepareScript(
               parse(
                 "catch {break} break {yield; idem handler} finally {set var finally}"
               )
             );
 
-            let result = state.run();
-            result = state.run();
+            let result = process.run();
+            result = process.run();
             expect(result).to.eql(OK(new StringValue("handler")));
             expect(evaluate("get var")).to.eql(new StringValue("finally"));
           });
@@ -1761,28 +1761,28 @@ describe("Helena control flow commands", () => {
             ).to.eql(ResultCode.YIELD);
           });
           it("should provide a resumable state", () => {
-            const state = rootScope.prepareScript(
+            const process = rootScope.prepareScript(
               parse("catch {continue} continue {idem _$[yield handler]}")
             );
 
-            let result = state.run();
+            let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(new StringValue("handler"));
             expect(result.data).to.exist;
 
-            state.yieldBack(new StringValue("value"));
-            result = state.run();
+            process.yieldBack(new StringValue("value"));
+            result = process.run();
             expect(result).to.eql(OK(new StringValue("_value")));
           });
           it("should not bypass finally handler", () => {
-            const state = rootScope.prepareScript(
+            const process = rootScope.prepareScript(
               parse(
                 "catch {continue} continue {yield; idem handler} finally {set var finally}"
               )
             );
 
-            let result = state.run();
-            result = state.run();
+            let result = process.run();
+            result = process.run();
             expect(result).to.eql(OK(new StringValue("handler")));
             expect(evaluate("get var")).to.eql(new StringValue("finally"));
           });
@@ -1907,17 +1907,17 @@ describe("Helena control flow commands", () => {
             ).to.eql(ResultCode.YIELD);
           });
           it("should provide a resumable state", () => {
-            const state = rootScope.prepareScript(
+            const process = rootScope.prepareScript(
               parse("catch {error message} finally {idem _$[yield handler]}")
             );
 
-            let result = state.run();
+            let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(new StringValue("handler"));
             expect(result.data).to.exist;
 
-            state.yieldBack(new StringValue("value"));
-            result = state.run();
+            process.yieldBack(new StringValue("value"));
+            result = process.run();
             console.log(result);
             expect(result).to.eql(ERROR("message"));
           });
@@ -2012,17 +2012,17 @@ describe("Helena control flow commands", () => {
         expect(evaluate("get var")).to.eql(new StringValue("handler"));
       });
       specify("YIELD", () => {
-        const state = rootScope.prepareScript(
+        const process = rootScope.prepareScript(
           parse(
             "catch {yield value} yield res {pass} finally {set var handler}"
           )
         );
 
-        const result = state.run();
+        const result = process.run();
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("value"));
 
-        state.run();
+        process.run();
         expect(evaluate("get var")).to.eql(new StringValue("handler"));
       });
       specify("ERROR", () => {
@@ -2047,26 +2047,26 @@ describe("Helena control flow commands", () => {
       });
     });
     it("should resume yielded body", () => {
-      const state = rootScope.prepareScript(
+      const process = rootScope.prepareScript(
         parse(
           "catch {set var [yield step1]; idem _$[yield step2]} yield res {pass}"
         )
       );
 
-      let result = state.run();
+      let result = process.run();
       expect(result.code).to.eql(ResultCode.YIELD);
       expect(result.value).to.eql(new StringValue("step1"));
       expect(result.data).to.exist;
 
-      state.yieldBack(new StringValue("value1"));
-      result = state.run();
+      process.yieldBack(new StringValue("value1"));
+      result = process.run();
       expect(result.code).to.eql(ResultCode.YIELD);
       expect(result.value).to.eql(new StringValue("step2"));
       expect(result.data).to.exist;
       expect(evaluate("get var")).to.eql(new StringValue("value1"));
 
-      state.yieldBack(new StringValue("value2"));
-      result = state.run();
+      process.yieldBack(new StringValue("value2"));
+      result = process.run();
       expect(result).to.eql(OK(new StringValue("_value2")));
     });
     describe("exceptions", () => {

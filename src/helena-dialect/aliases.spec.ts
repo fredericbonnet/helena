@@ -135,27 +135,27 @@ describe("Helena aliases", () => {
         it("should provide a resumable state for macro alias", () => {
           evaluate("macro mac {} {idem _[yield val1]_}");
           evaluate("alias cmd mac");
-          const state = rootScope.prepareScript(parse("cmd"));
+          const process = rootScope.prepareScript(parse("cmd"));
 
-          let result = state.run();
+          let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val1"));
 
-          state.yieldBack(new StringValue("val2"));
-          result = state.run();
+          process.yieldBack(new StringValue("val2"));
+          result = process.run();
           expect(result).to.eql(OK(new StringValue("_val2_")));
         });
         it("should provide a resumable state for tuple alias", () => {
           evaluate("alias cmd (yield val1)");
-          const state = rootScope.prepareScript(parse("cmd"));
+          const process = rootScope.prepareScript(parse("cmd"));
 
-          let result = state.run();
+          let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val1"));
           expect(result.data).to.exist;
 
-          state.yieldBack(new StringValue("val2"));
-          result = state.run();
+          process.yieldBack(new StringValue("val2"));
+          result = process.run();
           expect(result).to.eql(OK(new StringValue("val2")));
         });
       });
@@ -257,27 +257,27 @@ describe("Helena aliases", () => {
             it("should provide a resumable state for macro alias", () => {
               evaluate("macro mac {} {idem _[yield val1]_}");
               evaluate("set cmd [alias cmd mac]");
-              const state = rootScope.prepareScript(parse("$cmd call"));
+              const process = rootScope.prepareScript(parse("$cmd call"));
 
-              let result = state.run();
+              let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("val1"));
 
-              state.yieldBack(new StringValue("val2"));
-              result = state.run();
+              process.yieldBack(new StringValue("val2"));
+              result = process.run();
               expect(result).to.eql(OK(new StringValue("_val2_")));
             });
             it("should provide a resumable state for tuple alias", () => {
               evaluate("set cmd [alias cmd (yield val1)]");
-              const state = rootScope.prepareScript(parse("$cmd call"));
+              const process = rootScope.prepareScript(parse("$cmd call"));
 
-              let result = state.run();
+              let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(new StringValue("val1"));
               expect(result.data).to.exist;
 
-              state.yieldBack(new StringValue("val2"));
-              result = state.run();
+              process.yieldBack(new StringValue("val2"));
+              result = process.run();
               expect(result).to.eql(OK(new StringValue("val2")));
             });
           });

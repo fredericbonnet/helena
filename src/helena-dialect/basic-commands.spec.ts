@@ -214,24 +214,24 @@ describe("Helena basic commands", () => {
       expect(evaluate("eval (idem val)")).to.eql(new StringValue("val"));
     });
     it("should work recursively", () => {
-      const state = rootScope.prepareScript(
+      const process = rootScope.prepareScript(
         parse("eval {eval {yield val1}; yield val2; eval {yield val3}}")
       );
 
-      let result = state.run();
+      let result = process.run();
       expect(result.code).to.eql(ResultCode.YIELD);
       expect(result.value).to.eql(new StringValue("val1"));
 
-      result = state.run();
+      result = process.run();
       expect(result.code).to.eql(ResultCode.YIELD);
       expect(result.value).to.eql(new StringValue("val2"));
 
-      result = state.run();
+      result = process.run();
       expect(result.code).to.eql(ResultCode.YIELD);
       expect(result.value).to.eql(new StringValue("val3"));
 
-      state.yieldBack(new StringValue("val4"));
-      result = state.run();
+      process.yieldBack(new StringValue("val4"));
+      result = process.run();
       expect(result).to.eql(OK(new StringValue("val4")));
     });
     describe("control flow", () => {
@@ -269,17 +269,17 @@ describe("Helena basic commands", () => {
           expect(evaluate("get var")).to.eql(new StringValue("val1"));
         });
         it("should provide a resumable state", () => {
-          const state = rootScope.prepareScript(
+          const process = rootScope.prepareScript(
             parse("eval {set var val1; set var _[yield val2]_}")
           );
 
-          let result = state.run();
+          let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val2"));
           expect(evaluate("get var")).to.eql(new StringValue("val1"));
 
-          state.yieldBack(new StringValue("val3"));
-          result = state.run();
+          process.yieldBack(new StringValue("val3"));
+          result = process.run();
           expect(result).to.eql(OK(new StringValue("_val3_")));
           expect(evaluate("get var")).to.eql(new StringValue("_val3_"));
         });

@@ -66,34 +66,34 @@ describe("Helena dialect", () => {
     describe("yield", () => {
       it("should provide a resumable state", () => {
         evaluate("macro cmd {*} {yield val1; idem val2}");
-        const state = rootScope.prepareScript(parse("cmd a b c"));
+        const process = rootScope.prepareScript(parse("cmd a b c"));
 
-        let result = state.run();
+        let result = process.run();
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val1"));
 
-        result = state.run();
+        result = process.run();
         expect(result).to.eql(OK(new StringValue("val2")));
       });
       it("should work on several levels", () => {
         evaluate("macro cmd2 {*} {yield val2}");
         evaluate("macro cmd {*} {yield val1; yield [cmd2]; idem val4}");
-        const state = rootScope.prepareScript(parse("(((cmd) a) b) c"));
+        const process = rootScope.prepareScript(parse("(((cmd) a) b) c"));
 
-        let result = state.run();
+        let result = process.run();
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val1"));
 
-        result = state.run();
+        result = process.run();
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val2"));
 
-        state.yieldBack(new StringValue("val3"));
-        result = state.run();
+        process.yieldBack(new StringValue("val3"));
+        result = process.run();
         expect(result.code).to.eql(ResultCode.YIELD);
         expect(result.value).to.eql(new StringValue("val3"));
 
-        result = state.run();
+        result = process.run();
         expect(result).to.eql(OK(new StringValue("val4")));
       });
     });

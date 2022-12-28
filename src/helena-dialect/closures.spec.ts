@@ -148,14 +148,14 @@ describe("Helena closures", () => {
         });
         it("should provide a resumable state", () => {
           evaluate("closure cmd {} {idem _[yield val1]_}");
-          const state = rootScope.prepareScript(parse("cmd"));
+          const process = rootScope.prepareScript(parse("cmd"));
 
-          let result = state.run();
+          let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val1"));
 
-          state.yieldBack(new StringValue("val2"));
-          result = state.run();
+          process.yieldBack(new StringValue("val2"));
+          result = process.run();
           expect(result).to.eql(OK(new StringValue("_val2_")));
         });
         it("should work recursively", () => {
@@ -163,27 +163,27 @@ describe("Helena closures", () => {
           evaluate("closure cmd2 {} {yield [cmd3]; idem [cmd4]}");
           evaluate("closure cmd3 {} {yield val1}");
           evaluate("closure cmd4 {} {yield val3}");
-          const state = rootScope.prepareScript(parse("cmd1"));
+          const process = rootScope.prepareScript(parse("cmd1"));
 
-          let result = state.run();
+          let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val1"));
 
-          state.yieldBack(new StringValue("val2"));
-          result = state.run();
+          process.yieldBack(new StringValue("val2"));
+          result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val2"));
 
-          result = state.run();
+          result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val3"));
 
-          state.yieldBack(new StringValue("val4"));
-          result = state.run();
+          process.yieldBack(new StringValue("val4"));
+          result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(new StringValue("val4"));
 
-          result = state.run();
+          result = process.run();
           expect(result).to.eql(OK(new StringValue("val5")));
         });
       });
@@ -266,14 +266,14 @@ describe("Helena closures", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {val} {set var $val}");
             evaluate("set cmd [closure {} {cmd1; cmd2 _[yield val2]_}]");
-            const state = rootScope.prepareScript(parse("$cmd call"));
+            const process = rootScope.prepareScript(parse("$cmd call"));
 
-            let result = state.run();
+            let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(new StringValue("val2"));
 
-            state.yieldBack(new StringValue("val3"));
-            result = state.run();
+            process.yieldBack(new StringValue("val3"));
+            result = process.run();
             expect(result).to.eql(OK(new StringValue("_val3_")));
             expect(evaluate("get var")).to.eql(new StringValue("_val3_"));
           });
