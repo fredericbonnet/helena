@@ -59,13 +59,18 @@ describe("Helena lists", () => {
         it("should return the element at the given index", () => {
           expect(evaluate("list (a b c) at 1")).to.eql(new StringValue("b"));
         });
+        it("should return the default value for an out-of-range index", () => {
+          expect(evaluate("list (a b c) at 10 default")).to.eql(
+            new StringValue("default")
+          );
+        });
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("list (a b c) at")).to.eql(
-              ERROR('wrong # args: should be "list value at index"')
+              ERROR('wrong # args: should be "list value at index ?default?"')
             );
-            expect(execute("list (a b c) at a b")).to.eql(
-              ERROR('wrong # args: should be "list value at index"')
+            expect(execute("list (a b c) at a b c")).to.eql(
+              ERROR('wrong # args: should be "list value at index ?default?"')
             );
           });
           specify("invalid index", () => {

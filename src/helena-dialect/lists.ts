@@ -47,10 +47,11 @@ const listLengthCmd: Command = {
 };
 const listAtCmd: Command = {
   execute(args) {
-    if (args.length != 3) return ARITY_ERROR("list value at index");
+    if (args.length != 3 && args.length != 4)
+      return ARITY_ERROR("list value at index ?default?");
     const { data: values, ...result } = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
-    return ListValue.at(values, args[2]);
+    return ListValue.at(values, args[2], args[3]);
   },
 };
 const listRangeCmd: Command = {

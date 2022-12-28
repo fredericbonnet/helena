@@ -59,13 +59,18 @@ describe("Helena tuples", () => {
         it("should return the element at the given index", () => {
           expect(evaluate("tuple (a b c) at 1")).to.eql(new StringValue("b"));
         });
+        it("should return the default value for an out-of-range index", () => {
+          expect(evaluate("tuple (a b c) at 10 default")).to.eql(
+            new StringValue("default")
+          );
+        });
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("tuple (a b c) at")).to.eql(
-              ERROR('wrong # args: should be "tuple value at index"')
+              ERROR('wrong # args: should be "tuple value at index ?default?"')
             );
-            expect(execute("tuple (a b c) at a b")).to.eql(
-              ERROR('wrong # args: should be "tuple value at index"')
+            expect(execute("tuple (a b c) at a b c")).to.eql(
+              ERROR('wrong # args: should be "tuple value at index ?default?"')
             );
           });
           specify("invalid index", () => {

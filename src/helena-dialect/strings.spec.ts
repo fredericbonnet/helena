@@ -50,13 +50,18 @@ describe("Helena strings", () => {
         it("should return the character at the given index", () => {
           expect(evaluate("string example at 1")).to.eql(new StringValue("x"));
         });
+        it("should return the default value for an out-of-range index", () => {
+          expect(evaluate("string example at 10 default")).to.eql(
+            new StringValue("default")
+          );
+        });
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("string example at")).to.eql(
-              ERROR('wrong # args: should be "string value at index"')
+              ERROR('wrong # args: should be "string value at index ?default?"')
             );
-            expect(execute("string example at a b")).to.eql(
-              ERROR('wrong # args: should be "string value at index"')
+            expect(execute("string example at a b c")).to.eql(
+              ERROR('wrong # args: should be "string value at index ?default?"')
             );
           });
           specify("invalid index", () => {

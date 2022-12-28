@@ -61,12 +61,14 @@ const dictHasCmd: Command = {
 };
 const dictGetCmd: Command = {
   execute(args) {
-    if (args.length != 3) return ARITY_ERROR("dict value get key");
+    if (args.length != 3 && args.length != 4)
+      return ARITY_ERROR("dict value get key ?default?");
     const { data: map, ...result } = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     const { data: key, ...result2 } = StringValue.toString(args[2]);
     if (result2.code != ResultCode.OK) return result2;
-    if (!map.has(key)) return ERROR("unknown key");
+    if (!map.has(key))
+      return args.length == 4 ? OK(args[3]) : ERROR("unknown key");
     return OK(map.get(key));
   },
 };

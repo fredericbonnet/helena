@@ -340,15 +340,16 @@ export class StringValue implements Value {
    *
    * @param value - String to access
    * @param index - Index of character to access
+   * @param [def] - Default value for out-of-range index
    *
    * @returns       Conversion result
    */
-  static at(value: string, index: Value): Result {
+  static at(value: string, index: Value, def?: Value): Result {
     const result = IntegerValue.toInteger(index);
     if (result.code != ResultCode.OK) return result;
     const i = result.data as number;
     if (i < 0 || i >= value.length)
-      return ERROR(`index out of range "${index.asString()}"`);
+      return def ? OK(def) : ERROR(`index out of range "${index.asString()}"`);
     return OK(new StringValue(value[i]));
   }
 
@@ -422,15 +423,16 @@ export class ListValue implements Value {
    *
    * @param values - Values to access
    * @param index  - Index of element to access
+   * @param [def]  - Default value for out-of-range index
    *
    * @returns        Conversion result
    */
-  static at(values: Value[], index: Value): Result {
+  static at(values: Value[], index: Value, def?: Value): Result {
     const result = IntegerValue.toInteger(index);
     if (result.code != ResultCode.OK) return result;
     const i = result.data as number;
     if (i < 0 || i >= values.length)
-      return ERROR(`index out of range "${index.asString()}"`);
+      return def ? OK(def) : ERROR(`index out of range "${index.asString()}"`);
     return OK(values[i]);
   }
 

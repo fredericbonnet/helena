@@ -48,10 +48,11 @@ const stringLengthCmd: Command = {
 };
 const stringAtCmd: Command = {
   execute(args) {
-    if (args.length != 3) return ARITY_ERROR("string value at index");
+    if (args.length != 3 && args.length != 4)
+      return ARITY_ERROR("string value at index ?default?");
     const { data: str, ...result } = StringValue.toString(args[1]);
     if (result.code != ResultCode.OK) return result;
-    return StringValue.at(str, args[2]);
+    return StringValue.at(str, args[2], args[3]);
   },
 };
 const stringRangeCmd: Command = {

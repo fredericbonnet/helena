@@ -115,13 +115,18 @@ describe("Helena dictionaries", () => {
         it("should return the value at the given key", () => {
           expect(evaluate("dict (a b c d) get a")).to.eql(new StringValue("b"));
         });
+        it("should return the default value for a non-existing key", () => {
+          expect(evaluate("dict (a b c d) get e default")).to.eql(
+            new StringValue("default")
+          );
+        });
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("dict (a b c d) get")).to.eql(
-              ERROR('wrong # args: should be "dict value get key"')
+              ERROR('wrong # args: should be "dict value get key ?default?"')
             );
-            expect(execute("dict (a b c d) get a b")).to.eql(
-              ERROR('wrong # args: should be "dict value get key"')
+            expect(execute("dict (a b c d) get a b c")).to.eql(
+              ERROR('wrong # args: should be "dict value get key ?default?"')
             );
           });
           specify("unknow key", () => {
