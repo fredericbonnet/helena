@@ -1981,4 +1981,117 @@ describe("Helena control flow commands", () => {
       });
     });
   });
+  describe("pass", () => {
+    specify("catch should return (pass) tuple", () => {
+      expect(execute("catch {pass}")).to.eql(execute("tuple (pass)"));
+    });
+    describe("should interrupt catch handlers and let original result pass through", () => {
+      specify("RETURN", () => {
+        expect(
+          execute("catch {return value} return res {pass; unreachable}")
+        ).to.eql(RETURN(new StringValue("value")));
+      });
+      specify("YIELD", () => {
+        const result = execute(
+          "catch {yield value} yield res {pass; unreachable}"
+        );
+        expect(result.code).to.eql(ResultCode.YIELD);
+        expect(result.value).to.eql(new StringValue("value"));
+      });
+      specify("ERROR", () => {
+        expect(
+          execute("catch {error message} error msg {pass; unreachable}")
+        ).to.eql(ERROR("message"));
+      });
+      specify("BREAK", () => {
+        expect(execute("catch {break} break {pass; unreachable}")).to.eql(
+          BREAK()
+        );
+      });
+      specify("CATCH", () => {
+        expect(execute("catch {continue} continue {pass; unreachable}")).to.eql(
+          CONTINUE()
+        );
+      });
+    });
+    describe("should let catch finally handler execute", () => {
+      specify("RETURN", () => {
+        expect(
+          execute(
+            "catch {return value} return res {pass} finally {set var handler}"
+          )
+        ).to.eql(RETURN(new StringValue("value")));
+        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+      });
+      specify("YIELD", () => {
+        const state = rootScope.prepareScript(
+          parse(
+            "catch {yield value} yield res {pass} finally {set var handler}"
+          )
+        );
+
+        const result = state.run();
+        expect(result.code).to.eql(ResultCode.YIELD);
+        expect(result.value).to.eql(new StringValue("value"));
+
+        state.run();
+        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+      });
+      specify("ERROR", () => {
+        expect(
+          execute(
+            "catch {error message} error msg {pass} finally {set var handler}"
+          )
+        ).to.eql(ERROR("message"));
+        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+      });
+      specify("BREAK", () => {
+        expect(
+          execute("catch {break} break {pass} finally {set var handler}")
+        ).to.eql(BREAK());
+        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+      });
+      specify("CONTINUE", () => {
+        expect(
+          execute("catch {continue} continue {pass} finally {set var handler}")
+        ).to.eql(CONTINUE());
+        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+      });
+    });
+    it("should resume yielded body", () => {
+      const state = rootScope.prepareScript(
+        parse(
+          "catch {set var [yield step1]; idem _$[yield step2]} yield res {pass}"
+        )
+      );
+
+      let result = state.run();
+      expect(result.code).to.eql(ResultCode.YIELD);
+      expect(result.value).to.eql(new StringValue("step1"));
+      expect(result.data).to.exist;
+
+      state.yieldBack(new StringValue("value1"));
+      result = state.run();
+      expect(result.code).to.eql(ResultCode.YIELD);
+      expect(result.value).to.eql(new StringValue("step2"));
+      expect(result.data).to.exist;
+      expect(evaluate("get var")).to.eql(new StringValue("value1"));
+
+      state.yieldBack(new StringValue("value2"));
+      result = state.run();
+      expect(result).to.eql(OK(new StringValue("_value2")));
+    });
+    describe("exceptions", () => {
+      specify("wrong arity", () => {
+        expect(execute("pass a")).to.eql(
+          ERROR('wrong # args: should be "pass"')
+        );
+      });
+      specify("invalid pass handler", () => {
+        expect(execute("catch {pass} pass {}")).to.eql(
+          ERROR('invalid keyword "pass"')
+        );
+      });
+    });
+  });
 });

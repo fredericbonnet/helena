@@ -1,7 +1,15 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
 import { Program } from "../core/compiler";
-import { ERROR, OK, Result, ResultCode, YIELD } from "../core/results";
+import {
+  CUSTOM_RESULT,
+  CustomResultCode,
+  ERROR,
+  OK,
+  Result,
+  ResultCode,
+  YIELD,
+} from "../core/results";
 import {
   BooleanValue,
   NIL,
@@ -368,22 +376,26 @@ const whenCmd = new WhenCommand();
 type CatchState = {
   args: Value[];
   step:
+    | "beforeBody"
+    | "inBody"
     | "beforeHandler"
     | "inHandler"
     | "afterHandler"
     | "beforeFinally"
     | "inFinally";
-  result: Result;
+  bodyResult?: Result;
+  bodyProcess?: Process;
+  result?: Result;
   process?: Process;
 };
 class CatchCommand implements Command {
   execute(args: Value[], scope: Scope): Result {
     const checkResult = this.checkArgs(args);
     if (checkResult.code != ResultCode.OK) return checkResult;
-    const body = args[1];
-    if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
-    const result = scope.executeScriptValue(body as ScriptValue);
     if (args.length == 2) {
+      const body = args[1];
+      if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
+      const result = scope.executeScriptValue(body as ScriptValue);
       switch (result.code) {
         case ResultCode.OK:
           return OK(new TupleValue([new StringValue("ok"), result.value]));
@@ -398,10 +410,14 @@ class CatchCommand implements Command {
         case ResultCode.CONTINUE:
           return OK(new TupleValue([new StringValue("continue")]));
         default:
-          return ERROR("CANTHAPPEN");
+          return OK(
+            new TupleValue([
+              new StringValue((result.code as CustomResultCode).name),
+            ])
+          );
       }
     }
-    return this.run({ step: "beforeHandler", args, result }, scope);
+    return this.run({ step: "beforeBody", args }, scope);
   }
   resume(result: Result, scope: Scope): Result {
     const state = result.data as CatchState;
@@ -411,6 +427,20 @@ class CatchCommand implements Command {
   private run(state: CatchState, scope: Scope) {
     for (;;) {
       switch (state.step) {
+        case "beforeBody": {
+          const body = state.args[1];
+          // TODO check type
+          state.process = scope.prepareScriptValue(body as ScriptValue); // TODO check type
+          state.bodyProcess = state.process;
+          state.step = "inBody";
+          break;
+        }
+        case "inBody": {
+          state.result = state.process.run();
+          state.bodyResult = state.result;
+          state.step = "beforeHandler";
+          break;
+        }
         case "beforeHandler": {
           if (state.result.code == ResultCode.OK) {
             state.step = "beforeFinally";
@@ -452,7 +482,14 @@ class CatchCommand implements Command {
           state.result = state.process.run();
           if (state.result.code == ResultCode.YIELD)
             return YIELD(state.result.value, state);
-          if (state.result.code != ResultCode.OK) return state.result;
+          if (state.result.code == passData) {
+            state.result = state.bodyResult;
+            if (state.result.code == ResultCode.YIELD) {
+              state.process = state.bodyProcess;
+              state.step = "inBody";
+              return YIELD(state.result.value, state);
+            }
+          } else if (state.result.code != ResultCode.OK) return state.result;
           state.step = "beforeFinally";
           break;
         }
@@ -474,7 +511,10 @@ class CatchCommand implements Command {
       }
     }
   }
-  private findHandlerIndex(code: ResultCode, args: Value[]): number {
+  private findHandlerIndex(
+    code: ResultCode | CustomResultCode,
+    args: Value[]
+  ): number {
     let i = 2;
     while (i < args.length) {
       const keyword = args[i].asString();
@@ -603,9 +643,18 @@ class CatchCommand implements Command {
 }
 const catchCmd = new CatchCommand();
 
+const passData: CustomResultCode = { name: "pass" };
+const passCmd: Command = {
+  execute(args) {
+    if (args.length != 1) return ARITY_ERROR("pass");
+    return CUSTOM_RESULT(passData);
+  },
+};
+
 export function registerControlCommands(scope: Scope) {
   scope.registerCommand("while", whileCmd);
   scope.registerCommand("if", ifCmd);
   scope.registerCommand("when", whenCmd);
   scope.registerCommand("catch", catchCmd);
+  scope.registerCommand("pass", passCmd);
 }
