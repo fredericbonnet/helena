@@ -42,6 +42,38 @@ describe("Helena constants and variables", () => {
     it("should return the constant value", () => {
       expect(evaluate("let cst val")).to.eql(new StringValue("val"));
     });
+    describe("name tuples", () => {
+      it("should be supported", () => {
+        expect(execute("let (var1 (var2 var3)) (val1 (val2 val3))")).to.eql(
+          execute("idem (val1 (val2 val3))")
+        );
+        expect(evaluate("get var1")).to.eql(new StringValue("val1"));
+        expect(evaluate("get var2")).to.eql(new StringValue("val2"));
+        expect(evaluate("get var3")).to.eql(new StringValue("val3"));
+      });
+      it("should not define constants in case of missing value", () => {
+        expect(execute("let (var1 var2) (val1)")).to.eql(
+          ERROR("bad value shape")
+        );
+        expect(rootScope.context.constants.has("var1")).to.be.false;
+        expect(rootScope.context.constants.has("var2")).to.be.false;
+      });
+      it("should not define constants in case of missing subvalue", () => {
+        expect(execute("let (var1 (var2 var3)) (val1 (val2))")).to.eql(
+          ERROR("bad value shape")
+        );
+        expect(rootScope.context.constants.has("var1")).to.be.false;
+        expect(rootScope.context.constants.has("var2")).to.be.false;
+        expect(rootScope.context.constants.has("var3")).to.be.false;
+      });
+      it("should not define constants in case of bad shape", () => {
+        expect(execute("let (var1 (var2)) (val1 val2)")).to.eql(
+          ERROR("bad value shape")
+        );
+        expect(rootScope.context.constants.has("var1")).to.be.false;
+        expect(rootScope.context.constants.has("var2")).to.be.false;
+      });
+    });
     describe("exceptions", () => {
       specify("existing constant", () => {
         rootScope.context.constants.set("cst", new StringValue("old"));
@@ -69,6 +101,10 @@ describe("Helena constants and variables", () => {
           ERROR('wrong # args: should be "let constname value"')
         );
       });
+      specify("bad tuple shape", () => {
+        expect(execute("let (a) b")).to.eql(ERROR("bad value shape"));
+        expect(execute("let ((a)) (b)")).to.eql(ERROR("bad value shape"));
+      });
     });
   });
   describe("set", () => {
@@ -91,6 +127,38 @@ describe("Helena constants and variables", () => {
     it("should return the set value", () => {
       expect(evaluate("set var val")).to.eql(new StringValue("val"));
     });
+    describe("name tuples", () => {
+      it("should be supported", () => {
+        expect(execute("set (var1 (var2 var3)) (val1 (val2 val3))")).to.eql(
+          execute("idem (val1 (val2 val3))")
+        );
+        expect(evaluate("get var1")).to.eql(new StringValue("val1"));
+        expect(evaluate("get var2")).to.eql(new StringValue("val2"));
+        expect(evaluate("get var3")).to.eql(new StringValue("val3"));
+      });
+      it("should not set variables in case of missing value", () => {
+        expect(execute("set (var1 var2) (val1)")).to.eql(
+          ERROR("bad value shape")
+        );
+        expect(rootScope.context.variables.has("var1")).to.be.false;
+        expect(rootScope.context.variables.has("var2")).to.be.false;
+      });
+      it("should not set variables in case of missing subvalue", () => {
+        expect(execute("set (var1 (var2 var3)) (val1 (val2))")).to.eql(
+          ERROR("bad value shape")
+        );
+        expect(rootScope.context.variables.has("var1")).to.be.false;
+        expect(rootScope.context.variables.has("var2")).to.be.false;
+        expect(rootScope.context.variables.has("var3")).to.be.false;
+      });
+      it("should not set variables in case of bad shape", () => {
+        expect(execute("set (var1 (var2)) (val1 val2)")).to.eql(
+          ERROR("bad value shape")
+        );
+        expect(rootScope.context.variables.has("var1")).to.be.false;
+        expect(rootScope.context.variables.has("var2")).to.be.false;
+      });
+    });
     describe("exceptions", () => {
       specify("existing constant", () => {
         rootScope.context.constants.set("cst", new StringValue("old"));
@@ -108,6 +176,10 @@ describe("Helena constants and variables", () => {
         expect(execute("set a b c")).to.eql(
           ERROR('wrong # args: should be "set varname value"')
         );
+      });
+      specify("bad tuple shape", () => {
+        expect(execute("set (a) b")).to.eql(ERROR("bad value shape"));
+        expect(execute("set ((a)) (b)")).to.eql(ERROR("bad value shape"));
       });
     });
   });

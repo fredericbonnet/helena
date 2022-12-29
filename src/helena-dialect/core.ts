@@ -206,7 +206,7 @@ export class Scope {
     );
   }
 
-  setConstant(name: string, value: Value): Result {
+  setConstant(name: string, value: Value, check = false): Result {
     if (this.context.locals?.has(name)) {
       return ERROR(`cannot define constant "${name}": local already exists`);
     }
@@ -217,20 +217,98 @@ export class Scope {
       return ERROR(`cannot define constant "${name}": variable already exists`);
     }
 
+    if (check) return OK(NIL);
     this.context.constants.set(name, value);
     return OK(value);
   }
-  setVariable(name: string, value: Value): Result {
+  setConstants(constants: TupleValue, value: Value, check = false): Result {
+    if (value.type != ValueType.TUPLE) return ERROR("bad value shape");
+    const values = (value as TupleValue).values;
+    if (values.length < constants.values.length)
+      return ERROR("bad value shape");
+    // First pass for error checking
+    for (let i = 0; i < constants.values.length; i++) {
+      const constant = constants.values[i];
+      switch (constant.type) {
+        case ValueType.TUPLE: {
+          const result = this.setConstants(
+            constant as TupleValue,
+            values[i],
+            true
+          );
+          if (result.code != ResultCode.OK) return result;
+          break;
+        }
+        default: {
+          const result = this.setConstant(constant.asString(), values[i], true);
+          if (result.code != ResultCode.OK) return result;
+        }
+      }
+    }
+    if (check) return OK(NIL);
+    // Second pass for actual setting
+    for (let i = 0; i < constants.values.length; i++) {
+      const constant = constants.values[i];
+      switch (constant.type) {
+        case ValueType.TUPLE:
+          this.setConstants(constant as TupleValue, values[i]);
+          break;
+        default:
+          this.setConstant(constant.asString(), values[i]);
+      }
+    }
+    return OK(value);
+  }
+  setVariable(name: string, value: Value, check = false): Result {
     if (this.context.locals?.has(name)) {
       return ERROR(`cannot redefine local "${name}"`);
     }
     if (this.context.constants.has(name)) {
       return ERROR(`cannot redefine constant "${name}"`);
     }
+    if (check) return OK(NIL);
     if (this.context.variables.has(name)) {
       this.context.variables.get(name).value = value;
     } else {
       this.context.variables.set(name, new Variable(value));
+    }
+    return OK(value);
+  }
+  setVariables(variables: TupleValue, value: Value, check = false): Result {
+    if (value.type != ValueType.TUPLE) return ERROR("bad value shape");
+    const values = (value as TupleValue).values;
+    if (values.length < variables.values.length)
+      return ERROR("bad value shape");
+    // First pass for error checking
+    for (let i = 0; i < variables.values.length; i++) {
+      const variable = variables.values[i];
+      switch (variable.type) {
+        case ValueType.TUPLE: {
+          const result = this.setVariables(
+            variable as TupleValue,
+            values[i],
+            true
+          );
+          if (result.code != ResultCode.OK) return result;
+          break;
+        }
+        default: {
+          const result = this.setVariable(variable.asString(), values[i], true);
+          if (result.code != ResultCode.OK) return result;
+        }
+      }
+    }
+    if (check) return OK(NIL);
+    // Second pass for actual setting
+    for (let i = 0; i < variables.values.length; i++) {
+      const variable = variables.values[i];
+      switch (variable.type) {
+        case ValueType.TUPLE:
+          this.setVariables(variable as TupleValue, values[i]);
+          break;
+        default:
+          this.setVariable(variable.asString(), values[i]);
+      }
     }
     return OK(value);
   }

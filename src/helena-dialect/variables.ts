@@ -1,7 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
 import { ERROR, OK, ResultCode } from "../core/results";
-import { FALSE, TRUE, ValueType } from "../core/values";
+import { FALSE, TRUE, TupleValue, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Scope } from "./core";
 
@@ -9,7 +9,12 @@ const letCmd: Command = {
   execute: (args, scope: Scope) => {
     switch (args.length) {
       case 3:
-        return scope.setConstant(args[1].asString(), args[2]);
+        switch (args[1].type) {
+          case ValueType.TUPLE:
+            return scope.setConstants(args[1] as TupleValue, args[2]);
+          default:
+            return scope.setConstant(args[1].asString(), args[2]);
+        }
       default:
         return ARITY_ERROR("let constname value");
     }
@@ -19,7 +24,12 @@ const setCmd: Command = {
   execute: (args, scope: Scope) => {
     switch (args.length) {
       case 3:
-        return scope.setVariable(args[1].asString(), args[2]);
+        switch (args[1].type) {
+          case ValueType.TUPLE:
+            return scope.setVariables(args[1] as TupleValue, args[2]);
+          default:
+            return scope.setVariable(args[1].asString(), args[2]);
+        }
       default:
         return ARITY_ERROR("set varname value");
     }
