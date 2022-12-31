@@ -120,6 +120,11 @@ describe("Helena dictionaries", () => {
             new StringValue("default")
           );
         });
+        it("should support key tuples", () => {
+          expect(evaluate("dict (a b c d e f) get (a e)")).to.eql(
+            evaluate("idem (b f)")
+          );
+        });
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("dict (a b c d) get")).to.eql(
@@ -131,15 +136,23 @@ describe("Helena dictionaries", () => {
           });
           specify("unknow key", () => {
             expect(execute("dict (a b c d) get e")).to.eql(
-              ERROR("unknown key")
+              ERROR('unknown key "e"')
+            );
+            expect(execute("dict (a b c d) get (a e)")).to.eql(
+              ERROR('unknown key "e"')
             );
           });
           specify("invalid key", () => {
             expect(execute("dict (a b c d) get []")).to.eql(
               ERROR("nil has no string representation")
             );
-            expect(execute("dict (a b c d) get ()")).to.eql(
-              ERROR("tuples have no string representation")
+            expect(execute("dict (a b c d) get [list ()]")).to.eql(
+              ERROR("lists have no string representation")
+            );
+          });
+          specify("key tuples with default", () => {
+            expect(execute("dict (a b c d) get (a) default")).to.eql(
+              ERROR("cannot use default with key tuples")
             );
           });
         });

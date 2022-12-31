@@ -65,11 +65,28 @@ const dictGetCmd: Command = {
       return ARITY_ERROR("dict value get key ?default?");
     const { data: map, ...result } = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const { data: key, ...result2 } = StringValue.toString(args[2]);
-    if (result2.code != ResultCode.OK) return result2;
-    if (!map.has(key))
-      return args.length == 4 ? OK(args[3]) : ERROR("unknown key");
-    return OK(map.get(key));
+    switch (args[2].type) {
+      case ValueType.TUPLE: {
+        if (args.length == 4)
+          return ERROR("cannot use default with key tuples");
+        const keys = (args[2] as TupleValue).values;
+        const values = [];
+        for (const k of keys) {
+          const { data: key, ...result2 } = StringValue.toString(k);
+          if (result2.code != ResultCode.OK) return result2;
+          if (!map.has(key)) return ERROR(`unknown key "${key}"`);
+          values.push(map.get(key));
+        }
+        return OK(new TupleValue(values));
+      }
+      default: {
+        const { data: key, ...result2 } = StringValue.toString(args[2]);
+        if (result2.code != ResultCode.OK) return result2;
+        if (!map.has(key))
+          return args.length == 4 ? OK(args[3]) : ERROR(`unknown key "${key}"`);
+        return OK(map.get(key));
+      }
+    }
   },
 };
 const dictAddCmd: Command = {
