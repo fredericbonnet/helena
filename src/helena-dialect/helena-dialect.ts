@@ -18,6 +18,7 @@ import { registerListCommands } from "./lists";
 import { registerDictCommands } from "./dicts";
 import { registerTupleCommands } from "./tuples";
 import { registerScriptCommands } from "./scripts";
+import { ensembleCmd } from "./ensembles";
 
 export { Scope, Variable, CommandValue } from "./core";
 
@@ -39,6 +40,7 @@ export function initCommands(scope: Scope) {
 
   scope.registerCommand("scope", scopeCmd);
   scope.registerCommand("namespace", namespaceCmd);
+  scope.registerCommand("ensemble", ensembleCmd);
 
   scope.registerCommand("macro", macroCmd);
   scope.registerCommand("closure", closureCmd);

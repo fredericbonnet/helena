@@ -36,6 +36,9 @@ export class Argspec {
       }
     }
   }
+  isVariadic(): boolean {
+    return this.nbOptional > 0 || this.hasRemainder;
+  }
 }
 
 export class ArgspecValue extends CommandValue {

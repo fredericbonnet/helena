@@ -17,7 +17,7 @@ export function buildArguments(specs: Value): Result<Argument[]> {
   const argnames = new Set<string>();
   let hasRemainder = false;
   const { data: values, ...result } = valueToArray(specs);
-  if (result.code != ResultCode.OK) return result;
+  if (result.code != ResultCode.OK) return ERROR("invalid argument list");
   for (const value of values) {
     const { data: arg, ...result } = buildArgument(value);
     if (result.code != ResultCode.OK) return result;
