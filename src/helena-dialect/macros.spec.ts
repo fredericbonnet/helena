@@ -240,8 +240,8 @@ describe("Helena macros", () => {
       });
       describe("argspec", () => {
         it("should return the macro argspec", () => {
-          expect(evaluate("[macro {} {}] argspec")).to.eql(
-            evaluate("argspec {}")
+          expect(evaluate("[macro {a b} {}] argspec")).to.eql(
+            evaluate("argspec {a b}")
           );
         });
         describe("exceptions", () => {

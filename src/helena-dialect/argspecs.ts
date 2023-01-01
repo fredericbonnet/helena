@@ -117,7 +117,6 @@ class ArgspecCommand implements Command {
 
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this.value);
-    if (args.length < 2) return ARITY_ERROR("argspec method ?arg ...?");
     const method = args[1];
     switch (method.asString()) {
       case "help": {

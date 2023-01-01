@@ -25,7 +25,6 @@ class CoroutineCommand implements Command {
 
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.value);
-    if (args.length < 2) return ARITY_ERROR("coroutine method ?arg ...?");
     const method = args[1];
     switch (method.asString()) {
       case "wait": {

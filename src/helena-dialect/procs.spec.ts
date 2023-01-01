@@ -196,8 +196,8 @@ describe("Helena procedures", () => {
       });
       describe("argspec", () => {
         it("should return the proc argspec", () => {
-          expect(evaluate("[proc {} {}] argspec")).to.eql(
-            evaluate("argspec {}")
+          expect(evaluate("[proc {a b} {}] argspec")).to.eql(
+            evaluate("argspec {a b}")
           );
         });
         describe("exceptions", () => {

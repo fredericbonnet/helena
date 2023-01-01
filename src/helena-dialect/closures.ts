@@ -31,11 +31,9 @@ class ClosureValueCommand implements Command {
   }
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.value);
-    if (args.length < 2) return ARITY_ERROR("closure method ?arg ...?");
     const method = args[1];
     switch (method.asString()) {
       case "call": {
-        if (args.length < 2) return ARITY_ERROR("closure call ?arg ...?");
         const cmdline = [this.value, ...args.slice(2)];
         return this.value.closure.execute(cmdline);
       }

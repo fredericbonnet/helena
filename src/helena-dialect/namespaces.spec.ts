@@ -43,7 +43,7 @@ describe("Helena namespaces", () => {
     });
     it("should return a command value", () => {
       expect(evaluate("namespace {}")).to.be.instanceof(CommandValue);
-      expect(evaluate("namespace cmd  {}")).to.be.instanceof(CommandValue);
+      expect(evaluate("namespace cmd {}")).to.be.instanceof(CommandValue);
     });
     specify("command should return self", () => {
       const value = evaluate("namespace cmd {}");
@@ -90,6 +90,14 @@ describe("Helena namespaces", () => {
         expect(evaluate("[cmd] eval {get cst}")).to.eql(
           new StringValue("val3")
         );
+      });
+      describe("exceptions", () => {
+        specify("non-script body", () => {
+          expect(execute("namespace a")).to.eql(ERROR("body must be a script"));
+          expect(execute("namespace a b")).to.eql(
+            ERROR("body must be a script")
+          );
+        });
       });
     });
     describe("control flow", () => {
@@ -217,7 +225,7 @@ describe("Helena namespaces", () => {
     });
     describe("methods", () => {
       describe("eval", () => {
-        it("should evaluate body", () => {
+        it("should evaluate body in namespace scope", () => {
           evaluate("namespace cmd {let cst val}");
           expect(evaluate("[cmd] eval {get cst}")).to.eql(
             new StringValue("val")
@@ -229,7 +237,7 @@ describe("Helena namespaces", () => {
             new StringValue("val")
           );
         });
-        it("should evaluate macros in namespace", () => {
+        it("should evaluate macros in namespace scope", () => {
           evaluate("namespace cmd {macro mac {} {let cst val}}");
           evaluate("[cmd] eval {mac}");
           expect(rootScope.context.constants.has("cst")).to.be.false;
@@ -475,18 +483,99 @@ describe("Helena namespaces", () => {
         });
       });
     });
-    describe("commands", () => {
-      it("should map to first argument", () => {
+    describe("subcommands", () => {
+      it("should map first argument to namespace command name", () => {
         evaluate("namespace cmd {macro opt {} {idem val}}");
         expect(evaluate("cmd opt")).to.eql(new StringValue("val"));
       });
-      it("should get remaining arguments", () => {
+      it("should pass remaining arguments to namespace command", () => {
         evaluate("namespace cmd {macro opt {arg} {idem $arg}}");
         expect(evaluate("cmd opt val")).to.eql(new StringValue("val"));
+      });
+      it("should evaluate command in namespace scope", () => {
+        evaluate("namespace cmd {macro mac {} {let cst val}}");
+        evaluate("cmd mac");
+        expect(rootScope.context.constants.has("cst")).to.be.false;
+        expect(evaluate("[cmd] eval {get cst}")).to.eql(new StringValue("val"));
       });
       it("should work recursively", () => {
         evaluate("namespace ns1 {namespace ns2 {macro opt {} {idem val}}}");
         expect(evaluate("ns1 ns2 opt")).to.eql(new StringValue("val"));
+      });
+      describe("control flow", () => {
+        describe("return", () => {
+          it("should interrupt the body with RETURN code", () => {
+            evaluate("closure cmd1 {} {set var val1}");
+            evaluate("closure cmd2 {} {set var val2}");
+            evaluate("namespace cmd {macro mac {} {cmd1; return val3; cmd2}}");
+            expect(execute("cmd mac")).to.eql(RETURN(new StringValue("val3")));
+            expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          });
+        });
+        describe("tailcall", () => {
+          it("should interrupt the body with RETURN code", () => {
+            evaluate("closure cmd1 {} {set var val1}");
+            evaluate("closure cmd2 {} {set var val2}");
+            evaluate(
+              "namespace cmd {macro mac {} {cmd1; tailcall {idem val3}; cmd2}}"
+            );
+            expect(execute("cmd mac")).to.eql(RETURN(new StringValue("val3")));
+            expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          });
+        });
+        describe("yield", () => {
+          it("should interrupt the body with YIELD code", () => {
+            evaluate("closure cmd1 {} {set var val1}");
+            evaluate("closure cmd2 {} {set var val2}");
+            evaluate("namespace cmd {macro mac {} {cmd1; yield; cmd2}}");
+            expect(execute("cmd mac").code).to.eql(ResultCode.YIELD);
+            expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          });
+          it("should provide a resumable state", () => {
+            evaluate("closure cmd1 {} {set var val1}");
+            evaluate("closure cmd2 {val} {set var $val}");
+            evaluate(
+              "namespace cmd {macro mac {} {cmd1; cmd2 _[yield val2]_}}"
+            );
+            const process = rootScope.prepareScript(parse("cmd mac"));
+
+            let result = process.run();
+            expect(result.code).to.eql(ResultCode.YIELD);
+            expect(result.value).to.eql(new StringValue("val2"));
+
+            process.yieldBack(new StringValue("val3"));
+            result = process.run();
+            expect(result).to.eql(OK(new StringValue("_val3_")));
+            expect(evaluate("get var")).to.eql(new StringValue("_val3_"));
+          });
+        });
+        describe("error", () => {
+          it("should interrupt the body with ERROR code", () => {
+            evaluate("closure cmd1 {} {set var val1}");
+            evaluate("closure cmd2 {} {set var val2}");
+            evaluate("namespace cmd {macro mac {} {cmd1; error msg; cmd2}}");
+            expect(execute("cmd mac")).to.eql(ERROR("msg"));
+            expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          });
+        });
+        describe("break", () => {
+          it("should interrupt the body with BREAK code", () => {
+            evaluate("closure cmd1 {} {set var val1}");
+            evaluate("closure cmd2 {} {set var val2}");
+            evaluate("namespace cmd {macro mac {} {cmd1; break; cmd2}}");
+            expect(execute("cmd mac")).to.eql(BREAK());
+            expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          });
+        });
+        describe("continue", () => {
+          it("should interrupt the body with CONTINUE code", () => {
+            evaluate("closure cmd1 {} {set var val1}");
+            evaluate("closure cmd2 {} {set var val2}");
+            evaluate("namespace cmd {macro mac {} {cmd1; continue; cmd2}}");
+            expect(execute("cmd mac")).to.eql(CONTINUE());
+            expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          });
+        });
       });
       describe("exceptions", () => {
         specify("non-existing command", () => {
@@ -545,10 +634,6 @@ describe("Helena namespaces", () => {
         expect(execute("namespace a b c")).to.eql(
           ERROR('wrong # args: should be "namespace ?name? body"')
         );
-      });
-      specify("non-script body", () => {
-        expect(execute("namespace a")).to.eql(ERROR("body must be a script"));
-        expect(execute("namespace a b")).to.eql(ERROR("body must be a script"));
       });
     });
   });

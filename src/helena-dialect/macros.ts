@@ -25,11 +25,9 @@ class MacroValueCommand implements Command {
 
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this.value);
-    if (args.length < 2) return ARITY_ERROR("macro method ?arg ...?");
     const method = args[1];
     switch (method.asString()) {
       case "call": {
-        if (args.length < 2) return ARITY_ERROR("macro call ?arg ...?");
         const cmdline = [this.value, ...args.slice(2)];
         return this.value.macro.execute(cmdline, scope);
       }

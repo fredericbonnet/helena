@@ -26,7 +26,6 @@ export class NamespaceValueCommand implements Command {
 
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.value);
-    if (args.length < 2) return ARITY_ERROR("namespace command ?arg ...?");
     const method = args[1];
     switch (method.asString()) {
       case "eval": {
@@ -36,9 +35,10 @@ export class NamespaceValueCommand implements Command {
       case "call": {
         if (args.length < 3)
           return ARITY_ERROR("namespace call cmdname ?arg ...?");
+        const command = args[2];
+        if (!this.value.scope.hasLocalCommand(command.asString()))
+          return ERROR(`invalid command name "${command.asString()}"`);
         const cmdline = args.slice(2);
-        if (!this.value.scope.hasLocalCommand(cmdline[0].asString()))
-          return ERROR(`invalid command name "${cmdline[0].asString()}"`);
         return YIELD(
           new DeferredValue(new TupleValue(cmdline), this.value.scope)
         );
@@ -57,9 +57,10 @@ class NamespaceCommand implements Command {
 
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.value);
+    const command = args[1];
+    if (!this.value.scope.hasLocalCommand(command.asString()))
+      return ERROR(`invalid command name "${command.asString()}"`);
     const cmdline = args.slice(1);
-    if (!this.value.scope.hasLocalCommand(cmdline[0].asString()))
-      return ERROR(`invalid command name "${cmdline[0].asString()}"`);
     return this.value.scope
       .resolveCommand(cmdline[0])
       .execute(cmdline, this.value.scope);

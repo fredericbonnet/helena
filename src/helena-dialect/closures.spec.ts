@@ -219,8 +219,8 @@ describe("Helena closures", () => {
       });
       describe("argspec", () => {
         it("should return the closure argspec", () => {
-          expect(evaluate("[closure {} {}] argspec")).to.eql(
-            evaluate("argspec {}")
+          expect(evaluate("[closure {a b} {}] argspec")).to.eql(
+            evaluate("argspec {a b}")
           );
         });
         describe("exceptions", () => {
