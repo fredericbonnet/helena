@@ -61,9 +61,7 @@ class NamespaceCommand implements Command {
     if (!this.value.scope.hasLocalCommand(command.asString()))
       return ERROR(`invalid command name "${command.asString()}"`);
     const cmdline = args.slice(1);
-    return this.value.scope
-      .resolveCommand(cmdline[0])
-      .execute(cmdline, this.value.scope);
+    return YIELD(new DeferredValue(new TupleValue(cmdline), this.value.scope));
   }
 }
 

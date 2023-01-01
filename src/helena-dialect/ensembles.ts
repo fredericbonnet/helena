@@ -37,10 +37,9 @@ export class EnsembleValueCommand implements Command {
         const subcommand = args[2];
         if (!this.value.scope.hasLocalCommand(subcommand.asString()))
           return ERROR(`invalid command name "${subcommand.asString()}"`);
-        const cmdline = args.slice(2);
-        return this.value.scope
-          .resolveCommand(subcommand)
-          .execute(cmdline, scope);
+        const command = this.value.scope.resolveCommand(subcommand);
+        const cmdline = [new CommandValue(command), ...args.slice(3)];
+        return YIELD(new DeferredValue(new TupleValue(cmdline), scope));
       }
       case "argspec":
         if (args.length != 2) return ARITY_ERROR("ensemble argspec");
@@ -67,15 +66,16 @@ class EnsembleCommand implements Command {
     if (args.length == minArgs) {
       return OK(new TupleValue(args.slice(1)));
     }
-    const command = args[minArgs];
-    if (!this.value.scope.hasLocalCommand(command.asString()))
-      return ERROR(`invalid subcommand name "${command.asString()}"`);
+    const subcommand = args[minArgs];
+    if (!this.value.scope.hasLocalCommand(subcommand.asString()))
+      return ERROR(`invalid subcommand name "${subcommand.asString()}"`);
+    const command = this.value.scope.resolveCommand(subcommand);
     const cmdline = [
-      command,
+      new CommandValue(command),
       ...args.slice(1, minArgs),
       ...args.slice(minArgs + 1),
     ];
-    return this.value.scope.resolveCommand(command).execute(cmdline, scope);
+    return YIELD(new DeferredValue(new TupleValue(cmdline), scope));
   }
 }
 

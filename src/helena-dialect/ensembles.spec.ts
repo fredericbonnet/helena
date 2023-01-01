@@ -429,7 +429,7 @@ describe("Helena ensembles", () => {
             });
           });
           describe("yield", () => {
-            it("should interrupt the body with YIELD code", () => {
+            it("should interrupt the call with YIELD code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("ensemble cmd {} {macro mac {} {cmd1; yield; cmd2}}");
@@ -440,9 +440,9 @@ describe("Helena ensembles", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {val} {set var $val}");
               evaluate(
-                "ensemble cmd {} {macro mac {} {cmd1; cmd2 _[yield val2]_}}"
+                "ensemble cmd {} {proc p {} {cmd1; cmd2 _[yield val2]_}}"
               );
-              const process = rootScope.prepareScript(parse("[cmd] call mac"));
+              const process = rootScope.prepareScript(parse("[cmd] call p"));
 
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
@@ -589,7 +589,7 @@ describe("Helena ensembles", () => {
           });
         });
         describe("yield", () => {
-          it("should interrupt the body with YIELD code", () => {
+          it("should interrupt the call with YIELD code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             evaluate("ensemble cmd {} {macro mac {} {cmd1; yield; cmd2}}");
@@ -599,10 +599,8 @@ describe("Helena ensembles", () => {
           it("should provide a resumable state", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {val} {set var $val}");
-            evaluate(
-              "ensemble cmd {} {macro mac {} {cmd1; cmd2 _[yield val2]_}}"
-            );
-            const process = rootScope.prepareScript(parse("cmd mac"));
+            evaluate("ensemble cmd {} {proc p {} {cmd1; cmd2 _[yield val2]_}}");
+            const process = rootScope.prepareScript(parse("cmd p"));
 
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
