@@ -1,40 +1,36 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
-import { ERROR, OK, Result, ResultCode, YIELD } from "../core/results";
+import { ERROR, OK, Result, ResultCode } from "../core/results";
 import {
   FALSE,
   IntegerValue,
+  ListValue,
   StringValue,
   TRUE,
-  TupleValue,
   Value,
 } from "../core/values";
+import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { DeferredValue, Scope } from "./core";
-import { NamespaceValueCommand } from "./namespaces";
+import { Scope } from "./core";
+import { EnsembleValueCommand } from "./ensembles";
 
 const OPERATOR_ARITY_ERROR = (operator: string) =>
   ERROR(`wrong # operands: should be "string value1 ${operator} value2"`);
 
 class StringCommand implements Command {
   scope: Scope;
-  namespace: NamespaceValueCommand;
+  ensemble: EnsembleValueCommand;
   constructor(scope: Scope) {
     this.scope = new Scope(scope);
-    this.namespace = new NamespaceValueCommand(this.scope);
-  }
-  execute(args: Value[]): Result {
-    if (args.length == 1) return OK(this.namespace.value);
-    if (args.length == 2) return StringValue.fromValue(args[1]);
-    const [, value, subcommand, ...rest] = args;
-    if (!this.scope.hasLocalCommand(subcommand.asString()))
-      return ERROR(`invalid subcommand name "${subcommand.asString()}"`);
-    return YIELD(
-      new DeferredValue(
-        new TupleValue([subcommand, value, ...rest]),
-        this.scope
-      )
+    const { data: argspec } = ArgspecValue.fromValue(
+      new ListValue([new StringValue("value")])
     );
+    this.ensemble = new EnsembleValueCommand(this.scope, argspec);
+  }
+  execute(args: Value[], scope: Scope): Result {
+    if (args.length == 1) return OK(this.ensemble.value);
+    if (args.length == 2) return StringValue.fromValue(args[1]);
+    return this.ensemble.value.ensemble.execute(args, scope);
   }
 }
 
@@ -142,11 +138,12 @@ const stringReplaceCmd: Command = {
 };
 
 const binaryCmd = (
+  name: string,
   whenEqual: boolean,
   fn: (op1: string, op2: string) => boolean
 ): Command => ({
   execute(args: Value[]): Result {
-    if (args.length != 3) return OPERATOR_ARITY_ERROR(args[0].asString());
+    if (args.length != 3) return OPERATOR_ARITY_ERROR(name);
     if (args[1] == args[2]) return OK(whenEqual ? TRUE : FALSE);
     const { data: operand1, ...result1 } = StringValue.toString(args[1]);
     if (result1.code != ResultCode.OK) return result1;
@@ -155,12 +152,12 @@ const binaryCmd = (
     return OK(fn(operand1, operand2) ? TRUE : FALSE);
   },
 });
-const eqCmd = binaryCmd(true, (op1, op2) => op1 == op2);
-const neCmd = binaryCmd(false, (op1, op2) => op1 != op2);
-const gtCmd = binaryCmd(false, (op1, op2) => op1 > op2);
-const geCmd = binaryCmd(true, (op1, op2) => op1 >= op2);
-const ltCmd = binaryCmd(false, (op1, op2) => op1 < op2);
-const leCmd = binaryCmd(true, (op1, op2) => op1 <= op2);
+const eqCmd = binaryCmd("==", true, (op1, op2) => op1 == op2);
+const neCmd = binaryCmd("!=", false, (op1, op2) => op1 != op2);
+const gtCmd = binaryCmd(">", false, (op1, op2) => op1 > op2);
+const geCmd = binaryCmd(">=", true, (op1, op2) => op1 >= op2);
+const ltCmd = binaryCmd("<", false, (op1, op2) => op1 < op2);
+const leCmd = binaryCmd("<=", true, (op1, op2) => op1 <= op2);
 
 export function registerStringCommands(scope: Scope) {
   const command = new StringCommand(scope);

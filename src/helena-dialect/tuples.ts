@@ -1,37 +1,34 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
-import { ERROR, OK, Result, ResultCode, YIELD } from "../core/results";
+import { ERROR, OK, Result, ResultCode } from "../core/results";
 import {
   IntegerValue,
   ListValue,
+  StringValue,
   TupleValue,
   Value,
   ValueType,
 } from "../core/values";
+import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { DeferredValue, Scope } from "./core";
+import { Scope } from "./core";
 import { valueToArray } from "./lists";
-import { NamespaceValueCommand } from "./namespaces";
+import { EnsembleValueCommand } from "./ensembles";
 
 class TupleCommand implements Command {
   scope: Scope;
-  namespace: NamespaceValueCommand;
+  ensemble: EnsembleValueCommand;
   constructor(scope: Scope) {
     this.scope = new Scope(scope);
-    this.namespace = new NamespaceValueCommand(this.scope);
-  }
-  execute(args: Value[]): Result {
-    if (args.length == 1) return OK(this.namespace.value);
-    if (args.length == 2) return valueToTuple(args[1]);
-    const [, value, subcommand, ...rest] = args;
-    if (!this.scope.hasLocalCommand(subcommand.asString()))
-      return ERROR(`invalid subcommand name "${subcommand.asString()}"`);
-    return YIELD(
-      new DeferredValue(
-        new TupleValue([subcommand, value, ...rest]),
-        this.scope
-      )
+    const { data: argspec } = ArgspecValue.fromValue(
+      new ListValue([new StringValue("value")])
     );
+    this.ensemble = new EnsembleValueCommand(this.scope, argspec);
+  }
+  execute(args: Value[], scope: Scope): Result {
+    if (args.length == 1) return OK(this.ensemble.value);
+    if (args.length == 2) return valueToTuple(args[1]);
+    return this.ensemble.value.ensemble.execute(args, scope);
   }
 }
 
