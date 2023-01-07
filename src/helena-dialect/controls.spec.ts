@@ -1918,7 +1918,6 @@ describe("Helena control flow commands", () => {
 
             process.yieldBack(new StringValue("value"));
             result = process.run();
-            console.log(result);
             expect(result).to.eql(ERROR("message"));
           });
         });
