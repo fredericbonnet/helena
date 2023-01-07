@@ -1,8 +1,8 @@
 import { expect } from "chai";
-import { ERROR } from "../core/results";
+import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { IntegerValue, ListValue, StringValue } from "../core/values";
+import { IntegerValue, ListValue, NIL, StringValue } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -332,6 +332,126 @@ describe("Helena lists", () => {
                 ERROR("invalid list")
               );
             });
+          });
+        });
+      });
+      describe("foreach", () => {
+        it("should iterate over elements", () => {
+          evaluate(`
+            set elements [list ()]
+            set l [list (a b c)]
+            list $l foreach element {
+              set elements [list $elements append ($element)]
+            }
+            `);
+          expect(evaluate("get elements")).to.eql(evaluate("get l"));
+        });
+        it("should return the result of the last command", () => {
+          expect(execute("list () foreach element {}")).to.eql(OK(NIL));
+          expect(execute("list (a b c) foreach element {}")).to.eql(OK(NIL));
+          expect(
+            evaluate("set i 0; list (a b c) foreach element {set i [+ $i 1]}")
+          ).to.eql(new IntegerValue(3));
+        });
+        describe("control flow", () => {
+          describe("return", () => {
+            it("should interrupt the loop with RETURN code", () => {
+              expect(
+                execute(
+                  "set i 0; list (a b c) foreach element {set i [+ $i 1]; return $element; unreachable}"
+                )
+              ).to.eql(execute("return a"));
+              expect(evaluate("get i")).to.eql(new IntegerValue(1));
+            });
+          });
+          describe("tailcall", () => {
+            it("should interrupt the loop with RETURN code", () => {
+              expect(
+                execute(
+                  "set i 0; list (a b c) foreach element {set i [+ $i 1]; tailcall {idem $element}; unreachable}"
+                )
+              ).to.eql(execute("return a"));
+              expect(evaluate("get i")).to.eql(new IntegerValue(1));
+            });
+          });
+          describe("yield", () => {
+            it("should interrupt the body with YIELD code", () => {
+              expect(
+                execute("list (a b c) foreach element {yield; unreachable}")
+                  .code
+              ).to.eql(ResultCode.YIELD);
+            });
+            it("should provide a resumable state", () => {
+              const process = rootScope.prepareScript(
+                parse("list (a b c) foreach element {idem _$[yield $element]_}")
+              );
+
+              let result = process.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("a"));
+              expect(result.data).to.exist;
+
+              process.yieldBack(new StringValue("step 1"));
+              result = process.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("b"));
+              expect(result.data).to.exist;
+
+              process.yieldBack(new StringValue("step 2"));
+              result = process.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("c"));
+              expect(result.data).to.exist;
+
+              process.yieldBack(new StringValue("step 3"));
+              result = process.run();
+              expect(result).to.eql(OK(new StringValue("_step 3_")));
+            });
+          });
+          describe("error", () => {
+            it("should interrupt the loop with ERROR code", () => {
+              expect(
+                execute(
+                  "set i 0; list (a b c) foreach element {set i [+ $i 1]; error msg; unreachable}"
+                )
+              ).to.eql(ERROR("msg"));
+              expect(evaluate("get i")).to.eql(new IntegerValue(1));
+            });
+          });
+          describe("break", () => {
+            it("should interrupt the body with nil result", () => {
+              expect(
+                execute(
+                  "set i 0; list (a b c) foreach element {set i [+ $i 1]; break; unreachable}"
+                )
+              ).to.eql(OK(NIL));
+              expect(evaluate("get i")).to.eql(new IntegerValue(1));
+            });
+          });
+          describe("continue", () => {
+            it("should interrupt the body iteration", () => {
+              expect(
+                execute(
+                  "set i 0; list (a b c) foreach element {set i [+ $i 1]; continue; unreachable}"
+                )
+              ).to.eql(OK(NIL));
+              expect(evaluate("get i")).to.eql(new IntegerValue(3));
+            });
+          });
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("list (a b c) foreach a")).to.eql(
+              ERROR('wrong # args: should be "list value foreach element body"')
+            );
+            expect(execute("list (a b c) foreach a b c")).to.eql(
+              ERROR('wrong # args: should be "list value foreach element body"')
+            );
+          });
+          specify("non-script body", () => {
+            expect(execute("list (a b c) foreach a b")).to.eql(
+              ERROR("body must be a script")
+            );
           });
         });
       });

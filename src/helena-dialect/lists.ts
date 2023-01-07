@@ -1,7 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
-import { Compiler, Executor } from "../core/compiler";
-import { ERROR, OK, Result, ResultCode } from "../core/results";
+import { Compiler, Executor, Program } from "../core/compiler";
+import { ERROR, OK, Result, ResultCode, YIELD } from "../core/results";
 import {
   IntegerValue,
   ListValue,
@@ -14,7 +14,7 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope } from "./core";
+import { Process, Scope, ScopeContext } from "./core";
 import { EnsembleValueCommand } from "./ensembles";
 
 class ListCommand implements Command {
@@ -137,6 +137,68 @@ const listReplaceCmd: Command = {
     return OK(new ListValue([...head, ...insert, ...tail]));
   },
 };
+type ListForeachState = {
+  varname: Value;
+  it: IterableIterator<Value>;
+  step: "beforeBody" | "inBody";
+  program: Program;
+  scope: Scope;
+  process?: Process;
+  lastResult: Result;
+};
+class ListForeachCommand implements Command {
+  execute(args, scope: Scope) {
+    if (args.length != 4) return ARITY_ERROR("list value foreach element body");
+    const { data: values, ...result } = valueToArray(args[1]);
+    if (result.code != ResultCode.OK) return result;
+    const varname = args[2];
+    const body = args[3];
+    if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
+    const program = scope.compile((body as ScriptValue).script);
+    const locals: Map<string, Value> = new Map();
+    const subscope = new Scope(scope, new ScopeContext(scope.context, locals));
+    return this.run({
+      varname,
+      it: values.values(),
+      step: "beforeBody",
+      program,
+      scope: subscope,
+      lastResult: OK(NIL),
+    });
+    return ERROR("TODO");
+  }
+  resume(result: Result): Result {
+    const state = result.data as ListForeachState;
+    state.process.yieldBack(result.value);
+    return this.run(state);
+  }
+  private run(state: ListForeachState) {
+    for (;;) {
+      switch (state.step) {
+        case "beforeBody": {
+          const { value, done } = state.it.next();
+          if (done) return state.lastResult;
+          state.scope.context.locals.set(state.varname.asString(), value);
+          state.process = state.scope.prepareProcess(state.program);
+          state.step = "inBody";
+          break;
+        }
+        case "inBody": {
+          const result = state.process.run();
+          if (result.code == ResultCode.YIELD)
+            return YIELD(result.value, state);
+          state.step = "beforeBody";
+          if (result.code == ResultCode.BREAK) return state.lastResult;
+          if (result.code == ResultCode.CONTINUE) continue;
+          if (result.code != ResultCode.OK) return result;
+          state.lastResult = result;
+          break;
+        }
+      }
+    }
+  }
+}
+const listForeachCmd = new ListForeachCommand();
 
 export function valueToList(value: Value): Result {
   if (value.type == ValueType.SCRIPT) {
@@ -174,4 +236,5 @@ export function registerListCommands(scope: Scope) {
   command.scope.registerCommand("remove", listRemoveCmd);
   command.scope.registerCommand("insert", listInsertCmd);
   command.scope.registerCommand("replace", listReplaceCmd);
+  command.scope.registerCommand("foreach", listForeachCmd);
 }
