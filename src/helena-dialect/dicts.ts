@@ -1,6 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
-import { Result, OK, ERROR, ResultCode } from "../core/results";
+import { Program } from "../core/compiler";
+import { Result, OK, ERROR, ResultCode, YIELD } from "../core/results";
 import {
   Value,
   TupleValue,
@@ -16,7 +17,7 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, ScopeContext } from "./core";
+import { Process, Scope, ScopeContext } from "./core";
 import { EnsembleValueCommand } from "./ensembles";
 import { valueToArray } from "./lists";
 
@@ -162,6 +163,88 @@ const dictEntriesCmd: Command = {
     return OK(new ListValue(values));
   },
 };
+type DictForeachState = {
+  varname: Value;
+  it: IterableIterator<[string, Value]>;
+  step: "beforeBody" | "inBody";
+  program: Program;
+  scope: Scope;
+  process?: Process;
+  lastResult: Result;
+};
+class DictForeachCommand implements Command {
+  execute(args, scope: Scope) {
+    if (args.length != 4) return ARITY_ERROR("dict value foreach entry body");
+    const { data: map, ...result } = valueToMap(args[1]);
+    if (result.code != ResultCode.OK) return result;
+    const varname = args[2];
+    const body = args[3];
+    if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
+    const program = scope.compile((body as ScriptValue).script);
+    const locals: Map<string, Value> = new Map();
+    const subscope = new Scope(scope, new ScopeContext(scope.context, locals));
+    return this.run({
+      varname,
+      it: map.entries(),
+      step: "beforeBody",
+      program,
+      scope: subscope,
+      lastResult: OK(NIL),
+    });
+  }
+  resume(result: Result): Result {
+    const state = result.data as DictForeachState;
+    state.process.yieldBack(result.value);
+    return this.run(state);
+  }
+  private run(state: DictForeachState) {
+    for (;;) {
+      switch (state.step) {
+        case "beforeBody": {
+          const { value: entry, done } = state.it.next();
+          if (done) return state.lastResult;
+          const [key, value] = entry;
+          switch (state.varname.type) {
+            case ValueType.TUPLE: {
+              const tuple = state.varname as TupleValue;
+              if (tuple.values.length >= 1)
+                state.scope.context.locals.set(
+                  tuple.values[0].asString(),
+                  new StringValue(key)
+                );
+              if (tuple.values.length >= 2)
+                state.scope.context.locals.set(
+                  tuple.values[1].asString(),
+                  value
+                );
+              break;
+            }
+            default:
+              state.scope.context.locals.set(
+                state.varname.asString(),
+                new TupleValue([new StringValue(key), value])
+              );
+          }
+          state.process = state.scope.prepareProcess(state.program);
+          state.step = "inBody";
+          break;
+        }
+        case "inBody": {
+          const result = state.process.run();
+          if (result.code == ResultCode.YIELD)
+            return YIELD(result.value, state);
+          state.step = "beforeBody";
+          if (result.code == ResultCode.BREAK) return state.lastResult;
+          if (result.code == ResultCode.CONTINUE) continue;
+          if (result.code != ResultCode.OK) return result;
+          state.lastResult = result;
+          break;
+        }
+      }
+    }
+  }
+}
+const dictForeachCmd = new DictForeachCommand();
 
 function valueToMapValue(value: Value): Result {
   switch (value.type) {
@@ -207,4 +290,5 @@ export function registerDictCommands(scope: Scope) {
   command.scope.registerCommand("keys", dictKeysCmd);
   command.scope.registerCommand("values", dictValuesCmd);
   command.scope.registerCommand("entries", dictEntriesCmd);
+  command.scope.registerCommand("foreach", dictForeachCmd);
 }

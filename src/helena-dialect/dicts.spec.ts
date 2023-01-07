@@ -1,11 +1,10 @@
 import { expect } from "chai";
-import { ERROR } from "../core/results";
+import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import {
   FALSE,
   IntegerValue,
-  ListValue,
   MapValue,
   NIL,
   StringValue,
@@ -253,9 +252,9 @@ describe("Helena dictionaries", () => {
         });
       });
       describe("keys", () => {
-        it("should return the map keys", () => {
+        it("should return the list of keys", () => {
           expect(evaluate("dict (a b c d) keys")).to.eql(
-            new ListValue([new StringValue("a"), new StringValue("c")])
+            evaluate("list (a c)")
           );
         });
         describe("exceptions", () => {
@@ -267,9 +266,9 @@ describe("Helena dictionaries", () => {
         });
       });
       describe("values", () => {
-        it("should return the map keys", () => {
+        it("should return the list of values", () => {
           expect(evaluate("dict (a b c d) values")).to.eql(
-            new ListValue([new StringValue("b"), new StringValue("d")])
+            evaluate("list (b d)")
           );
         });
         describe("exceptions", () => {
@@ -281,18 +280,182 @@ describe("Helena dictionaries", () => {
         });
       });
       describe("entries", () => {
-        it("should return the map keys-value tuples", () => {
+        it("should return the list of key-value tuples", () => {
           expect(evaluate("dict (a b c d) entries")).to.eql(
-            new ListValue([
-              new TupleValue([new StringValue("a"), new StringValue("b")]),
-              new TupleValue([new StringValue("c"), new StringValue("d")]),
-            ])
+            evaluate("list ((a b) (c d))")
           );
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("dict (a b c d) entries a")).to.eql(
               ERROR('wrong # args: should be "dict value entries"')
+            );
+          });
+        });
+      });
+      describe("foreach", () => {
+        it("should iterate over entries", () => {
+          evaluate(`
+            set entries [list ()]
+            set d [dict (a b c d e f)]
+            dict $d foreach entry {
+              set entries [list $entries append ($entry)]
+            }
+            `);
+          expect(evaluate("get entries")).to.eql(evaluate("dict $d entries"));
+        });
+        describe("entry parameter tuples", () => {
+          it("should be supported", () => {
+            evaluate(`
+            set keys [list ()]
+            set values [list ()]
+            set d [dict (a b c d e f)]
+            dict $d foreach (key value) {
+              set keys [list $keys append ($key)]
+              set values [list $values append ($value)]
+            }
+            `);
+            expect(evaluate("get keys")).to.eql(evaluate("dict $d keys"));
+            expect(evaluate("get values")).to.eql(evaluate("dict $d values"));
+          });
+          it("should accept empty tuple", () => {
+            evaluate(`
+              set i 0
+              dict (a b c d e f) foreach () {
+                set i [+ $i 1]
+              }
+              `);
+            expect(evaluate("get i")).to.eql(new IntegerValue(3));
+          });
+          it("should accept (key) tuple", () => {
+            evaluate(`
+              set keys [list ()]
+              set d [dict (a b c d e f)]
+              dict (a b c d e f) foreach (key) {
+                set keys [list $keys append ($key)]
+              }
+              `);
+            expect(evaluate("get keys")).to.eql(evaluate("dict $d keys"));
+          });
+          it("should ignore extra elements", () => {
+            expect(
+              execute(`
+                dict (a b c d e f) foreach (key value foo) {
+                  if [exists foo] {unreachable}
+                }
+              `)
+            ).to.eql(OK(NIL));
+          });
+        });
+        it("should return the result of the last command", () => {
+          expect(execute("dict () foreach entry {}")).to.eql(OK(NIL));
+          expect(execute("dict (a b) foreach entry {}")).to.eql(OK(NIL));
+          expect(
+            evaluate(
+              "set i 0; dict (a b c d e f) foreach entry {set i [+ $i 1]}"
+            )
+          ).to.eql(new IntegerValue(3));
+        });
+        describe("control flow", () => {
+          describe("return", () => {
+            it("should interrupt the loop with RETURN code", () => {
+              expect(
+                execute(
+                  "set i 0; dict (a b c d e f) foreach entry {set i [+ $i 1]; return $entry; unreachable}"
+                )
+              ).to.eql(execute("return (a b)"));
+              expect(evaluate("get i")).to.eql(new IntegerValue(1));
+            });
+          });
+          describe("tailcall", () => {
+            it("should interrupt the loop with RETURN code", () => {
+              expect(
+                execute(
+                  "set i 0; dict (a b c d e f) foreach entry {set i [+ $i 1]; tailcall {idem $entry}; unreachable}"
+                )
+              ).to.eql(execute("return (a b)"));
+              expect(evaluate("get i")).to.eql(new IntegerValue(1));
+            });
+          });
+          describe("yield", () => {
+            it("should interrupt the body with YIELD code", () => {
+              expect(
+                execute("dict (a b c d e f) foreach entry {yield; unreachable}")
+                  .code
+              ).to.eql(ResultCode.YIELD);
+            });
+            it("should provide a resumable state", () => {
+              const process = rootScope.prepareScript(
+                parse(
+                  "dict (a b c d e f) foreach (key value) {idem _$[yield $key]_}"
+                )
+              );
+
+              let result = process.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("a"));
+              expect(result.data).to.exist;
+
+              process.yieldBack(new StringValue("step 1"));
+              result = process.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("c"));
+              expect(result.data).to.exist;
+
+              process.yieldBack(new StringValue("step 2"));
+              result = process.run();
+              expect(result.code).to.eql(ResultCode.YIELD);
+              expect(result.value).to.eql(new StringValue("e"));
+              expect(result.data).to.exist;
+
+              process.yieldBack(new StringValue("step 3"));
+              result = process.run();
+              expect(result).to.eql(OK(new StringValue("_step 3_")));
+            });
+          });
+          describe("error", () => {
+            it("should interrupt the loop with ERROR code", () => {
+              expect(
+                execute(
+                  "set i 0; dict (a b c d e f) foreach entry {set i [+ $i 1]; error msg; unreachable}"
+                )
+              ).to.eql(ERROR("msg"));
+              expect(evaluate("get i")).to.eql(new IntegerValue(1));
+            });
+          });
+          describe("break", () => {
+            it("should interrupt the body with nil result", () => {
+              expect(
+                execute(
+                  "set i 0; dict (a b c d e f) foreach entry {set i [+ $i 1]; break; unreachable}"
+                )
+              ).to.eql(OK(NIL));
+              expect(evaluate("get i")).to.eql(new IntegerValue(1));
+            });
+          });
+          describe("continue", () => {
+            it("should interrupt the body iteration", () => {
+              expect(
+                execute(
+                  "set i 0; dict (a b c d e f) foreach entry {set i [+ $i 1]; continue; unreachable}"
+                )
+              ).to.eql(OK(NIL));
+              expect(evaluate("get i")).to.eql(new IntegerValue(3));
+            });
+          });
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("dict (a b c d) foreach a")).to.eql(
+              ERROR('wrong # args: should be "dict value foreach entry body"')
+            );
+            expect(execute("dict (a b c d) foreach a b c")).to.eql(
+              ERROR('wrong # args: should be "dict value foreach entry body"')
+            );
+          });
+          specify("non-script body", () => {
+            expect(execute("dict (a b c d) foreach a b")).to.eql(
+              ERROR("body must be a script")
             );
           });
         });
