@@ -20,7 +20,7 @@ import {
   ValueType,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { Process, Scope, ScopeContext } from "./core";
+import { Process, Scope } from "./core";
 import { valueToArray } from "./lists";
 
 type WhileState = {
@@ -470,12 +470,8 @@ class CatchCommand implements Command {
             case ResultCode.ERROR: {
               const varname = state.args[i + 1];
               const handler = state.args[i + 2];
-              const locals: Map<string, Value> = new Map();
-              locals.set(varname.asString(), state.result.value);
-              const subscope = new Scope(
-                scope,
-                new ScopeContext(scope.context, locals)
-              );
+              const subscope = new Scope(scope, true);
+              subscope.setLocal(varname.asString(), state.result.value);
               state.process = subscope.prepareScriptValue(
                 handler as ScriptValue
               ); // TODO check type

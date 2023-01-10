@@ -46,19 +46,6 @@ export class CommandValue implements Value {
   }
 }
 
-export class ScopeContext {
-  readonly constants: Map<string, Value>;
-  readonly variables: Map<string, Variable>;
-  readonly commands: Map<string, Command>;
-  readonly locals: Map<string, Value>;
-  constructor(context?: ScopeContext, locals?: Map<string, Value>) {
-    this.constants = context?.constants ?? new Map();
-    this.variables = context?.variables ?? new Map();
-    this.commands = context?.commands ?? new Map();
-    this.locals = locals;
-  }
-}
-
 export class DeferredValue implements Value {
   type = ValueType.CUSTOM;
   value: Value;
@@ -130,15 +117,24 @@ export class Process {
     this.context.state.result = YIELD_BACK(this.context.state.result, value);
   }
 }
+
+class ScopeContext {
+  readonly parent?: ScopeContext;
+  readonly constants: Map<string, Value> = new Map();
+  readonly variables: Map<string, Variable> = new Map();
+  readonly commands: Map<string, Command> = new Map();
+  constructor(parent?: ScopeContext) {
+    this.parent = parent;
+  }
+}
 export class Scope {
-  readonly parent?: Scope;
   readonly context: ScopeContext;
+  private readonly locals: Map<string, Value> = new Map();
   private readonly compiler: Compiler;
   private readonly executor: Executor;
 
-  constructor(parent?: Scope, context = new ScopeContext()) {
-    this.parent = parent;
-    this.context = context;
+  constructor(parent?: Scope, local = false) {
+    this.context = local ? parent.context : new ScopeContext(parent?.context);
     this.compiler = new Compiler();
     const variableResolver: VariableResolver = {
       resolve: (name) => this.resolveVariable(name),
@@ -187,7 +183,7 @@ export class Scope {
   }
 
   resolveVariable(name: string): Value {
-    if (this.context.locals?.has(name)) return this.context.locals.get(name);
+    if (this.locals.has(name)) return this.locals.get(name);
     if (this.context.constants.has(name))
       return this.context.constants.get(name);
     if (this.context.variables.has(name))
@@ -201,13 +197,19 @@ export class Scope {
     return this.resolveNamedCommand(value.asString());
   }
   private resolveNamedCommand(name: string): Command {
-    return (
-      this.context.commands.get(name) ?? this.parent?.resolveNamedCommand(name)
-    );
+    let context = this.context;
+    while (context) {
+      const command = context.commands.get(name);
+      if (command) return command;
+      context = context.parent;
+    }
   }
 
+  setLocal(name: string, value: Value) {
+    this.locals.set(name, value);
+  }
   setConstant(name: string, value: Value, check = false): Result {
-    if (this.context.locals?.has(name)) {
+    if (this.locals.has(name)) {
       return ERROR(`cannot define constant "${name}": local already exists`);
     }
     if (this.context.constants.has(name)) {
@@ -260,7 +262,7 @@ export class Scope {
     return OK(value);
   }
   setVariable(name: string, value: Value, check = false): Result {
-    if (this.context.locals?.has(name)) {
+    if (this.locals.has(name)) {
       return ERROR(`cannot redefine local "${name}"`);
     }
     if (this.context.constants.has(name)) {
@@ -313,7 +315,7 @@ export class Scope {
     return OK(value);
   }
   unsetVariable(name: string): Result {
-    if (this.context.locals?.has(name)) {
+    if (this.locals.has(name)) {
       return ERROR(`cannot unset local "${name}"`);
     }
     if (this.context.constants.has(name)) {

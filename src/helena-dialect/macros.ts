@@ -4,7 +4,7 @@ import { Command } from "../core/command";
 import { ScriptValue, Value, ValueType } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, CommandValue, ScopeContext, DeferredValue } from "./core";
+import { Scope, CommandValue, DeferredValue } from "./core";
 
 class MacroValue extends CommandValue {
   readonly argspec: ArgspecValue;
@@ -50,15 +50,14 @@ class MacroCommand implements Command {
     if (!this.value.argspec.checkArity(args, 1)) {
       return ARITY_ERROR(`${args[0].asString()} ${this.value.argspec.help()}`);
     }
-    const locals: Map<string, Value> = new Map();
+    const subscope = new Scope(scope, true);
     const setarg = (name, value) => {
-      locals.set(name, value);
+      subscope.setLocal(name, value);
       return OK(value);
     };
     // TODO handle YIELD?
     const result = this.value.argspec.applyArguments(scope, args, 1, setarg);
     if (result.code != ResultCode.OK) return result;
-    const subscope = new Scope(scope, new ScopeContext(scope.context, locals));
     return YIELD(new DeferredValue(this.value.body, subscope));
   }
 }

@@ -17,7 +17,7 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Process, Scope, ScopeContext } from "./core";
+import { Process, Scope } from "./core";
 import { EnsembleValueCommand } from "./ensembles";
 import { valueToArray } from "./lists";
 
@@ -181,8 +181,7 @@ class DictForeachCommand implements Command {
     const body = args[3];
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
     const program = scope.compile((body as ScriptValue).script);
-    const locals: Map<string, Value> = new Map();
-    const subscope = new Scope(scope, new ScopeContext(scope.context, locals));
+    const subscope = new Scope(scope, true);
     return this.run({
       varname,
       it: map.entries(),
@@ -208,19 +207,16 @@ class DictForeachCommand implements Command {
             case ValueType.TUPLE: {
               const tuple = state.varname as TupleValue;
               if (tuple.values.length >= 1)
-                state.scope.context.locals.set(
+                state.scope.setLocal(
                   tuple.values[0].asString(),
                   new StringValue(key)
                 );
               if (tuple.values.length >= 2)
-                state.scope.context.locals.set(
-                  tuple.values[1].asString(),
-                  value
-                );
+                state.scope.setLocal(tuple.values[1].asString(), value);
               break;
             }
             default:
-              state.scope.context.locals.set(
+              state.scope.setLocal(
                 state.varname.asString(),
                 new TupleValue([new StringValue(key), value])
               );

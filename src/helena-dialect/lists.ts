@@ -14,7 +14,7 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Process, Scope, ScopeContext } from "./core";
+import { Process, Scope } from "./core";
 import { EnsembleValueCommand } from "./ensembles";
 
 class ListCommand implements Command {
@@ -155,8 +155,7 @@ class ListForeachCommand implements Command {
     const body = args[3];
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
     const program = scope.compile((body as ScriptValue).script);
-    const locals: Map<string, Value> = new Map();
-    const subscope = new Scope(scope, new ScopeContext(scope.context, locals));
+    const subscope = new Scope(scope, true);
     return this.run({
       varname,
       it: values.values(),
@@ -178,7 +177,7 @@ class ListForeachCommand implements Command {
         case "beforeBody": {
           const { value, done } = state.it.next();
           if (done) return state.lastResult;
-          state.scope.context.locals.set(state.varname.asString(), value);
+          state.scope.setLocal(state.varname.asString(), value);
           state.process = state.scope.prepareProcess(state.program);
           state.step = "inBody";
           break;
