@@ -1086,7 +1086,7 @@ describe("Helena control flow commands", () => {
           execute('tuple (error "cannot get \\"var\\": no such variable")')
         );
         expect(execute("catch {cmd a b}")).to.eql(
-          execute('tuple (error "cannot resolve command cmd")')
+          execute('tuple (error "cannot resolve command \\"cmd\\"")')
         );
       });
     });

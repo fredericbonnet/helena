@@ -787,7 +787,7 @@ export class Executor {
               const cmdname = args.values[0];
               const command = this.resolveCommand(cmdname);
               if (!command)
-                return ERROR(`cannot resolve command ${cmdname.asString()}`);
+                return ERROR(`cannot resolve command "${cmdname.asString()}"`);
               state.command = command;
               state.result = state.command.execute(args.values, this.context);
               if (state.result.code != ResultCode.OK) return state.result;
@@ -1089,7 +1089,7 @@ export class Translator {
               const cmdname = args.values[0];
               const command = resolver.resolveCommand(cmdname);
               if (!command)
-              return ERROR(\`cannot resolve command \${cmdname.asString()}\`);
+              return ERROR(\`cannot resolve command "\${cmdname.asString()}"\`);
               state.command = command;
               state.result = state.command.execute(args.values, context);
               if (state.result.code != ResultCode.OK) return state.result;
