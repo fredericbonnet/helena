@@ -196,7 +196,7 @@ export class Scope {
     if (NumberValue.isNumber(value)) return numberCmd;
     return this.resolveNamedCommand(value.asString());
   }
-  private resolveNamedCommand(name: string): Command {
+  resolveNamedCommand(name: string): Command {
     let context = this.context;
     while (context) {
       const command = context.commands.get(name);
