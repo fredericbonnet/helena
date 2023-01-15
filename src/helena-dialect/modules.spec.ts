@@ -170,7 +170,7 @@ describe("Helena modules", () => {
         });
       });
       describe("import", () => {
-        it("should declare exported commands in the calling scope", () => {
+        it("should declare imported commands in the calling scope", () => {
           evaluate(`module mod {macro cmd {} {idem value}; export cmd}`);
           evaluate("mod import cmd");
           expect(evaluate("cmd")).to.eql(new StringValue("value"));
@@ -216,7 +216,6 @@ describe("Helena modules", () => {
           );
           evaluate("mod import redefine; redefine");
           expect(evaluate("cmd")).to.eql(new StringValue("val1"));
-          evaluate("mod import cmd");
           expect(evaluate("mod import cmd; cmd")).to.eql(
             new StringValue("val2")
           );

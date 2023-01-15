@@ -60,6 +60,14 @@ describe("Helena procedures", () => {
         expect(rootScope.context.variables.has("var")).to.be.false;
         expect(rootScope.context.commands.has("cmd2")).to.be.false;
       });
+      it("should evaluate from their parent scope", () => {
+        evaluate("closure cls {} {set var val}");
+        evaluate("proc cmd {} {cls}");
+        expect(
+          evaluate("[scope {closure cls {} {set var val2}}] eval {cmd}")
+        ).to.eql(new StringValue("val"));
+        expect(evaluate("get var")).to.eql(new StringValue("val"));
+      });
       it("should access external commands", () => {
         evaluate("proc cmd {} {idem val}");
         expect(evaluate("cmd")).to.eql(new StringValue("val"));

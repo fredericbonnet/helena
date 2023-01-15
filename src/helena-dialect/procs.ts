@@ -8,17 +8,20 @@ import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, Process } from "./core";
 
 class ProcValue extends CommandValue {
+  readonly scope: Scope;
   readonly argspec: ArgspecValue;
   readonly body: ScriptValue;
   readonly program: Program;
   readonly proc: Command;
   constructor(
     command: Command,
+    scope: Scope,
     argspec: ArgspecValue,
     body: ScriptValue,
     program: Program
   ) {
     super(command);
+    this.scope = scope;
     this.argspec = argspec;
     this.body = body;
     this.program = program;
@@ -27,17 +30,22 @@ class ProcValue extends CommandValue {
 }
 class ProcValueCommand implements Command {
   readonly value: ProcValue;
-  constructor(argspec: ArgspecValue, body: ScriptValue, program: Program) {
-    this.value = new ProcValue(this, argspec, body, program);
+  constructor(
+    scope: Scope,
+    argspec: ArgspecValue,
+    body: ScriptValue,
+    program: Program
+  ) {
+    this.value = new ProcValue(this, scope, argspec, body, program);
   }
 
-  execute(args: Value[], scope: Scope): Result {
+  execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.value);
     const method = args[1];
     switch (method.asString()) {
       case "call": {
         const cmdline = [this.value, ...args.slice(2)];
-        return this.value.proc.execute(cmdline, scope);
+        return this.value.proc.execute(cmdline);
       }
       case "argspec":
         if (args.length != 2) return ARITY_ERROR("proc argspec");
@@ -46,8 +54,8 @@ class ProcValueCommand implements Command {
         return ERROR(`invalid method name "${method.asString()}"`);
     }
   }
-  resume(result: Result, scope: Scope): Result {
-    return this.value.proc.resume(result, scope);
+  resume(result: Result): Result {
+    return this.value.proc.resume(result);
   }
 }
 
@@ -61,16 +69,21 @@ class ProcCommand implements Command {
     this.value = value;
   }
 
-  execute(args: Value[], scope: Scope): Result {
+  execute(args: Value[]): Result {
     if (!this.value.argspec.checkArity(args, 1)) {
       return ARITY_ERROR(`${args[0].asString()} ${this.value.argspec.help()}`);
     }
-    const subscope = new Scope(scope);
+    const subscope = new Scope(this.value.scope);
     const setarg = (name, value) => {
       subscope.setVariable(name, value);
       return OK(value);
     };
-    const result = this.value.argspec.applyArguments(scope, args, 1, setarg);
+    const result = this.value.argspec.applyArguments(
+      this.value.scope,
+      args,
+      1,
+      setarg
+    );
     if (result.code != ResultCode.OK) return result;
     const process = subscope.prepareProcess(this.value.program);
     return this.run({ scope: subscope, process });
@@ -114,7 +127,12 @@ export const procCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
     const program = scope.compile((body as ScriptValue).script);
-    const command = new ProcValueCommand(argspec, body as ScriptValue, program);
+    const command = new ProcValueCommand(
+      scope,
+      argspec,
+      body as ScriptValue,
+      program
+    );
     if (name) {
       scope.registerCommand(name.asString(), command.value.proc);
     }
