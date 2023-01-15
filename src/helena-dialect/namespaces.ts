@@ -1,7 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Result, OK, ERROR, ResultCode, YIELD } from "../core/results";
 import { Command } from "../core/command";
-import { Value, ScriptValue, ValueType, TupleValue } from "../core/values";
+import { Value, ScriptValue, ValueType, TupleValue, NIL } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { CommandValue, DeferredValue, Process, Scope } from "./core";
 
@@ -24,7 +24,7 @@ export class NamespaceValueCommand implements Command {
     this.value = new NamespaceValue(this, scope);
   }
 
-  execute(args: Value[]): Result {
+  execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this.value);
     const method = args[1];
     switch (method.asString()) {
@@ -42,6 +42,14 @@ export class NamespaceValueCommand implements Command {
         return YIELD(
           new DeferredValue(new TupleValue(cmdline), this.value.scope)
         );
+      }
+      case "import": {
+        if (args.length != 3) return ARITY_ERROR("namespace import name");
+        const name = args[2].asString();
+        const command = this.value.scope.resolveNamedCommand(name);
+        if (!command) return ERROR(`cannot resolve imported command "${name}"`);
+        scope.registerCommand(name, command);
+        return OK(NIL);
       }
       default:
         return ERROR(`invalid method name "${method.asString()}"`);

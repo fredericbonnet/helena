@@ -9,7 +9,7 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { StringValue } from "../core/values";
+import { NIL, StringValue } from "../core/values";
 import { CommandValue, Scope, Variable } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -469,6 +469,69 @@ describe("Helena namespaces", () => {
           specify("out-of-scope command", () => {
             expect(execute("macro cmd {} {}; [namespace {}] call cmd")).to.eql(
               ERROR('invalid command name "cmd"')
+            );
+          });
+        });
+      });
+      describe("import", () => {
+        it("should declare imported commands in the calling scope", () => {
+          evaluate(`namespace ns {macro cmd {} {idem value}}`);
+          evaluate("[ns] import cmd");
+          expect(evaluate("cmd")).to.eql(new StringValue("value"));
+        });
+        it("should return nil", () => {
+          evaluate(`namespace ns {macro cmd {} {idem value}}`);
+          expect(execute("[ns] import cmd")).to.eql(OK(NIL));
+        });
+        it("should replace existing commands", () => {
+          evaluate("closure cmd {} {idem val1} ");
+          expect(evaluate("cmd")).to.eql(new StringValue("val1"));
+          evaluate(`namespace ns {macro cmd {} {idem val2}}`);
+          evaluate("[ns] import cmd");
+          expect(evaluate("cmd")).to.eql(new StringValue("val2"));
+        });
+        it("should evaluate macros in the caller scope", () => {
+          evaluate(`namespace ns {macro cmd {} {set var val}}`);
+          evaluate("[ns] import cmd");
+          evaluate("cmd");
+          expect(evaluate("get var")).to.eql(new StringValue("val"));
+        });
+        it("should evaluate closures in their scope", () => {
+          evaluate(`namespace ns {set var val; closure cmd {} {get var}}`);
+          evaluate("[ns] import cmd");
+          expect(evaluate("cmd")).to.eql(new StringValue("val"));
+          expect(execute("get var").code).to.eql(ResultCode.ERROR);
+        });
+        it("should resolve imported commands at call time", () => {
+          evaluate(`
+            namespace ns {
+              closure cmd {} {idem val1}
+              closure redefine {} {
+                closure cmd {} {idem val2}
+              }
+            }
+          `);
+          expect(evaluate("[ns] import cmd; cmd")).to.eql(
+            new StringValue("val1")
+          );
+          evaluate("ns redefine");
+          expect(evaluate("cmd")).to.eql(new StringValue("val1"));
+          expect(evaluate("[ns] import cmd; cmd")).to.eql(
+            new StringValue("val2")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("[namespace {}] import")).to.eql(
+              ERROR('wrong # args: should be "namespace import name"')
+            );
+            expect(execute("[namespace {}] import a b")).to.eql(
+              ERROR('wrong # args: should be "namespace import name"')
+            );
+          });
+          specify("unresolved command", () => {
+            expect(execute("[namespace {}] import a")).to.eql(
+              ERROR('cannot resolve imported command "a"')
             );
           });
         });
