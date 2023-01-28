@@ -491,7 +491,7 @@ class CatchCommand implements Command {
           state.result = state.process.run();
           if (state.result.code == ResultCode.YIELD)
             return YIELD(state.result.value, state);
-          if (state.result.code == passData) {
+          if (state.result.code == passResultCode) {
             state.result = state.bodyResult;
             if (state.result.code == ResultCode.YIELD) {
               state.process = state.bodyProcess;
@@ -652,11 +652,11 @@ class CatchCommand implements Command {
 }
 const catchCmd = new CatchCommand();
 
-const passData: CustomResultCode = { name: "pass" };
+const passResultCode: CustomResultCode = { name: "pass" };
 const passCmd: Command = {
   execute(args) {
     if (args.length != 1) return ARITY_ERROR("pass");
-    return CUSTOM_RESULT(passData);
+    return CUSTOM_RESULT(passResultCode);
   },
 };
 

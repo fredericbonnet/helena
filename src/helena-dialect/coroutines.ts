@@ -1,5 +1,11 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { ERROR, OK, Result, ResultCode } from "../core/results";
+import {
+  CustomResultCode,
+  ERROR,
+  OK,
+  Result,
+  ResultCode,
+} from "../core/results";
 import { Command } from "../core/command";
 import { Value, ScriptValue, FALSE, TRUE, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
@@ -70,12 +76,14 @@ class CoroutineCommand implements Command {
         return OK(result.value);
       case ResultCode.YIELD:
         return OK(result.value);
+      case ResultCode.ERROR:
+        return result;
       case ResultCode.BREAK:
         return ERROR("unexpected break");
       case ResultCode.CONTINUE:
         return ERROR("unexpected continue");
       default:
-        return result;
+        return ERROR("unexpected " + (result.code as CustomResultCode).name);
     }
   }
 }

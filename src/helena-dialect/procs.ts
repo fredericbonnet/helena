@@ -1,5 +1,12 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Result, ResultCode, YIELD, OK, ERROR } from "../core/results";
+import {
+  Result,
+  ResultCode,
+  YIELD,
+  OK,
+  ERROR,
+  CustomResultCode,
+} from "../core/results";
 import { Command } from "../core/command";
 import { Program } from "../core/compiler";
 import { ScriptValue, Value, ValueType } from "../core/values";
@@ -97,14 +104,19 @@ class ProcCommand implements Command {
     const result = state.process.run();
     if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
     switch (result.code) {
+      case ResultCode.OK:
+        return result;
       case ResultCode.RETURN:
         return OK(result.value);
+      case ResultCode.YIELD:
+      case ResultCode.ERROR:
+        return result;
       case ResultCode.BREAK:
         return ERROR("unexpected break");
       case ResultCode.CONTINUE:
         return ERROR("unexpected continue");
       default:
-        return result;
+        return ERROR("unexpected " + (result.code as CustomResultCode).name);
     }
   }
 }

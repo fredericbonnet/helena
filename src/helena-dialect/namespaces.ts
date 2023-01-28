@@ -1,5 +1,12 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Result, OK, ERROR, ResultCode, YIELD } from "../core/results";
+import {
+  Result,
+  OK,
+  ERROR,
+  ResultCode,
+  YIELD,
+  CustomResultCode,
+} from "../core/results";
 import { Command } from "../core/command";
 import { Value, ScriptValue, ValueType, TupleValue, NIL } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
@@ -122,11 +129,13 @@ const executeNamespaceBody = (state: NamespaceBodyState): Result => {
     }
     case ResultCode.YIELD:
       return YIELD(result.value, state);
+    case ResultCode.ERROR:
+      return result;
     case ResultCode.BREAK:
       return ERROR("unexpected break");
     case ResultCode.CONTINUE:
       return ERROR("unexpected continue");
     default:
-      return result;
+      return ERROR("unexpected " + (result.code as CustomResultCode).name);
   }
 };
