@@ -21,6 +21,7 @@ import { Script } from "../core/syntax";
 import {
   Value,
   ValueType,
+  CustomValueType,
   ScriptValue,
   NumberValue,
   TupleValue,
@@ -34,8 +35,9 @@ export class Variable {
     this.value = value;
   }
 }
+const commandValueType: CustomValueType = { name: "command" };
 export class CommandValue implements Value {
-  readonly type: ValueType = ValueType.CUSTOM;
+  readonly type = commandValueType;
   readonly command: Command;
 
   constructor(command: Command) {
@@ -46,8 +48,9 @@ export class CommandValue implements Value {
   }
 }
 
+const deferredValueType: CustomValueType = { name: "deferred" };
 export class DeferredValue implements Value {
-  type = ValueType.CUSTOM;
+  type = deferredValueType;
   value: Value;
   scope: Scope;
   constructor(value: Value, scope: Scope) {

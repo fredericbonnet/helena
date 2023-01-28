@@ -6,17 +6,10 @@ import {
   KeyedSelector,
   Selector,
 } from "./selectors";
-import {
-  NIL,
-  Value,
-  ValueType,
-  StringValue,
-  TupleValue,
-  IntegerValue,
-} from "./values";
+import { NIL, Value, StringValue, TupleValue, IntegerValue } from "./values";
 
 class MockValue implements Value {
-  type = ValueType.CUSTOM;
+  type = { name: "mock" };
   selectedIndex: Value;
   selectedKeys: Value[] = [];
   selectedRules: Value[];
@@ -38,7 +31,7 @@ class MockValue implements Value {
 }
 
 class UnselectableValue implements Value {
-  type = ValueType.CUSTOM;
+  type = { name: "unselectable" };
   asString(): string {
     throw new Error("Method not implemented.");
   }

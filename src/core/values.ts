@@ -11,9 +11,7 @@ import {
 } from "./selectors";
 import { ERROR, OK, ResultCode, Result } from "./results";
 
-/**
- * Helena value types
- */
+/** Helena standard value types */
 export enum ValueType {
   NIL,
   BOOLEAN,
@@ -25,7 +23,12 @@ export enum ValueType {
   TUPLE,
   SCRIPT,
   QUALIFIED,
-  CUSTOM,
+}
+
+/** Helena custom value types */
+export interface CustomValueType {
+  /** Custom value name */
+  readonly name: string;
 }
 
 /**
@@ -33,7 +36,7 @@ export enum ValueType {
  */
 export interface Value {
   /** Type identifier */
-  type: ValueType;
+  readonly type: ValueType | CustomValueType;
 
   /**
    * Convert to string
