@@ -10,18 +10,41 @@ import {
 import { Command } from "../core/command";
 import { Value, ScriptValue, ValueType, TupleValue } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { CommandValue, DeferredValue, Process, Scope } from "./core";
+import {
+  CommandValue,
+  commandValueType,
+  DeferredValue,
+  Process,
+  Scope,
+} from "./core";
 import { ArgspecValue } from "./argspecs";
 
-class EnsembleValue extends CommandValue {
+export class EnsembleCommandValue implements CommandValue {
+  readonly type = commandValueType;
+  readonly command: Command;
+
+  constructor(command: Command) {
+    this.command = command;
+  }
+  asString(): string {
+    throw new Error("Method not implemented.");
+  }
+}
+
+class EnsembleValue implements CommandValue {
+  readonly type = commandValueType;
+  readonly command: Command;
   readonly scope: Scope;
   readonly argspec: ArgspecValue;
   readonly ensemble: Command;
   constructor(command: Command, scope: Scope, argspec: ArgspecValue) {
-    super(command);
+    this.command = command;
     this.scope = scope;
     this.argspec = argspec;
     this.ensemble = new EnsembleCommand(this);
+  }
+  asString(): string {
+    throw new Error("Method not implemented.");
   }
 }
 export class EnsembleValueCommand implements Command {
@@ -45,7 +68,7 @@ export class EnsembleValueCommand implements Command {
         if (!this.value.scope.hasLocalCommand(subcommand.asString()))
           return ERROR(`invalid command name "${subcommand.asString()}"`);
         const command = this.value.scope.resolveCommand(subcommand);
-        const cmdline = [new CommandValue(command), ...args.slice(3)];
+        const cmdline = [new EnsembleCommandValue(command), ...args.slice(3)];
         return YIELD(new DeferredValue(new TupleValue(cmdline), scope));
       }
       case "argspec":
@@ -78,7 +101,7 @@ class EnsembleCommand implements Command {
       return ERROR(`invalid subcommand name "${subcommand.asString()}"`);
     const command = this.value.scope.resolveCommand(subcommand);
     const cmdline = [
-      new CommandValue(command),
+      new EnsembleCommandValue(command),
       ...args.slice(1, minArgs),
       ...args.slice(minArgs + 1),
     ];

@@ -16,7 +16,7 @@ import {
   StringValue,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { CommandValue, Scope } from "./core";
+import { CommandValue, commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
 type Exports = Map<string, Value>;
@@ -34,13 +34,18 @@ class ExportCommand implements Command {
   }
 }
 
-class ModuleValue extends CommandValue {
+class ModuleValue implements CommandValue {
+  readonly type = commandValueType;
+  readonly command: Command;
   readonly scope: Scope;
   readonly exports: Exports;
   constructor(command: Command, scope: Scope, exports: Exports) {
-    super(command);
+    this.command = command;
     this.scope = scope;
     this.exports = exports;
+  }
+  asString(): string {
+    throw new Error("Method not implemented.");
   }
 }
 class ModuleCommand implements Command {

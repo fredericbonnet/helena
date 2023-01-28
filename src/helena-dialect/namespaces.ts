@@ -10,17 +10,28 @@ import {
 import { Command } from "../core/command";
 import { Value, ScriptValue, ValueType, TupleValue, NIL } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { CommandValue, DeferredValue, Process, Scope } from "./core";
+import {
+  CommandValue,
+  commandValueType,
+  DeferredValue,
+  Process,
+  Scope,
+} from "./core";
 
-class NamespaceValue extends CommandValue {
+class NamespaceValue implements CommandValue {
+  readonly type = commandValueType;
+  readonly command: Command;
   readonly scope: Scope;
   readonly namespace: Command;
   constructor(command: Command, scope: Scope) {
-    super(command);
+    this.command = command;
     this.scope = scope;
     this.namespace = new NamespaceCommand(this);
   }
 
+  asString(): string {
+    throw new Error("Method not implemented.");
+  }
   selectKey(key: Value): Result {
     return this.scope.getVariable(key.asString());
   }

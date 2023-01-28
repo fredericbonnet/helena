@@ -10,7 +10,7 @@ import {
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { NIL, StringValue } from "../core/values";
-import { CommandValue, Scope, Variable } from "./core";
+import { commandValueType, Scope, Variable } from "./core";
 import { initCommands } from "./helena-dialect";
 
 describe("Helena macros", () => {
@@ -42,8 +42,8 @@ describe("Helena macros", () => {
       expect(execute("macro cmd {} {}").code).to.eql(ResultCode.OK);
     });
     it("should return a command value", () => {
-      expect(evaluate("macro {} {}")).to.be.instanceof(CommandValue);
-      expect(evaluate("macro cmd {} {}")).to.be.instanceof(CommandValue);
+      expect(evaluate("macro {} {}").type).to.eql(commandValueType);
+      expect(evaluate("macro cmd {} {}").type).to.eql(commandValueType);
     });
     specify("command value should return self", () => {
       const value = evaluate("set cmd [macro {} {}]");

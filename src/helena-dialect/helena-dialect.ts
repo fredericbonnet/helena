@@ -21,7 +21,7 @@ import { registerScriptCommands } from "./scripts";
 import { ensembleCmd } from "./ensembles";
 import { moduleCmd } from "./modules";
 
-export { Scope, Variable, CommandValue } from "./core";
+export { Scope } from "./core";
 
 export function initCommands(scope: Scope) {
   registerBasicCommands(scope);

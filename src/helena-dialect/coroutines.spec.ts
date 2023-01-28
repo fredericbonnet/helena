@@ -3,7 +3,7 @@ import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { FALSE, StringValue, TRUE } from "../core/values";
-import { CommandValue, Scope } from "./core";
+import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
 describe("Helena coroutines", () => {
@@ -27,7 +27,7 @@ describe("Helena coroutines", () => {
 
   describe("coroutine", () => {
     it("should return a command value", () => {
-      expect(evaluate("coroutine {}")).to.be.instanceof(CommandValue);
+      expect(evaluate("coroutine {}").type).to.eql(commandValueType);
     });
     specify("command value should return self", () => {
       const value = evaluate("set cr [coroutine {}]");

@@ -9,18 +9,23 @@ import {
 import { Command } from "../core/command";
 import { Value, ScriptValue, FALSE, TRUE, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { CommandValue, Process, Scope } from "./core";
+import { CommandValue, commandValueType, Process, Scope } from "./core";
 
-class CoroutineValue extends CommandValue {
+class CoroutineValue implements CommandValue {
+  readonly type = commandValueType;
+  readonly command: Command;
   readonly scope: Scope;
   readonly body: ScriptValue;
   state: "inactive" | "active" | "done";
   process: Process;
   constructor(command: Command, scope: Scope, body: ScriptValue) {
-    super(command);
+    this.command = command;
     this.scope = scope;
     this.body = body;
     this.state = "inactive";
+  }
+  asString(): string {
+    throw new Error("Method not implemented.");
   }
 }
 class CoroutineCommand implements Command {

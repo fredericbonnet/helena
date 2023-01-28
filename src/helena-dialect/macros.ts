@@ -4,17 +4,22 @@ import { Command } from "../core/command";
 import { ScriptValue, Value, ValueType } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, CommandValue, DeferredValue } from "./core";
+import { Scope, CommandValue, DeferredValue, commandValueType } from "./core";
 
-class MacroValue extends CommandValue {
+class MacroValue implements CommandValue {
+  readonly type = commandValueType;
+  readonly command: Command;
   readonly argspec: ArgspecValue;
   readonly body: ScriptValue;
   readonly macro: Command;
   constructor(command: Command, argspec: ArgspecValue, body: ScriptValue) {
-    super(command);
+    this.command = command;
     this.argspec = argspec;
     this.body = body;
     this.macro = new MacroCommand(this);
+  }
+  asString(): string {
+    throw new Error("Method not implemented.");
   }
 }
 class MacroValueCommand implements Command {

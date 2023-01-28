@@ -10,13 +10,24 @@ import {
 import { Command } from "../core/command";
 import { Value, ScriptValue, ValueType, TupleValue } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { CommandValue, DeferredValue, Process, Scope } from "./core";
+import {
+  CommandValue,
+  commandValueType,
+  DeferredValue,
+  Process,
+  Scope,
+} from "./core";
 
-class ScopeValue extends CommandValue {
+class ScopeValue implements CommandValue {
+  readonly type = commandValueType;
+  readonly command: Command;
   readonly scope: Scope;
   constructor(command: Command, scope: Scope) {
-    super(command);
+    this.command = command;
     this.scope = scope;
+  }
+  asString(): string {
+    throw new Error("Method not implemented.");
   }
 }
 class ScopeCommand implements Command {

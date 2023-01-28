@@ -12,9 +12,11 @@ import { Program } from "../core/compiler";
 import { ScriptValue, Value, ValueType } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, CommandValue, Process } from "./core";
+import { Scope, CommandValue, commandValueType, Process } from "./core";
 
-class ProcValue extends CommandValue {
+class ProcValue implements CommandValue {
+  readonly type = commandValueType;
+  readonly command: Command;
   readonly scope: Scope;
   readonly argspec: ArgspecValue;
   readonly body: ScriptValue;
@@ -27,12 +29,15 @@ class ProcValue extends CommandValue {
     body: ScriptValue,
     program: Program
   ) {
-    super(command);
+    this.command = command;
     this.scope = scope;
     this.argspec = argspec;
     this.body = body;
     this.program = program;
     this.proc = new ProcCommand(this);
+  }
+  asString(): string {
+    throw new Error("Method not implemented.");
   }
 }
 class ProcValueCommand implements Command {

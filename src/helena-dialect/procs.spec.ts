@@ -3,7 +3,7 @@ import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { NIL, StringValue } from "../core/values";
-import { CommandValue, Scope, Variable } from "./core";
+import { commandValueType, Scope, Variable } from "./core";
 import { initCommands } from "./helena-dialect";
 
 describe("Helena procedures", () => {
@@ -35,8 +35,8 @@ describe("Helena procedures", () => {
       expect(execute("proc cmd {} {}").code).to.eql(ResultCode.OK);
     });
     it("should return a command value", () => {
-      expect(evaluate("proc {} {}")).to.be.instanceof(CommandValue);
-      expect(evaluate("proc cmd {} {}")).to.be.instanceof(CommandValue);
+      expect(evaluate("proc {} {}").type).to.eql(commandValueType);
+      expect(evaluate("proc cmd {} {}").type).to.eql(commandValueType);
     });
     specify("command value should return self", () => {
       const value = evaluate("set cmd [proc {} {}]");

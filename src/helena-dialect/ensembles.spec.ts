@@ -10,7 +10,7 @@ import {
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { StringValue, TupleValue } from "../core/values";
-import { CommandValue, Scope, Variable } from "./core";
+import { commandValueType, Scope, Variable } from "./core";
 import { initCommands } from "./helena-dialect";
 
 describe("Helena ensembles", () => {
@@ -42,8 +42,8 @@ describe("Helena ensembles", () => {
       expect(execute("ensemble cmd {} {}").code).to.eql(ResultCode.OK);
     });
     it("should return a command value", () => {
-      expect(evaluate("ensemble {} {}")).to.be.instanceof(CommandValue);
-      expect(evaluate("ensemble cmd {} {}")).to.be.instanceof(CommandValue);
+      expect(evaluate("ensemble {} {}").type).to.eql(commandValueType);
+      expect(evaluate("ensemble cmd {} {}").type).to.eql(commandValueType);
     });
     specify("command should return self", () => {
       const value = evaluate("ensemble cmd {} {}");
@@ -165,7 +165,7 @@ describe("Helena ensembles", () => {
           process.yieldBack(new StringValue("val3"));
           result = process.run();
           expect(result.code).to.eql(ResultCode.OK);
-          expect(result.value).to.be.instanceof(CommandValue);
+          expect(result.value.type).to.eql(commandValueType);
           expect(evaluate("get var")).to.eql(new StringValue("_val3_"));
         });
         it("should delay the definition of ensemble command until resumed", () => {

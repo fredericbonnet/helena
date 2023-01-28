@@ -3,7 +3,7 @@ import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { ListValue, NIL, StringValue } from "../core/values";
-import { CommandValue, Scope, Variable } from "./core";
+import { commandValueType, Scope, Variable } from "./core";
 import { initCommands } from "./helena-dialect";
 
 describe("Helena modules", () => {
@@ -35,8 +35,8 @@ describe("Helena modules", () => {
       expect(execute("module cmd {}").code).to.eql(ResultCode.OK);
     });
     it("should return a command value", () => {
-      expect(evaluate("module {}")).to.be.instanceof(CommandValue);
-      expect(evaluate("module cmd  {}")).to.be.instanceof(CommandValue);
+      expect(evaluate("module {}").type).to.eql(commandValueType);
+      expect(evaluate("module cmd  {}").type).to.eql(commandValueType);
     });
     specify("command should return self", () => {
       const value = evaluate("module cmd {}");

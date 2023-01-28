@@ -3,15 +3,20 @@ import { Result, OK, ERROR } from "../core/results";
 import { Command } from "../core/command";
 import { Value } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, CommandValue, expandPrefixCmd } from "./core";
+import { Scope, CommandValue, commandValueType, expandPrefixCmd } from "./core";
 
-class AliasValue extends CommandValue {
+class AliasValue implements CommandValue {
+  readonly type = commandValueType;
+  readonly command: Command;
   readonly cmd: Value;
   readonly alias: Command;
   constructor(command: Command, cmd: Value) {
-    super(command);
+    this.command = command;
     this.cmd = cmd;
     this.alias = new AliasCommand(this);
+  }
+  asString(): string {
+    throw new Error("Method not implemented.");
   }
 }
 class AliasValueCommand implements Command {

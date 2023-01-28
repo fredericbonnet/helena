@@ -4,9 +4,11 @@ import { Command } from "../core/command";
 import { ScriptValue, Value, ValueType } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, CommandValue, DeferredValue } from "./core";
+import { Scope, CommandValue, DeferredValue, commandValueType } from "./core";
 
-class ClosureValue extends CommandValue {
+class ClosureValue implements CommandValue {
+  readonly type = commandValueType;
+  readonly command: Command;
   readonly scope: Scope;
   readonly argspec: ArgspecValue;
   readonly body: ScriptValue;
@@ -17,11 +19,14 @@ class ClosureValue extends CommandValue {
     argspec: ArgspecValue,
     body: ScriptValue
   ) {
-    super(command);
+    this.command = command;
     this.scope = scope;
     this.argspec = argspec;
     this.body = body;
     this.closure = new ClosureCommand(this);
+  }
+  asString(): string {
+    throw new Error("Method not implemented.");
   }
 }
 class ClosureValueCommand implements Command {

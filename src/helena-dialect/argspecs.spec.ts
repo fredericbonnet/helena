@@ -4,7 +4,7 @@ import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { IntegerValue, TupleValue, NIL, StringValue } from "../core/values";
 import { ArgspecValue } from "./argspecs";
-import { CommandValue, Scope } from "./core";
+import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
 describe("Helena argument handling", () => {
@@ -36,8 +36,8 @@ describe("Helena argument handling", () => {
       expect(execute("argspec cmd {}").code).to.eql(ResultCode.OK);
     });
     it("should return a command value", () => {
-      expect(evaluate("argspec {}")).to.be.instanceof(CommandValue);
-      expect(evaluate("argspec cmd {}")).to.be.instanceof(CommandValue);
+      expect(evaluate("argspec {}").type).to.eql(commandValueType);
+      expect(evaluate("argspec cmd {}").type).to.eql(commandValueType);
     });
     specify("command value should return self", () => {
       const value = evaluate("set cmd [argspec {}]");

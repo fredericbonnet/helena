@@ -10,7 +10,7 @@ import {
   TupleValue,
 } from "../core/values";
 import { Argument, ARITY_ERROR, buildArguments, buildHelp } from "./arguments";
-import { CommandValue, Scope } from "./core";
+import { CommandValue, commandValueType, Scope } from "./core";
 import { valueToArray } from "./lists";
 
 export class Argspec {
@@ -41,11 +41,16 @@ export class Argspec {
   }
 }
 
-export class ArgspecValue extends CommandValue {
+export class ArgspecValue implements CommandValue {
+  readonly type = commandValueType;
+  readonly command: Command;
   readonly argspec: Argspec;
   constructor(command: Command, argspec: Argspec) {
-    super(command);
+    this.command = command;
     this.argspec = argspec;
+  }
+  asString(): string {
+    throw new Error("Method not implemented.");
   }
 
   static fromValue(value: Value): Result<ArgspecValue> {

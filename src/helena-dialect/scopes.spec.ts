@@ -10,7 +10,7 @@ import {
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { StringValue } from "../core/values";
-import { CommandValue, Scope, Variable } from "./core";
+import { commandValueType, Scope, Variable } from "./core";
 import { initCommands } from "./helena-dialect";
 
 describe("Helena scopes", () => {
@@ -42,8 +42,8 @@ describe("Helena scopes", () => {
       expect(execute("scope cmd {}").code).to.eql(ResultCode.OK);
     });
     it("should return a command value", () => {
-      expect(evaluate("scope {}")).to.be.instanceof(CommandValue);
-      expect(evaluate("scope cmd  {}")).to.be.instanceof(CommandValue);
+      expect(evaluate("scope {}").type).to.eql(commandValueType);
+      expect(evaluate("scope cmd  {}").type).to.eql(commandValueType);
     });
     specify("command should return self", () => {
       const value = evaluate("scope cmd {}");
@@ -150,7 +150,7 @@ describe("Helena scopes", () => {
             process.yieldBack(new StringValue("val3"));
             result = process.run();
             expect(result.code).to.eql(ResultCode.OK);
-            expect(result.value).to.be.instanceof(CommandValue);
+            expect(result.value.type).to.eql(commandValueType);
             expect(evaluate("get var")).to.eql(new StringValue("_val3_"));
           });
           it("should delay the definition of scope command until resumed", () => {

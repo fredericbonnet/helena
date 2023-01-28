@@ -35,17 +35,9 @@ export class Variable {
     this.value = value;
   }
 }
-const commandValueType: CustomValueType = { name: "command" };
-export class CommandValue implements Value {
-  readonly type = commandValueType;
+export const commandValueType: CustomValueType = { name: "command" };
+export interface CommandValue extends Value {
   readonly command: Command;
-
-  constructor(command: Command) {
-    this.command = command;
-  }
-  asString(): string {
-    throw new Error("Method not implemented.");
-  }
 }
 
 const deferredValueType: CustomValueType = { name: "deferred" };
@@ -195,7 +187,7 @@ export class Scope {
   }
   resolveCommand(value: Value): Command {
     if (value.type == ValueType.TUPLE) return expandPrefixCmd;
-    if (value instanceof CommandValue) return value.command;
+    if (value.type == commandValueType) return (value as CommandValue).command;
     if (NumberValue.isNumber(value)) return numberCmd;
     return this.resolveNamedCommand(value.asString());
   }
