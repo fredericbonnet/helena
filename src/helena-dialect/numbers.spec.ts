@@ -64,6 +64,52 @@ describe("Helena numbers", () => {
   });
 
   describe("infix operators", () => {
+    describe("arithmetic", () => {
+      specify("+", () => {
+        expect(evaluate("1 + 2")).to.eql(new IntegerValue(3));
+        expect(evaluate("1 + 2 + 3 + 4")).to.eql(new IntegerValue(10));
+      });
+      specify("-", () => {
+        expect(evaluate("1 - 2")).to.eql(new IntegerValue(-1));
+        expect(evaluate("1 - 2 - 3 - 4")).to.eql(new IntegerValue(-8));
+      });
+      specify("*", () => {
+        expect(evaluate("1 * 2")).to.eql(new IntegerValue(2));
+        expect(evaluate("1 * 2 * 3 * 4")).to.eql(new IntegerValue(24));
+      });
+      specify("/", () => {
+        expect(evaluate("1 / 2")).to.eql(new NumberValue(0.5));
+        expect(evaluate("1 / 2 / 4 / 8")).to.eql(new NumberValue(0.015625));
+        expect(evaluate("1 / 0")).to.eql(new NumberValue(Infinity));
+        expect(evaluate("-1 / 0")).to.eql(new NumberValue(-Infinity));
+        expect(evaluate("0 / 0")).to.eql(new NumberValue(NaN));
+      });
+      specify("precedence", () => {
+        expect(evaluate("1 + 2 * 3 * 4 + 5")).to.eql(new IntegerValue(30));
+        expect(evaluate("1 * 2 + 3 * 4 + 5 + 6 * 7")).to.eql(
+          new IntegerValue(61)
+        );
+        expect(evaluate("1 - 2 * 3 * 4 + 5")).to.eql(new IntegerValue(-18));
+        expect(evaluate("1 - 2 * 3 / 4 + 5 * 6 / 10")).to.eql(
+          new NumberValue(2.5)
+        );
+      });
+      describe("exceptions", () => {
+        specify("wrong arity", () => {
+          expect(execute("1 +")).to.eql(
+            ERROR(
+              'wrong # operands: should be "operand ?operator operand? ?...?"'
+            )
+          );
+        });
+        specify("invalid value", () => {
+          expect(execute("1 + a")).to.eql(ERROR('invalid number "a"'));
+        });
+        specify("unknown operator", () => {
+          expect(execute("1 + 2 a 3")).to.eql(ERROR('invalid operator "a"'));
+        });
+      });
+    });
     describe("comparisons", () => {
       describe("==", () => {
         it("should compare two numbers", () => {

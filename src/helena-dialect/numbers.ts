@@ -7,12 +7,16 @@ const OPERATOR_ARITY_ERROR = (operator: string) =>
 
 export const numberCmd = {
   execute(args: Value[]): Result {
-    const result = NumberValue.toNumber(args[0]);
+    const { data: operand1, ...result } = NumberValue.toNumber(args[0]);
     if (result.code != ResultCode.OK) return result;
-    const operand1 = result.data;
     if (args.length == 1) return OK(numberToValue(operand1));
     const method = args[1].asString();
     switch (method) {
+      case "+":
+      case "-":
+      case "*":
+      case "/":
+        return arithmetics(args, operand1);
       case "==":
         return eqOp(args, operand1);
       case "!=":
@@ -32,6 +36,58 @@ export const numberCmd = {
   },
 };
 
+const arithmetics = (args: Value[], operand1: number): Result => {
+  if (args.length % 2 == 0)
+    return ERROR(
+      `wrong # operands: should be "operand ?operator operand? ?...?"`
+    );
+  let total = 0;
+  let last = operand1;
+  for (let i = 1; i < args.length; i += 2) {
+    const operator = args[i].asString();
+    switch (operator) {
+      case "+": {
+        const { data: operator2, ...result } = NumberValue.toNumber(
+          args[i + 1]
+        );
+        if (result.code != ResultCode.OK) return result;
+        total += last;
+        last = operator2;
+        break;
+      }
+      case "-": {
+        const { data: operator2, ...result } = NumberValue.toNumber(
+          args[i + 1]
+        );
+        if (result.code != ResultCode.OK) return result;
+        total += last;
+        last = -operator2;
+        break;
+      }
+      case "*": {
+        const { data: operator2, ...result } = NumberValue.toNumber(
+          args[i + 1]
+        );
+        if (result.code != ResultCode.OK) return result;
+        last *= operator2;
+        break;
+      }
+      case "/": {
+        const { data: operator2, ...result } = NumberValue.toNumber(
+          args[i + 1]
+        );
+        if (result.code != ResultCode.OK) return result;
+        last /= operator2;
+        break;
+      }
+      default:
+        return ERROR(`invalid operator "${operator}"`);
+    }
+  }
+  total += last;
+  return OK(numberToValue(total));
+};
+
 const binaryOp =
   (
     operator: string,
@@ -41,9 +97,8 @@ const binaryOp =
   (args: Value[], operand1: number): Result => {
     if (args.length != 3) return OPERATOR_ARITY_ERROR(operator);
     if (args[0] == args[2]) return OK(whenEqual ? TRUE : FALSE);
-    const result = NumberValue.toNumber(args[2]);
+    const { data: operand2, ...result } = NumberValue.toNumber(args[2]);
     if (result.code != ResultCode.OK) return result;
-    const operand2 = result.data;
     return OK(fn(operand1, operand2) ? TRUE : FALSE);
   };
 const eqOp = binaryOp("==", true, (op1, op2) => op1 == op2);
