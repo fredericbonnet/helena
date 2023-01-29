@@ -5,43 +5,39 @@ import { Value } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, commandValueType, expandPrefixCmd } from "./core";
 
-class AliasValue implements CommandValue {
+class AliasValue implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
   readonly cmd: Value;
   readonly alias: Command;
-  constructor(command: Command, cmd: Value) {
-    this.command = command;
+  constructor(cmd: Value) {
+    this.command = this;
     this.cmd = cmd;
     this.alias = new AliasCommand(this);
   }
+
   asString(): string {
     throw new Error("Method not implemented.");
   }
-}
-class AliasValueCommand implements Command {
-  readonly value: AliasValue;
-  constructor(cmd: Value) {
-    this.value = new AliasValue(this, cmd);
-  }
+
   execute(args: Value[], scope): Result {
-    if (args.length == 1) return OK(this.value);
+    if (args.length == 1) return OK(this);
     const method = args[1];
     switch (method.asString()) {
       case "call": {
-        const cmdline = [this.value, ...args.slice(2)];
-        return this.value.alias.execute(cmdline, scope);
+        const cmdline = [this, ...args.slice(2)];
+        return this.alias.execute(cmdline, scope);
       }
       case "command": {
         if (args.length != 2) return ARITY_ERROR("alias command");
-        return OK(this.value.cmd);
+        return OK(this.cmd);
       }
       default:
         return ERROR(`invalid method name "${method.asString()}"`);
     }
   }
   resume(result: Result, scope: Scope): Result {
-    return this.value.alias.resume(result, scope);
+    return this.alias.resume(result, scope);
   }
 }
 
@@ -65,8 +61,8 @@ export const aliasCmd: Command = {
     if (args.length != 3) return ARITY_ERROR("alias name command");
     const [, name, cmd] = args;
 
-    const command = new AliasValueCommand(cmd);
-    scope.registerCommand(name.asString(), command.value.alias);
-    return OK(command.value);
+    const value = new AliasValue(cmd);
+    scope.registerCommand(name.asString(), value.alias);
+    return OK(value);
   },
 };

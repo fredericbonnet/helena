@@ -18,40 +18,33 @@ import {
   Scope,
 } from "./core";
 
-class ScopeValue implements CommandValue {
+class ScopeValue implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
   readonly scope: Scope;
-  constructor(command: Command, scope: Scope) {
-    this.command = command;
+  constructor(scope: Scope) {
+    this.command = this;
     this.scope = scope;
   }
+
   asString(): string {
     throw new Error("Method not implemented.");
   }
-}
-class ScopeCommand implements Command {
-  readonly value: ScopeValue;
-  constructor(scope: Scope) {
-    this.value = new ScopeValue(this, scope);
-  }
 
   execute(args: Value[]): Result {
-    if (args.length == 1) return OK(this.value);
+    if (args.length == 1) return OK(this);
     const method = args[1];
     switch (method.asString()) {
       case "eval": {
         if (args.length != 3) return ARITY_ERROR("scope eval body");
-        return YIELD(new DeferredValue(args[2], this.value.scope));
+        return YIELD(new DeferredValue(args[2], this.scope));
       }
       case "call": {
         if (args.length < 3) return ARITY_ERROR("scope call cmdname ?arg ...?");
         const cmdline = args.slice(2);
-        if (!this.value.scope.hasLocalCommand(cmdline[0].asString()))
+        if (!this.scope.hasLocalCommand(cmdline[0].asString()))
           return ERROR(`invalid command name "${cmdline[0].asString()}"`);
-        return YIELD(
-          new DeferredValue(new TupleValue(cmdline), this.value.scope)
-        );
+        return YIELD(new DeferredValue(new TupleValue(cmdline), this.scope));
       }
       default:
         return ERROR(`invalid method name "${method.asString()}"`);
@@ -94,13 +87,11 @@ const executeScopeBody = (state: ScopeBodyState): Result => {
   switch (result.code) {
     case ResultCode.OK:
     case ResultCode.RETURN: {
-      const command = new ScopeCommand(state.subscope);
+      const value = new ScopeValue(state.subscope);
       if (state.name) {
-        state.scope.registerCommand(state.name.asString(), command);
+        state.scope.registerCommand(state.name.asString(), value);
       }
-      return OK(
-        result.code == ResultCode.RETURN ? result.value : command.value
-      );
+      return OK(result.code == ResultCode.RETURN ? result.value : value);
     }
     case ResultCode.YIELD:
       return YIELD(result.value, state);

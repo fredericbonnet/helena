@@ -41,14 +41,15 @@ export class Argspec {
   }
 }
 
-export class ArgspecValue implements CommandValue {
+export class ArgspecValue implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
   readonly argspec: Argspec;
-  constructor(command: Command, argspec: Argspec) {
-    this.command = command;
+  constructor(argspec: Argspec) {
+    this.command = this;
     this.argspec = argspec;
   }
+
   asString(): string {
     throw new Error("Method not implemented.");
   }
@@ -58,8 +59,8 @@ export class ArgspecValue implements CommandValue {
     const { data: args, ...result } = buildArguments(value);
     if (result.code != ResultCode.OK) return result;
     const argspec = new Argspec(args);
-    const command = new ArgspecCommand(argspec);
-    return OK(command.value, command.value);
+    const command = new ArgspecValue(argspec);
+    return OK(command, command);
   }
 
   help(): string {
@@ -116,20 +117,14 @@ export class ArgspecValue implements CommandValue {
     }
     return OK(NIL);
   }
-}
-class ArgspecCommand implements Command {
-  readonly value: ArgspecValue;
-  constructor(argspec: Argspec) {
-    this.value = new ArgspecValue(this, argspec);
-  }
 
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this.value);
+    if (args.length == 1) return OK(this);
     const method = args[1];
     switch (method.asString()) {
       case "help": {
         if (args.length != 2) return ARITY_ERROR("argspec help");
-        return OK(this.value.argspec.help);
+        return OK(this.argspec.help);
       }
       case "set": {
         if (args.length != 3) return ARITY_ERROR("argspec set values");
@@ -144,9 +139,9 @@ class ArgspecCommand implements Command {
   }
 
   private setArguments(values: Value[], scope: Scope): Result {
-    if (!this.value.checkArity(values, 0))
-      return ERROR(`wrong # values: should be "${this.value.help()}"`);
-    return this.value.applyArguments(scope, values, 0, (name, value) =>
+    if (!this.checkArity(values, 0))
+      return ERROR(`wrong # values: should be "${this.help()}"`);
+    return this.applyArguments(scope, values, 0, (name, value) =>
       scope.setVariable(name, value)
     );
   }
@@ -169,7 +164,7 @@ export const argspecCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
     if (name) {
-      scope.registerCommand(name.asString(), argspec.command);
+      scope.registerCommand(name.asString(), argspec);
     }
     return OK(argspec);
   },

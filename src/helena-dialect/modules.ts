@@ -34,40 +34,34 @@ class ExportCommand implements Command {
   }
 }
 
-class ModuleValue implements CommandValue {
+class ModuleValue implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
   readonly scope: Scope;
   readonly exports: Exports;
-  constructor(command: Command, scope: Scope, exports: Exports) {
-    this.command = command;
+  constructor(scope: Scope, exports: Exports) {
+    this.command = this;
     this.scope = scope;
     this.exports = exports;
   }
+
   asString(): string {
     throw new Error("Method not implemented.");
   }
-}
-class ModuleCommand implements Command {
-  readonly value: ModuleValue;
-  constructor(scope: Scope, exports: Exports) {
-    this.value = new ModuleValue(this, scope, exports);
-  }
 
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this.value);
+    if (args.length == 1) return OK(this);
     const method = args[1];
     switch (method.asString()) {
       case "exports": {
         if (args.length != 2) return ARITY_ERROR("module exports");
-        return OK(new ListValue([...this.value.exports.values()]));
+        return OK(new ListValue([...this.exports.values()]));
       }
       case "import": {
         if (args.length != 3) return ARITY_ERROR("module import name");
         const name = args[2].asString();
-        if (!this.value.exports.has(name))
-          return ERROR(`unknown export "${name}"`);
-        const command = this.value.scope.resolveNamedCommand(name);
+        if (!this.exports.has(name)) return ERROR(`unknown export "${name}"`);
+        const command = this.scope.resolveNamedCommand(name);
         if (!command) return ERROR(`cannot resolve export "${name}"`);
         scope.registerCommand(name, command);
         return OK(NIL);
@@ -100,11 +94,11 @@ export const moduleCmd: Command = {
     const result = process.run();
     switch (result.code) {
       case ResultCode.OK: {
-        const command = new ModuleCommand(rootScope, exports);
+        const value = new ModuleValue(rootScope, exports);
         if (name) {
-          scope.registerCommand(name.asString(), command);
+          scope.registerCommand(name.asString(), value);
         }
-        return OK(command.value);
+        return OK(value);
       }
       case ResultCode.ERROR:
         return result;

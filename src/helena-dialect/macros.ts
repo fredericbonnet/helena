@@ -6,39 +6,34 @@ import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, DeferredValue, commandValueType } from "./core";
 
-class MacroValue implements CommandValue {
+class MacroValue implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
   readonly argspec: ArgspecValue;
   readonly body: ScriptValue;
   readonly macro: Command;
-  constructor(command: Command, argspec: ArgspecValue, body: ScriptValue) {
-    this.command = command;
+  constructor(argspec: ArgspecValue, body: ScriptValue) {
+    this.command = this;
     this.argspec = argspec;
     this.body = body;
     this.macro = new MacroCommand(this);
   }
+
   asString(): string {
     throw new Error("Method not implemented.");
   }
-}
-class MacroValueCommand implements Command {
-  readonly value: MacroValue;
-  constructor(argspec: ArgspecValue, body: ScriptValue) {
-    this.value = new MacroValue(this, argspec, body);
-  }
 
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this.value);
+    if (args.length == 1) return OK(this);
     const method = args[1];
     switch (method.asString()) {
       case "call": {
-        const cmdline = [this.value, ...args.slice(2)];
-        return this.value.macro.execute(cmdline, scope);
+        const cmdline = [this, ...args.slice(2)];
+        return this.macro.execute(cmdline, scope);
       }
       case "argspec":
         if (args.length != 2) return ARITY_ERROR("macro argspec");
-        return OK(this.value.argspec);
+        return OK(this.argspec);
       default:
         return ERROR(`invalid method name "${method.asString()}"`);
     }
@@ -84,10 +79,10 @@ export const macroCmd: Command = {
     const result = ArgspecValue.fromValue(specs);
     if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
-    const command = new MacroValueCommand(argspec, body as ScriptValue);
+    const value = new MacroValue(argspec, body as ScriptValue);
     if (name) {
-      scope.registerCommand(name.asString(), command.value.macro);
+      scope.registerCommand(name.asString(), value.macro);
     }
-    return OK(command.value);
+    return OK(value);
   },
 };

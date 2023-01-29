@@ -31,49 +31,44 @@ export class EnsembleCommandValue implements CommandValue {
   }
 }
 
-class EnsembleValue implements CommandValue {
+export class EnsembleValue implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
   readonly scope: Scope;
   readonly argspec: ArgspecValue;
   readonly ensemble: Command;
-  constructor(command: Command, scope: Scope, argspec: ArgspecValue) {
-    this.command = command;
+  constructor(scope: Scope, argspec: ArgspecValue) {
+    this.command = this;
     this.scope = scope;
     this.argspec = argspec;
     this.ensemble = new EnsembleCommand(this);
   }
+
   asString(): string {
     throw new Error("Method not implemented.");
   }
-}
-export class EnsembleValueCommand implements Command {
-  readonly value: EnsembleValue;
-  constructor(scope: Scope, argspec: ArgspecValue) {
-    this.value = new EnsembleValue(this, scope, argspec);
-  }
 
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this.value);
+    if (args.length == 1) return OK(this);
     const method = args[1];
     switch (method.asString()) {
       case "eval": {
         if (args.length != 3) return ARITY_ERROR("ensemble eval body");
-        return YIELD(new DeferredValue(args[2], this.value.scope));
+        return YIELD(new DeferredValue(args[2], this.scope));
       }
       case "call": {
         if (args.length < 3)
           return ARITY_ERROR("ensemble call cmdname ?arg ...?");
         const subcommand = args[2];
-        if (!this.value.scope.hasLocalCommand(subcommand.asString()))
+        if (!this.scope.hasLocalCommand(subcommand.asString()))
           return ERROR(`invalid command name "${subcommand.asString()}"`);
-        const command = this.value.scope.resolveCommand(subcommand);
+        const command = this.scope.resolveCommand(subcommand);
         const cmdline = [new EnsembleCommandValue(command), ...args.slice(3)];
         return YIELD(new DeferredValue(new TupleValue(cmdline), scope));
       }
       case "argspec":
         if (args.length != 2) return ARITY_ERROR("ensemble argspec");
-        return OK(this.value.argspec);
+        return OK(this.argspec);
       default:
         return ERROR(`invalid method name "${method.asString()}"`);
     }
@@ -152,16 +147,11 @@ const executeEnsembleBody = (state: EnsembleBodyState): Result => {
   switch (result.code) {
     case ResultCode.OK:
     case ResultCode.RETURN: {
-      const command = new EnsembleValueCommand(state.subscope, state.argspec);
+      const value = new EnsembleValue(state.subscope, state.argspec);
       if (state.name) {
-        state.scope.registerCommand(
-          state.name.asString(),
-          command.value.ensemble
-        );
+        state.scope.registerCommand(state.name.asString(), value.ensemble);
       }
-      return OK(
-        result.code == ResultCode.RETURN ? result.value : command.value
-      );
+      return OK(result.code == ResultCode.RETURN ? result.value : value);
     }
     case ResultCode.YIELD:
       return YIELD(result.value, state);

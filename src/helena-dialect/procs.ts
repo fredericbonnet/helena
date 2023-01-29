@@ -14,7 +14,7 @@ import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, commandValueType, Process } from "./core";
 
-class ProcValue implements CommandValue {
+class ProcValue implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
   readonly scope: Scope;
@@ -23,51 +23,40 @@ class ProcValue implements CommandValue {
   readonly program: Program;
   readonly proc: Command;
   constructor(
-    command: Command,
     scope: Scope,
     argspec: ArgspecValue,
     body: ScriptValue,
     program: Program
   ) {
-    this.command = command;
+    this.command = this;
     this.scope = scope;
     this.argspec = argspec;
     this.body = body;
     this.program = program;
     this.proc = new ProcCommand(this);
   }
+
   asString(): string {
     throw new Error("Method not implemented.");
   }
-}
-class ProcValueCommand implements Command {
-  readonly value: ProcValue;
-  constructor(
-    scope: Scope,
-    argspec: ArgspecValue,
-    body: ScriptValue,
-    program: Program
-  ) {
-    this.value = new ProcValue(this, scope, argspec, body, program);
-  }
 
   execute(args: Value[]): Result {
-    if (args.length == 1) return OK(this.value);
+    if (args.length == 1) return OK(this);
     const method = args[1];
     switch (method.asString()) {
       case "call": {
-        const cmdline = [this.value, ...args.slice(2)];
-        return this.value.proc.execute(cmdline);
+        const cmdline = [this, ...args.slice(2)];
+        return this.proc.execute(cmdline);
       }
       case "argspec":
         if (args.length != 2) return ARITY_ERROR("proc argspec");
-        return OK(this.value.argspec);
+        return OK(this.argspec);
       default:
         return ERROR(`invalid method name "${method.asString()}"`);
     }
   }
   resume(result: Result): Result {
-    return this.value.proc.resume(result);
+    return this.proc.resume(result);
   }
 }
 
@@ -144,15 +133,10 @@ export const procCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
     const program = scope.compile((body as ScriptValue).script);
-    const command = new ProcValueCommand(
-      scope,
-      argspec,
-      body as ScriptValue,
-      program
-    );
+    const value = new ProcValue(scope, argspec, body as ScriptValue, program);
     if (name) {
-      scope.registerCommand(name.asString(), command.value.proc);
+      scope.registerCommand(name.asString(), value.proc);
     }
-    return OK(command.value);
+    return OK(value);
   },
 };

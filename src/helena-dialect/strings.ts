@@ -12,25 +12,25 @@ import {
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { Scope } from "./core";
-import { EnsembleValueCommand } from "./ensembles";
+import { EnsembleValue } from "./ensembles";
 
 const OPERATOR_ARITY_ERROR = (operator: string) =>
   ERROR(`wrong # operands: should be "string value1 ${operator} value2"`);
 
 class StringCommand implements Command {
   scope: Scope;
-  ensemble: EnsembleValueCommand;
+  ensemble: EnsembleValue;
   constructor(scope: Scope) {
     this.scope = new Scope(scope);
     const { data: argspec } = ArgspecValue.fromValue(
       new ListValue([new StringValue("value")])
     );
-    this.ensemble = new EnsembleValueCommand(this.scope, argspec);
+    this.ensemble = new EnsembleValue(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this.ensemble.value);
+    if (args.length == 1) return OK(this.ensemble);
     if (args.length == 2) return StringValue.fromValue(args[1]);
-    return this.ensemble.value.ensemble.execute(args, scope);
+    return this.ensemble.ensemble.execute(args, scope);
   }
 }
 
