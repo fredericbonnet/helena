@@ -74,4 +74,23 @@ export const CUSTOM_RESULT = (
   code,
   value,
 });
+
+export const RESULT_CODE_NAME = (code: ResultCode | CustomResultCode) => {
+  switch (code) {
+    case ResultCode.OK:
+      return "ok";
+    case ResultCode.RETURN:
+      return "return";
+    case ResultCode.YIELD:
+      return "yield";
+    case ResultCode.ERROR:
+      return "break";
+    case ResultCode.BREAK:
+      return "break";
+    case ResultCode.CONTINUE:
+      return "continue";
+    default:
+      return (code as CustomResultCode).name;
+  }
+};
 /* eslint-enable jsdoc/require-jsdoc */

@@ -4,7 +4,7 @@ import {
   OK,
   ERROR,
   ResultCode,
-  CustomResultCode,
+  RESULT_CODE_NAME,
 } from "../core/results";
 import { Command } from "../core/command";
 import {
@@ -102,16 +102,8 @@ export const moduleCmd: Command = {
       }
       case ResultCode.ERROR:
         return result;
-      case ResultCode.RETURN:
-        return ERROR("unexpected return");
-      case ResultCode.YIELD:
-        return ERROR("unexpected yield");
-      case ResultCode.BREAK:
-        return ERROR("unexpected break");
-      case ResultCode.CONTINUE:
-        return ERROR("unexpected continue");
       default:
-        return ERROR("unexpected " + (result.code as CustomResultCode).name);
+        return ERROR("unexpected " + RESULT_CODE_NAME(result.code));
     }
   },
 };

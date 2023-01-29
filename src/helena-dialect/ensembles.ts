@@ -5,7 +5,7 @@ import {
   ERROR,
   ResultCode,
   YIELD,
-  CustomResultCode,
+  RESULT_CODE_NAME,
 } from "../core/results";
 import { Command } from "../core/command";
 import { Value, ScriptValue, ValueType, TupleValue } from "../core/values";
@@ -157,11 +157,7 @@ const executeEnsembleBody = (state: EnsembleBodyState): Result => {
       return YIELD(result.value, state);
     case ResultCode.ERROR:
       return result;
-    case ResultCode.BREAK:
-      return ERROR("unexpected break");
-    case ResultCode.CONTINUE:
-      return ERROR("unexpected continue");
     default:
-      return ERROR("unexpected " + (result.code as CustomResultCode).name);
+      return ERROR("unexpected " + RESULT_CODE_NAME(result.code));
   }
 };

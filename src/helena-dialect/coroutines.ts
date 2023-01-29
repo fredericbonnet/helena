@@ -1,6 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import {
-  CustomResultCode,
+  RESULT_CODE_NAME,
   ERROR,
   OK,
   Result,
@@ -75,12 +75,8 @@ class CoroutineValue implements CommandValue, Command {
         return OK(result.value);
       case ResultCode.ERROR:
         return result;
-      case ResultCode.BREAK:
-        return ERROR("unexpected break");
-      case ResultCode.CONTINUE:
-        return ERROR("unexpected continue");
       default:
-        return ERROR("unexpected " + (result.code as CustomResultCode).name);
+        return ERROR("unexpected " + RESULT_CODE_NAME(result.code));
     }
   }
 }
