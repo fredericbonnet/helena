@@ -10,7 +10,7 @@ import {
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { NIL, StringValue } from "../core/values";
-import { commandValueType, Scope, Variable } from "./core";
+import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
 describe("Helena macros", () => {
@@ -68,7 +68,7 @@ describe("Helena macros", () => {
             new StringValue("val1")
           );
           expect(rootScope.context.variables.get("var")).to.eql(
-            new Variable(new StringValue("val2"))
+            new StringValue("val2")
           );
           expect(rootScope.context.commands.has("cmd2")).to.be.true;
         });

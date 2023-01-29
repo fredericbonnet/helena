@@ -10,7 +10,7 @@ import {
   StringValue,
   TRUE,
 } from "../core/values";
-import { Scope, Variable } from "./core";
+import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
 describe("Helena constants and variables", () => {
@@ -82,10 +82,7 @@ describe("Helena constants and variables", () => {
         );
       });
       specify("existing variable", () => {
-        rootScope.context.variables.set(
-          "var",
-          new Variable(new StringValue("old"))
-        );
+        rootScope.context.variables.set("var", new StringValue("old"));
         expect(execute("let var val")).to.eql(
           ERROR('cannot define constant "var": variable already exists')
         );
@@ -111,17 +108,14 @@ describe("Helena constants and variables", () => {
     it("should set the value of a new variable", () => {
       evaluate("set var val");
       expect(rootScope.context.variables.get("var")).to.eql(
-        new Variable(new StringValue("val"))
+        new StringValue("val")
       );
     });
     it("should overwrite the value of an existing variable", () => {
-      rootScope.context.variables.set(
-        "var",
-        new Variable(new StringValue("old"))
-      );
+      rootScope.context.variables.set("var", new StringValue("old"));
       evaluate("set var val");
       expect(rootScope.context.variables.get("var")).to.eql(
-        new Variable(new StringValue("val"))
+        new StringValue("val")
       );
     });
     it("should return the set value", () => {

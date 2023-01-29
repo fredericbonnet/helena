@@ -29,12 +29,6 @@ import {
 } from "../core/values";
 import { numberCmd } from "./numbers";
 
-export class Variable {
-  value: Value;
-  constructor(value: Value) {
-    this.value = value;
-  }
-}
 export const commandValueType: CustomValueType = { name: "command" };
 export interface CommandValue extends Value {
   readonly command: Command;
@@ -116,7 +110,7 @@ export class Process {
 class ScopeContext {
   readonly parent?: ScopeContext;
   readonly constants: Map<string, Value> = new Map();
-  readonly variables: Map<string, Variable> = new Map();
+  readonly variables: Map<string, Value> = new Map();
   readonly commands: Map<string, Command> = new Map();
   constructor(parent?: ScopeContext) {
     this.parent = parent;
@@ -182,7 +176,7 @@ export class Scope {
     if (this.context.constants.has(name))
       return this.context.constants.get(name);
     if (this.context.variables.has(name))
-      return this.context.variables.get(name).value;
+      return this.context.variables.get(name);
     return null;
   }
   resolveCommand(value: Value): Command {
@@ -264,11 +258,7 @@ export class Scope {
       return ERROR(`cannot redefine constant "${name}"`);
     }
     if (check) return OK(NIL);
-    if (this.context.variables.has(name)) {
-      this.context.variables.get(name).value = value;
-    } else {
-      this.context.variables.set(name, new Variable(value));
-    }
+    this.context.variables.set(name, value);
     return OK(value);
   }
   setVariables(variables: TupleValue, value: Value, check = false): Result {

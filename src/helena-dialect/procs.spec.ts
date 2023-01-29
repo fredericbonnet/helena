@@ -3,7 +3,7 @@ import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { NIL, StringValue } from "../core/values";
-import { commandValueType, Scope, Variable } from "./core";
+import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
 describe("Helena procedures", () => {
@@ -82,7 +82,7 @@ describe("Helena procedures", () => {
         evaluate("proc cmd {} {set var val2; let cst val3}");
         evaluate("cmd");
         expect(rootScope.context.variables.get("var")).to.eql(
-          new Variable(new StringValue("val"))
+          new StringValue("val")
         );
         expect(rootScope.context.constants.has("cst")).to.be.false;
       });

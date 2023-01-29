@@ -10,7 +10,7 @@ import {
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { StringValue, TupleValue } from "../core/values";
-import { commandValueType, Scope, Variable } from "./core";
+import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
 describe("Helena ensembles", () => {
@@ -73,7 +73,7 @@ describe("Helena ensembles", () => {
         evaluate("set var val");
         evaluate("ensemble {} {set var val2; let cst val3}");
         expect(rootScope.context.variables.get("var")).to.eql(
-          new Variable(new StringValue("val"))
+          new StringValue("val")
         );
         expect(rootScope.context.constants.has("cst")).to.be.false;
       });
@@ -81,7 +81,7 @@ describe("Helena ensembles", () => {
         evaluate("set var val");
         evaluate("ensemble cmd {} {set var val2; let cst val3}");
         expect(rootScope.context.variables.get("var")).to.eql(
-          new Variable(new StringValue("val"))
+          new StringValue("val")
         );
         expect(rootScope.context.constants.has("cst")).to.be.false;
         expect(evaluate("[cmd] eval {get var}")).to.eql(
