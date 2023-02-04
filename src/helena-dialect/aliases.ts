@@ -9,7 +9,7 @@ class AliasValue implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
   readonly cmd: Value;
-  readonly alias: Command;
+  readonly alias: AliasCommand;
   constructor(cmd: Value) {
     this.command = this;
     this.cmd = cmd;
@@ -20,14 +20,10 @@ class AliasValue implements CommandValue, Command {
     throw new Error("Method not implemented.");
   }
 
-  execute(args: Value[], scope): Result {
-    if (args.length == 1) return OK(this);
+  execute(args: Value[]): Result {
+    if (args.length == 1) return OK(this.alias);
     const method = args[1];
     switch (method.asString()) {
-      case "call": {
-        const cmdline = [this, ...args.slice(2)];
-        return this.alias.execute(cmdline, scope);
-      }
       case "command": {
         if (args.length != 2) return ARITY_ERROR("alias command");
         return OK(this.cmd);
@@ -41,10 +37,17 @@ class AliasValue implements CommandValue, Command {
   }
 }
 
-class AliasCommand implements Command {
+class AliasCommand implements CommandValue, Command {
+  readonly type = commandValueType;
+  readonly command: Command;
   readonly value: AliasValue;
   constructor(value: AliasValue) {
+    this.command = this;
     this.value = value;
+  }
+
+  asString(): string {
+    throw new Error("Method not implemented.");
   }
 
   execute(args: Value[], scope: Scope): Result {

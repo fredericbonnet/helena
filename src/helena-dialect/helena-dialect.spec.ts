@@ -54,8 +54,8 @@ describe("Helena dialect", () => {
     });
     specify("indirect", () => {
       evaluate("let mac [macro {*args} {+ $*args}]");
-      evaluate("let sum ($mac call)");
-      expect(evaluate("$sum 1 2 3")).to.eql(new IntegerValue(6));
+      evaluate("let sum ([$mac] 1)");
+      expect(evaluate("$sum 2 3")).to.eql(new IntegerValue(6));
     });
     specify("currying", () => {
       evaluate("let double (* 2)");

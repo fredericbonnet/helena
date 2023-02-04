@@ -44,9 +44,12 @@ describe("Helena aliases", () => {
     it("should return a command value", () => {
       expect(evaluate("alias cmd idem").type).to.eql(commandValueType);
     });
-    specify("command value should return self", () => {
+    specify("command value should return alias command", () => {
       const value = evaluate("set cmd [alias cmd set]");
-      expect(evaluate("$cmd")).to.eql(value);
+      expect(evaluate("$cmd").type).to.eql(commandValueType);
+      expect(evaluate("$cmd")).to.not.eql(value);
+      expect(evaluate("[$cmd] var val")).to.eql(new StringValue("val"));
+      expect(evaluate("get var")).to.eql(new StringValue("val"));
     });
     describe("calls", () => {
       it("should call the aliased command", () => {
@@ -194,128 +197,6 @@ describe("Helena aliases", () => {
       });
     });
     describe("methods", () => {
-      describe("call", () => {
-        it("should call aliased command", () => {
-          evaluate("set cmd [alias cmd (idem val)]");
-          expect(evaluate("$cmd call")).to.eql(new StringValue("val"));
-        });
-        it("should pass arguments to aliased command", () => {
-          evaluate("set cmd [alias cmd idem]");
-          expect(evaluate("$cmd call val")).to.eql(new StringValue("val"));
-        });
-        it("should report the original command arity error", () => {
-          evaluate("set cmd [alias cmd idem]");
-          expect(execute("$cmd call")).to.eql(
-            ERROR('wrong # args: should be "idem value"')
-          );
-        });
-        describe("control flow", () => {
-          describe("return", () => {
-            it("should interrupt a macro alias with RETURN code", () => {
-              evaluate("macro mac {} {return val1; idem val2}");
-              evaluate("set cmd [alias cmd mac]");
-              expect(execute("$cmd call")).to.eql(
-                RETURN(new StringValue("val1"))
-              );
-            });
-            it("should interrupt a tuple alias with RETURN code", () => {
-              evaluate("set cmd [alias cmd (return val)]");
-              expect(execute("$cmd call")).to.eql(
-                RETURN(new StringValue("val"))
-              );
-            });
-          });
-          describe("tailcall", () => {
-            it("should interrupt a macro alias with RETURN code", () => {
-              evaluate("macro mac {} {tailcall {idem val1}; idem val2}");
-              evaluate("set cmd [alias cmd mac]");
-              expect(execute("$cmd call")).to.eql(
-                RETURN(new StringValue("val1"))
-              );
-            });
-            it("should interrupt a tuple alias with RETURN code", () => {
-              evaluate("set cmd [alias cmd (tailcall {idem val})]");
-              expect(execute("$cmd call")).to.eql(
-                RETURN(new StringValue("val"))
-              );
-            });
-          });
-          describe("yield", () => {
-            it("should interrupt a macro alias with YIELD code", () => {
-              evaluate("macro mac {} {yield val1; idem val2}");
-              evaluate("set cmd [alias cmd mac]");
-              const result = execute("$cmd call");
-              expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("val1"));
-            });
-            it("should interrupt a tuple alias with YIELD code", () => {
-              evaluate("set cmd [alias cmd (yield val)]");
-              const result = execute("$cmd call");
-              expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("val"));
-            });
-            it("should provide a resumable state for macro alias", () => {
-              evaluate("macro mac {} {idem _[yield val1]_}");
-              evaluate("set cmd [alias cmd mac]");
-              const process = rootScope.prepareScript(parse("$cmd call"));
-
-              let result = process.run();
-              expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("val1"));
-
-              process.yieldBack(new StringValue("val2"));
-              result = process.run();
-              expect(result).to.eql(OK(new StringValue("_val2_")));
-            });
-            it("should provide a resumable state for tuple alias", () => {
-              evaluate("set cmd [alias cmd (yield val1)]");
-              const process = rootScope.prepareScript(parse("$cmd call"));
-
-              let result = process.run();
-              expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("val1"));
-              expect(result.data).to.exist;
-
-              process.yieldBack(new StringValue("val2"));
-              result = process.run();
-              expect(result).to.eql(OK(new StringValue("val2")));
-            });
-          });
-          describe("error", () => {
-            it("should interrupt a macro alias with ERROR code", () => {
-              evaluate("macro mac {} {error msg; idem val}");
-              evaluate("set cmd [alias cmd mac]");
-              expect(execute("$cmd call")).to.eql(ERROR("msg"));
-            });
-            it("should interrupt a tuple alias with ERROR code", () => {
-              evaluate("set cmd [alias cmd (error msg)]");
-              expect(execute("$cmd call")).to.eql(ERROR("msg"));
-            });
-          });
-          describe("break", () => {
-            it("should interrupt a macro alias with BREAK code", () => {
-              evaluate("macro mac {} {break; idem val}");
-              evaluate("set cmd [alias cmd mac]");
-              expect(execute("$cmd call")).to.eql(BREAK());
-            });
-            it("should interrupt a tuple alias with BREAK code", () => {
-              evaluate("set cmd [alias cmd (break)]");
-              expect(execute("$cmd call")).to.eql(BREAK());
-            });
-          });
-          describe("continue", () => {
-            it("should interrupt a macro alias with CONTINUE code", () => {
-              evaluate("macro mac {} {continue; idem val}");
-              evaluate("set cmd [alias cmd mac]");
-              expect(execute("$cmd call")).to.eql(CONTINUE());
-            });
-            it("should interrupt a tuple alias with CONTINUE code", () => {
-              evaluate("set cmd [alias cmd (continue)]");
-              expect(execute("$cmd call")).to.eql(CONTINUE());
-            });
-          });
-        });
-      });
       describe("command", () => {
         it("should return the aliased command", () => {
           evaluate("set cmd [alias cmd (idem val)]");

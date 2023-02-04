@@ -21,7 +21,7 @@ class ProcValue implements CommandValue, Command {
   readonly argspec: ArgspecValue;
   readonly body: ScriptValue;
   readonly program: Program;
-  readonly proc: Command;
+  readonly proc: ProcCommand;
   constructor(
     scope: Scope,
     argspec: ArgspecValue,
@@ -41,13 +41,9 @@ class ProcValue implements CommandValue, Command {
   }
 
   execute(args: Value[]): Result {
-    if (args.length == 1) return OK(this);
+    if (args.length == 1) return OK(this.proc);
     const method = args[1];
     switch (method.asString()) {
-      case "call": {
-        const cmdline = [this, ...args.slice(2)];
-        return this.proc.execute(cmdline);
-      }
       case "argspec":
         if (args.length != 2) return ARITY_ERROR("proc argspec");
         return OK(this.argspec);
@@ -64,10 +60,17 @@ type ProcState = {
   scope: Scope;
   process: Process;
 };
-class ProcCommand implements Command {
+class ProcCommand implements CommandValue, Command {
+  readonly type = commandValueType;
+  readonly command: Command;
   readonly value: ProcValue;
   constructor(value: ProcValue) {
+    this.command = this;
     this.value = value;
+  }
+
+  asString(): string {
+    throw new Error("Method not implemented.");
   }
 
   execute(args: Value[]): Result {

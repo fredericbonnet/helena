@@ -11,7 +11,7 @@ class MacroValue implements CommandValue, Command {
   readonly command: Command;
   readonly argspec: ArgspecValue;
   readonly body: ScriptValue;
-  readonly macro: Command;
+  readonly macro: MacroCommand;
   constructor(argspec: ArgspecValue, body: ScriptValue) {
     this.command = this;
     this.argspec = argspec;
@@ -23,14 +23,10 @@ class MacroValue implements CommandValue, Command {
     throw new Error("Method not implemented.");
   }
 
-  execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this);
+  execute(args: Value[]): Result {
+    if (args.length == 1) return OK(this.macro);
     const method = args[1];
     switch (method.asString()) {
-      case "call": {
-        const cmdline = [this, ...args.slice(2)];
-        return this.macro.execute(cmdline, scope);
-      }
       case "argspec":
         if (args.length != 2) return ARITY_ERROR("macro argspec");
         return OK(this.argspec);
@@ -40,10 +36,17 @@ class MacroValue implements CommandValue, Command {
   }
 }
 
-class MacroCommand implements Command {
+class MacroCommand implements CommandValue, Command {
+  readonly type = commandValueType;
+  readonly command: Command;
   readonly value: MacroValue;
   constructor(value: MacroValue) {
+    this.command = this;
     this.value = value;
+  }
+
+  asString(): string {
+    throw new Error("Method not implemented.");
   }
 
   execute(args: Value[], scope: Scope): Result {

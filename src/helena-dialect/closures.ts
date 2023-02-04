@@ -12,7 +12,7 @@ class ClosureValue implements CommandValue, Command {
   readonly scope: Scope;
   readonly argspec: ArgspecValue;
   readonly body: ScriptValue;
-  readonly closure: Command;
+  readonly closure: ClosureCommand;
   constructor(scope: Scope, argspec: ArgspecValue, body: ScriptValue) {
     this.command = this;
     this.scope = scope;
@@ -26,13 +26,9 @@ class ClosureValue implements CommandValue, Command {
   }
 
   execute(args: Value[]): Result {
-    if (args.length == 1) return OK(this);
+    if (args.length == 1) return OK(this.closure);
     const method = args[1];
     switch (method.asString()) {
-      case "call": {
-        const cmdline = [this, ...args.slice(2)];
-        return this.closure.execute(cmdline);
-      }
       case "argspec":
         if (args.length != 2) return ARITY_ERROR("closure argspec");
         return OK(this.argspec);
@@ -41,10 +37,17 @@ class ClosureValue implements CommandValue, Command {
     }
   }
 }
-class ClosureCommand implements Command {
+class ClosureCommand implements CommandValue, Command {
+  readonly type = commandValueType;
+  readonly command: Command;
   readonly value: ClosureValue;
   constructor(value: ClosureValue) {
+    this.command = this;
     this.value = value;
+  }
+
+  asString(): string {
+    throw new Error("Method not implemented.");
   }
 
   execute(args: Value[]): Result {

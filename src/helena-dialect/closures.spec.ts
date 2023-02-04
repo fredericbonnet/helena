@@ -45,9 +45,11 @@ describe("Helena closures", () => {
       expect(evaluate("closure {} {}").type).to.eql(commandValueType);
       expect(evaluate("closure cmd {} {}").type).to.eql(commandValueType);
     });
-    specify("command value should return self", () => {
-      const value = evaluate("set cmd [closure {} {}]");
-      expect(evaluate("$cmd")).to.eql(value);
+    specify("command value should return closure command", () => {
+      const value = evaluate("set cmd [closure {val} {idem _${val}_}]");
+      expect(evaluate("$cmd").type).to.eql(commandValueType);
+      expect(evaluate("$cmd")).to.not.eql(value);
+      expect(evaluate("[$cmd] arg")).to.eql(new StringValue("_arg_"));
     });
     describe("calls", () => {
       it("should return nil for empty body", () => {
@@ -89,7 +91,7 @@ describe("Helena closures", () => {
           evaluate(
             "scope scp1 {set cmd [closure {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}]}"
           );
-          evaluate("scope scp2 {[scp1 eval {get cmd}] call}");
+          evaluate("scope scp2 {[[scp1 eval {get cmd}]]}");
           expect(evaluate("scp1 eval {get cst}")).to.eql(
             new StringValue("val1")
           );
@@ -111,7 +113,7 @@ describe("Helena closures", () => {
       });
       it("should be closure-local", () => {
         evaluate("set var val");
-        evaluate("closure cmd {var} {[closure {} {idem $var}] call}");
+        evaluate("closure cmd {var} {[[closure {} {idem $var}]]}");
         expect(evaluate("cmd val2")).to.eql(new StringValue("val"));
       });
       describe("exceptions", () => {
@@ -207,16 +209,6 @@ describe("Helena closures", () => {
       });
     });
     describe("methods", () => {
-      describe("call", () => {
-        it("should call closure", () => {
-          evaluate("set cmd [closure {} {idem val}]");
-          expect(evaluate("$cmd call")).to.eql(new StringValue("val"));
-        });
-        it("should pass arguments to closure", () => {
-          evaluate("set cmd [closure {a} {idem $a}]");
-          expect(evaluate("$cmd call val")).to.eql(new StringValue("val"));
-        });
-      });
       describe("argspec", () => {
         it("should return the closure argspec", () => {
           expect(evaluate("[closure {a b} {}] argspec")).to.eql(
@@ -228,81 +220,6 @@ describe("Helena closures", () => {
             expect(execute("[closure {} {}] argspec a")).to.eql(
               ERROR('wrong # args: should be "closure argspec"')
             );
-          });
-        });
-      });
-      describe("control flow", () => {
-        describe("return", () => {
-          it("should interrupt the body with RETURN code", () => {
-            evaluate("closure cmd1 {} {set var val1}");
-            evaluate("closure cmd2 {} {set var val2}");
-            evaluate("set cmd [closure {} {cmd1; return val3; cmd2}]");
-            expect(execute("$cmd call")).to.eql(
-              RETURN(new StringValue("val3"))
-            );
-            expect(evaluate("get var")).to.eql(new StringValue("val1"));
-          });
-        });
-        describe("tailcall", () => {
-          it("should interrupt the body with RETURN code", () => {
-            evaluate("closure cmd1 {} {set var val1}");
-            evaluate("closure cmd2 {} {set var val2}");
-            evaluate("set cmd [closure {} {cmd1; tailcall {idem val3}; cmd2}]");
-            expect(execute("$cmd call")).to.eql(
-              RETURN(new StringValue("val3"))
-            );
-            expect(evaluate("get var")).to.eql(new StringValue("val1"));
-          });
-        });
-        describe("yield", () => {
-          it("should interrupt the body with YIELD code", () => {
-            evaluate("closure cmd1 {} {set var val1}");
-            evaluate("closure cmd2 {} {set var val2}");
-            evaluate("set cmd [closure {} {cmd1; yield; cmd2}]");
-            expect(execute("$cmd call").code).to.eql(ResultCode.YIELD);
-            expect(evaluate("get var")).to.eql(new StringValue("val1"));
-          });
-          it("should provide a resumable state", () => {
-            evaluate("closure cmd1 {} {set var val1}");
-            evaluate("closure cmd2 {val} {set var $val}");
-            evaluate("set cmd [closure {} {cmd1; cmd2 _[yield val2]_}]");
-            const process = rootScope.prepareScript(parse("$cmd call"));
-
-            let result = process.run();
-            expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(new StringValue("val2"));
-
-            process.yieldBack(new StringValue("val3"));
-            result = process.run();
-            expect(result).to.eql(OK(new StringValue("_val3_")));
-            expect(evaluate("get var")).to.eql(new StringValue("_val3_"));
-          });
-        });
-        describe("error", () => {
-          it("should interrupt the body with ERROR code", () => {
-            evaluate("closure cmd1 {} {set var val1}");
-            evaluate("closure cmd2 {} {set var val2}");
-            evaluate("set cmd [closure {} {cmd1; error msg; cmd2}]");
-            expect(execute("$cmd call")).to.eql(ERROR("msg"));
-            expect(evaluate("get var")).to.eql(new StringValue("val1"));
-          });
-        });
-        describe("break", () => {
-          it("should interrupt the body with BREAK code", () => {
-            evaluate("closure cmd1 {} {set var val1}");
-            evaluate("closure cmd2 {} {set var val2}");
-            evaluate("set cmd [closure {} {cmd1; break; cmd2}]");
-            expect(execute("$cmd call")).to.eql(BREAK());
-            expect(evaluate("get var")).to.eql(new StringValue("val1"));
-          });
-        });
-        describe("continue", () => {
-          it("should interrupt the body with CONTINUE code", () => {
-            evaluate("closure cmd1 {} {set var val1}");
-            evaluate("closure cmd2 {} {set var val2}");
-            evaluate("set cmd [closure {} {cmd1; continue; cmd2}]");
-            expect(execute("$cmd call")).to.eql(CONTINUE());
-            expect(evaluate("get var")).to.eql(new StringValue("val1"));
           });
         });
       });
