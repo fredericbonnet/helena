@@ -28,13 +28,22 @@ describe("values", () => {
     });
     it("should not be index-selectable", () => {
       expect(NIL).to.not.have.property("selectIndex");
+      expect(new IndexedSelector(new IntegerValue(1)).apply(NIL)).to.eql(
+        ERROR("value is not index-selectable")
+      );
     });
     it("should not be key-selectable", () => {
       expect(NIL).to.not.have.property("selectKey");
+      expect(new KeyedSelector([new StringValue("key")]).apply(NIL)).to.eql(
+        ERROR("value is not key-selectable")
+      );
     });
     it("should not be selectable", () => {
       expect(NIL).to.not.have.property("select");
       expect(NIL).to.not.have.property("selectRules");
+      expect(new GenericSelector([new StringValue("rule")]).apply(NIL)).to.eql(
+        ERROR("value is not selectable")
+      );
     });
   });
 
@@ -83,16 +92,34 @@ describe("values", () => {
     it("should not be index-selectable", () => {
       expect(TRUE).to.not.have.property("selectIndex");
       expect(FALSE).to.not.have.property("selectIndex");
+      expect(new IndexedSelector(new IntegerValue(1)).apply(TRUE)).to.eql(
+        ERROR("value is not index-selectable")
+      );
+      expect(new IndexedSelector(new IntegerValue(1)).apply(FALSE)).to.eql(
+        ERROR("value is not index-selectable")
+      );
     });
     it("should not be key-selectable", () => {
       expect(TRUE).to.not.have.property("selectKey");
       expect(FALSE).to.not.have.property("selectKey");
+      expect(new KeyedSelector([new StringValue("key")]).apply(TRUE)).to.eql(
+        ERROR("value is not key-selectable")
+      );
+      expect(new KeyedSelector([new StringValue("key")]).apply(FALSE)).to.eql(
+        ERROR("value is not key-selectable")
+      );
     });
     it("should not be selectable", () => {
       expect(TRUE).to.not.have.property("select");
       expect(TRUE).to.not.have.property("selectRules");
       expect(FALSE).to.not.have.property("select");
       expect(FALSE).to.not.have.property("selectRules");
+      expect(new GenericSelector([new StringValue("rule")]).apply(TRUE)).to.eql(
+        ERROR("value is not selectable")
+      );
+      expect(
+        new GenericSelector([new StringValue("rule")]).apply(FALSE)
+      ).to.eql(ERROR("value is not selectable"));
     });
   });
 
@@ -128,15 +155,24 @@ describe("values", () => {
     it("should not be index-selectable", () => {
       const value = new IntegerValue(0);
       expect(value).to.not.have.property("selectIndex");
+      expect(new IndexedSelector(new IntegerValue(1)).apply(value)).to.eql(
+        ERROR("value is not index-selectable")
+      );
     });
     it("should not be key-selectable", () => {
       const value = new IntegerValue(0);
       expect(value).to.not.have.property("selectKey");
+      expect(new KeyedSelector([new StringValue("key")]).apply(value)).to.eql(
+        ERROR("value is not key-selectable")
+      );
     });
     it("should not be selectable", () => {
       const value = new IntegerValue(0);
       expect(value).to.not.have.property("select");
       expect(value).to.not.have.property("selectRules");
+      expect(
+        new GenericSelector([new StringValue("rule")]).apply(value)
+      ).to.eql(ERROR("value is not selectable"));
     });
   });
 
@@ -176,15 +212,24 @@ describe("values", () => {
     it("should not be index-selectable", () => {
       const value = new NumberValue(0);
       expect(value).to.not.have.property("selectIndex");
+      expect(new IndexedSelector(new IntegerValue(1)).apply(value)).to.eql(
+        ERROR("value is not index-selectable")
+      );
     });
     it("should not be key-selectable", () => {
       const value = new NumberValue(0);
       expect(value).to.not.have.property("selectKey");
+      expect(new KeyedSelector([new StringValue("key")]).apply(value)).to.eql(
+        ERROR("value is not key-selectable")
+      );
     });
     it("should not be selectable", () => {
       const value = new NumberValue(0);
       expect(value).to.not.have.property("select");
       expect(value).to.not.have.property("selectRules");
+      expect(
+        new GenericSelector([new StringValue("rule")]).apply(value)
+      ).to.eql(ERROR("value is not selectable"));
     });
   });
 
@@ -240,11 +285,17 @@ describe("values", () => {
     it("should not be key-selectable", () => {
       const value = new StringValue("some string");
       expect(value).to.not.have.property("selectKey");
+      expect(new KeyedSelector([new StringValue("key")]).apply(value)).to.eql(
+        ERROR("value is not key-selectable")
+      );
     });
     it("should not be selectable", () => {
       const value = new StringValue("some string");
       expect(value).to.not.have.property("select");
       expect(value).to.not.have.property("selectRules");
+      expect(
+        new GenericSelector([new StringValue("rule")]).apply(value)
+      ).to.eql(ERROR("value is not selectable"));
     });
   });
 
@@ -335,11 +386,17 @@ describe("values", () => {
     it("should not be key-selectable", () => {
       const value = new ListValue([]);
       expect(value).to.not.have.property("selectKey");
+      expect(new KeyedSelector([new StringValue("key")]).apply(value)).to.eql(
+        ERROR("value is not key-selectable")
+      );
     });
     it("should not be selectable", () => {
       const value = new ListValue([]);
       expect(value).to.not.have.property("select");
       expect(value).to.not.have.property("selectRules");
+      expect(
+        new GenericSelector([new StringValue("rule")]).apply(value)
+      ).to.eql(ERROR("value is not selectable"));
     });
   });
 
@@ -357,6 +414,9 @@ describe("values", () => {
     it("should not be index-selectable", () => {
       const value = new MapValue({});
       expect(value).to.not.have.property("selectIndex");
+      expect(new IndexedSelector(new IntegerValue(1)).apply(value)).to.eql(
+        ERROR("value is not index-selectable")
+      );
     });
     describe("keyed selectors", () => {
       it("should select elements by key", () => {
@@ -386,6 +446,9 @@ describe("values", () => {
       const value = new MapValue({});
       expect(value).to.not.have.property("select");
       expect(value).to.not.have.property("selectRules");
+      expect(
+        new GenericSelector([new StringValue("rule")]).apply(value)
+      ).to.eql(ERROR("value is not selectable"));
     });
   });
 
@@ -427,6 +490,16 @@ describe("values", () => {
             ])
           )
         );
+      });
+      describe("exceptions", () => {
+        specify("non-selectable element", () => {
+          const values = [new IntegerValue(0)];
+          const value = new TupleValue(values);
+          const index = new IntegerValue(0);
+          expect(value.selectIndex(index)).to.eql(
+            ERROR("value is not index-selectable")
+          );
+        });
       });
     });
     describe("keyed selectors", () => {
@@ -483,6 +556,16 @@ describe("values", () => {
           )
         );
       });
+      describe("exceptions", () => {
+        specify("non-selectable element", () => {
+          const values = [new IntegerValue(0)];
+          const value = new TupleValue(values);
+          const key = new StringValue("key2");
+          expect(value.selectKey(key)).to.eql(
+            ERROR("value is not key-selectable")
+          );
+        });
+      });
     });
     describe("select", () => {
       it("should apply selector to elements", () => {
@@ -527,6 +610,20 @@ describe("values", () => {
           )
         );
       });
+      describe("exceptions", () => {
+        specify("non-selectable element", () => {
+          const values = [new IntegerValue(0)];
+          const value = new TupleValue(values);
+          const index = new IntegerValue(1);
+          expect(value.select(new IndexedSelector(index))).to.eql(
+            ERROR("value is not index-selectable")
+          );
+          const key = new StringValue("key2");
+          expect(value.select(new KeyedSelector([key]))).to.eql(
+            ERROR("value is not key-selectable")
+          );
+        });
+      });
     });
   });
 
@@ -543,15 +640,24 @@ describe("values", () => {
     it("should not be index-selectable", () => {
       const value = new ScriptValue(new Script(), "");
       expect(value).to.not.have.property("selectIndex");
+      expect(new IndexedSelector(new IntegerValue(1)).apply(value)).to.eql(
+        ERROR("value is not index-selectable")
+      );
     });
     it("should not be key-selectable", () => {
       const value = new ScriptValue(new Script(), "");
       expect(value).to.not.have.property("selectKey");
+      expect(new KeyedSelector([new StringValue("key")]).apply(value)).to.eql(
+        ERROR("value is not key-selectable")
+      );
     });
     it("should not be selectable", () => {
       const value = new ScriptValue(new Script(), "");
       expect(value).to.not.have.property("select");
       expect(value).to.not.have.property("selectRules");
+      expect(
+        new GenericSelector([new StringValue("rule")]).apply(value)
+      ).to.eql(ERROR("value is not selectable"));
     });
   });
 

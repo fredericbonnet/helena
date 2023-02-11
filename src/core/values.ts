@@ -511,6 +511,7 @@ export class TupleValue implements Value {
   selectIndex(index: Value): Result {
     const values = [];
     for (const value of this.values) {
+      if (!value.selectIndex) return ERROR("value is not index-selectable");
       const result = value.selectIndex(index);
       if (result.code != ResultCode.OK) return result;
       values.push(result.value);
@@ -522,6 +523,7 @@ export class TupleValue implements Value {
   selectKey(key: Value): Result {
     const values = [];
     for (const value of this.values) {
+      if (!value.selectKey) return ERROR("value is not key-selectable");
       const result = value.selectKey(key);
       if (result.code != ResultCode.OK) return result;
       values.push(result.value);
