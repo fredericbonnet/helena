@@ -102,10 +102,10 @@ describe("Helena dictionaries", () => {
           });
           specify("invalid key", () => {
             expect(execute("dict (a b c d) has []")).to.eql(
-              ERROR("nil has no string representation")
+              ERROR("value has no string representation")
             );
             expect(execute("dict (a b c d) has ()")).to.eql(
-              ERROR("tuples have no string representation")
+              ERROR("value has no string representation")
             );
           });
         });
@@ -143,10 +143,10 @@ describe("Helena dictionaries", () => {
           });
           specify("invalid key", () => {
             expect(execute("dict (a b c d) get []")).to.eql(
-              ERROR("nil has no string representation")
+              ERROR("value has no string representation")
             );
             expect(execute("dict (a b c d) get [list ()]")).to.eql(
-              ERROR("lists have no string representation")
+              ERROR("value has no string representation")
             );
           });
           specify("key tuples with default", () => {
@@ -178,10 +178,10 @@ describe("Helena dictionaries", () => {
           });
           specify("invalid key", () => {
             expect(execute("dict (a b c d) add [] b")).to.eql(
-              ERROR("nil has no string representation")
+              ERROR("value has no string representation")
             );
             expect(execute("dict (a b c d) add () b")).to.eql(
-              ERROR("tuples have no string representation")
+              ERROR("value has no string representation")
             );
           });
         });
@@ -210,10 +210,10 @@ describe("Helena dictionaries", () => {
         describe("exceptions", () => {
           specify("invalid key", () => {
             expect(execute("dict (a b c d) remove []")).to.eql(
-              ERROR("nil has no string representation")
+              ERROR("value has no string representation")
             );
             expect(execute("dict (a b c d) remove ()")).to.eql(
-              ERROR("tuples have no string representation")
+              ERROR("value has no string representation")
             );
           });
         });
@@ -486,10 +486,10 @@ describe("Helena dictionaries", () => {
       });
       specify("invalid keys", () => {
         expect(execute("dict ([] a)")).to.eql(
-          ERROR("nil has no string representation")
+          ERROR("value has no string representation")
         );
         expect(execute("dict (() a)")).to.eql(
-          ERROR("tuples have no string representation")
+          ERROR("value has no string representation")
         );
       });
       specify("odd lists", () => {

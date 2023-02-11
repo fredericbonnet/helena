@@ -21,10 +21,6 @@ class ClosureValue implements CommandValue, Command {
     this.closure = new ClosureCommand(this);
   }
 
-  asString(): string {
-    throw new Error("Method not implemented.");
-  }
-
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.closure);
     const method = args[1];
@@ -44,10 +40,6 @@ class ClosureCommand implements CommandValue, Command {
   constructor(value: ClosureValue) {
     this.command = this;
     this.value = value;
-  }
-
-  asString(): string {
-    throw new Error("Method not implemented.");
   }
 
   execute(args: Value[]): Result {

@@ -45,10 +45,6 @@ class ModuleValue implements CommandValue, Command {
     this.exports = exports;
   }
 
-  asString(): string {
-    throw new Error("Method not implemented.");
-  }
-
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this);
     const method = args[1];

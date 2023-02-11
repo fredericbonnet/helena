@@ -13,9 +13,6 @@ class MockValue implements Value {
   selectedIndex: Value;
   selectedKeys: Value[] = [];
   selectedRules: Value[];
-  asString(): string {
-    throw new Error("Method not implemented.");
-  }
   selectIndex(index: Value): Result {
     this.selectedIndex = index;
     return OK(this);
@@ -32,9 +29,6 @@ class MockValue implements Value {
 
 class UnselectableValue implements Value {
   type = { name: "unselectable" };
-  asString(): string {
-    throw new Error("Method not implemented.");
-  }
 }
 
 describe("IndexedSelector", () => {

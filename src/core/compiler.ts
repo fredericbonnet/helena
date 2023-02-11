@@ -787,7 +787,11 @@ export class Executor {
               const cmdname = args.values[0];
               const command = this.resolveCommand(cmdname);
               if (!command)
-                return ERROR(`cannot resolve command "${cmdname.asString()}"`);
+                return ERROR(
+                  cmdname.asString
+                    ? `cannot resolve command "${cmdname.asString()}"`
+                    : `command name has no string representation`
+                );
               state.command = command;
               state.result = state.command.execute(args.values, this.context);
               if (state.result.code != ResultCode.OK) return state.result;
@@ -802,8 +806,13 @@ export class Executor {
         case OpCode.JOIN_STRINGS:
           {
             const tuple = state.pop() as TupleValue;
-            const chunks = tuple.values.map((value) => value.asString());
-            state.push(new StringValue(chunks.join("")));
+            let s = "";
+            for (const value of tuple.values) {
+              const { data, ...result } = StringValue.toString(value);
+              if (result.code != ResultCode.OK) return result;
+              s += data;
+            }
+            state.push(new StringValue(s));
           }
           break;
 
@@ -884,6 +893,8 @@ export class Executor {
       case ValueType.QUALIFIED:
         return this.resolveQualified(source as QualifiedValue);
       default:
+        if (!source.asString)
+          return ERROR("variable name has no string representation");
         return this.resolveVariable(source.asString());
     }
   }
@@ -1089,7 +1100,11 @@ export class Translator {
               const cmdname = args.values[0];
               const command = resolver.resolveCommand(cmdname);
               if (!command)
-              return ERROR(\`cannot resolve command "\${cmdname.asString()}"\`);
+                return ERROR(
+                  cmdname.asString
+                    ? \`cannot resolve command "\${cmdname.asString()}"\`
+                    : \`command name has no string representation\`
+                );
               state.command = command;
               state.result = state.command.execute(args.values, context);
               if (state.result.code != ResultCode.OK) return state.result;
@@ -1108,8 +1123,13 @@ export class Translator {
           sections.push(`
           {
             const tuple = state.pop();
-            const chunks = tuple.values.map((value) => value.asString());
-            state.push(new StringValue(chunks.join("")));
+            let s = "";
+            for (const value of tuple.values) {
+              const { data, ...result } = StringValue.toString(value);
+              if (result.code != ResultCode.OK) return result;
+              s += data;
+            }
+            state.push(new StringValue(s));
           }
           `);
           break;

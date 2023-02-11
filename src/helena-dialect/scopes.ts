@@ -27,10 +27,6 @@ class ScopeValue implements CommandValue, Command {
     this.scope = scope;
   }
 
-  asString(): string {
-    throw new Error("Method not implemented.");
-  }
-
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this);
     const method = args[1];

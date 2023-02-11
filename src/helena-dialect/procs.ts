@@ -36,10 +36,6 @@ class ProcValue implements CommandValue, Command {
     this.proc = new ProcCommand(this);
   }
 
-  asString(): string {
-    throw new Error("Method not implemented.");
-  }
-
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.proc);
     const method = args[1];
@@ -67,10 +63,6 @@ class ProcCommand implements CommandValue, Command {
   constructor(value: ProcValue) {
     this.command = this;
     this.value = value;
-  }
-
-  asString(): string {
-    throw new Error("Method not implemented.");
   }
 
   execute(args: Value[]): Result {

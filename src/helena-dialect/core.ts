@@ -43,9 +43,6 @@ export class DeferredValue implements Value {
     this.value = value;
     this.scope = scope;
   }
-  asString(): string {
-    throw new Error("Method not implemented.");
-  }
 }
 
 type ProcessContext = {
@@ -183,7 +180,7 @@ export class Scope {
     if (value.type == ValueType.TUPLE) return expandPrefixCmd;
     if (value.type == commandValueType) return (value as CommandValue).command;
     if (NumberValue.isNumber(value)) return numberCmd;
-    return this.resolveNamedCommand(value.asString());
+    if (value.asString) return this.resolveNamedCommand(value.asString());
   }
   resolveNamedCommand(name: string): Command {
     let context = this.context;

@@ -19,10 +19,6 @@ class MacroValue implements CommandValue, Command {
     this.macro = new MacroCommand(this);
   }
 
-  asString(): string {
-    throw new Error("Method not implemented.");
-  }
-
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.macro);
     const method = args[1];
@@ -43,10 +39,6 @@ class MacroCommand implements CommandValue, Command {
   constructor(value: MacroValue) {
     this.command = this;
     this.value = value;
-  }
-
-  asString(): string {
-    throw new Error("Method not implemented.");
   }
 
   execute(args: Value[], scope: Scope): Result {

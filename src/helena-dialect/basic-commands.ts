@@ -1,7 +1,14 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { BREAK, CONTINUE, ERROR, OK, RETURN, YIELD } from "../core/results";
+import {
+  BREAK,
+  CONTINUE,
+  OK,
+  ResultCode,
+  RETURN,
+  YIELD,
+} from "../core/results";
 import { Command } from "../core/command";
-import { NIL } from "../core/values";
+import { NIL, StringValue } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { DeferredValue, Scope } from "./core";
 
@@ -36,7 +43,12 @@ const tailcallCmd: Command = {
 const errorCmd: Command = {
   execute: (args) => {
     if (args.length != 2) return ARITY_ERROR("error message");
-    return ERROR(args[1].asString());
+    const result = StringValue.fromValue(args[1]);
+    if (result.code != ResultCode.OK) return result;
+    return {
+      code: ResultCode.ERROR,
+      value: result.value,
+    };
   },
 };
 

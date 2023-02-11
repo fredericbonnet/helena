@@ -164,8 +164,8 @@ describe("Helena basic commands", () => {
         );
       });
       specify("non-string message", () => {
-        expect(() => execute("error ()")).to.throw(
-          "tuples have no string representation"
+        expect(execute("error ()")).to.eql(
+          ERROR("value has no string representation")
         );
       });
     });

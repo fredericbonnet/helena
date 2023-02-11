@@ -26,9 +26,6 @@ export class EnsembleCommandValue implements CommandValue {
   constructor(command: Command) {
     this.command = command;
   }
-  asString(): string {
-    throw new Error("Method not implemented.");
-  }
 }
 
 export class EnsembleValue implements CommandValue, Command {
@@ -42,10 +39,6 @@ export class EnsembleValue implements CommandValue, Command {
     this.scope = scope;
     this.argspec = argspec;
     this.ensemble = new EnsembleCommand(this);
-  }
-
-  asString(): string {
-    throw new Error("Method not implemented.");
   }
 
   execute(args: Value[], scope: Scope): Result {

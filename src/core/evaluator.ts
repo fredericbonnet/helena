@@ -209,7 +209,11 @@ export class InlineEvaluator implements Evaluator {
       const cmdname = values[0];
       const command = this.commandResolver.resolve(cmdname);
       if (!command)
-        return ERROR(`cannot resolve command ${cmdname.asString()}`);
+        return ERROR(
+          cmdname.asString
+            ? `cannot resolve command "${cmdname.asString()}"`
+            : `command name has no string representation`
+        );
       return command.execute(values, this.context);
     } catch (e) {
       if (e instanceof Interrupt) return e.result;
@@ -249,9 +253,7 @@ export class InlineEvaluator implements Evaluator {
             values.push(this.evaluateMorpheme(morpheme));
           }
         }
-        return new StringValue(
-          values.map((value) => value.asString()).join("")
-        );
+        return this.joinStrings(values);
       }
 
       case WordType.SUBSTITUTION: {
@@ -392,7 +394,22 @@ export class InlineEvaluator implements Evaluator {
         values.push(this.evaluateMorpheme(morpheme));
       }
     }
-    return new StringValue(values.map((value) => value.asString()).join(""));
+    return this.joinStrings(values);
+  }
+  /**
+   * Join value string representations
+   *
+   * @param values - Values to join
+   * @returns        Joined string value
+   */
+  private joinStrings(values: Value[]): StringValue {
+    let s = "";
+    for (const value of values) {
+      const { data, ...result } = StringValue.toString(value);
+      if (result.code != ResultCode.OK) throw new Interrupt(result);
+      s += data;
+    }
+    return new StringValue(s);
   }
 
   /*
@@ -505,6 +522,10 @@ export class InlineEvaluator implements Evaluator {
         );
       }
       default:
+        if (!source.asString)
+          throw new Interrupt(
+            ERROR(`variable name has no string representation`)
+          );
         return this.resolveVariable(source.asString());
     }
   }

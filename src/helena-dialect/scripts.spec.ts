@@ -66,10 +66,10 @@ describe("Helena scripts", () => {
       });
       specify("invalid values", () => {
         expect(execute("parse []")).to.eql(
-          ERROR("nil has no string representation")
+          ERROR("value has no string representation")
         );
         expect(execute("parse ()")).to.eql(
-          ERROR("tuples have no string representation")
+          ERROR("value has no string representation")
         );
       });
     });

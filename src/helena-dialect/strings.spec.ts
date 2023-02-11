@@ -209,10 +209,10 @@ describe("Helena strings", () => {
           describe("exceptions", () => {
             specify("values with no string representation", () => {
               expect(execute("string example append []")).to.eql(
-                ERROR("nil has no string representation")
+                ERROR("value has no string representation")
               );
               expect(execute("string example append ()")).to.eql(
-                ERROR("tuples have no string representation")
+                ERROR("value has no string representation")
               );
             });
           });
@@ -249,10 +249,10 @@ describe("Helena strings", () => {
             });
             specify("values with no string representation", () => {
               expect(execute("string example insert 1 []")).to.eql(
-                ERROR("nil has no string representation")
+                ERROR("value has no string representation")
               );
               expect(execute("string example insert 1 ()")).to.eql(
-                ERROR("tuples have no string representation")
+                ERROR("value has no string representation")
               );
             });
           });
@@ -312,10 +312,10 @@ describe("Helena strings", () => {
             });
             specify("values with no string representation", () => {
               expect(execute("string example replace 1 3 []")).to.eql(
-                ERROR("nil has no string representation")
+                ERROR("value has no string representation")
               );
               expect(execute("string example replace 1 3 ()")).to.eql(
-                ERROR("tuples have no string representation")
+                ERROR("value has no string representation")
               );
             });
           });
@@ -341,10 +341,10 @@ describe("Helena strings", () => {
             });
             specify("values with no string representation", () => {
               expect(execute("string example == []")).to.eql(
-                ERROR("nil has no string representation")
+                ERROR("value has no string representation")
               );
               expect(execute("string example == ()")).to.eql(
-                ERROR("tuples have no string representation")
+                ERROR("value has no string representation")
               );
             });
           });
@@ -368,10 +368,10 @@ describe("Helena strings", () => {
             });
             specify("values with no string representation", () => {
               expect(execute("string example != []")).to.eql(
-                ERROR("nil has no string representation")
+                ERROR("value has no string representation")
               );
               expect(execute("string example != ()")).to.eql(
-                ERROR("tuples have no string representation")
+                ERROR("value has no string representation")
               );
             });
           });
@@ -395,10 +395,10 @@ describe("Helena strings", () => {
             });
             specify("values with no string representation", () => {
               expect(execute("string example > []")).to.eql(
-                ERROR("nil has no string representation")
+                ERROR("value has no string representation")
               );
               expect(execute("string example > ()")).to.eql(
-                ERROR("tuples have no string representation")
+                ERROR("value has no string representation")
               );
             });
           });
@@ -422,10 +422,10 @@ describe("Helena strings", () => {
             });
             specify("values with no string representation", () => {
               expect(execute("string example >= []")).to.eql(
-                ERROR("nil has no string representation")
+                ERROR("value has no string representation")
               );
               expect(execute("string example >= ()")).to.eql(
-                ERROR("tuples have no string representation")
+                ERROR("value has no string representation")
               );
             });
           });
@@ -449,10 +449,10 @@ describe("Helena strings", () => {
             });
             specify("values with no string representation", () => {
               expect(execute("string example < []")).to.eql(
-                ERROR("nil has no string representation")
+                ERROR("value has no string representation")
               );
               expect(execute("string example < ()")).to.eql(
-                ERROR("tuples have no string representation")
+                ERROR("value has no string representation")
               );
             });
           });
@@ -476,10 +476,10 @@ describe("Helena strings", () => {
             });
             specify("values with no string representation", () => {
               expect(execute("string example <= []")).to.eql(
-                ERROR("nil has no string representation")
+                ERROR("value has no string representation")
               );
               expect(execute("string example <= ()")).to.eql(
-                ERROR("tuples have no string representation")
+                ERROR("value has no string representation")
               );
             });
           });
@@ -506,10 +506,10 @@ describe("Helena strings", () => {
     describe("exceptions", () => {
       specify("values with no string representation", () => {
         expect(execute("string []")).to.eql(
-          ERROR("nil has no string representation")
+          ERROR("value has no string representation")
         );
         expect(execute("string ()")).to.eql(
-          ERROR("tuples have no string representation")
+          ERROR("value has no string representation")
         );
       });
     });

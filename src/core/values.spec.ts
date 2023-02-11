@@ -24,7 +24,7 @@ describe("values", () => {
       expect(NIL.type).to.eql(ValueType.NIL);
     });
     it("should have no string representation", () => {
-      expect(() => NIL.asString()).to.throw("nil has no string representation");
+      expect(NIL).to.not.have.property("asString");
     });
     it("should not be index-selectable", () => {
       expect(NIL).to.not.have.property("selectIndex");
@@ -72,6 +72,9 @@ describe("values", () => {
         );
       });
       it("should reject non-boolean strings", () => {
+        expect(BooleanValue.fromValue(NIL)).to.eql(
+          ERROR("value has no string representation")
+        );
         expect(BooleanValue.fromValue(new IntegerValue(0))).to.eql(
           ERROR('invalid boolean "0"')
         );
@@ -146,8 +149,10 @@ describe("values", () => {
         expect(IntegerValue.fromValue(value).data.value).to.eql(1234);
       });
       it("should reject non-integer strings", () => {
-        const value = new StringValue("a");
-        expect(IntegerValue.fromValue(value)).to.eql(
+        expect(IntegerValue.fromValue(NIL)).to.eql(
+          ERROR("value has no string representation")
+        );
+        expect(IntegerValue.fromValue(new StringValue("a"))).to.eql(
           ERROR('invalid integer "a"')
         );
       });
@@ -203,8 +208,10 @@ describe("values", () => {
         expect(NumberValue.fromValue(value).data.value).to.eql(12.34);
       });
       it("should reject non-number strings", () => {
-        const value = new StringValue("a");
-        expect(NumberValue.fromValue(value)).to.eql(
+        expect(NumberValue.fromValue(NIL)).to.eql(
+          ERROR("value has no string representation")
+        );
+        expect(NumberValue.fromValue(new StringValue("a"))).to.eql(
           ERROR('invalid number "a"')
         );
       });
@@ -259,8 +266,8 @@ describe("values", () => {
       describe("exceptions", () => {
         specify("invalid index type", () => {
           const value = new StringValue("some string");
-          expect(() => value.selectIndex(NIL)).to.throw(
-            "nil has no string representation"
+          expect(value.selectIndex(NIL)).to.eql(
+            ERROR("value has no string representation")
           );
         });
         specify("invalid index value", () => {
@@ -306,9 +313,7 @@ describe("values", () => {
     });
     it("should have no string representation", () => {
       const value = new ListValue([]);
-      expect(() => value.asString()).to.throw(
-        "lists have no string representation"
-      );
+      expect(value).to.not.have.property("asString");
     });
     describe("fromValue()", () => {
       it("should return the passed ListValue", () => {
@@ -360,8 +365,8 @@ describe("values", () => {
       describe("exceptions", () => {
         specify("invalid index type", () => {
           const value = new ListValue([]);
-          expect(() => value.selectIndex(NIL)).to.throw(
-            "nil has no string representation"
+          expect(value.selectIndex(NIL)).to.eql(
+            ERROR("value has no string representation")
           );
         });
         specify("invalid index value", () => {
@@ -407,9 +412,7 @@ describe("values", () => {
     });
     it("should have no string representation", () => {
       const value = new MapValue({});
-      expect(() => value.asString()).to.throw(
-        "maps have no string representation"
-      );
+      expect(value).to.not.have.property("asString");
     });
     it("should not be index-selectable", () => {
       const value = new MapValue({});
@@ -431,8 +434,8 @@ describe("values", () => {
       describe("exceptions", () => {
         specify("invalid key type", () => {
           const value = new MapValue({});
-          expect(() => value.selectKey(NIL)).to.throw(
-            "nil has no string representation"
+          expect(value.selectKey(NIL)).to.eql(
+            ERROR("value has no string representation")
           );
         });
         specify("unknown key value", () => {
@@ -459,9 +462,7 @@ describe("values", () => {
     });
     it("should have no string representation", () => {
       const value = new TupleValue([]);
-      expect(() => value.asString()).to.throw(
-        "tuples have no string representation"
-      );
+      expect(value).to.not.have.property("asString");
     });
     describe("indexed selectors", () => {
       it("should apply to elements", () => {
@@ -668,9 +669,7 @@ describe("values", () => {
     });
     it("should have no string representation", () => {
       const value = new QualifiedValue(new StringValue("name"), []);
-      expect(() => value.asString()).to.throw(
-        "qualified values have no string representation"
-      );
+      expect(value).to.not.have.property("asString");
     });
     describe("indexed selectors", () => {
       it("should return a new qualified value", () => {

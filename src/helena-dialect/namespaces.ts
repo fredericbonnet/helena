@@ -29,9 +29,6 @@ class NamespaceValue implements CommandValue, Command {
     this.namespace = new NamespaceCommand(this);
   }
 
-  asString(): string {
-    throw new Error("Method not implemented.");
-  }
   selectKey(key: Value): Result {
     return this.scope.getVariable(key.asString());
   }

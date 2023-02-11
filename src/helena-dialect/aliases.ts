@@ -16,10 +16,6 @@ class AliasValue implements CommandValue, Command {
     this.alias = new AliasCommand(this);
   }
 
-  asString(): string {
-    throw new Error("Method not implemented.");
-  }
-
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.alias);
     const method = args[1];
@@ -44,10 +40,6 @@ class AliasCommand implements CommandValue, Command {
   constructor(value: AliasValue) {
     this.command = this;
     this.value = value;
-  }
-
-  asString(): string {
-    throw new Error("Method not implemented.");
   }
 
   execute(args: Value[], scope: Scope): Result {

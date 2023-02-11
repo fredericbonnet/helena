@@ -50,10 +50,6 @@ export class ArgspecValue implements CommandValue, Command {
     this.argspec = argspec;
   }
 
-  asString(): string {
-    throw new Error("Method not implemented.");
-  }
-
   static fromValue(value: Value): Result<ArgspecValue> {
     if (value instanceof ArgspecValue) return OK(value, value);
     const { data: args, ...result } = buildArguments(value);

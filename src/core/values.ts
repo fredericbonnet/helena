@@ -43,7 +43,7 @@ export interface Value {
    *
    * Note: Name has been chosen to avoid conflicting with toString()
    */
-  asString(): string;
+  asString?(): string;
 
   /** Select value at index */
   selectIndex?(index: Value): Result;
@@ -70,11 +70,6 @@ export interface Value {
 class NilValue implements Value {
   /** @override */
   readonly type = ValueType.NIL;
-
-  /** @override */
-  asString(): string {
-    throw new Error("nil has no string representation");
-  }
 }
 
 /** Singleton nil value */
@@ -125,7 +120,8 @@ export class BooleanValue implements Value {
   static toBoolean(value: Value): Result<boolean> {
     if (value.type == ValueType.BOOLEAN)
       return OK(NIL, (value as BooleanValue).value);
-    const s = value.asString();
+    const { data: s, ...result } = StringValue.toString(value);
+    if (result.code != ResultCode.OK) return result;
     if (s == "true") return OK(NIL, true);
     if (s == "false") return OK(NIL, false);
     return ERROR(`invalid boolean "${s}"`);
@@ -188,7 +184,8 @@ export class IntegerValue implements Value {
   static toInteger(value: Value): Result<number> {
     if (value.type == ValueType.INTEGER)
       return OK(NIL, (value as IntegerValue).value);
-    const s = value.asString();
+    const { data: s, ...result } = StringValue.toString(value);
+    if (result.code != ResultCode.OK) return result;
     const n = Number(s);
     if (isNaN(n)) return ERROR(`invalid integer "${s}"`);
     return OK(NIL, n);
@@ -254,6 +251,7 @@ export class NumberValue implements Value {
       case ValueType.NUMBER:
         return true;
       default: {
+        if (!value.asString) return false;
         const s = value.asString();
         const n = Number(s);
         return !isNaN(n);
@@ -276,7 +274,8 @@ export class NumberValue implements Value {
       return OK(NIL, (value as NumberValue).value);
     if (value.type == ValueType.INTEGER)
       return OK(NIL, (value as IntegerValue).value);
-    const s = value.asString();
+    const { data: s, ...result } = StringValue.toString(value);
+    if (result.code != ResultCode.OK) return result;
     const n = Number(s);
     if (isNaN(n)) return ERROR(`invalid number "${s}"`);
     return OK(NIL, n);
@@ -314,12 +313,9 @@ export class StringValue implements Value {
    */
   static fromValue(value: Value): Result<StringValue> {
     if (value.type == ValueType.STRING) return OK(value, value as StringValue);
-    try {
-      const str = new StringValue(value.asString());
-      return OK(str, str);
-    } catch (e) {
-      return ERROR(e.message);
-    }
+    if (!value.asString) return ERROR("value has no string representation");
+    const str = new StringValue(value.asString());
+    return OK(str, str);
   }
 
   /**
@@ -330,12 +326,9 @@ export class StringValue implements Value {
    * @returns       Conversion result
    */
   static toString(value: Value): Result<string> {
-    try {
-      const str = value.asString();
-      return OK(NIL, str);
-    } catch (e) {
-      return ERROR(e.message);
-    }
+    if (!value.asString) return ERROR("value has no string representation");
+    const str = value.asString();
+    return OK(NIL, str);
   }
 
   /**
@@ -352,7 +345,7 @@ export class StringValue implements Value {
     if (result.code != ResultCode.OK) return result;
     const i = result.data as number;
     if (i < 0 || i >= value.length)
-      return def ? OK(def) : ERROR(`index out of range "${index.asString()}"`);
+      return def ? OK(def) : ERROR(`index out of range "${i}"`);
     return OK(new StringValue(value[i]));
   }
 
@@ -435,13 +428,8 @@ export class ListValue implements Value {
     if (result.code != ResultCode.OK) return result;
     const i = result.data as number;
     if (i < 0 || i >= values.length)
-      return def ? OK(def) : ERROR(`index out of range "${index.asString()}"`);
+      return def ? OK(def) : ERROR(`index out of range "${i}"`);
     return OK(values[i]);
-  }
-
-  /** @override */
-  asString(): string {
-    throw new Error("lists have no string representation");
   }
 
   /** @override */
@@ -470,13 +458,9 @@ export class MapValue implements Value {
   }
 
   /** @override */
-  asString(): string {
-    throw new Error("maps have no string representation");
-  }
-
-  /** @override */
   selectKey(key: Value): Result {
-    const k = key.asString();
+    const { data: k, ...result } = StringValue.toString(key);
+    if (result.code != ResultCode.OK) return result;
     if (!this.map.has(k)) return ERROR("unknown key");
     return OK(this.map.get(k));
   }
@@ -500,11 +484,6 @@ export class TupleValue implements Value {
    */
   constructor(values: Value[]) {
     this.values = [...values];
-  }
-
-  /** @override */
-  asString(): string {
-    throw new Error("tuples have no string representation");
   }
 
   /** @override */
@@ -598,11 +577,6 @@ export class QualifiedValue implements Value {
   constructor(source: Value, selectors: Selector[]) {
     this.source = source;
     this.selectors = selectors;
-  }
-
-  /** @override */
-  asString(): string {
-    throw new Error("qualified values have no string representation");
   }
 
   /** @override */

@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { Result, OK, YIELD, BREAK } from "./results";
+import { Result, OK, YIELD, BREAK, ERROR } from "./results";
 import { Command } from "./command";
 import { Compiler, OpCode, Executor, Program, ProgramState } from "./compiler";
 import {
@@ -48,9 +48,9 @@ class IntCommand implements Command {
 const INT_CMD = new IntCommand();
 class MockCommandResolver implements CommandResolver {
   resolve(name: Value): Command {
-    if (name.type == ValueType.INTEGER || !isNaN(parseInt(name.asString())))
+    if (name.type == ValueType.INTEGER || !isNaN(parseInt(name.asString?.())))
       return INT_CMD;
-    return this.commands.get(name.asString());
+    return this.commands.get(name.asString?.());
   }
 
   commands: Map<string, Command> = new Map();
@@ -2828,6 +2828,43 @@ describe("Compilation and execution", () => {
           );
           execute(program);
           expect(commandContext).to.equal(context);
+        });
+
+        describe("exceptions", () => {
+          specify("command name with no string representation", () => {
+            const script = parse("[]");
+            const program = compiler.compileScript(script);
+
+            expect(execute(program)).to.eql(
+              ERROR("command name has no string representation")
+            );
+          });
+          specify("variable name with no string representation", () => {
+            const script = parse("$([])");
+            const program = compiler.compileScript(script);
+
+            expect(execute(program)).to.eql(
+              ERROR("variable name has no string representation")
+            );
+          });
+          specify("variable substitution with no string representation", () => {
+            const script = parse('"$var"');
+            const program = compiler.compileScript(script);
+
+            variableResolver.register("var", NIL);
+
+            expect(execute(program)).to.eql(
+              ERROR("value has no string representation")
+            );
+          });
+          specify("command substitution with no string representation", () => {
+            const script = parse('"[]"');
+            const program = compiler.compileScript(script);
+
+            expect(execute(program)).to.eql(
+              ERROR("value has no string representation")
+            );
+          });
         });
       });
 

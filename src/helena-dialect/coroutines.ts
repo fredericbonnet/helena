@@ -25,10 +25,6 @@ class CoroutineValue implements CommandValue, Command {
     this.state = "inactive";
   }
 
-  asString(): string {
-    throw new Error("Method not implemented.");
-  }
-
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this);
     const method = args[1];
