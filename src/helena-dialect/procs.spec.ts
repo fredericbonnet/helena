@@ -232,6 +232,11 @@ describe("Helena procedures", () => {
         expect(execute("proc a b")).to.eql(ERROR("body must be a script"));
         expect(execute("proc a b c")).to.eql(ERROR("body must be a script"));
       });
+      specify("command name with no string representation", () => {
+        expect(execute("proc [] {} {}")).to.eql(
+          ERROR("command name has no string representation")
+        );
+      });
     });
   });
 });

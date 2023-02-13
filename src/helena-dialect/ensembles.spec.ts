@@ -500,6 +500,11 @@ describe("Helena ensembles", () => {
               execute("macro cmd {} {}; [ensemble {} {}] call cmd")
             ).to.eql(ERROR('invalid command name "cmd"'));
           });
+          specify("command name with no string representation", () => {
+            expect(execute("[ensemble {} {}] call []")).to.eql(
+              ERROR("command name has no string representation")
+            );
+          });
         });
       });
       describe("argspec", () => {
@@ -668,6 +673,11 @@ describe("Helena ensembles", () => {
         );
         expect(execute("ensemble a b c d")).to.eql(
           ERROR('wrong # args: should be "ensemble ?name? argspec body"')
+        );
+      });
+      specify("command name with no string representation", () => {
+        expect(execute("ensemble [] {} {}")).to.eql(
+          ERROR("command name has no string representation")
         );
       });
     });

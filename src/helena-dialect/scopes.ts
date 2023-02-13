@@ -37,9 +37,12 @@ class ScopeValue implements CommandValue, Command {
       }
       case "call": {
         if (args.length < 3) return ARITY_ERROR("scope call cmdname ?arg ...?");
+        const command = args[2];
+        if (!command.asString)
+          return ERROR("command name has no string representation");
+        if (!this.scope.hasLocalCommand(command.asString()))
+          return ERROR(`invalid command name "${command.asString()}"`);
         const cmdline = args.slice(2);
-        if (!this.scope.hasLocalCommand(cmdline[0].asString()))
-          return ERROR(`invalid command name "${cmdline[0].asString()}"`);
         return YIELD(new DeferredValue(new TupleValue(cmdline), this.scope));
       }
       default:
@@ -85,7 +88,8 @@ const executeScopeBody = (state: ScopeBodyState): Result => {
     case ResultCode.RETURN: {
       const value = new ScopeValue(state.subscope);
       if (state.name) {
-        state.scope.registerNamedCommand(state.name.asString(), value);
+        const result = state.scope.registerCommand(state.name, value);
+        if (result.code != ResultCode.OK) return result;
       }
       return OK(result.code == ResultCode.RETURN ? result.value : value);
     }

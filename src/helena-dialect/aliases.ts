@@ -1,5 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Result, OK, ERROR } from "../core/results";
+import { Result, OK, ERROR, ResultCode } from "../core/results";
 import { Command } from "../core/command";
 import { Value } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
@@ -57,7 +57,8 @@ export const aliasCmd: Command = {
     const [, name, cmd] = args;
 
     const value = new AliasValue(cmd);
-    scope.registerNamedCommand(name.asString(), value.alias);
+    const result = scope.registerCommand(name, value.alias);
+    if (result.code != ResultCode.OK) return result;
     return OK(value);
   },
 };

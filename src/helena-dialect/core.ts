@@ -324,6 +324,12 @@ export class Scope {
     return this.executor.execute(program);
   }
 
+  registerCommand(name: Value, command: Command): Result {
+    if (!name.asString)
+      return ERROR("command name has no string representation");
+    this.context.commands.set(name.asString(), command);
+    return OK(NIL);
+  }
   registerNamedCommand(name: string, command: Command) {
     this.context.commands.set(name, command);
   }

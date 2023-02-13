@@ -239,6 +239,11 @@ describe("Helena modules", () => {
               ERROR('cannot resolve export "a"')
             );
           });
+          specify("import name with no string representation", () => {
+            expect(execute("[module {}] import []")).to.eql(
+              ERROR("import name has no string representation")
+            );
+          });
         });
       });
       describe("exceptions", () => {
@@ -261,6 +266,11 @@ describe("Helena modules", () => {
       specify("non-script body", () => {
         expect(execute("module a")).to.eql(ERROR("body must be a script"));
         expect(execute("module a b")).to.eql(ERROR("body must be a script"));
+      });
+      specify("command name with no string representation", () => {
+        expect(execute("module [] {}")).to.eql(
+          ERROR("command name has no string representation")
+        );
       });
     });
   });
@@ -298,6 +308,11 @@ describe("Helena modules", () => {
         );
         expect(execute("module {export a b}")).to.eql(
           ERROR('wrong # args: should be "export name"')
+        );
+      });
+      specify("export name with no string representation", () => {
+        expect(execute("module {export []}")).to.eql(
+          ERROR("export name has no string representation")
         );
       });
     });

@@ -76,7 +76,8 @@ export const macroCmd: Command = {
     const argspec = result.data;
     const value = new MacroValue(argspec, body as ScriptValue);
     if (name) {
-      scope.registerNamedCommand(name.asString(), value.macro);
+      const result = scope.registerCommand(name, value.macro);
+      if (result.code != ResultCode.OK) return result;
     }
     return OK(value);
   },

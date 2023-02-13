@@ -579,6 +579,11 @@ describe("Helena argument handling", () => {
           ERROR('too many specifiers for argument "a"')
         );
       });
+      specify("command name with no string representation", () => {
+        expect(execute("argspec [] {}")).to.eql(
+          ERROR("command name has no string representation")
+        );
+      });
     });
   });
 });

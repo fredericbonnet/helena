@@ -82,7 +82,8 @@ export const closureCmd: Command = {
     const argspec = result.data;
     const value = new ClosureValue(scope, argspec, body as ScriptValue);
     if (name) {
-      scope.registerNamedCommand(name.asString(), value.closure);
+      const result = scope.registerCommand(name, value.closure);
+      if (result.code != ResultCode.OK) return result;
     }
     return OK(value);
   },

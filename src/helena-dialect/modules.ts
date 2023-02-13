@@ -28,6 +28,8 @@ class ExportCommand implements Command {
   }
   execute(args: Value[]): Result {
     if (args.length != 2) return ARITY_ERROR("export name");
+    if (!args[1].asString)
+      return ERROR("export name has no string representation");
     const name = args[1].asString();
     this.exports.set(name, new StringValue(name));
     return OK(NIL);
@@ -55,6 +57,8 @@ class ModuleValue implements CommandValue, Command {
       }
       case "import": {
         if (args.length != 3) return ARITY_ERROR("module import name");
+        if (!args[2].asString)
+          return ERROR("import name has no string representation");
         const name = args[2].asString();
         if (!this.exports.has(name)) return ERROR(`unknown export "${name}"`);
         const command = this.scope.resolveNamedCommand(name);
@@ -86,13 +90,15 @@ export const moduleCmd: Command = {
     initCommands(rootScope);
     const exports = new Map();
     rootScope.registerNamedCommand("export", new ExportCommand(exports));
+
     const process = rootScope.prepareScriptValue(body as ScriptValue);
     const result = process.run();
     switch (result.code) {
       case ResultCode.OK: {
         const value = new ModuleValue(rootScope, exports);
         if (name) {
-          scope.registerNamedCommand(name.asString(), value);
+          const result = scope.registerCommand(name, value);
+          if (result.code != ResultCode.OK) return result;
         }
         return OK(value);
       }

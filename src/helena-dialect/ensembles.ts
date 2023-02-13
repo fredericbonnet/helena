@@ -53,6 +53,8 @@ export class EnsembleValue implements CommandValue, Command {
         if (args.length < 3)
           return ARITY_ERROR("ensemble call cmdname ?arg ...?");
         const subcommand = args[2];
+        if (!subcommand.asString)
+          return ERROR("command name has no string representation");
         if (!this.scope.hasLocalCommand(subcommand.asString()))
           return ERROR(`invalid command name "${subcommand.asString()}"`);
         const command = this.scope.resolveCommand(subcommand);
@@ -142,7 +144,8 @@ const executeEnsembleBody = (state: EnsembleBodyState): Result => {
     case ResultCode.RETURN: {
       const value = new EnsembleValue(state.subscope, state.argspec);
       if (state.name) {
-        state.scope.registerNamedCommand(state.name.asString(), value.ensemble);
+        const result = state.scope.registerCommand(state.name, value.ensemble);
+        if (result.code != ResultCode.OK) return result;
       }
       return OK(result.code == ResultCode.RETURN ? result.value : value);
     }

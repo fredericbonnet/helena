@@ -160,7 +160,8 @@ export const argspecCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
     if (name) {
-      scope.registerNamedCommand(name.asString(), argspec);
+      const result = scope.registerCommand(name, argspec);
+      if (result.code != ResultCode.OK) return result;
     }
     return OK(argspec);
   },

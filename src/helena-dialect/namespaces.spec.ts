@@ -471,6 +471,11 @@ describe("Helena namespaces", () => {
               ERROR('invalid command name "cmd"')
             );
           });
+          specify("command name with no string representation", () => {
+            expect(execute("[namespace {}] call []")).to.eql(
+              ERROR("command name has no string representation")
+            );
+          });
         });
       });
       describe("import", () => {
@@ -532,6 +537,11 @@ describe("Helena namespaces", () => {
           specify("unresolved command", () => {
             expect(execute("[namespace {}] import a")).to.eql(
               ERROR('cannot resolve imported command "a"')
+            );
+          });
+          specify("import name with no string representation", () => {
+            expect(execute("[namespace {}] import []")).to.eql(
+              ERROR("import name has no string representation")
             );
           });
         });
@@ -692,6 +702,11 @@ describe("Helena namespaces", () => {
         );
         expect(execute("namespace a b c")).to.eql(
           ERROR('wrong # args: should be "namespace ?name? body"')
+        );
+      });
+      specify("command name with no string representation", () => {
+        expect(execute("namespace [] {}")).to.eql(
+          ERROR("command name has no string representation")
         );
       });
     });

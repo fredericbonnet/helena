@@ -268,6 +268,11 @@ describe("Helena macros", () => {
         expect(execute("macro a b")).to.eql(ERROR("body must be a script"));
         expect(execute("macro a b c")).to.eql(ERROR("body must be a script"));
       });
+      specify("command name with no string representation", () => {
+        expect(execute("macro [] {} {}")).to.eql(
+          ERROR("command name has no string representation")
+        );
+      });
     });
   });
 });

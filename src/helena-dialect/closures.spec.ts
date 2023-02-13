@@ -247,6 +247,11 @@ describe("Helena closures", () => {
         expect(execute("closure a b")).to.eql(ERROR("body must be a script"));
         expect(execute("closure a b c")).to.eql(ERROR("body must be a script"));
       });
+      specify("command name with no string representation", () => {
+        expect(execute("closure [] {} {}")).to.eql(
+          ERROR("command name has no string representation")
+        );
+      });
     });
   });
 });
