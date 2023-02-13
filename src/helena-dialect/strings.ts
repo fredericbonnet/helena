@@ -161,18 +161,18 @@ const leCmd = binaryCmd("<=", true, (op1, op2) => op1 <= op2);
 
 export function registerStringCommands(scope: Scope) {
   const command = new StringCommand(scope);
-  scope.registerCommand("string", command);
-  command.scope.registerCommand("length", stringLengthCmd);
-  command.scope.registerCommand("at", stringAtCmd);
-  command.scope.registerCommand("range", stringRangeCmd);
-  command.scope.registerCommand("append", stringAppendCmd);
-  command.scope.registerCommand("remove", stringRemoveCmd);
-  command.scope.registerCommand("insert", stringInsertCmd);
-  command.scope.registerCommand("replace", stringReplaceCmd);
-  command.scope.registerCommand("==", eqCmd);
-  command.scope.registerCommand("!=", neCmd);
-  command.scope.registerCommand(">", gtCmd);
-  command.scope.registerCommand(">=", geCmd);
-  command.scope.registerCommand("<", ltCmd);
-  command.scope.registerCommand("<=", leCmd);
+  scope.registerNamedCommand("string", command);
+  command.scope.registerNamedCommand("length", stringLengthCmd);
+  command.scope.registerNamedCommand("at", stringAtCmd);
+  command.scope.registerNamedCommand("range", stringRangeCmd);
+  command.scope.registerNamedCommand("append", stringAppendCmd);
+  command.scope.registerNamedCommand("remove", stringRemoveCmd);
+  command.scope.registerNamedCommand("insert", stringInsertCmd);
+  command.scope.registerNamedCommand("replace", stringReplaceCmd);
+  command.scope.registerNamedCommand("==", eqCmd);
+  command.scope.registerNamedCommand("!=", neCmd);
+  command.scope.registerNamedCommand(">", gtCmd);
+  command.scope.registerNamedCommand(">=", geCmd);
+  command.scope.registerNamedCommand("<", ltCmd);
+  command.scope.registerNamedCommand("<=", leCmd);
 }

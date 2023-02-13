@@ -112,10 +112,10 @@ function tupleToScript(tuple: TupleValue) {
 }
 
 export function registerScriptCommands(scope: Scope) {
-  scope.registerCommand("parse", parseCmd);
+  scope.registerNamedCommand("parse", parseCmd);
   const command = new ScriptCommand(scope);
-  scope.registerCommand("script", command);
-  command.scope.registerCommand("length", scriptLengthCmd);
-  command.scope.registerCommand("append", scriptAppendCmd);
-  command.scope.registerCommand("split", scriptSplitCmd);
+  scope.registerNamedCommand("script", command);
+  command.scope.registerNamedCommand("length", scriptLengthCmd);
+  command.scope.registerNamedCommand("append", scriptAppendCmd);
+  command.scope.registerNamedCommand("split", scriptSplitCmd);
 }

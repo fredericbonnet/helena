@@ -85,7 +85,7 @@ const executeScopeBody = (state: ScopeBodyState): Result => {
     case ResultCode.RETURN: {
       const value = new ScopeValue(state.subscope);
       if (state.name) {
-        state.scope.registerCommand(state.name.asString(), value);
+        state.scope.registerNamedCommand(state.name.asString(), value);
       }
       return OK(result.code == ResultCode.RETURN ? result.value : value);
     }

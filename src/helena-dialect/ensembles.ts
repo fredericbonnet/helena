@@ -142,7 +142,7 @@ const executeEnsembleBody = (state: EnsembleBodyState): Result => {
     case ResultCode.RETURN: {
       const value = new EnsembleValue(state.subscope, state.argspec);
       if (state.name) {
-        state.scope.registerCommand(state.name.asString(), value.ensemble);
+        state.scope.registerNamedCommand(state.name.asString(), value.ensemble);
       }
       return OK(result.code == ResultCode.RETURN ? result.value : value);
     }

@@ -59,7 +59,7 @@ class ModuleValue implements CommandValue, Command {
         if (!this.exports.has(name)) return ERROR(`unknown export "${name}"`);
         const command = this.scope.resolveNamedCommand(name);
         if (!command) return ERROR(`cannot resolve export "${name}"`);
-        scope.registerCommand(name, command);
+        scope.registerNamedCommand(name, command);
         return OK(NIL);
       }
       default:
@@ -85,14 +85,14 @@ export const moduleCmd: Command = {
     const rootScope = new Scope();
     initCommands(rootScope);
     const exports = new Map();
-    rootScope.registerCommand("export", new ExportCommand(exports));
+    rootScope.registerNamedCommand("export", new ExportCommand(exports));
     const process = rootScope.prepareScriptValue(body as ScriptValue);
     const result = process.run();
     switch (result.code) {
       case ResultCode.OK: {
         const value = new ModuleValue(rootScope, exports);
         if (name) {
-          scope.registerCommand(name.asString(), value);
+          scope.registerNamedCommand(name.asString(), value);
         }
         return OK(value);
       }

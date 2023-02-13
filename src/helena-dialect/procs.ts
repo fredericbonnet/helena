@@ -126,7 +126,7 @@ export const procCmd: Command = {
     const program = scope.compile((body as ScriptValue).script);
     const value = new ProcValue(scope, argspec, body as ScriptValue, program);
     if (name) {
-      scope.registerCommand(name.asString(), value.proc);
+      scope.registerNamedCommand(name.asString(), value.proc);
     }
     return OK(value);
   },

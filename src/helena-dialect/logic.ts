@@ -167,10 +167,10 @@ function runCondition(process: Process) {
 }
 
 export function registerLogicCommands(scope: Scope) {
-  scope.registerCommand("true", trueCmd);
-  scope.registerCommand("false", falseCmd);
+  scope.registerNamedCommand("true", trueCmd);
+  scope.registerNamedCommand("false", falseCmd);
 
-  scope.registerCommand("!", notCmd);
-  scope.registerCommand("&&", andCmd);
-  scope.registerCommand("||", orCmd);
+  scope.registerNamedCommand("!", notCmd);
+  scope.registerNamedCommand("&&", andCmd);
+  scope.registerNamedCommand("||", orCmd);
 }

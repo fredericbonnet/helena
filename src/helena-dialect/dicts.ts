@@ -276,15 +276,15 @@ function valueToMap(value: Value): Result<Map<string, Value>> {
 
 export function registerDictCommands(scope: Scope) {
   const command = new DictCommand(scope);
-  scope.registerCommand("dict", command);
-  command.scope.registerCommand("size", dictSizeCmd);
-  command.scope.registerCommand("has", dictHasCmd);
-  command.scope.registerCommand("get", dictGetCmd);
-  command.scope.registerCommand("add", dictAddCmd);
-  command.scope.registerCommand("remove", dictRemoveCmd);
-  command.scope.registerCommand("merge", dictMergeCmd);
-  command.scope.registerCommand("keys", dictKeysCmd);
-  command.scope.registerCommand("values", dictValuesCmd);
-  command.scope.registerCommand("entries", dictEntriesCmd);
-  command.scope.registerCommand("foreach", dictForeachCmd);
+  scope.registerNamedCommand("dict", command);
+  command.scope.registerNamedCommand("size", dictSizeCmd);
+  command.scope.registerNamedCommand("has", dictHasCmd);
+  command.scope.registerNamedCommand("get", dictGetCmd);
+  command.scope.registerNamedCommand("add", dictAddCmd);
+  command.scope.registerNamedCommand("remove", dictRemoveCmd);
+  command.scope.registerNamedCommand("merge", dictMergeCmd);
+  command.scope.registerNamedCommand("keys", dictKeysCmd);
+  command.scope.registerNamedCommand("values", dictValuesCmd);
+  command.scope.registerNamedCommand("entries", dictEntriesCmd);
+  command.scope.registerNamedCommand("foreach", dictForeachCmd);
 }

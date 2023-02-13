@@ -57,7 +57,7 @@ export const aliasCmd: Command = {
     const [, name, cmd] = args;
 
     const value = new AliasValue(cmd);
-    scope.registerCommand(name.asString(), value.alias);
+    scope.registerNamedCommand(name.asString(), value.alias);
     return OK(value);
   },
 };

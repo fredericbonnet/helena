@@ -227,13 +227,13 @@ export function valueToArray(value: Value): Result<Value[]> {
 
 export function registerListCommands(scope: Scope) {
   const command = new ListCommand(scope);
-  scope.registerCommand("list", command);
-  command.scope.registerCommand("length", listLengthCmd);
-  command.scope.registerCommand("at", listAtCmd);
-  command.scope.registerCommand("range", listRangeCmd);
-  command.scope.registerCommand("append", listAppendCmd);
-  command.scope.registerCommand("remove", listRemoveCmd);
-  command.scope.registerCommand("insert", listInsertCmd);
-  command.scope.registerCommand("replace", listReplaceCmd);
-  command.scope.registerCommand("foreach", listForeachCmd);
+  scope.registerNamedCommand("list", command);
+  command.scope.registerNamedCommand("length", listLengthCmd);
+  command.scope.registerNamedCommand("at", listAtCmd);
+  command.scope.registerNamedCommand("range", listRangeCmd);
+  command.scope.registerNamedCommand("append", listAppendCmd);
+  command.scope.registerNamedCommand("remove", listRemoveCmd);
+  command.scope.registerNamedCommand("insert", listInsertCmd);
+  command.scope.registerNamedCommand("replace", listReplaceCmd);
+  command.scope.registerNamedCommand("foreach", listForeachCmd);
 }

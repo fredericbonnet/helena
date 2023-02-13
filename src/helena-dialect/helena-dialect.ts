@@ -37,16 +37,16 @@ export function initCommands(scope: Scope) {
   registerTupleCommands(scope);
   registerScriptCommands(scope);
 
-  scope.registerCommand("argspec", argspecCmd);
+  scope.registerNamedCommand("argspec", argspecCmd);
 
-  scope.registerCommand("scope", scopeCmd);
-  scope.registerCommand("namespace", namespaceCmd);
-  scope.registerCommand("ensemble", ensembleCmd);
-  scope.registerCommand("module", moduleCmd);
+  scope.registerNamedCommand("scope", scopeCmd);
+  scope.registerNamedCommand("namespace", namespaceCmd);
+  scope.registerNamedCommand("ensemble", ensembleCmd);
+  scope.registerNamedCommand("module", moduleCmd);
 
-  scope.registerCommand("macro", macroCmd);
-  scope.registerCommand("closure", closureCmd);
-  scope.registerCommand("proc", procCmd);
-  scope.registerCommand("coroutine", coroutineCmd);
-  scope.registerCommand("alias", aliasCmd);
+  scope.registerNamedCommand("macro", macroCmd);
+  scope.registerNamedCommand("closure", closureCmd);
+  scope.registerNamedCommand("proc", procCmd);
+  scope.registerNamedCommand("coroutine", coroutineCmd);
+  scope.registerNamedCommand("alias", aliasCmd);
 }

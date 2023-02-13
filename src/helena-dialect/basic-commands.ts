@@ -74,12 +74,12 @@ const evalCmd: Command = {
 };
 
 export function registerBasicCommands(scope: Scope) {
-  scope.registerCommand("idem", idemCmd);
-  scope.registerCommand("return", returnCmd);
-  scope.registerCommand("tailcall", tailcallCmd);
-  scope.registerCommand("yield", yieldCmd);
-  scope.registerCommand("error", errorCmd);
-  scope.registerCommand("break", breakCmd);
-  scope.registerCommand("continue", continueCmd);
-  scope.registerCommand("eval", evalCmd);
+  scope.registerNamedCommand("idem", idemCmd);
+  scope.registerNamedCommand("return", returnCmd);
+  scope.registerNamedCommand("tailcall", tailcallCmd);
+  scope.registerNamedCommand("yield", yieldCmd);
+  scope.registerNamedCommand("error", errorCmd);
+  scope.registerNamedCommand("break", breakCmd);
+  scope.registerNamedCommand("continue", continueCmd);
+  scope.registerNamedCommand("eval", evalCmd);
 }

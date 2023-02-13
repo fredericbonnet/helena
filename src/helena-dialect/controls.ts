@@ -661,9 +661,9 @@ const passCmd: Command = {
 };
 
 export function registerControlCommands(scope: Scope) {
-  scope.registerCommand("while", whileCmd);
-  scope.registerCommand("if", ifCmd);
-  scope.registerCommand("when", whenCmd);
-  scope.registerCommand("catch", catchCmd);
-  scope.registerCommand("pass", passCmd);
+  scope.registerNamedCommand("while", whileCmd);
+  scope.registerNamedCommand("if", ifCmd);
+  scope.registerNamedCommand("when", whenCmd);
+  scope.registerNamedCommand("catch", catchCmd);
+  scope.registerNamedCommand("pass", passCmd);
 }

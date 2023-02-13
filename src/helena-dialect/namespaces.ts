@@ -55,7 +55,7 @@ class NamespaceValue implements CommandValue, Command {
         const name = args[2].asString();
         const command = this.scope.resolveNamedCommand(name);
         if (!command) return ERROR(`cannot resolve imported command "${name}"`);
-        scope.registerCommand(name, command);
+        scope.registerNamedCommand(name, command);
         return OK(NIL);
       }
       default:
@@ -118,7 +118,10 @@ const executeNamespaceBody = (state: NamespaceBodyState): Result => {
     case ResultCode.RETURN: {
       const value = new NamespaceValue(state.subscope);
       if (state.name) {
-        state.scope.registerCommand(state.name.asString(), value.namespace);
+        state.scope.registerNamedCommand(
+          state.name.asString(),
+          value.namespace
+        );
       }
       return OK(result.code == ResultCode.RETURN ? result.value : value);
     }

@@ -67,7 +67,7 @@ export function valueToTuple(value: Value): Result {
 
 export function registerTupleCommands(scope: Scope) {
   const command = new TupleCommand(scope);
-  scope.registerCommand("tuple", command);
-  command.scope.registerCommand("length", tupleLength);
-  command.scope.registerCommand("at", tupleAtCmd);
+  scope.registerNamedCommand("tuple", command);
+  command.scope.registerNamedCommand("length", tupleLength);
+  command.scope.registerNamedCommand("at", tupleAtCmd);
 }

@@ -75,8 +75,8 @@ export const divideCmd: Command = {
 };
 
 export function registerMathCommands(scope: Scope) {
-  scope.registerCommand("+", addCmd);
-  scope.registerCommand("-", subtractCmd);
-  scope.registerCommand("*", multiplyCmd);
-  scope.registerCommand("/", divideCmd);
+  scope.registerNamedCommand("+", addCmd);
+  scope.registerNamedCommand("-", subtractCmd);
+  scope.registerNamedCommand("*", multiplyCmd);
+  scope.registerNamedCommand("/", divideCmd);
 }

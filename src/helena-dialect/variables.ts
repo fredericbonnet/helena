@@ -101,9 +101,9 @@ const unsetCmd: Command = {
 };
 
 export function registerVariableCommands(scope: Scope) {
-  scope.registerCommand("let", letCmd);
-  scope.registerCommand("set", setCmd);
-  scope.registerCommand("get", getCmd);
-  scope.registerCommand("exists", existsCmd);
-  scope.registerCommand("unset", unsetCmd);
+  scope.registerNamedCommand("let", letCmd);
+  scope.registerNamedCommand("set", setCmd);
+  scope.registerNamedCommand("get", getCmd);
+  scope.registerNamedCommand("exists", existsCmd);
+  scope.registerNamedCommand("unset", unsetCmd);
 }

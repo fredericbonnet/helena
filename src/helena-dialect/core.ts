@@ -324,7 +324,7 @@ export class Scope {
     return this.executor.execute(program);
   }
 
-  registerCommand(name: string, command: Command) {
+  registerNamedCommand(name: string, command: Command) {
     this.context.commands.set(name, command);
   }
   hasLocalCommand(name: string): boolean {
