@@ -552,6 +552,14 @@ describe("Helena argument handling", () => {
         expect(execute('argspec ((""))')).to.eql(ERROR("empty argument name"));
         expect(execute("argspec ((?))")).to.eql(ERROR("empty argument name"));
       });
+      specify("argument name with no string representation", () => {
+        expect(execute("argspec ([])")).to.eql(
+          ERROR("argument name with no string representation")
+        );
+        expect(execute("argspec (([]))")).to.eql(
+          ERROR("argument name with no string representation")
+        );
+      });
       specify("duplicate arguments", () => {
         expect(execute("argspec (a a)")).to.eql(
           ERROR('duplicate argument "a"')

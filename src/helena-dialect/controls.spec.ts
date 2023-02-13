@@ -480,6 +480,7 @@ describe("Helena control flow commands", () => {
           ERROR('invalid keyword "elif"')
         );
         expect(execute("if a b fi")).to.eql(ERROR('invalid keyword "fi"'));
+        expect(execute("if a b []")).to.eql(ERROR("invalid keyword"));
       });
       specify("invalid test", () => {
         expect(execute("if a b")).to.eql(ERROR('invalid boolean "a"'));
@@ -2078,6 +2079,12 @@ describe("Helena control flow commands", () => {
         expect(execute("catch {pass} pass {}")).to.eql(
           ERROR('invalid keyword "pass"')
         );
+      });
+      specify("invalid keyword", () => {
+        expect(execute("catch {pass} foo {}")).to.eql(
+          ERROR('invalid keyword "foo"')
+        );
+        expect(execute("catch {pass} [] {}")).to.eql(ERROR("invalid keyword"));
       });
     });
   });
