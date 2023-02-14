@@ -562,17 +562,11 @@ class CatchCommand implements Command {
       const keyword = args[i].asString();
       switch (keyword) {
         case "return":
-          i += 3;
-          break;
         case "yield":
-          i += 3;
-          break;
         case "error":
           i += 3;
           break;
         case "break":
-          i += 2;
-          break;
         case "continue":
           i += 2;
           break;
@@ -589,55 +583,25 @@ class CatchCommand implements Command {
       const keyword = args[i].asString();
       switch (keyword) {
         case "return":
-          switch (args.length - i) {
-            case 1:
-              return ERROR("wrong #args: missing return handler value");
-            case 2:
-              return ERROR("wrong #args: missing return handler body");
-            default:
-              i += 3;
-          }
-          break;
         case "yield":
-          switch (args.length - i) {
-            case 1:
-              return ERROR("wrong #args: missing yield handler value");
-            case 2:
-              return ERROR("wrong #args: missing yield handler body");
-            default:
-              i += 3;
-          }
-          break;
         case "error":
           switch (args.length - i) {
             case 1:
-              return ERROR("wrong #args: missing error handler message");
+              return ERROR(`wrong #args: missing ${keyword} handler parameter`);
             case 2:
-              return ERROR("wrong #args: missing error handler body");
+              return ERROR(`wrong #args: missing ${keyword} handler body`);
             default:
+              if (!args[i + 1].asString)
+                return ERROR(`invalid ${keyword} handler parameter name`);
               i += 3;
           }
           break;
         case "break":
-          switch (args.length - i) {
-            case 1:
-              return ERROR("wrong #args: missing break handler body");
-            default:
-              i += 2;
-          }
-          break;
         case "continue":
-          switch (args.length - i) {
-            case 1:
-              return ERROR("wrong #args: missing continue handler body");
-            default:
-              i += 2;
-          }
-          break;
         case "finally":
           switch (args.length - i) {
             case 1:
-              return ERROR("wrong #args: missing finally handler body");
+              return ERROR(`wrong #args: missing ${keyword} handler body`);
             default:
               i += 2;
           }

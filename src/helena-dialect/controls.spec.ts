@@ -1238,10 +1238,15 @@ describe("Helena control flow commands", () => {
       describe("exceptions", () => {
         specify("wrong arity", () => {
           expect(execute("catch {} return")).to.eql(
-            ERROR("wrong #args: missing return handler value")
+            ERROR("wrong #args: missing return handler parameter")
           );
           expect(execute("catch {} return a")).to.eql(
             ERROR("wrong #args: missing return handler body")
+          );
+        });
+        specify("invalid parameter name", () => {
+          expect(execute("catch {} return [] {}")).to.eql(
+            ERROR("invalid return handler parameter name")
           );
         });
       });
@@ -1393,10 +1398,15 @@ describe("Helena control flow commands", () => {
       describe("exceptions", () => {
         specify("wrong arity", () => {
           expect(execute("catch {} yield")).to.eql(
-            ERROR("wrong #args: missing yield handler value")
+            ERROR("wrong #args: missing yield handler parameter")
           );
           expect(execute("catch {} yield a")).to.eql(
             ERROR("wrong #args: missing yield handler body")
+          );
+        });
+        specify("invalid parameter name", () => {
+          expect(execute("catch {} yield [] {}")).to.eql(
+            ERROR("invalid yield handler parameter name")
           );
         });
       });
@@ -1549,10 +1559,15 @@ describe("Helena control flow commands", () => {
       describe("exceptions", () => {
         specify("wrong arity", () => {
           expect(execute("catch {} error")).to.eql(
-            ERROR("wrong #args: missing error handler message")
+            ERROR("wrong #args: missing error handler parameter")
           );
           expect(execute("catch {} error a")).to.eql(
             ERROR("wrong #args: missing error handler body")
+          );
+        });
+        specify("invalid parameter name", () => {
+          expect(execute("catch {} error [] {}")).to.eql(
+            ERROR("invalid error handler parameter name")
           );
         });
       });
@@ -1967,6 +1982,12 @@ describe("Helena control flow commands", () => {
         expect(execute("catch []")).to.eql(ERROR("body must be a script"));
         expect(execute("catch [1]")).to.eql(ERROR("body must be a script"));
       });
+      specify("invalid keyword", () => {
+        expect(execute("catch {} foo {}")).to.eql(
+          ERROR('invalid keyword "foo"')
+        );
+        expect(execute("catch {} [] {}")).to.eql(ERROR("invalid keyword"));
+      });
     });
   });
   describe("pass", () => {
@@ -2079,12 +2100,6 @@ describe("Helena control flow commands", () => {
         expect(execute("catch {pass} pass {}")).to.eql(
           ERROR('invalid keyword "pass"')
         );
-      });
-      specify("invalid keyword", () => {
-        expect(execute("catch {pass} foo {}")).to.eql(
-          ERROR('invalid keyword "foo"')
-        );
-        expect(execute("catch {pass} [] {}")).to.eql(ERROR("invalid keyword"));
       });
     });
   });
