@@ -443,9 +443,9 @@ describe("Helena scopes", () => {
               ERROR('invalid command name "cmd"')
             );
           });
-          specify("command name with no string representation", () => {
+          specify("invalid command name", () => {
             expect(execute("[scope {}] call []")).to.eql(
-              ERROR("command name has no string representation")
+              ERROR("invalid command name")
             );
           });
         });
@@ -471,10 +471,8 @@ describe("Helena scopes", () => {
         expect(execute("scope a")).to.eql(ERROR("body must be a script"));
         expect(execute("scope a b")).to.eql(ERROR("body must be a script"));
       });
-      specify("command name with no string representation", () => {
-        expect(execute("scope [] {}")).to.eql(
-          ERROR("command name has no string representation")
-        );
+      specify("invalid command name", () => {
+        expect(execute("scope [] {}")).to.eql(ERROR("invalid command name"));
       });
     });
   });

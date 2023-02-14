@@ -552,12 +552,10 @@ describe("Helena argument handling", () => {
         expect(execute('argspec ((""))')).to.eql(ERROR("empty argument name"));
         expect(execute("argspec ((?))")).to.eql(ERROR("empty argument name"));
       });
-      specify("argument name with no string representation", () => {
-        expect(execute("argspec ([])")).to.eql(
-          ERROR("argument name with no string representation")
-        );
+      specify("invalid argument name", () => {
+        expect(execute("argspec ([])")).to.eql(ERROR("invalid argument name"));
         expect(execute("argspec (([]))")).to.eql(
-          ERROR("argument name with no string representation")
+          ERROR("invalid argument name")
         );
       });
       specify("duplicate arguments", () => {
@@ -587,10 +585,8 @@ describe("Helena argument handling", () => {
           ERROR('too many specifiers for argument "a"')
         );
       });
-      specify("command name with no string representation", () => {
-        expect(execute("argspec [] {}")).to.eql(
-          ERROR("command name has no string representation")
-        );
+      specify("invalid command name", () => {
+        expect(execute("argspec [] {}")).to.eql(ERROR("invalid command name"));
       });
     });
   });

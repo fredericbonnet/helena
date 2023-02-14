@@ -212,7 +212,7 @@ export class InlineEvaluator implements Evaluator {
         return ERROR(
           cmdname.asString
             ? `cannot resolve command "${cmdname.asString()}"`
-            : `command name has no string representation`
+            : `invalid command name`
         );
       return command.execute(values, this.context);
     } catch (e) {
@@ -523,9 +523,7 @@ export class InlineEvaluator implements Evaluator {
       }
       default:
         if (!source.asString)
-          throw new Interrupt(
-            ERROR(`variable name has no string representation`)
-          );
+          throw new Interrupt(ERROR(`invalid variable name`));
         return this.resolveVariable(source.asString());
     }
   }

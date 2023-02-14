@@ -500,9 +500,9 @@ describe("Helena ensembles", () => {
               execute("macro cmd {} {}; [ensemble {} {}] call cmd")
             ).to.eql(ERROR('invalid command name "cmd"'));
           });
-          specify("command name with no string representation", () => {
+          specify("invalid command name", () => {
             expect(execute("[ensemble {} {}] call []")).to.eql(
-              ERROR("command name has no string representation")
+              ERROR("invalid command name")
             );
           });
         });
@@ -652,17 +652,21 @@ describe("Helena ensembles", () => {
             ERROR('wrong # args: should be "ensemble a b ?cmdname? ?arg ...?"')
           );
         });
-        specify("non-existing command", () => {
+        specify("non-existing subcommand", () => {
           evaluate("ensemble cmd {} {}");
           expect(execute("cmd unknownCommand")).to.eql(
             ERROR('invalid subcommand name "unknownCommand"')
           );
         });
-        specify("out-of-scope command", () => {
+        specify("out-of-scope subcommand", () => {
           evaluate("macro mac {} {}; ensemble cmd {} {}");
           expect(execute("cmd mac")).to.eql(
             ERROR('invalid subcommand name "mac"')
           );
+        });
+        specify("invalid subcommand", () => {
+          evaluate("ensemble cmd {} {}");
+          expect(execute("cmd []")).to.eql(ERROR("invalid subcommand name"));
         });
       });
     });
@@ -675,9 +679,9 @@ describe("Helena ensembles", () => {
           ERROR('wrong # args: should be "ensemble ?name? argspec body"')
         );
       });
-      specify("command name with no string representation", () => {
+      specify("invalid command name", () => {
         expect(execute("ensemble [] {} {}")).to.eql(
-          ERROR("command name has no string representation")
+          ERROR("invalid command name")
         );
       });
     });

@@ -2064,16 +2064,16 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
     });
 
     describe("exceptions", () => {
-      specify("command name with no string representation", () => {
+      specify("invalid command name", () => {
         const script = parse("[]");
         expect(evaluator.evaluateScript(script)).to.eql(
-          ERROR("command name has no string representation")
+          ERROR("invalid command name")
         );
       });
-      specify("variable name with no string representation", () => {
+      specify("invalid variable name", () => {
         const script = parse("$([])");
         expect(evaluator.evaluateScript(script)).to.eql(
-          ERROR("variable name has no string representation")
+          ERROR("invalid variable name")
         );
       });
       specify("variable substitution with no string representation", () => {

@@ -459,8 +459,8 @@ export class MapValue implements Value {
 
   /** @override */
   selectKey(key: Value): Result {
-    const { data: k, ...result } = StringValue.toString(key);
-    if (result.code != ResultCode.OK) return result;
+    if (!key.asString) return ERROR("invalid key");
+    const k = key.asString();
     if (!this.map.has(k)) return ERROR("unknown key");
     return OK(this.map.get(k));
   }

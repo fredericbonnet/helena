@@ -434,9 +434,7 @@ describe("values", () => {
       describe("exceptions", () => {
         specify("invalid key type", () => {
           const value = new MapValue({});
-          expect(value.selectKey(NIL)).to.eql(
-            ERROR("value has no string representation")
-          );
+          expect(value.selectKey(NIL)).to.eql(ERROR("invalid key"));
         });
         specify("unknown key value", () => {
           const value = new MapValue({});

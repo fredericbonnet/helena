@@ -325,8 +325,7 @@ export class Scope {
   }
 
   registerCommand(name: Value, command: Command): Result {
-    if (!name.asString)
-      return ERROR("command name has no string representation");
+    if (!name.asString) return ERROR("invalid command name");
     this.context.commands.set(name.asString(), command);
     return OK(NIL);
   }

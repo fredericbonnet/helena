@@ -229,10 +229,8 @@ describe("Helena aliases", () => {
           ERROR('wrong # args: should be "alias name command"')
         );
       });
-      specify("command name with no string representation", () => {
-        expect(execute("alias [] set")).to.eql(
-          ERROR("command name has no string representation")
-        );
+      specify("invalid command name", () => {
+        expect(execute("alias [] set")).to.eql(ERROR("invalid command name"));
       });
     });
   });

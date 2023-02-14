@@ -108,6 +108,9 @@ describe("Helena numbers", () => {
         specify("unknown operator", () => {
           expect(execute("1 + 2 a 3")).to.eql(ERROR('invalid operator "a"'));
         });
+        specify("invalid operator", () => {
+          expect(execute("1 + 2 [] 3")).to.eql(ERROR("invalid operator"));
+        });
       });
     });
     describe("comparisons", () => {

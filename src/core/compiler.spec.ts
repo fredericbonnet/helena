@@ -2831,21 +2831,17 @@ describe("Compilation and execution", () => {
         });
 
         describe("exceptions", () => {
-          specify("command name with no string representation", () => {
+          specify("invalid command name", () => {
             const script = parse("[]");
             const program = compiler.compileScript(script);
 
-            expect(execute(program)).to.eql(
-              ERROR("command name has no string representation")
-            );
+            expect(execute(program)).to.eql(ERROR("invalid command name"));
           });
-          specify("variable name with no string representation", () => {
+          specify("invalid variable name", () => {
             const script = parse("$([])");
             const program = compiler.compileScript(script);
 
-            expect(execute(program)).to.eql(
-              ERROR("variable name has no string representation")
-            );
+            expect(execute(program)).to.eql(ERROR("invalid variable name"));
           });
           specify("variable substitution with no string representation", () => {
             const script = parse('"$var"');

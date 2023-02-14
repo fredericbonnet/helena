@@ -29,7 +29,6 @@ export const numberCmd = {
         return ltOp(args, operand1);
       case "<=":
         return leOp(args, operand1);
-      // TODO arithmetic operators
       default:
         return ERROR(`invalid method name "${method}"`);
     }
@@ -44,6 +43,7 @@ const arithmetics = (args: Value[], operand1: number): Result => {
   let total = 0;
   let last = operand1;
   for (let i = 1; i < args.length; i += 2) {
+    if (!args[i].asString) return ERROR(`invalid operator`);
     const operator = args[i].asString();
     switch (operator) {
       case "+": {

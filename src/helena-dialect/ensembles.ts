@@ -53,8 +53,7 @@ export class EnsembleValue implements CommandValue, Command {
         if (args.length < 3)
           return ARITY_ERROR("ensemble call cmdname ?arg ...?");
         const subcommand = args[2];
-        if (!subcommand.asString)
-          return ERROR("command name has no string representation");
+        if (!subcommand.asString) return ERROR("invalid command name");
         if (!this.scope.hasLocalCommand(subcommand.asString()))
           return ERROR(`invalid command name "${subcommand.asString()}"`);
         const command = this.scope.resolveCommand(subcommand);
@@ -87,6 +86,7 @@ class EnsembleCommand implements Command {
       return OK(new TupleValue(args.slice(1)));
     }
     const subcommand = args[minArgs];
+    if (!subcommand.asString) return ERROR("invalid subcommand name");
     if (!this.value.scope.hasLocalCommand(subcommand.asString()))
       return ERROR(`invalid subcommand name "${subcommand.asString()}"`);
     const command = this.value.scope.resolveCommand(subcommand);

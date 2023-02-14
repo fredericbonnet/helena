@@ -2,13 +2,14 @@
 import {
   BREAK,
   CONTINUE,
+  ERROR,
   OK,
   ResultCode,
   RETURN,
   YIELD,
 } from "../core/results";
 import { Command } from "../core/command";
-import { NIL, StringValue } from "../core/values";
+import { NIL } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { DeferredValue, Scope } from "./core";
 
@@ -43,11 +44,10 @@ const tailcallCmd: Command = {
 const errorCmd: Command = {
   execute: (args) => {
     if (args.length != 2) return ARITY_ERROR("error message");
-    const result = StringValue.fromValue(args[1]);
-    if (result.code != ResultCode.OK) return result;
+    if (!args[1].asString) return ERROR("invalid message");
     return {
       code: ResultCode.ERROR,
-      value: result.value,
+      value: args[1],
     };
   },
 };

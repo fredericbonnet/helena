@@ -45,8 +45,7 @@ class NamespaceValue implements CommandValue, Command {
         if (args.length < 3)
           return ARITY_ERROR("namespace call cmdname ?arg ...?");
         const command = args[2];
-        if (!command.asString)
-          return ERROR("command name has no string representation");
+        if (!command.asString) return ERROR("invalid command name");
         if (!this.scope.hasLocalCommand(command.asString()))
           return ERROR(`invalid command name "${command.asString()}"`);
         const cmdline = args.slice(2);
@@ -54,8 +53,7 @@ class NamespaceValue implements CommandValue, Command {
       }
       case "import": {
         if (args.length != 3) return ARITY_ERROR("namespace import name");
-        if (!args[2].asString)
-          return ERROR("import name has no string representation");
+        if (!args[2].asString) return ERROR("invalid import name");
         const name = args[2].asString();
         const command = this.scope.resolveNamedCommand(name);
         if (!command) return ERROR(`cannot resolve imported command "${name}"`);
@@ -77,6 +75,7 @@ class NamespaceCommand implements Command {
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.value);
     const command = args[1];
+    if (!command.asString) return ERROR("invalid command name");
     if (!this.value.scope.hasLocalCommand(command.asString()))
       return ERROR(`invalid command name "${command.asString()}"`);
     const cmdline = args.slice(1);

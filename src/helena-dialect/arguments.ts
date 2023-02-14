@@ -39,8 +39,7 @@ function buildArgument(value: Value): Result<Argument> {
       const { data: specs, ...result } = valueToArray(value);
       if (result.code != ResultCode.OK) return result;
       if (specs.length == 0) return ERROR("empty argument specifier");
-      if (!specs[0].asString)
-        return ERROR("argument name with no string representation");
+      if (!specs[0].asString) return ERROR("invalid argument name");
       const name = specs[0].asString();
       if (name == "" || name == "?") return ERROR("empty argument name");
       if (specs.length > 2)
@@ -63,8 +62,7 @@ function buildArgument(value: Value): Result<Argument> {
       }
     }
     default: {
-      if (!value.asString)
-        return ERROR("argument name with no string representation");
+      if (!value.asString) return ERROR("invalid argument name");
       const name = value.asString();
       if (name == "" || name == "?") return ERROR("empty argument name");
       if (name[0] == "*") {

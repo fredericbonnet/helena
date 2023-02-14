@@ -790,7 +790,7 @@ export class Executor {
                 return ERROR(
                   cmdname.asString
                     ? `cannot resolve command "${cmdname.asString()}"`
-                    : `command name has no string representation`
+                    : `invalid command name`
                 );
               state.command = command;
               state.result = state.command.execute(args.values, this.context);
@@ -893,8 +893,7 @@ export class Executor {
       case ValueType.QUALIFIED:
         return this.resolveQualified(source as QualifiedValue);
       default:
-        if (!source.asString)
-          return ERROR("variable name has no string representation");
+        if (!source.asString) return ERROR("invalid variable name");
         return this.resolveVariable(source.asString());
     }
   }
@@ -1103,7 +1102,7 @@ export class Translator {
                 return ERROR(
                   cmdname.asString
                     ? \`cannot resolve command "\${cmdname.asString()}"\`
-                    : \`command name has no string representation\`
+                    : \`invalid command name\`
                 );
               state.command = command;
               state.result = state.command.execute(args.values, context);

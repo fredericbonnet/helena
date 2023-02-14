@@ -38,8 +38,7 @@ class ScopeValue implements CommandValue, Command {
       case "call": {
         if (args.length < 3) return ARITY_ERROR("scope call cmdname ?arg ...?");
         const command = args[2];
-        if (!command.asString)
-          return ERROR("command name has no string representation");
+        if (!command.asString) return ERROR("invalid command name");
         if (!this.scope.hasLocalCommand(command.asString()))
           return ERROR(`invalid command name "${command.asString()}"`);
         const cmdline = args.slice(2);
