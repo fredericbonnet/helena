@@ -508,7 +508,7 @@ describe("Helena lists", () => {
   });
 
   specify("at <-> indexed selector equivalence", () => {
-    rootScope.setVariable(
+    rootScope.setNamedVariable(
       "v",
       new ListValue([
         new StringValue("a"),

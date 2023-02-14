@@ -30,7 +30,7 @@ class NamespaceValue implements CommandValue, Command {
   }
 
   selectKey(key: Value): Result {
-    return this.scope.getVariable(key.asString());
+    return this.scope.getVariable(key);
   }
 
   execute(args: Value[], scope: Scope): Result {

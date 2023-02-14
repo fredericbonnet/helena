@@ -524,7 +524,7 @@ describe("Helena dictionaries", () => {
   });
 
   specify("get <-> keyed selector equivalence", () => {
-    rootScope.setVariable(
+    rootScope.setNamedVariable(
       "v",
       new MapValue({
         a: new StringValue("b"),

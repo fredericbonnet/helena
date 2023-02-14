@@ -102,6 +102,12 @@ describe("Helena constants and variables", () => {
         expect(execute("let (a) b")).to.eql(ERROR("bad value shape"));
         expect(execute("let ((a)) (b)")).to.eql(ERROR("bad value shape"));
       });
+      specify("invalid constant name", () => {
+        expect(execute("let [] val")).to.eql(ERROR("invalid constant name"));
+        expect(execute("let ([]) (val)")).to.eql(
+          ERROR("invalid constant name")
+        );
+      });
     });
   });
   describe("set", () => {
@@ -175,6 +181,12 @@ describe("Helena constants and variables", () => {
         expect(execute("set (a) b")).to.eql(ERROR("bad value shape"));
         expect(execute("set ((a)) (b)")).to.eql(ERROR("bad value shape"));
       });
+      specify("invalid variable name", () => {
+        expect(execute("set [] val")).to.eql(ERROR("invalid variable name"));
+        expect(execute("set ([]) (val)")).to.eql(
+          ERROR("invalid variable name")
+        );
+      });
     });
   });
   describe("get", () => {
@@ -203,29 +215,29 @@ describe("Helena constants and variables", () => {
     });
     describe("should support qualified names", () => {
       specify("indexed selector", () => {
-        rootScope.setVariable(
+        rootScope.setNamedVariable(
           "var",
           new ListValue([new StringValue("val1"), new StringValue("val2")])
         );
         expect(evaluate("get var[1]")).to.eql(new StringValue("val2"));
       });
       specify("keyed selector", () => {
-        rootScope.setVariable(
+        rootScope.setNamedVariable(
           "var",
           new MapValue({ key: new StringValue("val") })
         );
         expect(evaluate("get var(key)")).to.eql(new StringValue("val"));
       });
       specify("complex case", () => {
-        rootScope.setVariable(
+        rootScope.setNamedVariable(
           "var1",
           new ListValue([new StringValue("val1"), new StringValue("val2")])
         );
-        rootScope.setVariable(
+        rootScope.setNamedVariable(
           "var2",
           new ListValue([new StringValue("val3"), new StringValue("val4")])
         );
-        rootScope.setVariable(
+        rootScope.setNamedVariable(
           "var3",
           new ListValue([new StringValue("val5"), new StringValue("val6")])
         );
@@ -236,8 +248,8 @@ describe("Helena constants and variables", () => {
       });
     });
     it("should return the default value when a selector fails", () => {
-      rootScope.setConstant("l", new ListValue([]));
-      rootScope.setConstant("m", new MapValue({}));
+      rootScope.setNamedConstant("l", new ListValue([]));
+      rootScope.setNamedConstant("m", new MapValue({}));
       expect(evaluate("get l[1] default")).to.eql(new StringValue("default"));
       expect(evaluate("get l(key) default")).to.eql(new StringValue("default"));
       expect(evaluate("get m[1] default")).to.eql(new StringValue("default"));
@@ -280,14 +292,14 @@ describe("Helena constants and variables", () => {
     });
     describe("should support qualified names", () => {
       specify("indexed selector", () => {
-        rootScope.setVariable(
+        rootScope.setNamedVariable(
           "var",
           new ListValue([new StringValue("val1"), new StringValue("val2")])
         );
         expect(evaluate("exists var[1]")).to.eql(TRUE);
       });
       specify("keyed selector", () => {
-        rootScope.setVariable(
+        rootScope.setNamedVariable(
           "var",
           new MapValue({ key: new StringValue("val") })
         );
@@ -295,8 +307,8 @@ describe("Helena constants and variables", () => {
       });
     });
     it("should return false when a selector fails", () => {
-      rootScope.setConstant("l", new ListValue([]));
-      rootScope.setConstant("m", new MapValue({}));
+      rootScope.setNamedConstant("l", new ListValue([]));
+      rootScope.setNamedConstant("m", new MapValue({}));
       expect(evaluate("exists l[1]")).to.eql(FALSE);
       expect(evaluate("exists l(key)")).to.eql(FALSE);
       expect(evaluate("exists m[1]")).to.eql(FALSE);
@@ -338,6 +350,9 @@ describe("Helena constants and variables", () => {
         expect(execute("unset unknownVariable")).to.eql(
           ERROR('cannot unset "unknownVariable": no such variable')
         );
+      });
+      specify("invalid variable name", () => {
+        expect(execute("unset []")).to.eql(ERROR("invalid variable name"));
       });
       specify("wrong arity", () => {
         expect(execute("unset")).to.eql(

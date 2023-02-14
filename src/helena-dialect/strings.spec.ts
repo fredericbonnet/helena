@@ -540,7 +540,7 @@ describe("Helena strings", () => {
   });
 
   specify("at <-> indexed selector equivalence", () => {
-    rootScope.setVariable("v", new StringValue("example"));
+    rootScope.setNamedVariable("v", new StringValue("example"));
     evaluate("set s (string $v)");
 
     expect(execute("string $v at 2")).to.eql(execute("idem $v[2]"));

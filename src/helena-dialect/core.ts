@@ -194,7 +194,7 @@ export class Scope {
   setLocal(name: string, value: Value) {
     this.locals.set(name, value);
   }
-  setConstant(name: string, value: Value, check = false): Result {
+  setNamedConstant(name: string, value: Value, check = false): Result {
     if (this.locals.has(name)) {
       return ERROR(`cannot define constant "${name}": local already exists`);
     }
@@ -208,6 +208,10 @@ export class Scope {
     if (check) return OK(NIL);
     this.context.constants.set(name, value);
     return OK(value);
+  }
+  setConstant(constant: Value, value: Value, check = false): Result {
+    if (!constant.asString) return ERROR("invalid constant name");
+    return this.setNamedConstant(constant.asString(), value, check);
   }
   setConstants(constants: TupleValue, value: Value, check = false): Result {
     if (value.type != ValueType.TUPLE) return ERROR("bad value shape");
@@ -228,7 +232,7 @@ export class Scope {
           break;
         }
         default: {
-          const result = this.setConstant(constant.asString(), values[i], true);
+          const result = this.setConstant(constant, values[i], true);
           if (result.code != ResultCode.OK) return result;
         }
       }
@@ -242,12 +246,12 @@ export class Scope {
           this.setConstants(constant as TupleValue, values[i]);
           break;
         default:
-          this.setConstant(constant.asString(), values[i]);
+          this.setConstant(constant, values[i]);
       }
     }
     return OK(value);
   }
-  setVariable(name: string, value: Value, check = false): Result {
+  setNamedVariable(name: string, value: Value, check = false): Result {
     if (this.locals.has(name)) {
       return ERROR(`cannot redefine local "${name}"`);
     }
@@ -257,6 +261,10 @@ export class Scope {
     if (check) return OK(NIL);
     this.context.variables.set(name, value);
     return OK(value);
+  }
+  setVariable(variable: Value, value: Value, check = false): Result {
+    if (!variable.asString) return ERROR("invalid variable name");
+    return this.setNamedVariable(variable.asString(), value, check);
   }
   setVariables(variables: TupleValue, value: Value, check = false): Result {
     if (value.type != ValueType.TUPLE) return ERROR("bad value shape");
@@ -277,7 +285,7 @@ export class Scope {
           break;
         }
         default: {
-          const result = this.setVariable(variable.asString(), values[i], true);
+          const result = this.setVariable(variable, values[i], true);
           if (result.code != ResultCode.OK) return result;
         }
       }
@@ -291,12 +299,14 @@ export class Scope {
           this.setVariables(variable as TupleValue, values[i]);
           break;
         default:
-          this.setVariable(variable.asString(), values[i]);
+          this.setVariable(variable, values[i]);
       }
     }
     return OK(value);
   }
-  unsetVariable(name: string): Result {
+  unsetVariable(variable: Value): Result {
+    if (!variable.asString) return ERROR("invalid variable name");
+    const name = variable.asString();
     if (this.locals.has(name)) {
       return ERROR(`cannot unset local "${name}"`);
     }
@@ -310,7 +320,9 @@ export class Scope {
     this.context.variables.delete(name);
     return OK(NIL);
   }
-  getVariable(name: string, def?: Value): Result {
+  getVariable(variable: Value, def?: Value): Result {
+    if (!variable.asString) return ERROR("invalid variable name");
+    const name = variable.asString();
     const value = this.resolveVariable(name);
     if (value) return OK(value);
     if (def) return OK(def);

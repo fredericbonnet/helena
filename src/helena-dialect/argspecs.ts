@@ -138,7 +138,7 @@ export class ArgspecValue implements CommandValue, Command {
     if (!this.checkArity(values, 0))
       return ERROR(`wrong # values: should be "${this.help()}"`);
     return this.applyArguments(scope, values, 0, (name, value) =>
-      scope.setVariable(name, value)
+      scope.setNamedVariable(name, value)
     );
   }
 }

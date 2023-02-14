@@ -697,6 +697,10 @@ describe("Helena namespaces", () => {
             ERROR('cannot get "cst": no such variable')
           );
         });
+        specify("invalid variable name", () => {
+          evaluate("namespace cmd {}");
+          expect(execute("$[cmd]([])")).to.eql(ERROR("invalid variable name"));
+        });
       });
     });
     describe("exceptions", () => {

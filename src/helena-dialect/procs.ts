@@ -71,7 +71,7 @@ class ProcCommand implements CommandValue, Command {
     }
     const subscope = new Scope(this.value.scope);
     const setarg = (name, value) => {
-      subscope.setVariable(name, value);
+      subscope.setNamedVariable(name, value);
       return OK(value);
     };
     const result = this.value.argspec.applyArguments(

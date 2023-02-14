@@ -13,7 +13,7 @@ const letCmd: Command = {
           case ValueType.TUPLE:
             return scope.setConstants(args[1] as TupleValue, args[2]);
           default:
-            return scope.setConstant(args[1].asString(), args[2]);
+            return scope.setConstant(args[1], args[2]);
         }
       default:
         return ARITY_ERROR("let constname value");
@@ -28,7 +28,7 @@ const setCmd: Command = {
           case ValueType.TUPLE:
             return scope.setVariables(args[1] as TupleValue, args[2]);
           default:
-            return scope.setVariable(args[1].asString(), args[2]);
+            return scope.setVariable(args[1], args[2]);
         }
       default:
         return ARITY_ERROR("set varname value");
@@ -44,7 +44,7 @@ const getCmd: Command = {
           case ValueType.QUALIFIED:
             return scope.resolveValue(args[1]);
           default:
-            return scope.getVariable(args[1].asString());
+            return scope.getVariable(args[1]);
         }
       case 3:
         switch (args[1].type) {
@@ -56,7 +56,7 @@ const getCmd: Command = {
             return scope.resolveValue(args[1]);
           }
           default:
-            return scope.getVariable(args[1].asString(), args[2]);
+            return scope.getVariable(args[1], args[2]);
         }
       default:
         return ARITY_ERROR("get varname ?default?");
@@ -79,9 +79,7 @@ const existsCmd: Command = {
           }
           default:
             return OK(
-              scope.getVariable(args[1].asString()).code == ResultCode.OK
-                ? TRUE
-                : FALSE
+              scope.getVariable(args[1]).code == ResultCode.OK ? TRUE : FALSE
             );
         }
       default:
@@ -93,7 +91,7 @@ const unsetCmd: Command = {
   execute: (args, scope: Scope) => {
     switch (args.length) {
       case 2:
-        return scope.unsetVariable(args[1].asString());
+        return scope.unsetVariable(args[1]);
       default:
         return ARITY_ERROR("unset varname");
     }
