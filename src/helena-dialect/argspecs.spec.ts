@@ -453,7 +453,7 @@ describe("Helena argument handling", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[argspec {}] help a")).to.eql(
-              ERROR('wrong # args: should be "argspec help"')
+              ERROR('wrong # args: should be "<argspec> help"')
             );
           });
         });
@@ -528,10 +528,10 @@ describe("Helena argument handling", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[argspec {}] set")).to.eql(
-              ERROR('wrong # args: should be "argspec set values"')
+              ERROR('wrong # args: should be "<argspec> set values"')
             );
             expect(execute("[argspec {}] set a b")).to.eql(
-              ERROR('wrong # args: should be "argspec set values"')
+              ERROR('wrong # args: should be "<argspec> set values"')
             );
           });
         });

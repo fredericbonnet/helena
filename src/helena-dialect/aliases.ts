@@ -21,7 +21,7 @@ class AliasValue implements CommandValue, Command {
     const method = args[1];
     switch (method.asString()) {
       case "command": {
-        if (args.length != 2) return ARITY_ERROR("alias command");
+        if (args.length != 2) return ARITY_ERROR("<alias> command");
         return OK(this.cmd);
       }
       default:

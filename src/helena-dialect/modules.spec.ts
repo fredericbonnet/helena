@@ -164,7 +164,7 @@ describe("Helena modules", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[module {}] exports a")).to.eql(
-              ERROR('wrong # args: should be "module exports"')
+              ERROR('wrong # args: should be "<module> exports"')
             );
           });
         });
@@ -223,10 +223,10 @@ describe("Helena modules", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[module {}] import")).to.eql(
-              ERROR('wrong # args: should be "module import name"')
+              ERROR('wrong # args: should be "<module> import name"')
             );
             expect(execute("[module {}] import a b")).to.eql(
-              ERROR('wrong # args: should be "module import name"')
+              ERROR('wrong # args: should be "<module> import name"')
             );
           });
           specify("unknown export", () => {

@@ -320,10 +320,10 @@ describe("Helena scopes", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[scope {}] eval")).to.eql(
-              ERROR('wrong # args: should be "scope eval body"')
+              ERROR('wrong # args: should be "<scope> eval body"')
             );
             expect(execute("[scope {}] eval a b")).to.eql(
-              ERROR('wrong # args: should be "scope eval body"')
+              ERROR('wrong # args: should be "<scope> eval body"')
             );
           });
           specify("invalid body", () => {
@@ -430,7 +430,7 @@ describe("Helena scopes", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[scope {}] call")).to.eql(
-              ERROR('wrong # args: should be "scope call cmdname ?arg ...?"')
+              ERROR('wrong # args: should be "<scope> call cmdname ?arg ...?"')
             );
           });
           specify("non-existing command", () => {

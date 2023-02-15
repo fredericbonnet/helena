@@ -26,7 +26,7 @@ class ClosureValue implements CommandValue, Command {
     const method = args[1];
     switch (method.asString()) {
       case "argspec":
-        if (args.length != 2) return ARITY_ERROR("closure argspec");
+        if (args.length != 2) return ARITY_ERROR("<closure> argspec");
         return OK(this.argspec);
       default:
         return ERROR(`invalid method name "${method.asString()}"`);
@@ -44,7 +44,9 @@ class ClosureCommand implements CommandValue, Command {
 
   execute(args: Value[]): Result {
     if (!this.value.argspec.checkArity(args, 1)) {
-      return ARITY_ERROR(`${args[0].asString()} ${this.value.argspec.help()}`);
+      return ARITY_ERROR(
+        `${args[0].asString?.() ?? "<closure>"} ${this.value.argspec.help()}`
+      );
     }
     const subscope = new Scope(this.value.scope, true);
     const setarg = (name, value) => {

@@ -30,7 +30,7 @@ class CoroutineValue implements CommandValue, Command {
     const method = args[1];
     switch (method.asString()) {
       case "wait": {
-        if (args.length != 2) return ARITY_ERROR("coroutine wait");
+        if (args.length != 2) return ARITY_ERROR("<coroutine> wait");
         if (this.state == "inactive") {
           this.state = "active";
           this.process = this.scope.prepareScriptValue(this.body);
@@ -38,16 +38,16 @@ class CoroutineValue implements CommandValue, Command {
         return this.run();
       }
       case "active": {
-        if (args.length != 2) return ARITY_ERROR("coroutine active");
+        if (args.length != 2) return ARITY_ERROR("<coroutine> active");
         return OK(this.state == "active" ? TRUE : FALSE);
       }
       case "done": {
-        if (args.length != 2) return ARITY_ERROR("coroutine done");
+        if (args.length != 2) return ARITY_ERROR("<coroutine> done");
         return OK(this.state == "done" ? TRUE : FALSE);
       }
       case "yield": {
         if (args.length != 2 && args.length != 3)
-          return ARITY_ERROR("coroutine yield ?value?");
+          return ARITY_ERROR("<coroutine> yield ?value?");
         if (this.state == "inactive") return ERROR("coroutine is inactive");
         if (this.state == "done") return ERROR("coroutine is done");
         if (args.length == 3) {

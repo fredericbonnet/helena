@@ -125,6 +125,12 @@ describe("Helena closures", () => {
           expect(execute("cmd 1 2")).to.eql(
             ERROR('wrong # args: should be "cmd a"')
           );
+          expect(execute("[[closure {a} {}]]")).to.eql(
+            ERROR('wrong # args: should be "<closure> a"')
+          );
+          expect(execute("[[closure cmd {a} {}]]")).to.eql(
+            ERROR('wrong # args: should be "<closure> a"')
+          );
         });
       });
     });
@@ -218,7 +224,7 @@ describe("Helena closures", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[closure {} {}] argspec a")).to.eql(
-              ERROR('wrong # args: should be "closure argspec"')
+              ERROR('wrong # args: should be "<closure> argspec"')
             );
           });
         });

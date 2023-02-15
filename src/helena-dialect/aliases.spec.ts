@@ -207,7 +207,7 @@ describe("Helena aliases", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[alias cmd set] command a")).to.eql(
-              ERROR('wrong # args: should be "alias command"')
+              ERROR('wrong # args: should be "<alias> command"')
             );
           });
         });

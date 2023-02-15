@@ -32,11 +32,12 @@ class ScopeValue implements CommandValue, Command {
     const method = args[1];
     switch (method.asString()) {
       case "eval": {
-        if (args.length != 3) return ARITY_ERROR("scope eval body");
+        if (args.length != 3) return ARITY_ERROR("<scope> eval body");
         return YIELD(new DeferredValue(args[2], this.scope));
       }
       case "call": {
-        if (args.length < 3) return ARITY_ERROR("scope call cmdname ?arg ...?");
+        if (args.length < 3)
+          return ARITY_ERROR("<scope> call cmdname ?arg ...?");
         const command = args[2];
         if (!command.asString) return ERROR("invalid command name");
         if (!this.scope.hasLocalCommand(command.asString()))

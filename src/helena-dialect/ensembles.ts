@@ -46,12 +46,12 @@ export class EnsembleValue implements CommandValue, Command {
     const method = args[1];
     switch (method.asString()) {
       case "eval": {
-        if (args.length != 3) return ARITY_ERROR("ensemble eval body");
+        if (args.length != 3) return ARITY_ERROR("<ensemble> eval body");
         return YIELD(new DeferredValue(args[2], this.scope));
       }
       case "call": {
         if (args.length < 3)
-          return ARITY_ERROR("ensemble call cmdname ?arg ...?");
+          return ARITY_ERROR("<ensemble> call cmdname ?arg ...?");
         const subcommand = args[2];
         if (!subcommand.asString) return ERROR("invalid command name");
         if (!this.scope.hasLocalCommand(subcommand.asString()))
@@ -61,7 +61,7 @@ export class EnsembleValue implements CommandValue, Command {
         return YIELD(new DeferredValue(new TupleValue(cmdline), scope));
       }
       case "argspec":
-        if (args.length != 2) return ARITY_ERROR("ensemble argspec");
+        if (args.length != 2) return ARITY_ERROR("<ensemble> argspec");
         return OK(this.argspec);
       default:
         return ERROR(`invalid method name "${method.asString()}"`);
@@ -80,7 +80,9 @@ class EnsembleCommand implements Command {
     const minArgs = this.value.argspec.argspec.nbRequired + 1;
     if (args.length < minArgs)
       return ARITY_ERROR(
-        `ensemble ${this.value.argspec.help()} ?cmdname? ?arg ...?`
+        `${
+          args[0].asString?.() ?? "<ensemble>"
+        } ${this.value.argspec.help()} ?cmdname? ?arg ...?`
       );
     if (args.length == minArgs) {
       return OK(new TupleValue(args.slice(1)));

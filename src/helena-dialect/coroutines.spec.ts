@@ -157,7 +157,7 @@ describe("Helena coroutines", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[coroutine {}] wait a")).to.eql(
-              ERROR('wrong # args: should be "coroutine wait"')
+              ERROR('wrong # args: should be "<coroutine> wait"')
             );
           });
         });
@@ -186,7 +186,7 @@ describe("Helena coroutines", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[coroutine {}] active a")).to.eql(
-              ERROR('wrong # args: should be "coroutine active"')
+              ERROR('wrong # args: should be "<coroutine> active"')
             );
           });
         });
@@ -215,7 +215,7 @@ describe("Helena coroutines", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[coroutine {}] done a")).to.eql(
-              ERROR('wrong # args: should be "coroutine done"')
+              ERROR('wrong # args: should be "<coroutine> done"')
             );
           });
         });
@@ -236,7 +236,7 @@ describe("Helena coroutines", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[coroutine {}] yield a b")).to.eql(
-              ERROR('wrong # args: should be "coroutine yield ?value?"')
+              ERROR('wrong # args: should be "<coroutine> yield ?value?"')
             );
           });
           specify("inactive coroutine", () => {

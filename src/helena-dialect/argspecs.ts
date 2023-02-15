@@ -119,11 +119,11 @@ export class ArgspecValue implements CommandValue, Command {
     const method = args[1];
     switch (method.asString()) {
       case "help": {
-        if (args.length != 2) return ARITY_ERROR("argspec help");
+        if (args.length != 2) return ARITY_ERROR("<argspec> help");
         return OK(this.argspec.help);
       }
       case "set": {
-        if (args.length != 3) return ARITY_ERROR("argspec set values");
+        if (args.length != 3) return ARITY_ERROR("<argspec> set values");
         const { data: values, ...result } = valueToArray(args[2]);
         if (result.code != ResultCode.OK) return result;
         // TODO handle YIELD?

@@ -146,6 +146,12 @@ describe("Helena macros", () => {
           expect(execute("cmd 1 2")).to.eql(
             ERROR('wrong # args: should be "cmd a"')
           );
+          expect(execute("[[macro {a} {}]]")).to.eql(
+            ERROR('wrong # args: should be "<macro> a"')
+          );
+          expect(execute("[[macro cmd {a} {}]]")).to.eql(
+            ERROR('wrong # args: should be "<macro> a"')
+          );
         });
       });
     });
@@ -239,7 +245,7 @@ describe("Helena macros", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[macro {} {}] argspec a")).to.eql(
-              ERROR('wrong # args: should be "macro argspec"')
+              ERROR('wrong # args: should be "<macro> argspec"')
             );
           });
         });

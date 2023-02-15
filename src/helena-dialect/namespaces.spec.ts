@@ -340,10 +340,10 @@ describe("Helena namespaces", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[namespace {}] eval")).to.eql(
-              ERROR('wrong # args: should be "namespace eval body"')
+              ERROR('wrong # args: should be "<namespace> eval body"')
             );
             expect(execute("[namespace {}] eval a b")).to.eql(
-              ERROR('wrong # args: should be "namespace eval body"')
+              ERROR('wrong # args: should be "<namespace> eval body"')
             );
           });
           specify("invalid body", () => {
@@ -457,7 +457,7 @@ describe("Helena namespaces", () => {
           specify("wrong arity", () => {
             expect(execute("[namespace {}] call")).to.eql(
               ERROR(
-                'wrong # args: should be "namespace call cmdname ?arg ...?"'
+                'wrong # args: should be "<namespace> call cmdname ?arg ...?"'
               )
             );
           });
@@ -528,10 +528,10 @@ describe("Helena namespaces", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[namespace {}] import")).to.eql(
-              ERROR('wrong # args: should be "namespace import name"')
+              ERROR('wrong # args: should be "<namespace> import name"')
             );
             expect(execute("[namespace {}] import a b")).to.eql(
-              ERROR('wrong # args: should be "namespace import name"')
+              ERROR('wrong # args: should be "<namespace> import name"')
             );
           });
           specify("unresolved command", () => {

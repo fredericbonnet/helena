@@ -109,6 +109,12 @@ describe("Helena procedures", () => {
           expect(execute("cmd 1 2")).to.eql(
             ERROR('wrong # args: should be "cmd a"')
           );
+          expect(execute("[[proc {a} {}]]")).to.eql(
+            ERROR('wrong # args: should be "<proc> a"')
+          );
+          expect(execute("[[proc cmd {a} {}]]")).to.eql(
+            ERROR('wrong # args: should be "<proc> a"')
+          );
         });
       });
     });
@@ -203,7 +209,7 @@ describe("Helena procedures", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[proc {} {}] argspec a")).to.eql(
-              ERROR('wrong # args: should be "proc argspec"')
+              ERROR('wrong # args: should be "<proc> argspec"')
             );
           });
         });

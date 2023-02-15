@@ -38,12 +38,12 @@ class NamespaceValue implements CommandValue, Command {
     const method = args[1];
     switch (method.asString()) {
       case "eval": {
-        if (args.length != 3) return ARITY_ERROR("namespace eval body");
+        if (args.length != 3) return ARITY_ERROR("<namespace> eval body");
         return YIELD(new DeferredValue(args[2], this.scope));
       }
       case "call": {
         if (args.length < 3)
-          return ARITY_ERROR("namespace call cmdname ?arg ...?");
+          return ARITY_ERROR("<namespace> call cmdname ?arg ...?");
         const command = args[2];
         if (!command.asString) return ERROR("invalid command name");
         if (!this.scope.hasLocalCommand(command.asString()))
@@ -52,7 +52,7 @@ class NamespaceValue implements CommandValue, Command {
         return YIELD(new DeferredValue(new TupleValue(cmdline), this.scope));
       }
       case "import": {
-        if (args.length != 3) return ARITY_ERROR("namespace import name");
+        if (args.length != 3) return ARITY_ERROR("<namespace> import name");
         if (!args[2].asString) return ERROR("invalid import name");
         const name = args[2].asString();
         const command = this.scope.resolveNamedCommand(name);

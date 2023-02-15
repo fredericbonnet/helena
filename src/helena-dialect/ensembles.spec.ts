@@ -364,10 +364,10 @@ describe("Helena ensembles", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[ensemble {} {}] eval")).to.eql(
-              ERROR('wrong # args: should be "ensemble eval body"')
+              ERROR('wrong # args: should be "<ensemble> eval body"')
             );
             expect(execute("[ensemble {} {}] eval a b")).to.eql(
-              ERROR('wrong # args: should be "ensemble eval body"')
+              ERROR('wrong # args: should be "<ensemble> eval body"')
             );
           });
           specify("invalid body", () => {
@@ -487,7 +487,9 @@ describe("Helena ensembles", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[ensemble {} {}] call")).to.eql(
-              ERROR('wrong # args: should be "ensemble call cmdname ?arg ...?"')
+              ERROR(
+                'wrong # args: should be "<ensemble> call cmdname ?arg ...?"'
+              )
             );
           });
           specify("non-existing command", () => {
@@ -516,7 +518,7 @@ describe("Helena ensembles", () => {
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[ensemble {} {}] argspec a")).to.eql(
-              ERROR('wrong # args: should be "ensemble argspec"')
+              ERROR('wrong # args: should be "<ensemble> argspec"')
             );
           });
         });
@@ -649,7 +651,7 @@ describe("Helena ensembles", () => {
         specify("wrong arity", () => {
           evaluate("ensemble cmd {a b} {}");
           expect(execute("cmd a")).to.eql(
-            ERROR('wrong # args: should be "ensemble a b ?cmdname? ?arg ...?"')
+            ERROR('wrong # args: should be "cmd a b ?cmdname? ?arg ...?"')
           );
         });
         specify("non-existing subcommand", () => {

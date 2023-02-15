@@ -51,11 +51,11 @@ class ModuleValue implements CommandValue, Command {
     const method = args[1];
     switch (method.asString()) {
       case "exports": {
-        if (args.length != 2) return ARITY_ERROR("module exports");
+        if (args.length != 2) return ARITY_ERROR("<module> exports");
         return OK(new ListValue([...this.exports.values()]));
       }
       case "import": {
-        if (args.length != 3) return ARITY_ERROR("module import name");
+        if (args.length != 3) return ARITY_ERROR("<module> import name");
         if (!args[2].asString) return ERROR("invalid import name");
         const name = args[2].asString();
         if (!this.exports.has(name)) return ERROR(`unknown export "${name}"`);
