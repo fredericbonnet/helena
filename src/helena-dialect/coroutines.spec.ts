@@ -139,7 +139,7 @@ describe("Helena coroutines", () => {
         });
       });
     });
-    describe("methods", () => {
+    describe("subcommands", () => {
       describe("wait", () => {
         it("should evaluate body", () => {
           evaluate("set cr [coroutine {idem val}]");
@@ -252,14 +252,14 @@ describe("Helena coroutines", () => {
         });
       });
       describe("exceptions", () => {
-        specify("non-existing method", () => {
-          expect(execute("[coroutine {}] unknownMethod")).to.eql(
-            ERROR('unknown method "unknownMethod"')
+        specify("unknown subcommand", () => {
+          expect(execute("[coroutine {}] unknownSubcommand")).to.eql(
+            ERROR('unknown subcommand "unknownSubcommand"')
           );
         });
-        specify("invalid method name", () => {
+        specify("invalid subcommand name", () => {
           expect(execute("[coroutine {}] []")).to.eql(
-            ERROR("invalid method name")
+            ERROR("invalid subcommand name")
           );
         });
       });

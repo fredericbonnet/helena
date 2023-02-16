@@ -36,13 +36,13 @@ describe("Helena numbers", () => {
       expect(evaluate('"123"')).to.eql(new IntegerValue(123));
     });
     describe("exceptions", () => {
-      specify("non-existing method", () => {
-        expect(execute("1 unknownMethod")).to.eql(
-          ERROR('unknown method "unknownMethod"')
+      specify("unknown subcommand", () => {
+        expect(execute("1 unknownSubcommand")).to.eql(
+          ERROR('unknown subcommand "unknownSubcommand"')
         );
       });
-      specify("invalid method name", () => {
-        expect(execute("1 []")).to.eql(ERROR("invalid method name"));
+      specify("invalid subcommand name", () => {
+        expect(execute("1 []")).to.eql(ERROR("invalid subcommand name"));
       });
     });
   });
@@ -58,13 +58,13 @@ describe("Helena numbers", () => {
       expect(evaluate('"0.5"')).to.eql(new NumberValue(0.5));
     });
     describe("exceptions", () => {
-      specify("non-existing method", () => {
-        expect(execute("1.23 unknownMethod")).to.eql(
-          ERROR('unknown method "unknownMethod"')
+      specify("unknown subcommand", () => {
+        expect(execute("1.23 unknownSubcommand")).to.eql(
+          ERROR('unknown subcommand "unknownSubcommand"')
         );
       });
-      specify("invalid method name", () => {
-        expect(execute("1.23 []")).to.eql(ERROR("invalid method name"));
+      specify("invalid subcommand name", () => {
+        expect(execute("1.23 []")).to.eql(ERROR("invalid subcommand name"));
       });
     });
   });

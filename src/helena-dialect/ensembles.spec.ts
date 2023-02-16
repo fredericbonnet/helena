@@ -225,7 +225,7 @@ describe("Helena ensembles", () => {
         });
       });
     });
-    describe("methods", () => {
+    describe("subcommands", () => {
       describe("argspec", () => {
         it("should return the ensemble argspec", () => {
           expect(evaluate("[ensemble {a b} {}] argspec")).to.eql(
@@ -492,7 +492,7 @@ describe("Helena ensembles", () => {
               )
             );
           });
-          specify("non-existing command", () => {
+          specify("unknown command", () => {
             expect(execute("[ensemble {} {}] call unknownCommand")).to.eql(
               ERROR('unknown command "unknownCommand"')
             );
@@ -524,9 +524,9 @@ describe("Helena ensembles", () => {
         });
       });
       describe("exceptions", () => {
-        specify("non-existing method", () => {
-          expect(execute("[ensemble {} {}] unknownMethod")).to.eql(
-            ERROR('unknown method "unknownMethod"')
+        specify("unknown subcommand", () => {
+          expect(execute("[ensemble {} {}] unknownSubcommand")).to.eql(
+            ERROR('unknown subcommand "unknownSubcommand"')
           );
         });
       });
@@ -654,7 +654,7 @@ describe("Helena ensembles", () => {
             ERROR('wrong # args: should be "cmd a b ?cmdname? ?arg ...?"')
           );
         });
-        specify("non-existing subcommand", () => {
+        specify("unknown subcommand", () => {
           evaluate("ensemble cmd {} {}");
           expect(execute("cmd unknownCommand")).to.eql(
             ERROR('unknown subcommand "unknownCommand"')

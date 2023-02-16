@@ -23,14 +23,14 @@ class ClosureValue implements CommandValue, Command {
 
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.closure);
-    if (!args[1].asString) return ERROR("invalid method name");
-    const method = args[1].asString();
-    switch (method) {
+    if (!args[1].asString) return ERROR("invalid subcommand name");
+    const subcommand = args[1].asString();
+    switch (subcommand) {
       case "argspec":
         if (args.length != 2) return ARITY_ERROR("<closure> argspec");
         return OK(this.argspec);
       default:
-        return ERROR(`unknown method "${method}"`);
+        return ERROR(`unknown subcommand "${subcommand}"`);
     }
   }
 }

@@ -235,7 +235,7 @@ describe("Helena macros", () => {
         });
       });
     });
-    describe("methods", () => {
+    describe("subcommands", () => {
       describe("argspec", () => {
         it("should return the macro argspec", () => {
           expect(evaluate("[macro {a b} {}] argspec")).to.eql(
@@ -251,9 +251,9 @@ describe("Helena macros", () => {
         });
       });
       describe("exceptions", () => {
-        specify("non-existing method", () => {
-          expect(execute("[macro {} {}] unknownMethod")).to.eql(
-            ERROR('unknown method "unknownMethod"')
+        specify("unknown subcommand", () => {
+          expect(execute("[macro {} {}] unknownSubcommand")).to.eql(
+            ERROR('unknown subcommand "unknownSubcommand"')
           );
         });
       });

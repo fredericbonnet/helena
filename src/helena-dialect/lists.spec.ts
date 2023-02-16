@@ -456,7 +456,7 @@ describe("Helena lists", () => {
         });
       });
       describe("exceptions", () => {
-        specify("non-existing subcommand", () => {
+        specify("unknown subcommand", () => {
           expect(execute("list () unknownSubcommand")).to.eql(
             ERROR('unknown subcommand "unknownSubcommand"')
           );

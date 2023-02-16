@@ -214,7 +214,7 @@ describe("Helena closures", () => {
         });
       });
     });
-    describe("methods", () => {
+    describe("subcommands", () => {
       describe("argspec", () => {
         it("should return the closure argspec", () => {
           expect(evaluate("[closure {a b} {}] argspec")).to.eql(
@@ -230,14 +230,14 @@ describe("Helena closures", () => {
         });
       });
       describe("exceptions", () => {
-        specify("non-existing method", () => {
-          expect(execute("[closure {} {}] unknownMethod")).to.eql(
-            ERROR('unknown method "unknownMethod"')
+        specify("unknown subcommand", () => {
+          expect(execute("[closure {} {}] unknownSubcommand")).to.eql(
+            ERROR('unknown subcommand "unknownSubcommand"')
           );
         });
-        specify("invalid method name", () => {
+        specify("invalid subcommand name", () => {
           expect(execute("[closure {} {}] []")).to.eql(
-            ERROR("invalid method name")
+            ERROR("invalid subcommand name")
           );
         });
       });

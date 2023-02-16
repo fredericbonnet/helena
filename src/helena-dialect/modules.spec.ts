@@ -151,7 +151,7 @@ describe("Helena modules", () => {
         });
       });
     });
-    describe("methods", () => {
+    describe("subcommands", () => {
       describe("exports", () => {
         it("should return a list", () => {
           expect(evaluate("[module {}] exports")).to.eql(new ListValue([]));
@@ -247,14 +247,14 @@ describe("Helena modules", () => {
         });
       });
       describe("exceptions", () => {
-        specify("non-existing method", () => {
-          expect(execute("[module {}] unknownMethod")).to.eql(
-            ERROR('unknown method "unknownMethod"')
+        specify("unknown subcommand", () => {
+          expect(execute("[module {}] unknownSubcommand")).to.eql(
+            ERROR('unknown subcommand "unknownSubcommand"')
           );
         });
-        specify("invalid method name", () => {
+        specify("invalid subcommand name", () => {
           expect(execute("[module {}] []")).to.eql(
-            ERROR("invalid method name")
+            ERROR("invalid subcommand name")
           );
         });
       });
@@ -300,7 +300,7 @@ describe("Helena modules", () => {
       evaluate("module mod {macro cmd {} {}; export cmd}");
       expect(evaluate("mod exports")).to.eql(evaluate("list (cmd)"));
     });
-    it("should allow non-existing names", () => {
+    it("should allow non-existing command names", () => {
       evaluate("module mod {export cmd}");
       expect(evaluate("mod exports")).to.eql(evaluate("list (cmd)"));
     });

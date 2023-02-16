@@ -209,7 +209,7 @@ describe("Helena scopes", () => {
         });
       });
     });
-    describe("methods", () => {
+    describe("subcommands", () => {
       describe("eval", () => {
         it("should evaluate body", () => {
           evaluate("scope cmd {let cst val}");
@@ -433,7 +433,7 @@ describe("Helena scopes", () => {
               ERROR('wrong # args: should be "<scope> call cmdname ?arg ...?"')
             );
           });
-          specify("non-existing command", () => {
+          specify("unknown command", () => {
             expect(execute("[scope {}] call unknownCommand")).to.eql(
               ERROR('unknown command "unknownCommand"')
             );
@@ -451,13 +451,15 @@ describe("Helena scopes", () => {
         });
       });
       describe("exceptions", () => {
-        specify("non-existing method", () => {
-          expect(execute("[scope {}] unknownMethod")).to.eql(
-            ERROR('unknown method "unknownMethod"')
+        specify("unknown subcommand", () => {
+          expect(execute("[scope {}] unknownSubcommand")).to.eql(
+            ERROR('unknown subcommand "unknownSubcommand"')
           );
         });
-        specify("invalid method name", () => {
-          expect(execute("[scope {}] []")).to.eql(ERROR("invalid method name"));
+        specify("invalid subcommand name", () => {
+          expect(execute("[scope {}] []")).to.eql(
+            ERROR("invalid subcommand name")
+          );
         });
       });
     });

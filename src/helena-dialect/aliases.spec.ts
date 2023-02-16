@@ -196,7 +196,7 @@ describe("Helena aliases", () => {
         });
       });
     });
-    describe("methods", () => {
+    describe("subcommands", () => {
       describe("command", () => {
         it("should return the aliased command", () => {
           evaluate("set cmd [alias cmd (idem val)]");
@@ -213,14 +213,14 @@ describe("Helena aliases", () => {
         });
       });
       describe("exceptions", () => {
-        specify("non-existing method", () => {
-          expect(execute("[alias cmd idem] unknownMethod")).to.eql(
-            ERROR('unknown method "unknownMethod"')
+        specify("unknown subcommand", () => {
+          expect(execute("[alias cmd idem] unknownSubcommand")).to.eql(
+            ERROR('unknown subcommand "unknownSubcommand"')
           );
         });
-        specify("invalid method name", () => {
+        specify("invalid subcommand name", () => {
           expect(execute("[alias cmd idem] []")).to.eql(
-            ERROR("invalid method name")
+            ERROR("invalid subcommand name")
           );
         });
       });

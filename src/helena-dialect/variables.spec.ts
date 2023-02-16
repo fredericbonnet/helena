@@ -198,7 +198,7 @@ describe("Helena constants and variables", () => {
       evaluate("set var val");
       expect(evaluate("get var")).to.eql(new StringValue("val"));
     });
-    it("should return the default value for a non-existing variable", () => {
+    it("should return the default value for a unknown variable", () => {
       expect(evaluate("get var default")).to.eql(new StringValue("default"));
       expect(evaluate("get var(key) default")).to.eql(
         new StringValue("default")
@@ -256,7 +256,7 @@ describe("Helena constants and variables", () => {
       expect(evaluate("get m(key) default")).to.eql(new StringValue("default"));
     });
     describe("exceptions", () => {
-      specify("non-existing variable", () => {
+      specify("unknown variable", () => {
         expect(execute("get unknownVariable")).to.eql(
           ERROR('cannot get "unknownVariable": no such variable')
         );
@@ -285,7 +285,7 @@ describe("Helena constants and variables", () => {
       evaluate("set var val");
       expect(evaluate("exists var")).to.eql(TRUE);
     });
-    it("should return false for a non-existing variable", () => {
+    it("should return false for a unknown variable", () => {
       expect(evaluate("exists var")).to.eql(FALSE);
       expect(evaluate("exists var(key)")).to.eql(FALSE);
       expect(evaluate("exists var[1]")).to.eql(FALSE);
@@ -346,7 +346,7 @@ describe("Helena constants and variables", () => {
           ERROR('cannot unset constant "cst"')
         );
       });
-      specify("non-existing variable", () => {
+      specify("unknown variable", () => {
         expect(execute("unset unknownVariable")).to.eql(
           ERROR('cannot unset "unknownVariable": no such variable')
         );

@@ -10,9 +10,9 @@ export const numberCmd = {
     const { data: operand1, ...result } = NumberValue.toNumber(args[0]);
     if (result.code != ResultCode.OK) return result;
     if (args.length == 1) return OK(numberToValue(operand1));
-    if (!args[1].asString) return ERROR("invalid method name");
-    const method = args[1].asString();
-    switch (method) {
+    if (!args[1].asString) return ERROR("invalid subcommand name");
+    const subcommand = args[1].asString();
+    switch (subcommand) {
       case "+":
       case "-":
       case "*":
@@ -31,7 +31,7 @@ export const numberCmd = {
       case "<=":
         return leOp(args, operand1);
       default:
-        return ERROR(`unknown method "${method}"`);
+        return ERROR(`unknown subcommand "${subcommand}"`);
     }
   },
 };

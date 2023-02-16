@@ -89,7 +89,7 @@ describe("Helena tuples", () => {
         });
       });
       describe("exceptions", () => {
-        specify("non-existing subcommand", () => {
+        specify("unknown subcommand", () => {
           expect(execute("tuple () unknownSubcommand")).to.eql(
             ERROR('unknown subcommand "unknownSubcommand"')
           );

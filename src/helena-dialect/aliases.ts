@@ -18,15 +18,15 @@ class AliasValue implements CommandValue, Command {
 
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.alias);
-    if (!args[1].asString) return ERROR("invalid method name");
-    const method = args[1].asString();
-    switch (method) {
+    if (!args[1].asString) return ERROR("invalid subcommand name");
+    const subcommand = args[1].asString();
+    switch (subcommand) {
       case "command": {
         if (args.length != 2) return ARITY_ERROR("<alias> command");
         return OK(this.cmd);
       }
       default:
-        return ERROR(`unknown method "${method}"`);
+        return ERROR(`unknown subcommand "${subcommand}"`);
     }
   }
   resume(result: Result, scope: Scope): Result {

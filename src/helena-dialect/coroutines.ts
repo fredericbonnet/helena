@@ -27,9 +27,9 @@ class CoroutineValue implements CommandValue, Command {
 
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this);
-    if (!args[1].asString) return ERROR("invalid method name");
-    const method = args[1].asString();
-    switch (method) {
+    if (!args[1].asString) return ERROR("invalid subcommand name");
+    const subcommand = args[1].asString();
+    switch (subcommand) {
       case "wait": {
         if (args.length != 2) return ARITY_ERROR("<coroutine> wait");
         if (this.state == "inactive") {
@@ -57,7 +57,7 @@ class CoroutineValue implements CommandValue, Command {
         return this.run();
       }
       default:
-        return ERROR(`unknown method "${method}"`);
+        return ERROR(`unknown subcommand "${subcommand}"`);
     }
   }
 

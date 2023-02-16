@@ -23,8 +23,8 @@ import { Process, Scope } from "./core";
 export const trueCmd: Command = {
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(TRUE);
-    const method = args[1].asString();
-    switch (method) {
+    const subcommand = args[1].asString();
+    switch (subcommand) {
       case "?":
         if (args.length < 3 || args.length > 4)
           return ARITY_ERROR("true ? arg ?arg?");
@@ -34,15 +34,15 @@ export const trueCmd: Command = {
           return ARITY_ERROR("true !? arg ?arg?");
         return OK(args.length == 4 ? args[3] : NIL);
       default:
-        return ERROR(`unknown method "${method}"`);
+        return ERROR(`unknown subcommand "${subcommand}"`);
     }
   },
 };
 export const falseCmd: Command = {
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(FALSE);
-    const method = args[1].asString();
-    switch (method) {
+    const subcommand = args[1].asString();
+    switch (subcommand) {
       case "?":
         if (args.length < 3 || args.length > 4)
           return ARITY_ERROR("false ? arg ?arg?");
@@ -52,7 +52,7 @@ export const falseCmd: Command = {
           return ARITY_ERROR("false !? arg ?arg?");
         return OK(args[2]);
       default:
-        return ERROR(`unknown method "${method}"`);
+        return ERROR(`unknown subcommand "${subcommand}"`);
     }
   },
 };

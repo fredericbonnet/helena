@@ -223,7 +223,7 @@ describe("Helena namespaces", () => {
         });
       });
     });
-    describe("methods", () => {
+    describe("subcommands", () => {
       describe("eval", () => {
         it("should evaluate body in namespace scope", () => {
           evaluate("namespace cmd {let cst val}");
@@ -461,7 +461,7 @@ describe("Helena namespaces", () => {
               )
             );
           });
-          specify("non-existing command", () => {
+          specify("unknown command", () => {
             expect(execute("[namespace {}] call unknownCommand")).to.eql(
               ERROR('unknown command "unknownCommand"')
             );
@@ -547,14 +547,14 @@ describe("Helena namespaces", () => {
         });
       });
       describe("exceptions", () => {
-        specify("non-existing method", () => {
-          expect(execute("[namespace {}] unknownMethod")).to.eql(
-            ERROR('unknown method "unknownMethod"')
+        specify("unknown subcommand", () => {
+          expect(execute("[namespace {}] unknownSubcommand")).to.eql(
+            ERROR('unknown subcommand "unknownSubcommand"')
           );
         });
-        specify("invalid method name", () => {
+        specify("invalid subcommand name", () => {
           expect(execute("[namespace {}] []")).to.eql(
-            ERROR("invalid method name")
+            ERROR("invalid subcommand name")
           );
         });
       });
@@ -652,7 +652,7 @@ describe("Helena namespaces", () => {
         });
       });
       describe("exceptions", () => {
-        specify("non-existing command", () => {
+        specify("unknown command", () => {
           evaluate("namespace cmd {}");
           expect(execute("cmd unknownCommand")).to.eql(
             ERROR('unknown command "unknownCommand"')
@@ -688,7 +688,7 @@ describe("Helena namespaces", () => {
         expect(evaluate("idem $ns1(ns2 var)")).to.eql(new StringValue("val2"));
       });
       describe("exceptions", () => {
-        specify("non-existing variables", () => {
+        specify("unknown variables", () => {
           evaluate("namespace cmd {}");
           expect(execute("$[cmd](unknownVariable)")).to.eql(
             ERROR('cannot get "unknownVariable": no such variable')

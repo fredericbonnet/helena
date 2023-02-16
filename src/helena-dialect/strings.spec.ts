@@ -496,7 +496,7 @@ describe("Helena strings", () => {
         expect(evaluate("string example last")).to.eql(new StringValue("e"));
       });
       describe("exceptions", () => {
-        specify("non-existing subcommand", () => {
+        specify("unknown subcommand", () => {
           expect(execute('string "" unknownSubcommand')).to.eql(
             ERROR('unknown subcommand "unknownSubcommand"')
           );

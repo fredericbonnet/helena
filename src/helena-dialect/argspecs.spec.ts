@@ -443,7 +443,7 @@ describe("Helena argument handling", () => {
         });
       });
     });
-    describe("methods", () => {
+    describe("subcommands", () => {
       describe("help", () => {
         it("should return a help string with argument names", () => {
           expect(evaluate("[argspec {a b ?c *}] help")).to.eql(
@@ -537,14 +537,14 @@ describe("Helena argument handling", () => {
         });
       });
       describe("exceptions", () => {
-        specify("non-existing method", () => {
-          expect(execute("[argspec {}] unknownMethod")).to.eql(
-            ERROR('unknown method "unknownMethod"')
+        specify("unknown subcommand", () => {
+          expect(execute("[argspec {}] unknownSubcommand")).to.eql(
+            ERROR('unknown subcommand "unknownSubcommand"')
           );
         });
-        specify("invalid method name", () => {
+        specify("invalid subcommand name", () => {
           expect(execute("[argspec {}] []")).to.eql(
-            ERROR("invalid method name")
+            ERROR("invalid subcommand name")
           );
         });
       });

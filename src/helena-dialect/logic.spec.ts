@@ -41,7 +41,7 @@ describe("Helena logic operations", () => {
       expect(evaluate("[true]")).to.eql(TRUE);
       expect(evaluate("[false]")).to.eql(FALSE);
     });
-    describe("methods", () => {
+    describe("subcommands", () => {
       describe("?", () => {
         describe("true", () => {
           it("should return first argument", () => {
@@ -94,12 +94,12 @@ describe("Helena logic operations", () => {
       });
     });
     describe("exceptions", () => {
-      specify("non-existing method", () => {
-        expect(execute("true unknownMethod")).to.eql(
-          ERROR('unknown method "unknownMethod"')
+      specify("unknown subcommand", () => {
+        expect(execute("true unknownSubcommand")).to.eql(
+          ERROR('unknown subcommand "unknownSubcommand"')
         );
-        expect(execute("false unknownMethod")).to.eql(
-          ERROR('unknown method "unknownMethod"')
+        expect(execute("false unknownSubcommand")).to.eql(
+          ERROR('unknown subcommand "unknownSubcommand"')
         );
       });
     });

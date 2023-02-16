@@ -199,7 +199,7 @@ describe("Helena procedures", () => {
         });
       });
     });
-    describe("methods", () => {
+    describe("subcommands", () => {
       describe("argspec", () => {
         it("should return the proc argspec", () => {
           expect(evaluate("[proc {a b} {}] argspec")).to.eql(
@@ -215,14 +215,14 @@ describe("Helena procedures", () => {
         });
       });
       describe("exceptions", () => {
-        specify("non-existing method", () => {
-          expect(execute("[proc {} {}] unknownMethod")).to.eql(
-            ERROR('unknown method "unknownMethod"')
+        specify("unknown subcommand", () => {
+          expect(execute("[proc {} {}] unknownSubcommand")).to.eql(
+            ERROR('unknown subcommand "unknownSubcommand"')
           );
         });
-        specify("invalid method name", () => {
+        specify("invalid subcommand name", () => {
           expect(execute("[proc {} {}] []")).to.eql(
-            ERROR("invalid method name")
+            ERROR("invalid subcommand name")
           );
         });
       });
