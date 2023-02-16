@@ -235,6 +235,11 @@ describe("Helena closures", () => {
             ERROR('invalid method name "unknownMethod"')
           );
         });
+        specify("invalid method name", () => {
+          expect(execute("[closure {} {}] []")).to.eql(
+            ERROR("invalid method name")
+          );
+        });
       });
     });
     describe("exceptions", () => {

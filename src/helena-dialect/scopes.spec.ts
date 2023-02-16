@@ -456,6 +456,9 @@ describe("Helena scopes", () => {
             ERROR('invalid method name "unknownMethod"')
           );
         });
+        specify("invalid method name", () => {
+          expect(execute("[scope {}] []")).to.eql(ERROR("invalid method name"));
+        });
       });
     });
     describe("exceptions", () => {

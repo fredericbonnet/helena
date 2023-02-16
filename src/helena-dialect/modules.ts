@@ -48,8 +48,9 @@ class ModuleValue implements CommandValue, Command {
 
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this);
-    const method = args[1];
-    switch (method.asString()) {
+    if (!args[1].asString) return ERROR("invalid method name");
+    const method = args[1].asString();
+    switch (method) {
       case "exports": {
         if (args.length != 2) return ARITY_ERROR("<module> exports");
         return OK(new ListValue([...this.exports.values()]));
@@ -65,7 +66,7 @@ class ModuleValue implements CommandValue, Command {
         return OK(NIL);
       }
       default:
-        return ERROR(`invalid method name "${method.asString()}"`);
+        return ERROR(`invalid method name "${method}"`);
     }
   }
 }

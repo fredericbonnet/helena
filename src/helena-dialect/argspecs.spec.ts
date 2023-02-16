@@ -536,6 +536,18 @@ describe("Helena argument handling", () => {
           });
         });
       });
+      describe("exceptions", () => {
+        specify("non-existing method", () => {
+          expect(execute("[argspec {}] unknownMethod")).to.eql(
+            ERROR('invalid method name "unknownMethod"')
+          );
+        });
+        specify("invalid method name", () => {
+          expect(execute("[argspec {}] []")).to.eql(
+            ERROR("invalid method name")
+          );
+        });
+      });
     });
     describe("exceptions", () => {
       specify("wrong arity", () => {

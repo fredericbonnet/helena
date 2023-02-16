@@ -18,14 +18,15 @@ class AliasValue implements CommandValue, Command {
 
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.alias);
-    const method = args[1];
-    switch (method.asString()) {
+    if (!args[1].asString) return ERROR("invalid method name");
+    const method = args[1].asString();
+    switch (method) {
       case "command": {
         if (args.length != 2) return ARITY_ERROR("<alias> command");
         return OK(this.cmd);
       }
       default:
-        return ERROR(`invalid method name "${method.asString()}"`);
+        return ERROR(`invalid method name "${method}"`);
     }
   }
   resume(result: Result, scope: Scope): Result {

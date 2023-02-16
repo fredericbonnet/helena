@@ -257,6 +257,11 @@ describe("Helena coroutines", () => {
             ERROR('invalid method name "unknownMethod"')
           );
         });
+        specify("invalid method name", () => {
+          expect(execute("[coroutine {}] []")).to.eql(
+            ERROR("invalid method name")
+          );
+        });
       });
     });
     describe("exceptions", () => {

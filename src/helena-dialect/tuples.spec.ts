@@ -94,6 +94,11 @@ describe("Helena tuples", () => {
             ERROR('invalid subcommand name "unknownSubcommand"')
           );
         });
+        specify("invalid subcommand name", () => {
+          expect(execute("tuple () []")).to.eql(
+            ERROR("invalid subcommand name")
+          );
+        });
       });
       it("should be extensible", () => {
         evaluate(

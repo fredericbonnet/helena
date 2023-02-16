@@ -552,6 +552,11 @@ describe("Helena namespaces", () => {
             ERROR('invalid method name "unknownMethod"')
           );
         });
+        specify("invalid method name", () => {
+          expect(execute("[namespace {}] []")).to.eql(
+            ERROR("invalid method name")
+          );
+        });
       });
     });
     describe("subcommands", () => {

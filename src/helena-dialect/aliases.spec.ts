@@ -218,6 +218,11 @@ describe("Helena aliases", () => {
             ERROR('invalid method name "unknownMethod"')
           );
         });
+        specify("invalid method name", () => {
+          expect(execute("[alias cmd idem] []")).to.eql(
+            ERROR("invalid method name")
+          );
+        });
       });
     });
     describe("exceptions", () => {

@@ -461,6 +461,11 @@ describe("Helena lists", () => {
             ERROR('invalid subcommand name "unknownSubcommand"')
           );
         });
+        specify("invalid subcommand name", () => {
+          expect(execute("list () []")).to.eql(
+            ERROR("invalid subcommand name")
+          );
+        });
       });
       it("should be extensible", () => {
         evaluate(

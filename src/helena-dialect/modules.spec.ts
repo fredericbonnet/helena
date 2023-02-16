@@ -252,6 +252,11 @@ describe("Helena modules", () => {
             ERROR('invalid method name "unknownMethod"')
           );
         });
+        specify("invalid method name", () => {
+          expect(execute("[module {}] []")).to.eql(
+            ERROR("invalid method name")
+          );
+        });
       });
     });
     describe("exceptions", () => {

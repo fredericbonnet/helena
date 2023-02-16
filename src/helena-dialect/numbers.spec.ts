@@ -41,6 +41,9 @@ describe("Helena numbers", () => {
           ERROR('invalid method name "unknownMethod"')
         );
       });
+      specify("invalid method name", () => {
+        expect(execute("1 []")).to.eql(ERROR("invalid method name"));
+      });
     });
   });
 
@@ -59,6 +62,9 @@ describe("Helena numbers", () => {
         expect(execute("1.23 unknownMethod")).to.eql(
           ERROR('invalid method name "unknownMethod"')
         );
+      });
+      specify("invalid method name", () => {
+        expect(execute("1.23 []")).to.eql(ERROR("invalid method name"));
       });
     });
   });

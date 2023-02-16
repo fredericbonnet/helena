@@ -116,8 +116,9 @@ export class ArgspecValue implements CommandValue, Command {
 
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this);
-    const method = args[1];
-    switch (method.asString()) {
+    if (!args[1].asString) return ERROR("invalid method name");
+    const method = args[1].asString();
+    switch (method) {
       case "help": {
         if (args.length != 2) return ARITY_ERROR("<argspec> help");
         return OK(this.argspec.help);
@@ -130,7 +131,7 @@ export class ArgspecValue implements CommandValue, Command {
         return this.setArguments(values, scope);
       }
       default:
-        return ERROR(`invalid method name "${method.asString()}"`);
+        return ERROR(`invalid method name "${method}"`);
     }
   }
 
