@@ -494,13 +494,13 @@ describe("Helena ensembles", () => {
           });
           specify("non-existing command", () => {
             expect(execute("[ensemble {} {}] call unknownCommand")).to.eql(
-              ERROR('invalid command name "unknownCommand"')
+              ERROR('unknown command "unknownCommand"')
             );
           });
           specify("out-of-scope command", () => {
             expect(
               execute("macro cmd {} {}; [ensemble {} {}] call cmd")
-            ).to.eql(ERROR('invalid command name "cmd"'));
+            ).to.eql(ERROR('unknown command "cmd"'));
           });
           specify("invalid command name", () => {
             expect(execute("[ensemble {} {}] call []")).to.eql(
@@ -526,7 +526,7 @@ describe("Helena ensembles", () => {
       describe("exceptions", () => {
         specify("non-existing method", () => {
           expect(execute("[ensemble {} {}] unknownMethod")).to.eql(
-            ERROR('invalid method name "unknownMethod"')
+            ERROR('unknown method "unknownMethod"')
           );
         });
       });
@@ -657,14 +657,12 @@ describe("Helena ensembles", () => {
         specify("non-existing subcommand", () => {
           evaluate("ensemble cmd {} {}");
           expect(execute("cmd unknownCommand")).to.eql(
-            ERROR('invalid subcommand name "unknownCommand"')
+            ERROR('unknown subcommand "unknownCommand"')
           );
         });
         specify("out-of-scope subcommand", () => {
           evaluate("macro mac {} {}; ensemble cmd {} {}");
-          expect(execute("cmd mac")).to.eql(
-            ERROR('invalid subcommand name "mac"')
-          );
+          expect(execute("cmd mac")).to.eql(ERROR('unknown subcommand "mac"'));
         });
         specify("invalid subcommand", () => {
           evaluate("ensemble cmd {} {}");

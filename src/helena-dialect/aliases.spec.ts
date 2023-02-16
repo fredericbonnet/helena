@@ -215,7 +215,7 @@ describe("Helena aliases", () => {
       describe("exceptions", () => {
         specify("non-existing method", () => {
           expect(execute("[alias cmd idem] unknownMethod")).to.eql(
-            ERROR('invalid method name "unknownMethod"')
+            ERROR('unknown method "unknownMethod"')
           );
         });
         specify("invalid method name", () => {

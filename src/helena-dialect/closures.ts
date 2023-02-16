@@ -30,7 +30,7 @@ class ClosureValue implements CommandValue, Command {
         if (args.length != 2) return ARITY_ERROR("<closure> argspec");
         return OK(this.argspec);
       default:
-        return ERROR(`invalid method name "${method}"`);
+        return ERROR(`unknown method "${method}"`);
     }
   }
 }

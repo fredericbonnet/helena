@@ -463,12 +463,12 @@ describe("Helena namespaces", () => {
           });
           specify("non-existing command", () => {
             expect(execute("[namespace {}] call unknownCommand")).to.eql(
-              ERROR('invalid command name "unknownCommand"')
+              ERROR('unknown command "unknownCommand"')
             );
           });
           specify("out-of-scope command", () => {
             expect(execute("macro cmd {} {}; [namespace {}] call cmd")).to.eql(
-              ERROR('invalid command name "cmd"')
+              ERROR('unknown command "cmd"')
             );
           });
           specify("invalid command name", () => {
@@ -549,7 +549,7 @@ describe("Helena namespaces", () => {
       describe("exceptions", () => {
         specify("non-existing method", () => {
           expect(execute("[namespace {}] unknownMethod")).to.eql(
-            ERROR('invalid method name "unknownMethod"')
+            ERROR('unknown method "unknownMethod"')
           );
         });
         specify("invalid method name", () => {
@@ -655,14 +655,12 @@ describe("Helena namespaces", () => {
         specify("non-existing command", () => {
           evaluate("namespace cmd {}");
           expect(execute("cmd unknownCommand")).to.eql(
-            ERROR('invalid command name "unknownCommand"')
+            ERROR('unknown command "unknownCommand"')
           );
         });
         specify("out-of-scope command", () => {
           evaluate("macro mac {} {}; namespace cmd {}");
-          expect(execute("cmd mac")).to.eql(
-            ERROR('invalid command name "mac"')
-          );
+          expect(execute("cmd mac")).to.eql(ERROR('unknown command "mac"'));
         });
         specify("invalid command name", () => {
           evaluate("namespace cmd {}");

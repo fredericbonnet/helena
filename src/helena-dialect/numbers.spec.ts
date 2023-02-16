@@ -38,7 +38,7 @@ describe("Helena numbers", () => {
     describe("exceptions", () => {
       specify("non-existing method", () => {
         expect(execute("1 unknownMethod")).to.eql(
-          ERROR('invalid method name "unknownMethod"')
+          ERROR('unknown method "unknownMethod"')
         );
       });
       specify("invalid method name", () => {
@@ -60,7 +60,7 @@ describe("Helena numbers", () => {
     describe("exceptions", () => {
       specify("non-existing method", () => {
         expect(execute("1.23 unknownMethod")).to.eql(
-          ERROR('invalid method name "unknownMethod"')
+          ERROR('unknown method "unknownMethod"')
         );
       });
       specify("invalid method name", () => {

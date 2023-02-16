@@ -34,7 +34,7 @@ export const trueCmd: Command = {
           return ARITY_ERROR("true !? arg ?arg?");
         return OK(args.length == 4 ? args[3] : NIL);
       default:
-        return ERROR(`invalid method name "${method}"`);
+        return ERROR(`unknown method "${method}"`);
     }
   },
 };
@@ -52,7 +52,7 @@ export const falseCmd: Command = {
           return ARITY_ERROR("false !? arg ?arg?");
         return OK(args[2]);
       default:
-        return ERROR(`invalid method name "${method}"`);
+        return ERROR(`unknown method "${method}"`);
     }
   },
 };

@@ -66,7 +66,7 @@ class ModuleValue implements CommandValue, Command {
         return OK(NIL);
       }
       default:
-        return ERROR(`invalid method name "${method}"`);
+        return ERROR(`unknown method "${method}"`);
     }
   }
 }

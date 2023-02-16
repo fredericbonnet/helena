@@ -56,7 +56,7 @@ export class EnsembleValue implements CommandValue, Command {
         const subcommand = args[2];
         if (!subcommand.asString) return ERROR("invalid command name");
         if (!this.scope.hasLocalCommand(subcommand.asString()))
-          return ERROR(`invalid command name "${subcommand.asString()}"`);
+          return ERROR(`unknown command "${subcommand.asString()}"`);
         const command = this.scope.resolveCommand(subcommand);
         const cmdline = [new EnsembleCommandValue(command), ...args.slice(3)];
         return YIELD(new DeferredValue(new TupleValue(cmdline), scope));
@@ -65,7 +65,7 @@ export class EnsembleValue implements CommandValue, Command {
         if (args.length != 2) return ARITY_ERROR("<ensemble> argspec");
         return OK(this.argspec);
       default:
-        return ERROR(`invalid method name "${method}"`);
+        return ERROR(`unknown method "${method}"`);
     }
   }
 }
@@ -91,7 +91,7 @@ class EnsembleCommand implements Command {
     const subcommand = args[minArgs];
     if (!subcommand.asString) return ERROR("invalid subcommand name");
     if (!this.value.scope.hasLocalCommand(subcommand.asString()))
-      return ERROR(`invalid subcommand name "${subcommand.asString()}"`);
+      return ERROR(`unknown subcommand "${subcommand.asString()}"`);
     const command = this.value.scope.resolveCommand(subcommand);
     const cmdline = [
       new EnsembleCommandValue(command),

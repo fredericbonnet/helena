@@ -26,7 +26,7 @@ class AliasValue implements CommandValue, Command {
         return OK(this.cmd);
       }
       default:
-        return ERROR(`invalid method name "${method}"`);
+        return ERROR(`unknown method "${method}"`);
     }
   }
   resume(result: Result, scope: Scope): Result {

@@ -466,7 +466,7 @@ describe("Helena dictionaries", () => {
       describe("exceptions", () => {
         specify("non-existing subcommand", () => {
           expect(execute("dict () unknownSubcommand")).to.eql(
-            ERROR('invalid subcommand name "unknownSubcommand"')
+            ERROR('unknown subcommand "unknownSubcommand"')
           );
         });
         specify("invalid subcommand name", () => {

@@ -96,10 +96,10 @@ describe("Helena logic operations", () => {
     describe("exceptions", () => {
       specify("non-existing method", () => {
         expect(execute("true unknownMethod")).to.eql(
-          ERROR('invalid method name "unknownMethod"')
+          ERROR('unknown method "unknownMethod"')
         );
         expect(execute("false unknownMethod")).to.eql(
-          ERROR('invalid method name "unknownMethod"')
+          ERROR('unknown method "unknownMethod"')
         );
       });
     });

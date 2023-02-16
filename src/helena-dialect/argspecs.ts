@@ -131,7 +131,7 @@ export class ArgspecValue implements CommandValue, Command {
         return this.setArguments(values, scope);
       }
       default:
-        return ERROR(`invalid method name "${method}"`);
+        return ERROR(`unknown method "${method}"`);
     }
   }
 

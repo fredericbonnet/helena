@@ -539,7 +539,7 @@ describe("Helena argument handling", () => {
       describe("exceptions", () => {
         specify("non-existing method", () => {
           expect(execute("[argspec {}] unknownMethod")).to.eql(
-            ERROR('invalid method name "unknownMethod"')
+            ERROR('unknown method "unknownMethod"')
           );
         });
         specify("invalid method name", () => {

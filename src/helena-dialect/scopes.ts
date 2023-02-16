@@ -42,12 +42,12 @@ class ScopeValue implements CommandValue, Command {
         const command = args[2];
         if (!command.asString) return ERROR("invalid command name");
         if (!this.scope.hasLocalCommand(command.asString()))
-          return ERROR(`invalid command name "${command.asString()}"`);
+          return ERROR(`unknown command "${command.asString()}"`);
         const cmdline = args.slice(2);
         return YIELD(new DeferredValue(new TupleValue(cmdline), this.scope));
       }
       default:
-        return ERROR(`invalid method name "${method}"`);
+        return ERROR(`unknown method "${method}"`);
     }
   }
 }

@@ -249,7 +249,7 @@ describe("Helena modules", () => {
       describe("exceptions", () => {
         specify("non-existing method", () => {
           expect(execute("[module {}] unknownMethod")).to.eql(
-            ERROR('invalid method name "unknownMethod"')
+            ERROR('unknown method "unknownMethod"')
           );
         });
         specify("invalid method name", () => {

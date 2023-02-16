@@ -31,7 +31,7 @@ export const numberCmd = {
       case "<=":
         return leOp(args, operand1);
       default:
-        return ERROR(`invalid method name "${method}"`);
+        return ERROR(`unknown method "${method}"`);
     }
   },
 };

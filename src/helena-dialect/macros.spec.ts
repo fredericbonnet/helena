@@ -253,7 +253,7 @@ describe("Helena macros", () => {
       describe("exceptions", () => {
         specify("non-existing method", () => {
           expect(execute("[macro {} {}] unknownMethod")).to.eql(
-            ERROR('invalid method name "unknownMethod"')
+            ERROR('unknown method "unknownMethod"')
           );
         });
       });

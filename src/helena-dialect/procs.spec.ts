@@ -217,7 +217,7 @@ describe("Helena procedures", () => {
       describe("exceptions", () => {
         specify("non-existing method", () => {
           expect(execute("[proc {} {}] unknownMethod")).to.eql(
-            ERROR('invalid method name "unknownMethod"')
+            ERROR('unknown method "unknownMethod"')
           );
         });
         specify("invalid method name", () => {

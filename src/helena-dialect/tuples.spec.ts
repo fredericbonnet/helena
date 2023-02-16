@@ -91,7 +91,7 @@ describe("Helena tuples", () => {
       describe("exceptions", () => {
         specify("non-existing subcommand", () => {
           expect(execute("tuple () unknownSubcommand")).to.eql(
-            ERROR('invalid subcommand name "unknownSubcommand"')
+            ERROR('unknown subcommand "unknownSubcommand"')
           );
         });
         specify("invalid subcommand name", () => {

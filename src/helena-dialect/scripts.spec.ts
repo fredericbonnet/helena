@@ -198,7 +198,7 @@ describe("Helena scripts", () => {
       describe("exceptions", () => {
         specify("non-existing subcommand", () => {
           expect(execute("script {} unknownSubcommand")).to.eql(
-            ERROR('invalid subcommand name "unknownSubcommand"')
+            ERROR('unknown subcommand "unknownSubcommand"')
           );
         });
         specify("invalid subcommand name", () => {

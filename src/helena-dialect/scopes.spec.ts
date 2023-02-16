@@ -435,12 +435,12 @@ describe("Helena scopes", () => {
           });
           specify("non-existing command", () => {
             expect(execute("[scope {}] call unknownCommand")).to.eql(
-              ERROR('invalid command name "unknownCommand"')
+              ERROR('unknown command "unknownCommand"')
             );
           });
           specify("out-of-scope command", () => {
             expect(execute("macro cmd {} {}; [scope {}] call cmd")).to.eql(
-              ERROR('invalid command name "cmd"')
+              ERROR('unknown command "cmd"')
             );
           });
           specify("invalid command name", () => {
@@ -453,7 +453,7 @@ describe("Helena scopes", () => {
       describe("exceptions", () => {
         specify("non-existing method", () => {
           expect(execute("[scope {}] unknownMethod")).to.eql(
-            ERROR('invalid method name "unknownMethod"')
+            ERROR('unknown method "unknownMethod"')
           );
         });
         specify("invalid method name", () => {

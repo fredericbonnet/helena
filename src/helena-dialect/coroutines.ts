@@ -57,7 +57,7 @@ class CoroutineValue implements CommandValue, Command {
         return this.run();
       }
       default:
-        return ERROR(`invalid method name "${method}"`);
+        return ERROR(`unknown method "${method}"`);
     }
   }
 
