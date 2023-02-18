@@ -43,8 +43,8 @@ export class EnsembleValue implements CommandValue, Command {
 
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this);
-    if (!args[1].asString) return ERROR("invalid subcommand name");
-    const subcommand = args[1].asString();
+    const subcommand = args[1].asString?.();
+    if (subcommand == null) return ERROR("invalid subcommand name");
     switch (subcommand) {
       case "eval": {
         if (args.length != 3) return ARITY_ERROR("<ensemble> eval body");
@@ -53,11 +53,11 @@ export class EnsembleValue implements CommandValue, Command {
       case "call": {
         if (args.length < 3)
           return ARITY_ERROR("<ensemble> call cmdname ?arg ...?");
-        const subcommand = args[2];
-        if (!subcommand.asString) return ERROR("invalid command name");
-        if (!this.scope.hasLocalCommand(subcommand.asString()))
-          return ERROR(`unknown command "${subcommand.asString()}"`);
-        const command = this.scope.resolveCommand(subcommand);
+        const subcommand = args[2].asString?.();
+        if (subcommand == null) return ERROR("invalid command name");
+        if (!this.scope.hasLocalCommand(subcommand))
+          return ERROR(`unknown command "${subcommand}"`);
+        const command = this.scope.resolveNamedCommand(subcommand);
         const cmdline = [new EnsembleCommandValue(command), ...args.slice(3)];
         return YIELD(new DeferredValue(new TupleValue(cmdline), scope));
       }
@@ -88,11 +88,11 @@ class EnsembleCommand implements Command {
     if (args.length == minArgs) {
       return OK(new TupleValue(args.slice(1)));
     }
-    const subcommand = args[minArgs];
-    if (!subcommand.asString) return ERROR("invalid subcommand name");
-    if (!this.value.scope.hasLocalCommand(subcommand.asString()))
-      return ERROR(`unknown subcommand "${subcommand.asString()}"`);
-    const command = this.value.scope.resolveCommand(subcommand);
+    const subcommand = args[minArgs].asString?.();
+    if (subcommand == null) return ERROR("invalid subcommand name");
+    if (!this.value.scope.hasLocalCommand(subcommand))
+      return ERROR(`unknown subcommand "${subcommand}"`);
+    const command = this.value.scope.resolveNamedCommand(subcommand);
     const cmdline = [
       new EnsembleCommandValue(command),
       ...args.slice(1, minArgs),

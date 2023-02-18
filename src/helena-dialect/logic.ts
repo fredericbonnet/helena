@@ -23,7 +23,8 @@ import { Process, Scope } from "./core";
 export const trueCmd: Command = {
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(TRUE);
-    const subcommand = args[1].asString();
+    const subcommand = args[1].asString?.();
+    if (subcommand == null) return ERROR("invalid subcommand name");
     switch (subcommand) {
       case "?":
         if (args.length < 3 || args.length > 4)
@@ -41,7 +42,8 @@ export const trueCmd: Command = {
 export const falseCmd: Command = {
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(FALSE);
-    const subcommand = args[1].asString();
+    const subcommand = args[1].asString?.();
+    if (subcommand == null) return ERROR("invalid subcommand name");
     switch (subcommand) {
       case "?":
         if (args.length < 3 || args.length > 4)

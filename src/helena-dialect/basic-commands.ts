@@ -44,7 +44,7 @@ const tailcallCmd: Command = {
 const errorCmd: Command = {
   execute: (args) => {
     if (args.length != 2) return ARITY_ERROR("error message");
-    if (!args[1].asString) return ERROR("invalid message");
+    if (args[1].asString?.() == null) return ERROR("invalid message");
     return {
       code: ResultCode.ERROR,
       value: args[1],

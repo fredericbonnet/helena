@@ -206,14 +206,15 @@ export class InlineEvaluator implements Evaluator {
       const values = this.getWordValues(sentence.words);
       if (values.length == 0) return OK(NIL);
       if (!this.commandResolver) throw new Error("no command resolver");
-      const cmdname = values[0];
-      const command = this.commandResolver.resolve(cmdname);
-      if (!command)
+      const command = this.commandResolver.resolve(values[0]);
+      if (!command) {
+        const cmdname = values[0].asString?.();
         return ERROR(
-          cmdname.asString
-            ? `cannot resolve command "${cmdname.asString()}"`
-            : `invalid command name`
+          cmdname == null
+            ? `invalid command name`
+            : `cannot resolve command "${cmdname}"`
         );
+      }
       return command.execute(values, this.context);
     } catch (e) {
       if (e instanceof Interrupt) return e.result;
@@ -521,10 +522,12 @@ export class InlineEvaluator implements Evaluator {
           qualified.selectors
         );
       }
-      default:
-        if (!source.asString)
+      default: {
+        const varname = source.asString?.();
+        if (varname == null)
           throw new Interrupt(ERROR(`invalid variable name`));
-        return this.resolveVariable(source.asString());
+        return this.resolveVariable(varname);
+      }
     }
   }
   private resolveLevels(value: Value, levels: number): Value {

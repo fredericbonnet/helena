@@ -10,8 +10,8 @@ export const numberCmd = {
     const { data: operand1, ...result } = NumberValue.toNumber(args[0]);
     if (result.code != ResultCode.OK) return result;
     if (args.length == 1) return OK(numberToValue(operand1));
-    if (!args[1].asString) return ERROR("invalid subcommand name");
-    const subcommand = args[1].asString();
+    const subcommand = args[1].asString?.();
+    if (subcommand == null) return ERROR("invalid subcommand name");
     switch (subcommand) {
       case "+":
       case "-":
@@ -44,8 +44,8 @@ const arithmetics = (args: Value[], operand1: number): Result => {
   let total = 0;
   let last = operand1;
   for (let i = 1; i < args.length; i += 2) {
-    if (!args[i].asString) return ERROR(`invalid operator`);
-    const operator = args[i].asString();
+    const operator = args[i].asString?.();
+    if (operator == null) return ERROR(`invalid operator`);
     switch (operator) {
       case "+": {
         const { data: operator2, ...result } = NumberValue.toNumber(

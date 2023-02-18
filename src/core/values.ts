@@ -251,10 +251,7 @@ export class NumberValue implements Value {
       case ValueType.NUMBER:
         return true;
       default: {
-        if (!value.asString) return false;
-        const s = value.asString();
-        const n = Number(s);
-        return !isNaN(n);
+        return !isNaN(Number(value.asString?.()));
       }
     }
   }
@@ -313,9 +310,10 @@ export class StringValue implements Value {
    */
   static fromValue(value: Value): Result<StringValue> {
     if (value.type == ValueType.STRING) return OK(value, value as StringValue);
-    if (!value.asString) return ERROR("value has no string representation");
-    const str = new StringValue(value.asString());
-    return OK(str, str);
+    const str = value.asString?.();
+    if (str == null) return ERROR("value has no string representation");
+    const s = new StringValue(str);
+    return OK(s, s);
   }
 
   /**
@@ -326,8 +324,8 @@ export class StringValue implements Value {
    * @returns       Conversion result
    */
   static toString(value: Value): Result<string> {
-    if (!value.asString) return ERROR("value has no string representation");
-    const str = value.asString();
+    const str = value.asString?.();
+    if (str == null) return ERROR("value has no string representation");
     return OK(NIL, str);
   }
 
@@ -459,8 +457,8 @@ export class MapValue implements Value {
 
   /** @override */
   selectKey(key: Value): Result {
-    if (!key.asString) return ERROR("invalid key");
-    const k = key.asString();
+    const k = key.asString?.();
+    if (k == null) return ERROR("invalid key");
     if (!this.map.has(k)) return ERROR("unknown key");
     return OK(this.map.get(k));
   }

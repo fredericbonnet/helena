@@ -102,6 +102,10 @@ describe("Helena logic operations", () => {
           ERROR('unknown subcommand "unknownSubcommand"')
         );
       });
+      specify("invalid subcommand name", () => {
+        expect(execute("true []")).to.eql(ERROR("invalid subcommand name"));
+        expect(execute("false []")).to.eql(ERROR("invalid subcommand name"));
+      });
     });
   });
 

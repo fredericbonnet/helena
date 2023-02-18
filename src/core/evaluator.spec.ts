@@ -97,12 +97,9 @@ class IntCommand implements Command {
 const INT_CMD = new IntCommand();
 class MockCommandResolver implements CommandResolver {
   resolve(name: Value): Command {
-    if (
-      name.type == ValueType.INTEGER ||
-      (name.asString && !isNaN(parseInt(name.asString())))
-    )
+    if (name.type == ValueType.INTEGER || !isNaN(parseInt(name.asString?.())))
       return INT_CMD;
-    if (name.asString) return this.commands.get(name.asString());
+    return this.commands.get(name.asString?.());
   }
 
   commands: Map<string, Command> = new Map();

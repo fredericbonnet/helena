@@ -51,8 +51,8 @@ const dictHasCmd: Command = {
     if (args.length != 3) return ARITY_ERROR("dict value has key");
     const { data: map, ...result } = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
-    if (!args[2].asString) return ERROR("invalid key");
-    const key = args[2].asString();
+    const key = args[2].asString?.();
+    if (key == null) return ERROR("invalid key");
     return OK(map.has(key) ? TRUE : FALSE);
   },
 };
@@ -69,16 +69,16 @@ const dictGetCmd: Command = {
         const keys = (args[2] as TupleValue).values;
         const values = [];
         for (const k of keys) {
-          if (!k.asString) return ERROR("invalid key");
-          const key = k.asString();
+          const key = k.asString?.();
+          if (key == null) return ERROR("invalid key");
           if (!map.has(key)) return ERROR(`unknown key "${key}"`);
           values.push(map.get(key));
         }
         return OK(new TupleValue(values));
       }
       default: {
-        if (!args[2].asString) return ERROR("invalid key");
-        const key = args[2].asString();
+        const key = args[2].asString?.();
+        if (key == null) return ERROR("invalid key");
         if (!map.has(key))
           return args.length == 4 ? OK(args[3]) : ERROR(`unknown key "${key}"`);
         return OK(map.get(key));
@@ -91,8 +91,8 @@ const dictAddCmd: Command = {
     if (args.length != 4) return ARITY_ERROR("dict value add key value");
     const { data: map, ...result } = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
-    if (!args[2].asString) return ERROR("invalid key");
-    const key = args[2].asString();
+    const key = args[2].asString?.();
+    if (key == null) return ERROR("invalid key");
     const clone = new Map(map);
     return OK(new MapValue(clone.set(key, args[3])));
   },
@@ -104,8 +104,8 @@ const dictRemoveCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     const clone = new Map(map);
     for (let i = 2; i < args.length; i++) {
-      if (!args[i].asString) return ERROR("invalid key");
-      const key = args[i].asString();
+      const key = args[i].asString?.();
+      if (key == null) return ERROR("invalid key");
       clone.delete(key);
     }
     return OK(new MapValue(clone));
@@ -266,9 +266,8 @@ function valueToMap(value: Value): Result<Map<string, Value>> {
   if (values.length % 2 != 0) return ERROR("invalid key-value list");
   const map = new Map();
   for (let i = 0; i < values.length; i += 2) {
-    if (!values[i].asString) return ERROR("invalid key");
-    const key = values[i].asString();
-    if (result.code != ResultCode.OK) return result;
+    const key = values[i].asString?.();
+    if (key == null) return ERROR("invalid key");
     const value = values[i + 1];
     map.set(key, value);
   }

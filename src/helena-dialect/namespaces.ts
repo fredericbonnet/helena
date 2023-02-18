@@ -35,8 +35,8 @@ class NamespaceValue implements CommandValue, Command {
 
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this);
-    if (!args[1].asString) return ERROR("invalid subcommand name");
-    const subcommand = args[1].asString();
+    const subcommand = args[1].asString?.();
+    if (subcommand == null) return ERROR("invalid subcommand name");
     switch (subcommand) {
       case "eval": {
         if (args.length != 3) return ARITY_ERROR("<namespace> eval body");
@@ -45,17 +45,17 @@ class NamespaceValue implements CommandValue, Command {
       case "call": {
         if (args.length < 3)
           return ARITY_ERROR("<namespace> call cmdname ?arg ...?");
-        const command = args[2];
-        if (!command.asString) return ERROR("invalid command name");
-        if (!this.scope.hasLocalCommand(command.asString()))
-          return ERROR(`unknown command "${command.asString()}"`);
+        const command = args[2].asString?.();
+        if (command == null) return ERROR("invalid command name");
+        if (!this.scope.hasLocalCommand(command))
+          return ERROR(`unknown command "${command}"`);
         const cmdline = args.slice(2);
         return YIELD(new DeferredValue(new TupleValue(cmdline), this.scope));
       }
       case "import": {
         if (args.length != 3) return ARITY_ERROR("<namespace> import name");
-        if (!args[2].asString) return ERROR("invalid import name");
-        const name = args[2].asString();
+        const name = args[2].asString?.();
+        if (!name) return ERROR("invalid import name");
         const command = this.scope.resolveNamedCommand(name);
         if (!command) return ERROR(`cannot resolve imported command "${name}"`);
         scope.registerNamedCommand(name, command);
@@ -75,10 +75,10 @@ class NamespaceCommand implements Command {
 
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.value);
-    const command = args[1];
-    if (!command.asString) return ERROR("invalid command name");
-    if (!this.value.scope.hasLocalCommand(command.asString()))
-      return ERROR(`unknown command "${command.asString()}"`);
+    const command = args[1].asString?.();
+    if (command == null) return ERROR("invalid command name");
+    if (!this.value.scope.hasLocalCommand(command))
+      return ERROR(`unknown command "${command}"`);
     const cmdline = args.slice(1);
     return YIELD(new DeferredValue(new TupleValue(cmdline), this.value.scope));
   }

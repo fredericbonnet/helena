@@ -38,8 +38,8 @@ class ProcValue implements CommandValue, Command {
 
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.proc);
-    if (!args[1].asString) return ERROR("invalid subcommand name");
-    const subcommand = args[1].asString();
+    const subcommand = args[1].asString?.();
+    if (subcommand == null) return ERROR("invalid subcommand name");
     switch (subcommand) {
       case "argspec":
         if (args.length != 2) return ARITY_ERROR("<proc> argspec");

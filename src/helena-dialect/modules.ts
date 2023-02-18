@@ -28,8 +28,8 @@ class ExportCommand implements Command {
   }
   execute(args: Value[]): Result {
     if (args.length != 2) return ARITY_ERROR("export name");
-    if (!args[1].asString) return ERROR("invalid export name");
-    const name = args[1].asString();
+    const name = args[1].asString?.();
+    if (name == null) return ERROR("invalid export name");
     this.exports.set(name, new StringValue(name));
     return OK(NIL);
   }
@@ -48,8 +48,8 @@ class ModuleValue implements CommandValue, Command {
 
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this);
-    if (!args[1].asString) return ERROR("invalid subcommand name");
-    const subcommand = args[1].asString();
+    const subcommand = args[1].asString?.();
+    if (subcommand == null) return ERROR("invalid subcommand name");
     switch (subcommand) {
       case "exports": {
         if (args.length != 2) return ARITY_ERROR("<module> exports");
@@ -57,8 +57,8 @@ class ModuleValue implements CommandValue, Command {
       }
       case "import": {
         if (args.length != 3) return ARITY_ERROR("<module> import name");
-        if (!args[2].asString) return ERROR("invalid import name");
-        const name = args[2].asString();
+        const name = args[2].asString?.();
+        if (name == null) return ERROR("invalid import name");
         if (!this.exports.has(name)) return ERROR(`unknown export "${name}"`);
         const command = this.scope.resolveNamedCommand(name);
         if (!command) return ERROR(`cannot resolve export "${name}"`);

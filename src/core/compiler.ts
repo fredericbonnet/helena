@@ -784,14 +784,15 @@ export class Executor {
           {
             const args = state.pop() as TupleValue;
             if (args.values.length) {
-              const cmdname = args.values[0];
-              const command = this.resolveCommand(cmdname);
-              if (!command)
+              const command = this.resolveCommand(args.values[0]);
+              if (!command) {
+                const cmdname = args.values[0].asString?.();
                 return ERROR(
-                  cmdname.asString
-                    ? `cannot resolve command "${cmdname.asString()}"`
-                    : `invalid command name`
+                  cmdname == null
+                    ? `invalid command name`
+                    : `cannot resolve command "${cmdname}"`
                 );
+              }
               state.command = command;
               state.result = state.command.execute(args.values, this.context);
               if (state.result.code != ResultCode.OK) return state.result;
@@ -892,9 +893,11 @@ export class Executor {
         );
       case ValueType.QUALIFIED:
         return this.resolveQualified(source as QualifiedValue);
-      default:
-        if (!source.asString) return ERROR("invalid variable name");
-        return this.resolveVariable(source.asString());
+      default: {
+        const varname = source.asString?.();
+        if (varname == null) return ERROR("invalid variable name");
+        return this.resolveVariable(varname);
+      }
     }
   }
   private resolveQualified(qualified: QualifiedValue): Result {
@@ -1096,14 +1099,15 @@ export class Translator {
           {
             const args = state.pop();
             if (args.values.length) {
-              const cmdname = args.values[0];
-              const command = resolver.resolveCommand(cmdname);
-              if (!command)
+              const command = resolver.resolveCommand(args.values[0]);
+              if (!command) {
+                const cmdname = args.values[0].asString?.();
                 return ERROR(
-                  cmdname.asString
-                    ? \`cannot resolve command "\${cmdname.asString()}"\`
-                    : \`invalid command name\`
+                  cmdname == null
+                    ? \`invalid command name\`
+                    : \`cannot resolve command "\${cmdname}"\`
                 );
+              }
               state.command = command;
               state.result = state.command.execute(args.values, context);
               if (state.result.code != ResultCode.OK) return state.result;

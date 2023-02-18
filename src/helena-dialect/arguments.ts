@@ -39,8 +39,8 @@ function buildArgument(value: Value): Result<Argument> {
       const { data: specs, ...result } = valueToArray(value);
       if (result.code != ResultCode.OK) return result;
       if (specs.length == 0) return ERROR("empty argument specifier");
-      if (!specs[0].asString) return ERROR("invalid argument name");
-      const name = specs[0].asString();
+      const name = specs[0].asString?.();
+      if (name == null) return ERROR("invalid argument name");
       if (name == "" || name == "?") return ERROR("empty argument name");
       if (specs.length > 2)
         return ERROR(`too many specifiers for argument "${name}"`);
@@ -62,8 +62,8 @@ function buildArgument(value: Value): Result<Argument> {
       }
     }
     default: {
-      if (!value.asString) return ERROR("invalid argument name");
-      const name = value.asString();
+      const name = value.asString?.();
+      if (name == null) return ERROR("invalid argument name");
       if (name == "" || name == "?") return ERROR("empty argument name");
       if (name[0] == "*") {
         if (name.length == 1) {

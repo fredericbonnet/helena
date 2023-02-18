@@ -205,8 +205,8 @@ class IfCommand implements Command {
     if (args.length == 2) return ERROR("wrong # args: missing if body");
     let i = 3;
     while (i < args.length) {
-      if (!args[i].asString) return ERROR("invalid keyword");
-      const keyword = args[i].asString();
+      const keyword = args[i].asString?.();
+      if (keyword == null) return ERROR("invalid keyword");
       switch (keyword) {
         case "elseif":
           switch (args.length - i) {
@@ -579,8 +579,8 @@ class CatchCommand implements Command {
   private checkArgs(args: Value[]): Result {
     let i = 2;
     while (i < args.length) {
-      if (!args[i].asString) return ERROR("invalid keyword");
-      const keyword = args[i].asString();
+      const keyword = args[i].asString?.();
+      if (keyword == null) return ERROR("invalid keyword");
       switch (keyword) {
         case "return":
         case "yield":
@@ -591,7 +591,7 @@ class CatchCommand implements Command {
             case 2:
               return ERROR(`wrong #args: missing ${keyword} handler body`);
             default:
-              if (!args[i + 1].asString)
+              if (!args[i + 1].asString?.())
                 return ERROR(`invalid ${keyword} handler parameter name`);
               i += 3;
           }
