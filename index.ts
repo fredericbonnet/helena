@@ -2,6 +2,8 @@
 import * as fs from "fs";
 import { exit } from "process";
 import * as repl from "repl";
+import * as util from "node:util";
+import { display } from "./src/core/display";
 import { Parser, TokenStream } from "./src/core/parser";
 import { ResultCode } from "./src/core/results";
 import { Tokenizer, TokenType } from "./src/core/tokenizer";
@@ -38,6 +40,10 @@ function prompt() {
   initCommands(rootScope);
   repl.start({
     eval: (cmd, _context, _filename, callback) => run(rootScope, cmd, callback),
+    writer: (output) => {
+      if (output instanceof Error) return util.inspect(output);
+      return display(output);
+    },
   });
 }
 function run(scope: Scope, cmd, callback?: (err?: Error, result?) => void) {

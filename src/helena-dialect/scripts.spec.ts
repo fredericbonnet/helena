@@ -90,8 +90,9 @@ describe("Helena scripts", () => {
         expect(evaluate("script ()")).to.be.instanceOf(ScriptValue);
       });
       specify("string value should be undefined", () => {
-        expect((evaluate("script ()") as ScriptValue).value).to.be.undefined;
-        expect((evaluate("script (a b)") as ScriptValue).value).to.be.undefined;
+        expect((evaluate("script ()") as ScriptValue).source).to.be.undefined;
+        expect((evaluate("script (a b)") as ScriptValue).source).to.be
+          .undefined;
       });
       specify("empty tuples should return empty scripts", () => {
         const script = evaluate("script ()") as ScriptValue;

@@ -3,14 +3,15 @@
  */
 
 import { ERROR, OK, Result, ResultCode } from "./results";
-import { NIL, Value } from "./values";
+import { NIL, TupleValue, Value, ValueType } from "./values";
+import { defaultDisplayFunction, Displayable, displayList } from "./display";
 
 /**
  * Helena selector
  *
  * Selectors apply to values to access their subvalues
  */
-export interface Selector {
+export interface Selector extends Displayable {
   /**
    * Apply selector to given value
    *
@@ -46,6 +47,11 @@ export class IndexedSelector implements Selector {
     if (!value.selectIndex) return ERROR("value is not index-selectable");
     return value.selectIndex(this.index);
   }
+
+  /** @override */
+  display(fn = defaultDisplayFunction): string {
+    return `[${this.index.display(fn)}]`;
+  }
 }
 
 /**
@@ -77,6 +83,11 @@ export class KeyedSelector implements Selector {
     }
     return OK(value);
   }
+
+  /** @override */
+  display(fn = defaultDisplayFunction): string {
+    return `(${displayList(this.keys, fn)})`;
+  }
 }
 
 /**
@@ -102,5 +113,16 @@ export class GenericSelector implements Selector {
     if (!value.select && !value.selectRules)
       return ERROR("value is not selectable");
     return value.select ? value.select(this) : value.selectRules(this.rules);
+  }
+
+  /** @override */
+  display(fn = defaultDisplayFunction): string {
+    return `{${this.rules
+      .map((rule) =>
+        rule.type == ValueType.TUPLE
+          ? displayList((rule as TupleValue).values, fn)
+          : rule.display(fn)
+      )
+      .join("; ")}}`;
   }
 }

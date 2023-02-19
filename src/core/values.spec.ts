@@ -1,6 +1,12 @@
 import { expect } from "chai";
+import { undisplayableValue } from "./display";
 import { ERROR, OK } from "./results";
-import { GenericSelector, IndexedSelector, KeyedSelector } from "./selectors";
+import {
+  GenericSelector,
+  IndexedSelector,
+  KeyedSelector,
+  Selector,
+} from "./selectors";
 import { Script } from "./syntax";
 import {
   NIL,
@@ -22,6 +28,9 @@ describe("values", () => {
   describe("NIL", () => {
     specify("type should be NIL", () => {
       expect(NIL.type).to.eql(ValueType.NIL);
+    });
+    it("should be displayed as an empty expression", () => {
+      expect(NIL.display()).to.eql("[]");
     });
     it("should have no string representation", () => {
       expect(NIL).to.not.have.property("asString");
@@ -51,6 +60,10 @@ describe("values", () => {
     specify("type should be BOOLEAN", () => {
       expect(TRUE.type).to.eql(ValueType.BOOLEAN);
       expect(FALSE.type).to.eql(ValueType.BOOLEAN);
+    });
+    it("should be displayed as true or false literals", () => {
+      expect(TRUE.display()).to.eql("true");
+      expect(FALSE.display()).to.eql("false");
     });
     specify("string representation should be true or false", () => {
       expect(TRUE.asString()).to.eql("true");
@@ -131,6 +144,11 @@ describe("values", () => {
       const value = new IntegerValue(123);
       expect(value.type).to.eql(ValueType.INTEGER);
     });
+    it("should be displayed as a literal decimal value", () => {
+      const integer = 0x1234;
+      const value = new IntegerValue(integer);
+      expect(value.display()).to.eql("4660");
+    });
     specify(
       "string representation should be the decimal representation of its value",
       () => {
@@ -185,6 +203,11 @@ describe("values", () => {
     specify("type should be NUMBER", () => {
       const value = new NumberValue(12.3);
       expect(value.type).to.eql(ValueType.NUMBER);
+    });
+    it("should be displayed as a literal decimal value", () => {
+      const integer = 123.4;
+      const value = new NumberValue(integer);
+      expect(value.display()).to.eql("123.4");
     });
     specify(
       "string representation should be the decimal representation of its value",
@@ -244,6 +267,25 @@ describe("values", () => {
     specify("type should be STRING", () => {
       const value = new StringValue("some string");
       expect(value.type).to.eql(ValueType.STRING);
+    });
+    describe("should be displayed as a Helena string", () => {
+      specify("empty string", () => {
+        const string = "";
+        const value = new StringValue(string);
+        expect(value.display()).to.eql(`""`);
+      });
+      specify("simple string", () => {
+        const string = "some string";
+        const value = new StringValue(string);
+        expect(value.display()).to.eql(`"some string"`);
+      });
+      specify("string with special characters", () => {
+        const string = 'some \\"$[${$( $string';
+        const value = new StringValue(string);
+        expect(value.display()).to.eql(
+          `"some \\\\\\"\\$\\[\\$\\{\\$\\( \\$string"`
+        );
+      });
     });
     specify("string representation should be its value", () => {
       const string = "some string";
@@ -458,6 +500,36 @@ describe("values", () => {
       const value = new TupleValue([]);
       expect(value.type).to.eql(ValueType.TUPLE);
     });
+    describe("should be displayed as a Helena tuple", () => {
+      specify("empty tuple", () => {
+        const value = new TupleValue([]);
+        expect(value.display()).to.eql(`()`);
+      });
+      specify("simple tuple", () => {
+        const value = new TupleValue([
+          new StringValue("some string"),
+          NIL,
+          new IntegerValue(1),
+        ]);
+        expect(value.display()).to.eql(`("some string" [] 1)`);
+      });
+      specify("undisplayable elements", () => {
+        const value = new TupleValue([new ListValue([]), new MapValue({})]);
+        expect(value.display()).to.eql(
+          `({#{undisplayable value}#} {#{undisplayable value}#})`
+        );
+      });
+      specify("custom function", () => {
+        const value = new TupleValue([new ListValue([]), new MapValue({})]);
+        expect(
+          value.display((v) => undisplayableValue(v.constructor.name))
+        ).to.eql(`({#{ListValue}#} {#{MapValue}#})`);
+      });
+      specify("recursive tuple", () => {
+        const value = new TupleValue([new TupleValue([new TupleValue([])])]);
+        expect(value.display()).to.eql(`((()))`);
+      });
+    });
     it("should have no string representation", () => {
       const value = new TupleValue([]);
       expect(value).to.not.have.property("asString");
@@ -631,6 +703,21 @@ describe("values", () => {
       const value = new ScriptValue(new Script(), "");
       expect(value.type).to.eql(ValueType.SCRIPT);
     });
+    describe("should be displayed as a Helena block", () => {
+      specify("regular script", () => {
+        const script = "cmd arg1 arg2";
+        const value = new ScriptValue(new Script(), script);
+        expect(value.display()).to.eql(`{${script}}`);
+      });
+      specify("script with no source", () => {
+        const value = new ScriptValue(new Script(), undefined);
+        expect(value.display()).to.eql(`{#{undisplayable script}#}`);
+      });
+      specify("custom display function", () => {
+        const value = new ScriptValue(new Script(), undefined);
+        expect(value.display(() => "{}")).to.eql(`{}`);
+      });
+    });
     specify("script representation should be its value", () => {
       const script = "cmd arg1 arg2";
       const value = new ScriptValue(new Script(), script);
@@ -664,6 +751,73 @@ describe("values", () => {
     specify("type should be QUALIFIED", () => {
       const value = new QualifiedValue(new StringValue("name"), []);
       expect(value.type).to.eql(ValueType.QUALIFIED);
+    });
+    describe("should be displayed as a Helena qualified word", () => {
+      specify("indexed selectors", () => {
+        const value = new QualifiedValue(new StringValue("name"), [
+          new IndexedSelector(new StringValue("index")),
+        ]);
+
+        expect(value.display()).to.eql("name[index]");
+      });
+      specify("keyed selectors", () => {
+        const value = new QualifiedValue(new StringValue("name"), [
+          new KeyedSelector([new StringValue("key1"), new StringValue("key2")]),
+        ]);
+
+        expect(value.display()).to.eql(`name(key1 key2)`);
+      });
+      specify("generic selector", () => {
+        const value = new QualifiedValue(new StringValue("name"), [
+          new GenericSelector([
+            new StringValue("rule1"),
+            new TupleValue([new StringValue("rule2"), new IntegerValue(123)]),
+          ]),
+        ]);
+
+        expect(value.display()).to.eql(`name{rule1; rule2 123}`);
+      });
+      specify("custom selector", () => {
+        class UndisplayableSelector implements Selector {
+          apply() {
+            return ERROR("not implemented");
+          }
+        }
+        class DisplayableSelector implements Selector {
+          apply() {
+            return ERROR("not implemented");
+          }
+          display(): string {
+            return "{foo bar}";
+          }
+        }
+        const value = new QualifiedValue(new StringValue("name"), [
+          new UndisplayableSelector(),
+          new DisplayableSelector(),
+        ]);
+
+        expect(value.display()).to.eql(
+          `name{#{undisplayable value}#}{foo bar}`
+        );
+        expect(value.display(() => undisplayableValue("baz sprong"))).to.eql(
+          `name{#{baz sprong}#}{foo bar}`
+        );
+      });
+      specify("source with special characters", () => {
+        const value = new QualifiedValue(
+          new StringValue('some # \\"$[${$( $string'),
+          [
+            new KeyedSelector([
+              new StringValue("key1"),
+              new StringValue("key2"),
+            ]),
+          ]
+        );
+
+        expect(value.display()).to.eql(
+          `{some \\# \\\\\\"\\$\\[\\$\\{\\$\\( \\$string}(key1 key2)`
+        );
+      });
     });
     it("should have no string representation", () => {
       const value = new QualifiedValue(new StringValue("name"), []);

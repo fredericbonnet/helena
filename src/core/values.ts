@@ -10,6 +10,16 @@ import {
   Selector,
 } from "./selectors";
 import { ERROR, OK, ResultCode, Result } from "./results";
+import {
+  defaultDisplayFunction,
+  Displayable,
+  DisplayFunction,
+  displayLiteralOrBlock,
+  displayLiteralOrString,
+  displayList,
+  undisplayableValue,
+  display,
+} from "./display";
 
 /** Helena standard value types */
 export enum ValueType {
@@ -34,7 +44,7 @@ export interface CustomValueType {
 /**
  * Helena value
  */
-export interface Value {
+export interface Value extends Displayable {
   /** Type identifier */
   readonly type: ValueType | CustomValueType;
 
@@ -70,6 +80,11 @@ export interface Value {
 class NilValue implements Value {
   /** @override */
   readonly type = ValueType.NIL;
+
+  /** @override */
+  display(): string {
+    return "[]";
+  }
 }
 
 /** Singleton nil value */
@@ -125,6 +140,11 @@ export class BooleanValue implements Value {
     if (s == "true") return OK(NIL, true);
     if (s == "false") return OK(NIL, false);
     return ERROR(`invalid boolean "${s}"`);
+  }
+
+  /** @override */
+  display(): string {
+    return this.value ? "true" : "false";
   }
 
   /** @override */
@@ -189,6 +209,11 @@ export class IntegerValue implements Value {
     const n = Number(s);
     if (isNaN(n)) return ERROR(`invalid integer "${s}"`);
     return OK(NIL, n);
+  }
+
+  /** @override */
+  display(): string {
+    return this.asString();
   }
 
   /** @override */
@@ -279,6 +304,11 @@ export class NumberValue implements Value {
   }
 
   /** @override */
+  display(): string {
+    return this.asString();
+  }
+
+  /** @override */
   asString(): string {
     return this.value.toString();
   }
@@ -345,6 +375,11 @@ export class StringValue implements Value {
     if (i < 0 || i >= value.length)
       return def ? OK(def) : ERROR(`index out of range "${i}"`);
     return OK(new StringValue(value[i]));
+  }
+
+  /** @override */
+  display(): string {
+    return displayLiteralOrString(this.value);
   }
 
   /** @override */
@@ -520,6 +555,11 @@ export class TupleValue implements Value {
     }
     return OK(new TupleValue(values));
   }
+
+  /** @override */
+  display(fn = defaultDisplayFunction): string {
+    return `(${displayList(this.values, fn)})`;
+  }
 }
 
 /**
@@ -534,21 +574,29 @@ export class ScriptValue implements Value {
   /** Encapsulated script */
   readonly script: Script;
 
-  /** Script literal value */
-  readonly value: string;
+  /** Script source string */
+  readonly source: string;
 
   /**
    * @param script - Script to encapsulate
-   * @param value  - Script literal value
+   * @param source - Script source string
    */
-  constructor(script: Script, value: string) {
+  constructor(script: Script, source: string) {
     this.script = script;
-    this.value = value;
+    this.source = source;
+  }
+
+  /** @override */
+  display(
+    fn: DisplayFunction = () => undisplayableValue("undisplayable script")
+  ): string {
+    if (this.source) return `{${this.source}}`;
+    return fn(this);
   }
 
   /** @override */
   asString(): string {
-    return this.value;
+    return this.source;
   }
 }
 
@@ -575,6 +623,14 @@ export class QualifiedValue implements Value {
   constructor(source: Value, selectors: Selector[]) {
     this.source = source;
     this.selectors = selectors;
+  }
+
+  /** @override */
+  display(fn = defaultDisplayFunction): string {
+    return (
+      displayLiteralOrBlock(this.source.asString?.()) +
+      this.selectors.map((selector) => display(selector, fn)).join("")
+    );
   }
 
   /** @override */
