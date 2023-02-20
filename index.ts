@@ -2,12 +2,15 @@
 import * as fs from "fs";
 import { exit } from "process";
 import * as repl from "repl";
-import * as util from "node:util";
-import { display } from "./src/core/display";
+import * as c from "ansi-colors";
+import { defaultDisplayFunction, display } from "./src/core/display";
 import { Parser, TokenStream } from "./src/core/parser";
 import { ResultCode } from "./src/core/results";
 import { Tokenizer, TokenType } from "./src/core/tokenizer";
 import { initCommands, Scope } from "./src/helena-dialect/helena-dialect";
+import { ListValue, MapValue } from "./src/core/values";
+import { displayListValue } from "./src/helena-dialect/lists";
+import { displayMapValue } from "./src/helena-dialect/dicts";
 
 function source(path: string) {
   const data = fs.readFileSync(path, "utf-8");
@@ -40,10 +43,7 @@ function prompt() {
   initCommands(rootScope);
   repl.start({
     eval: (cmd, _context, _filename, callback) => run(rootScope, cmd, callback),
-    writer: (output) => {
-      if (output instanceof Error) return util.inspect(output);
-      return display(output);
-    },
+    writer: (output) => printResult(output),
   });
 }
 function run(scope: Scope, cmd, callback?: (err?: Error, result?) => void) {
@@ -82,6 +82,17 @@ function run(scope: Scope, cmd, callback?: (err?: Error, result?) => void) {
       return callback(new Error(`unexpected result code ${result.code}`));
     }
   }
+}
+function printResult(output) {
+  if (output instanceof Error) return c.red(output.message);
+  return c.gray(
+    display(output, (displayable) => {
+      if (displayable instanceof ListValue)
+        return displayListValue(displayable);
+      if (displayable instanceof MapValue) return displayMapValue(displayable);
+      return defaultDisplayFunction(displayable);
+    })
+  );
 }
 
 if (process.argv.length > 3) {

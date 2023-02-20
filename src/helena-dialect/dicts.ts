@@ -1,6 +1,11 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
 import { Program } from "../core/compiler";
+import {
+  defaultDisplayFunction,
+  DisplayFunction,
+  displayList,
+} from "../core/display";
 import { Result, OK, ERROR, ResultCode, YIELD } from "../core/results";
 import {
   Value,
@@ -272,6 +277,17 @@ function valueToMap(value: Value): Result<Map<string, Value>> {
     map.set(key, value);
   }
   return OK(NIL, map);
+}
+
+export function displayMapValue(
+  map: MapValue,
+  fn: DisplayFunction = defaultDisplayFunction
+) {
+  const values = [];
+  for (const [key, value] of map.map.entries()) {
+    values.push(new StringValue(key), value);
+  }
+  return `[dict (${displayList(values, fn)})]`;
 }
 
 export function registerDictCommands(scope: Scope) {

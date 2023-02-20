@@ -13,6 +13,7 @@ import {
 } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
+import { displayMapValue } from "./dicts";
 
 describe("Helena dictionaries", () => {
   let rootScope: Scope;
@@ -545,5 +546,23 @@ describe("Helena dictionaries", () => {
     expect(execute("dict $v get c")).to.eql(execute("idem $v(c)"));
     expect(execute("$d get c")).to.eql(execute("idem $v(c)"));
     expect(execute("idem $[$d](c)")).to.eql(execute("idem $v(c)"));
+  });
+
+  describe("displayMapValue", () => {
+    it("should display maps as dict command + key-value tuple", () => {
+      const map = new MapValue({
+        a: new StringValue("b"),
+        c: new StringValue("d"),
+      });
+
+      expect(displayMapValue(map)).to.eql("[dict (a b c d)]");
+    });
+    it("should produce an isomorphic string", () => {
+      const map = new MapValue({
+        a: new StringValue("b"),
+        c: new StringValue("d"),
+      });
+      expect(evaluate(`idem ${displayMapValue(map)}`)).to.eql(map);
+    });
   });
 });

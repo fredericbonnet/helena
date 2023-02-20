@@ -5,6 +5,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { IntegerValue, ListValue, NIL, StringValue } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
+import { displayListValue } from "./lists";
 
 describe("Helena lists", () => {
   let rootScope: Scope;
@@ -530,5 +531,24 @@ describe("Helena lists", () => {
     expect(execute("list $l at -1")).to.eql(execute("idem $v[-1]"));
     expect(execute("$l at -1")).to.eql(execute("idem $v[-1]"));
     expect(execute("idem $[$l][-1]")).to.eql(execute("idem $v[-1]"));
+  });
+
+  describe("displayListValue", () => {
+    it("should display lists as list command + tuple values", () => {
+      const list = new ListValue([
+        new StringValue("a"),
+        new StringValue("b"),
+        new StringValue("c"),
+      ]);
+      expect(displayListValue(list)).to.eql("[list (a b c)]");
+    });
+    it("should produce an isomorphic string", () => {
+      const list = new ListValue([
+        new StringValue("a"),
+        new StringValue("b"),
+        new StringValue("c"),
+      ]);
+      expect(evaluate(`idem ${displayListValue(list)}`)).to.eql(list);
+    });
   });
 });

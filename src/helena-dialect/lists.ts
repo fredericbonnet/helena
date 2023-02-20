@@ -1,6 +1,11 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
 import { Compiler, Executor, Program } from "../core/compiler";
+import {
+  defaultDisplayFunction,
+  DisplayFunction,
+  displayList,
+} from "../core/display";
 import { ERROR, OK, Result, ResultCode, YIELD } from "../core/results";
 import {
   IntegerValue,
@@ -223,6 +228,13 @@ export function valueToArray(value: Value): Result<Value[]> {
     return OK(NIL, (result.value as TupleValue).values);
   }
   return ListValue.toValues(value);
+}
+
+export function displayListValue(
+  list: ListValue,
+  fn: DisplayFunction = defaultDisplayFunction
+) {
+  return `[list (${displayList(list.values, fn)})]`;
 }
 
 export function registerListCommands(scope: Scope) {
