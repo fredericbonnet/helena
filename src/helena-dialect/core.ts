@@ -359,7 +359,15 @@ type ExpandPrefixState = {
 export const expandPrefixCmd: Command = {
   execute(args: Value[], scope: Scope): Result {
     const [command, args2] = resolveLeadingTuple(args, scope);
-    if (!command) return OK(NIL);
+    if (!command) {
+      if (!args2 || args2.length == 0) return OK(NIL);
+      const cmdname = args2[0].asString?.();
+      return ERROR(
+        cmdname == null
+          ? `invalid command name`
+          : `cannot resolve command "${cmdname}"`
+      );
+    }
     const result = command.execute(args2, scope);
     if (result.code == ResultCode.YIELD)
       return YIELD(result.value, { command, result });

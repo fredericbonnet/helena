@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { OK, ResultCode } from "../core/results";
+import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Scope, initCommands } from "./helena-dialect";
 import { Tokenizer } from "../core/tokenizer";
@@ -96,6 +96,11 @@ describe("Helena dialect", () => {
         result = process.run();
         expect(result).to.eql(OK(new StringValue("val4")));
       });
+    });
+    specify("error", () => {
+      expect(execute("(a)")).to.eql(ERROR('cannot resolve command "a"'));
+      expect(execute("() a")).to.eql(ERROR('cannot resolve command "a"'));
+      expect(execute("(()) a")).to.eql(ERROR('cannot resolve command "a"'));
     });
   });
 
