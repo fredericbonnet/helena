@@ -239,6 +239,9 @@ describe("Helena procedures", () => {
           ERROR('wrong # args: should be "proc ?name? argspec body"')
         );
       });
+      specify("invalid argument list", () => {
+        expect(execute("proc a {}")).to.eql(ERROR("invalid argument list"));
+      });
       specify("non-script body", () => {
         expect(execute("proc a b")).to.eql(ERROR("body must be a script"));
         expect(execute("proc a b c")).to.eql(ERROR("body must be a script"));

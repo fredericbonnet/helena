@@ -226,28 +226,6 @@ describe("Helena ensembles", () => {
       });
     });
     describe("subcommands", () => {
-      describe("argspec", () => {
-        it("should return the ensemble argspec", () => {
-          expect(evaluate("[ensemble {a b} {}] argspec")).to.eql(
-            evaluate("argspec {a b}")
-          );
-        });
-        describe("exceptions", () => {
-          specify("invalid value", () => {
-            expect(execute("ensemble a {}")).to.eql(
-              ERROR("invalid argument list")
-            );
-          });
-          specify("variadic arguments", () => {
-            expect(execute("ensemble {?a} {}")).to.eql(
-              ERROR("ensemble arguments cannot be variadic")
-            );
-            expect(execute("ensemble {*a} {}")).to.eql(
-              ERROR("ensemble arguments cannot be variadic")
-            );
-          });
-        });
-      });
       describe("eval", () => {
         it("should evaluate body in ensemble scope", () => {
           evaluate("ensemble cmd {} {let cst val}");
@@ -531,7 +509,7 @@ describe("Helena ensembles", () => {
         });
       });
     });
-    describe("subcommands", () => {
+    describe("ensemble subcommands", () => {
       specify("when missing should return ensemble arguments tuple", () => {
         evaluate("ensemble cmd {a b} {macro opt {a b} {idem val}}");
         expect(evaluate("cmd foo bar")).to.eql(
@@ -677,6 +655,17 @@ describe("Helena ensembles", () => {
         );
         expect(execute("ensemble a b c d")).to.eql(
           ERROR('wrong # args: should be "ensemble ?name? argspec body"')
+        );
+      });
+      specify("invalid argument list", () => {
+        expect(execute("ensemble a {}")).to.eql(ERROR("invalid argument list"));
+      });
+      specify("variadic arguments", () => {
+        expect(execute("ensemble {?a} {}")).to.eql(
+          ERROR("ensemble arguments cannot be variadic")
+        );
+        expect(execute("ensemble {*a} {}")).to.eql(
+          ERROR("ensemble arguments cannot be variadic")
         );
       });
       specify("invalid command name", () => {

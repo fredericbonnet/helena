@@ -559,7 +559,7 @@ describe("Helena namespaces", () => {
         });
       });
     });
-    describe("subcommands", () => {
+    describe("namespace subcommands", () => {
       it("should map first argument to namespace command name", () => {
         evaluate("namespace cmd {macro opt {} {idem val}}");
         expect(evaluate("cmd opt")).to.eql(new StringValue("val"));

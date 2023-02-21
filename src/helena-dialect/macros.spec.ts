@@ -270,6 +270,9 @@ describe("Helena macros", () => {
           ERROR('wrong # args: should be "macro ?name? argspec body"')
         );
       });
+      specify("invalid argument list", () => {
+        expect(execute("macro a {}")).to.eql(ERROR("invalid argument list"));
+      });
       specify("non-script body", () => {
         expect(execute("macro a b")).to.eql(ERROR("body must be a script"));
         expect(execute("macro a b c")).to.eql(ERROR("body must be a script"));
