@@ -35,11 +35,15 @@ describe("Helena argument handling", () => {
       evaluate("argspec cmd {}");
       expect(execute("argspec cmd {}").code).to.eql(ResultCode.OK);
     });
-    it("should return a command value", () => {
+    it("should return a command object", () => {
       expect(evaluate("argspec {}").type).to.eql(commandValueType);
       expect(evaluate("argspec cmd {}").type).to.eql(commandValueType);
     });
-    specify("command value should return self", () => {
+    specify("the named command should return its command object", () => {
+      const value = evaluate("argspec cmd {}");
+      expect(evaluate("cmd")).to.eql(value);
+    });
+    specify("the command object should return itself", () => {
       const value = evaluate("set cmd [argspec {}]");
       expect(evaluate("$cmd")).to.eql(value);
     });

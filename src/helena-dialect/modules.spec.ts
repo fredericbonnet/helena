@@ -34,15 +34,15 @@ describe("Helena modules", () => {
       evaluate("module cmd {}");
       expect(execute("module cmd {}").code).to.eql(ResultCode.OK);
     });
-    it("should return a command value", () => {
+    it("should return a command object", () => {
       expect(evaluate("module {}").type).to.eql(commandValueType);
       expect(evaluate("module cmd  {}").type).to.eql(commandValueType);
     });
-    specify("command should return self", () => {
+    specify("the named command should return its command object", () => {
       const value = evaluate("module cmd {}");
       expect(evaluate("cmd")).to.eql(value);
     });
-    specify("command value should return self", () => {
+    specify("the command object should return itself", () => {
       const value = evaluate("set cmd [module {}]");
       expect(evaluate("$cmd")).to.eql(value);
     });

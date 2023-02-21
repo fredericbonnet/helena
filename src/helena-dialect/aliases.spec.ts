@@ -41,10 +41,10 @@ describe("Helena aliases", () => {
       evaluate("alias cmd set");
       expect(execute("alias cmd idem").code).to.eql(ResultCode.OK);
     });
-    it("should return a command value", () => {
+    it("should return a command object", () => {
       expect(evaluate("alias cmd idem").type).to.eql(commandValueType);
     });
-    specify("command value should return alias command", () => {
+    specify("the command object should return the aliased command", () => {
       const value = evaluate("set cmd [alias cmd set]");
       expect(evaluate("$cmd").type).to.eql(commandValueType);
       expect(evaluate("$cmd")).to.not.eql(value);

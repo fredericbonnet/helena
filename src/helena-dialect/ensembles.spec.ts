@@ -41,15 +41,15 @@ describe("Helena ensembles", () => {
       evaluate("ensemble cmd {} {}");
       expect(execute("ensemble cmd {} {}").code).to.eql(ResultCode.OK);
     });
-    it("should return a command value", () => {
+    it("should return a command object", () => {
       expect(evaluate("ensemble {} {}").type).to.eql(commandValueType);
       expect(evaluate("ensemble cmd {} {}").type).to.eql(commandValueType);
     });
-    specify("command should return self", () => {
+    specify("the named command should return its command object", () => {
       const value = evaluate("ensemble cmd {} {}");
       expect(evaluate("cmd")).to.eql(value);
     });
-    specify("command value should return self", () => {
+    specify("the command object should return itself", () => {
       const value = evaluate("set cmd [ensemble {} {}]");
       expect(evaluate("$cmd")).to.eql(value);
     });
@@ -112,11 +112,11 @@ describe("Helena ensembles", () => {
           );
           expect(evaluate("get var")).to.eql(new StringValue("val1"));
         });
-        it("should still define the ensemble command", () => {
+        it("should still define the named command", () => {
           evaluate("ensemble cmd {} {return}");
           expect(rootScope.context.commands.has("cmd")).to.be.true;
         });
-        it("should return passed value instead of ensemble command value", () => {
+        it("should return passed value instead of the command object", () => {
           expect(execute("ensemble {} {return val}")).to.eql(
             OK(new StringValue("val"))
           );
@@ -131,11 +131,11 @@ describe("Helena ensembles", () => {
           );
           expect(evaluate("get var")).to.eql(new StringValue("val1"));
         });
-        it("should still define the ensemble command", () => {
+        it("should still define the named command", () => {
           evaluate("ensemble cmd {} {tailcall {}}");
           expect(rootScope.context.commands.has("cmd")).to.be.true;
         });
-        it("should return passed value instead of ensemble command value", () => {
+        it("should return passed value instead of the command object", () => {
           expect(execute("ensemble {} {tailcall {idem val}}")).to.eql(
             OK(new StringValue("val"))
           );

@@ -41,11 +41,11 @@ describe("Helena macros", () => {
       evaluate("macro cmd {} {}");
       expect(execute("macro cmd {} {}").code).to.eql(ResultCode.OK);
     });
-    it("should return a command value", () => {
+    it("should return a command object", () => {
       expect(evaluate("macro {} {}").type).to.eql(commandValueType);
       expect(evaluate("macro cmd {} {}").type).to.eql(commandValueType);
     });
-    specify("command value should return macro command", () => {
+    specify("the command object should return the macro", () => {
       const value = evaluate("set cmd [macro {val} {idem _${val}_}]");
       expect(evaluate("$cmd").type).to.eql(commandValueType);
       expect(evaluate("$cmd")).to.not.eql(value);

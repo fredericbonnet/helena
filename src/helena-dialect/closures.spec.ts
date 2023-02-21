@@ -41,11 +41,11 @@ describe("Helena closures", () => {
       evaluate("closure cmd {} {}");
       expect(execute("closure cmd {} {}").code).to.eql(ResultCode.OK);
     });
-    it("should return a command value", () => {
+    it("should return a command object", () => {
       expect(evaluate("closure {} {}").type).to.eql(commandValueType);
       expect(evaluate("closure cmd {} {}").type).to.eql(commandValueType);
     });
-    specify("command value should return closure command", () => {
+    specify("the command object should return the closure", () => {
       const value = evaluate("set cmd [closure {val} {idem _${val}_}]");
       expect(evaluate("$cmd").type).to.eql(commandValueType);
       expect(evaluate("$cmd")).to.not.eql(value);

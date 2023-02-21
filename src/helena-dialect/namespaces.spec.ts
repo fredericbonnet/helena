@@ -41,15 +41,15 @@ describe("Helena namespaces", () => {
       evaluate("namespace cmd {}");
       expect(execute("namespace cmd {}").code).to.eql(ResultCode.OK);
     });
-    it("should return a command value", () => {
+    it("should return a command object", () => {
       expect(evaluate("namespace {}").type).to.eql(commandValueType);
       expect(evaluate("namespace cmd {}").type).to.eql(commandValueType);
     });
-    specify("command should return self", () => {
+    specify("the named command should return its command object", () => {
       const value = evaluate("namespace cmd {}");
       expect(evaluate("cmd")).to.eql(value);
     });
-    specify("command value should return self", () => {
+    specify("the command object should return itself", () => {
       const value = evaluate("set cmd [namespace {}]");
       expect(evaluate("$cmd")).to.eql(value);
     });
@@ -110,11 +110,11 @@ describe("Helena namespaces", () => {
           );
           expect(evaluate("get var")).to.eql(new StringValue("val1"));
         });
-        it("should still define the namespace command", () => {
+        it("should still define the named command", () => {
           evaluate("namespace cmd {return}");
           expect(rootScope.context.commands.has("cmd")).to.be.true;
         });
-        it("should return passed value instead of namespace command value", () => {
+        it("should return passed value instead of the command object", () => {
           expect(execute("namespace {return val}")).to.eql(
             OK(new StringValue("val"))
           );
@@ -129,11 +129,11 @@ describe("Helena namespaces", () => {
           );
           expect(evaluate("get var")).to.eql(new StringValue("val1"));
         });
-        it("should still define the namespace command", () => {
+        it("should still define the named command", () => {
           evaluate("namespace cmd {tailcall {}}");
           expect(rootScope.context.commands.has("cmd")).to.be.true;
         });
-        it("should return passed value instead of namespace command value", () => {
+        it("should return passed value instead of the command object", () => {
           expect(execute("namespace {tailcall {idem val}}")).to.eql(
             OK(new StringValue("val"))
           );

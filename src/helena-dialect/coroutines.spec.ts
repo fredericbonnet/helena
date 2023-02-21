@@ -26,10 +26,10 @@ describe("Helena coroutines", () => {
   });
 
   describe("coroutine", () => {
-    it("should return a command value", () => {
+    it("should return a command object", () => {
       expect(evaluate("coroutine {}").type).to.eql(commandValueType);
     });
-    specify("command value should return self", () => {
+    specify("the command object should return itself", () => {
       const value = evaluate("set cr [coroutine {}]");
       expect(evaluate("$cr")).to.eql(value);
     });

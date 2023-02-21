@@ -41,15 +41,15 @@ describe("Helena scopes", () => {
       evaluate("scope cmd {}");
       expect(execute("scope cmd {}").code).to.eql(ResultCode.OK);
     });
-    it("should return a command value", () => {
+    it("should return a command object", () => {
       expect(evaluate("scope {}").type).to.eql(commandValueType);
       expect(evaluate("scope cmd  {}").type).to.eql(commandValueType);
     });
-    specify("command should return self", () => {
+    specify("the named command should return its command object", () => {
       const value = evaluate("scope cmd {}");
       expect(evaluate("cmd")).to.eql(value);
     });
-    specify("command value should return self", () => {
+    specify("the command object should return itself", () => {
       const value = evaluate("set cmd [scope {}]");
       expect(evaluate("$cmd")).to.eql(value);
     });
@@ -97,11 +97,11 @@ describe("Helena scopes", () => {
             );
             expect(evaluate("get var")).to.eql(new StringValue("val1"));
           });
-          it("should still define the scope command", () => {
+          it("should still define the named command", () => {
             evaluate("scope cmd {return}");
             expect(rootScope.context.commands.has("cmd")).to.be.true;
           });
-          it("should return passed value instead of scope command value", () => {
+          it("should return passed value instead of the command object", () => {
             expect(execute("scope {return val}")).to.eql(
               OK(new StringValue("val"))
             );
@@ -116,11 +116,11 @@ describe("Helena scopes", () => {
             );
             expect(evaluate("get var")).to.eql(new StringValue("val1"));
           });
-          it("should still define the scope command", () => {
+          it("should still define the named command", () => {
             evaluate("scope cmd {tailcall {}}");
             expect(rootScope.context.commands.has("cmd")).to.be.true;
           });
-          it("should return passed value instead of scope command value", () => {
+          it("should return passed value instead of the command object", () => {
             expect(execute("scope {tailcall {idem val}}")).to.eql(
               OK(new StringValue("val"))
             );

@@ -34,11 +34,11 @@ describe("Helena procedures", () => {
       evaluate("proc cmd {} {}");
       expect(execute("proc cmd {} {}").code).to.eql(ResultCode.OK);
     });
-    it("should return a command value", () => {
+    it("should return a command object", () => {
       expect(evaluate("proc {} {}").type).to.eql(commandValueType);
       expect(evaluate("proc cmd {} {}").type).to.eql(commandValueType);
     });
-    specify("command value should return proc command", () => {
+    specify("the command object should return the proc", () => {
       const value = evaluate("set cmd [proc {val} {idem _${val}_}]");
       expect(evaluate("$cmd").type).to.eql(commandValueType);
       expect(evaluate("$cmd")).to.not.eql(value);
