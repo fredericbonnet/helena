@@ -226,6 +226,20 @@ describe("Helena ensembles", () => {
       });
     });
     describe("subcommands", () => {
+      describe("subcommands", () => {
+        it("should return list of subcommands", () => {
+          expect(evaluate("[ensemble {} {}] subcommands")).to.eql(
+            evaluate("list (subcommands eval call argspec)")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("[ensemble {} {}] subcommands a")).to.eql(
+              ERROR('wrong # args: should be "<ensemble> subcommands"')
+            );
+          });
+        });
+      });
       describe("eval", () => {
         it("should evaluate body in ensemble scope", () => {
           evaluate("ensemble cmd {} {let cst val}");

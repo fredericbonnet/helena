@@ -13,6 +13,7 @@ import { ScriptValue, Value, ValueType } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, commandValueType, Process } from "./core";
+import { Subcommands } from "./subcommands";
 
 class ProcValue implements CommandValue, Command {
   readonly type = commandValueType;
@@ -36,17 +37,19 @@ class ProcValue implements CommandValue, Command {
     this.proc = new ProcCommand(this);
   }
 
+  static readonly subcommands = new Subcommands(["subcommands", "argspec"]);
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.proc);
-    const subcommand = args[1].asString?.();
-    if (subcommand == null) return ERROR("invalid subcommand name");
-    switch (subcommand) {
-      case "argspec":
+    return ProcValue.subcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length != 2) return ARITY_ERROR("<proc> subcommands");
+        return OK(ProcValue.subcommands.list);
+      },
+      argspec: () => {
         if (args.length != 2) return ARITY_ERROR("<proc> argspec");
         return OK(this.argspec);
-      default:
-        return ERROR(`unknown subcommand "${subcommand}"`);
-    }
+      },
+    });
   }
   resume(result: Result): Result {
     return this.proc.resume(result);

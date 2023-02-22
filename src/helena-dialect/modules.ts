@@ -18,6 +18,7 @@ import {
 import { ARITY_ERROR } from "./arguments";
 import { CommandValue, commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
+import { Subcommands } from "./subcommands";
 
 type Exports = Map<string, Value>;
 
@@ -46,16 +47,23 @@ class ModuleValue implements CommandValue, Command {
     this.exports = exports;
   }
 
+  static readonly subcommands = new Subcommands([
+    "subcommands",
+    "exports",
+    "import",
+  ]);
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this);
-    const subcommand = args[1].asString?.();
-    if (subcommand == null) return ERROR("invalid subcommand name");
-    switch (subcommand) {
-      case "exports": {
+    return ModuleValue.subcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length != 2) return ARITY_ERROR("<module> subcommands");
+        return OK(ModuleValue.subcommands.list);
+      },
+      exports: () => {
         if (args.length != 2) return ARITY_ERROR("<module> exports");
         return OK(new ListValue([...this.exports.values()]));
-      }
-      case "import": {
+      },
+      import: () => {
         if (args.length != 3) return ARITY_ERROR("<module> import name");
         const name = args[2].asString?.();
         if (name == null) return ERROR("invalid import name");
@@ -64,10 +72,8 @@ class ModuleValue implements CommandValue, Command {
         if (!command) return ERROR(`cannot resolve export "${name}"`);
         scope.registerNamedCommand(name, command);
         return OK(NIL);
-      }
-      default:
-        return ERROR(`unknown subcommand "${subcommand}"`);
-    }
+      },
+    });
   }
 }
 export const moduleCmd: Command = {

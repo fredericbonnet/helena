@@ -242,4 +242,19 @@ describe("Helena numbers", () => {
       });
     });
   });
+
+  describe("subcommands", () => {
+    it("should return list of subcommands", () => {
+      expect(evaluate("1 subcommands")).to.eql(
+        evaluate("list (subcommands + - * / == != > >= < <=)")
+      );
+    });
+    describe("exceptions", () => {
+      specify("wrong arity", () => {
+        expect(execute("1 subcommands a")).to.eql(
+          ERROR('wrong # args: should be "<number> subcommands"')
+        );
+      });
+    });
+  });
 });

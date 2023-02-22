@@ -236,6 +236,20 @@ describe("Helena macros", () => {
       });
     });
     describe("subcommands", () => {
+      describe("subcommands", () => {
+        it("should return list of subcommands", () => {
+          expect(evaluate("[macro {} {}] subcommands")).to.eql(
+            evaluate("list (subcommands argspec)")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("[macro {} {}] subcommands a")).to.eql(
+              ERROR('wrong # args: should be "<macro> subcommands"')
+            );
+          });
+        });
+      });
       describe("argspec", () => {
         it("should return the macro argspec", () => {
           expect(evaluate("[macro {a b} {}] argspec")).to.eql(
@@ -254,6 +268,11 @@ describe("Helena macros", () => {
         specify("unknown subcommand", () => {
           expect(execute("[macro {} {}] unknownSubcommand")).to.eql(
             ERROR('unknown subcommand "unknownSubcommand"')
+          );
+        });
+        specify("invalid subcommand name", () => {
+          expect(execute("[macro {} {}] []")).to.eql(
+            ERROR("invalid subcommand name")
           );
         });
       });

@@ -5,6 +5,7 @@ import { ScriptValue, Value, ValueType } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, DeferredValue, commandValueType } from "./core";
+import { Subcommands } from "./subcommands";
 
 class MacroValue implements CommandValue, Command {
   readonly type = commandValueType;
@@ -19,17 +20,19 @@ class MacroValue implements CommandValue, Command {
     this.macro = new MacroCommand(this);
   }
 
+  static readonly subcommands = new Subcommands(["subcommands", "argspec"]);
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.macro);
-    const subcommand = args[1].asString?.();
-    if (subcommand == null) return ERROR("invalid subcommand name");
-    switch (subcommand) {
-      case "argspec":
+    return MacroValue.subcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length != 2) return ARITY_ERROR("<macro> subcommands");
+        return OK(MacroValue.subcommands.list);
+      },
+      argspec: () => {
         if (args.length != 2) return ARITY_ERROR("<macro> argspec");
         return OK(this.argspec);
-      default:
-        return ERROR(`unknown subcommand "${subcommand}"`);
-    }
+      },
+    });
   }
 }
 

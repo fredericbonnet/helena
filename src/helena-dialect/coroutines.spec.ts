@@ -140,6 +140,20 @@ describe("Helena coroutines", () => {
       });
     });
     describe("subcommands", () => {
+      describe("subcommands", () => {
+        it("should return list of subcommands", () => {
+          expect(evaluate("[coroutine {}] subcommands")).to.eql(
+            evaluate("list (subcommands wait active done yield)")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("[coroutine {}] subcommands a")).to.eql(
+              ERROR('wrong # args: should be "<coroutine> subcommands"')
+            );
+          });
+        });
+      });
       describe("wait", () => {
         it("should evaluate body", () => {
           evaluate("set cr [coroutine {idem val}]");

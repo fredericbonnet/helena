@@ -42,6 +42,26 @@ describe("Helena logic operations", () => {
       expect(evaluate("[false]")).to.eql(FALSE);
     });
     describe("subcommands", () => {
+      describe("subcommands", () => {
+        it("should return list of subcommands", () => {
+          expect(evaluate("true subcommands")).to.eql(
+            evaluate("list (subcommands ? !?)")
+          );
+          expect(evaluate("false subcommands")).to.eql(
+            evaluate("list (subcommands ? !?)")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("true subcommands a")).to.eql(
+              ERROR('wrong # args: should be "true subcommands"')
+            );
+            expect(execute("false subcommands a")).to.eql(
+              ERROR('wrong # args: should be "false subcommands"')
+            );
+          });
+        });
+      });
       describe("?", () => {
         describe("true", () => {
           it("should return first argument", () => {

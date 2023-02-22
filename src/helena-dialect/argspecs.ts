@@ -12,6 +12,7 @@ import {
 import { Argument, ARITY_ERROR, buildArguments, buildHelp } from "./arguments";
 import { CommandValue, commandValueType, Scope } from "./core";
 import { valueToArray } from "./lists";
+import { Subcommands } from "./subcommands";
 
 export class Argspec {
   readonly args: Argument[];
@@ -114,25 +115,26 @@ export class ArgspecValue implements CommandValue, Command {
     return OK(NIL);
   }
 
+  static readonly subcommands = new Subcommands(["subcommands", "help", "set"]);
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this);
-    const subcommand = args[1].asString?.();
-    if (subcommand == null) return ERROR("invalid subcommand name");
-    switch (subcommand) {
-      case "help": {
+    return ArgspecValue.subcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length != 2) return ARITY_ERROR("<argspec> subcommands");
+        return OK(ArgspecValue.subcommands.list);
+      },
+      help: () => {
         if (args.length != 2) return ARITY_ERROR("<argspec> help");
         return OK(this.argspec.help);
-      }
-      case "set": {
+      },
+      set: () => {
         if (args.length != 3) return ARITY_ERROR("<argspec> set values");
         const { data: values, ...result } = valueToArray(args[2]);
         if (result.code != ResultCode.OK) return result;
         // TODO handle YIELD?
         return this.setArguments(values, scope);
-      }
-      default:
-        return ERROR(`unknown subcommand "${subcommand}"`);
-    }
+      },
+    });
   }
 
   private setArguments(values: Value[], scope: Scope): Result {

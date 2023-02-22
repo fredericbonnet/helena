@@ -210,6 +210,20 @@ describe("Helena scopes", () => {
       });
     });
     describe("subcommands", () => {
+      describe("subcommands", () => {
+        it("should return list of subcommands", () => {
+          expect(evaluate("[scope {}] subcommands")).to.eql(
+            evaluate("list (subcommands eval call)")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("[scope {}] subcommands a")).to.eql(
+              ERROR('wrong # args: should be "<scope> subcommands"')
+            );
+          });
+        });
+      });
       describe("eval", () => {
         it("should evaluate body", () => {
           evaluate("scope cmd {let cst val}");

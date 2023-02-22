@@ -1,12 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import {
-  Result,
-  OK,
-  ResultCode,
-  ERROR,
-  YIELD,
-  YIELD_BACK,
-} from "../core/results";
+import { Result, OK, ResultCode, YIELD, YIELD_BACK } from "../core/results";
 import { Command } from "../core/command";
 import {
   BooleanValue,
@@ -19,43 +12,50 @@ import {
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Process, Scope } from "./core";
+import { Subcommands } from "./subcommands";
+
+const booleanSubcommands = new Subcommands(["subcommands", "?", "!?"]);
 
 export const trueCmd: Command = {
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(TRUE);
-    const subcommand = args[1].asString?.();
-    if (subcommand == null) return ERROR("invalid subcommand name");
-    switch (subcommand) {
-      case "?":
+    return booleanSubcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length != 2) return ARITY_ERROR("true subcommands");
+        return OK(booleanSubcommands.list);
+      },
+      "?": () => {
         if (args.length < 3 || args.length > 4)
           return ARITY_ERROR("true ? arg ?arg?");
         return OK(args[2]);
-      case "!?":
+      },
+      "!?": () => {
         if (args.length < 3 || args.length > 4)
           return ARITY_ERROR("true !? arg ?arg?");
         return OK(args.length == 4 ? args[3] : NIL);
-      default:
-        return ERROR(`unknown subcommand "${subcommand}"`);
-    }
+      },
+    });
   },
 };
 export const falseCmd: Command = {
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(FALSE);
-    const subcommand = args[1].asString?.();
-    if (subcommand == null) return ERROR("invalid subcommand name");
-    switch (subcommand) {
-      case "?":
+    return booleanSubcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length != 2) return ARITY_ERROR("false subcommands");
+        return OK(booleanSubcommands.list);
+      },
+      "?": () => {
         if (args.length < 3 || args.length > 4)
           return ARITY_ERROR("false ? arg ?arg?");
         return OK(args.length == 4 ? args[3] : NIL);
-      case "!?":
+      },
+      "!?": () => {
         if (args.length < 3 || args.length > 4)
           return ARITY_ERROR("false !? arg ?arg?");
         return OK(args[2]);
-      default:
-        return ERROR(`unknown subcommand "${subcommand}"`);
-    }
+      },
+    });
   },
 };
 

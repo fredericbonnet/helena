@@ -448,6 +448,20 @@ describe("Helena argument handling", () => {
       });
     });
     describe("subcommands", () => {
+      describe("subcommands", () => {
+        it("should return list of subcommands", () => {
+          expect(evaluate("[argspec {}] subcommands")).to.eql(
+            evaluate("list (subcommands help set)")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("[argspec {}] subcommands a")).to.eql(
+              ERROR('wrong # args: should be "<argspec> subcommands"')
+            );
+          });
+        });
+      });
       describe("help", () => {
         it("should return a help string with argument names", () => {
           expect(evaluate("[argspec {a b ?c *}] help")).to.eql(

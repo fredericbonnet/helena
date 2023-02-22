@@ -152,6 +152,20 @@ describe("Helena modules", () => {
       });
     });
     describe("subcommands", () => {
+      describe("subcommands", () => {
+        it("should return list of subcommands", () => {
+          expect(evaluate("[module {}] subcommands")).to.eql(
+            evaluate("list (subcommands exports import)")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("[module {}] subcommands a")).to.eql(
+              ERROR('wrong # args: should be "<module> subcommands"')
+            );
+          });
+        });
+      });
       describe("exports", () => {
         it("should return a list", () => {
           expect(evaluate("[module {}] exports")).to.eql(new ListValue([]));

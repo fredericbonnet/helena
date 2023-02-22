@@ -5,6 +5,7 @@ import { ScriptValue, Value, ValueType } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, DeferredValue, commandValueType } from "./core";
+import { Subcommands } from "./subcommands";
 
 class ClosureValue implements CommandValue, Command {
   readonly type = commandValueType;
@@ -21,17 +22,19 @@ class ClosureValue implements CommandValue, Command {
     this.closure = new ClosureCommand(this);
   }
 
+  static readonly subcommands = new Subcommands(["subcommands", "argspec"]);
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.closure);
-    const subcommand = args[1].asString?.();
-    if (subcommand == null) return ERROR("invalid subcommand name");
-    switch (subcommand) {
-      case "argspec":
+    return ClosureValue.subcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length != 2) return ARITY_ERROR("<closure> subcommands");
+        return OK(ClosureValue.subcommands.list);
+      },
+      argspec: () => {
         if (args.length != 2) return ARITY_ERROR("<closure> argspec");
         return OK(this.argspec);
-      default:
-        return ERROR(`unknown subcommand "${subcommand}"`);
-    }
+      },
+    });
   }
 }
 class ClosureCommand implements CommandValue, Command {

@@ -17,6 +17,7 @@ import {
   Process,
   Scope,
 } from "./core";
+import { Subcommands } from "./subcommands";
 
 class ScopeValue implements CommandValue, Command {
   readonly type = commandValueType;
@@ -27,16 +28,23 @@ class ScopeValue implements CommandValue, Command {
     this.scope = scope;
   }
 
+  static readonly subcommands = new Subcommands([
+    "subcommands",
+    "eval",
+    "call",
+  ]);
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this);
-    const subcommand = args[1].asString?.();
-    if (subcommand == null) return ERROR("invalid subcommand name");
-    switch (subcommand) {
-      case "eval": {
+    return ScopeValue.subcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length != 2) return ARITY_ERROR("<scope> subcommands");
+        return OK(ScopeValue.subcommands.list);
+      },
+      eval: () => {
         if (args.length != 3) return ARITY_ERROR("<scope> eval body");
         return YIELD(new DeferredValue(args[2], this.scope));
-      }
-      case "call": {
+      },
+      call: () => {
         if (args.length < 3)
           return ARITY_ERROR("<scope> call cmdname ?arg ...?");
         const command = args[2].asString?.();
@@ -45,10 +53,8 @@ class ScopeValue implements CommandValue, Command {
           return ERROR(`unknown command "${command}"`);
         const cmdline = args.slice(2);
         return YIELD(new DeferredValue(new TupleValue(cmdline), this.scope));
-      }
-      default:
-        return ERROR(`unknown subcommand "${subcommand}"`);
-    }
+      },
+    });
   }
 }
 type ScopeBodyState = {

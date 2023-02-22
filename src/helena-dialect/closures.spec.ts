@@ -215,6 +215,20 @@ describe("Helena closures", () => {
       });
     });
     describe("subcommands", () => {
+      describe("subcommands", () => {
+        it("should return list of subcommands", () => {
+          expect(evaluate("[closure {} {}] subcommands")).to.eql(
+            evaluate("list (subcommands argspec)")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("[closure {} {}] subcommands a")).to.eql(
+              ERROR('wrong # args: should be "<closure> subcommands"')
+            );
+          });
+        });
+      });
       describe("argspec", () => {
         it("should return the closure argspec", () => {
           expect(evaluate("[closure {a b} {}] argspec")).to.eql(

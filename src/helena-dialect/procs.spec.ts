@@ -200,6 +200,20 @@ describe("Helena procedures", () => {
       });
     });
     describe("subcommands", () => {
+      describe("subcommands", () => {
+        it("should return list of subcommands", () => {
+          expect(evaluate("[proc {} {}] subcommands")).to.eql(
+            evaluate("list (subcommands argspec)")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("[proc {} {}] subcommands a")).to.eql(
+              ERROR('wrong # args: should be "<proc> subcommands"')
+            );
+          });
+        });
+      });
       describe("argspec", () => {
         it("should return the proc argspec", () => {
           expect(evaluate("[proc {a b} {}] argspec")).to.eql(

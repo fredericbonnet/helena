@@ -10,6 +10,7 @@ import { Command } from "../core/command";
 import { Value, ScriptValue, FALSE, TRUE, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { CommandValue, commandValueType, Process, Scope } from "./core";
+import { Subcommands } from "./subcommands";
 
 class CoroutineValue implements CommandValue, Command {
   readonly type = commandValueType;
@@ -25,28 +26,37 @@ class CoroutineValue implements CommandValue, Command {
     this.state = "inactive";
   }
 
+  static readonly subcommands = new Subcommands([
+    "subcommands",
+    "wait",
+    "active",
+    "done",
+    "yield",
+  ]);
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this);
-    const subcommand = args[1].asString?.();
-    if (subcommand == null) return ERROR("invalid subcommand name");
-    switch (subcommand) {
-      case "wait": {
+    return CoroutineValue.subcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length != 2) return ARITY_ERROR("<coroutine> subcommands");
+        return OK(CoroutineValue.subcommands.list);
+      },
+      wait: () => {
         if (args.length != 2) return ARITY_ERROR("<coroutine> wait");
         if (this.state == "inactive") {
           this.state = "active";
           this.process = this.scope.prepareScriptValue(this.body);
         }
         return this.run();
-      }
-      case "active": {
+      },
+      active: () => {
         if (args.length != 2) return ARITY_ERROR("<coroutine> active");
         return OK(this.state == "active" ? TRUE : FALSE);
-      }
-      case "done": {
+      },
+      done: () => {
         if (args.length != 2) return ARITY_ERROR("<coroutine> done");
         return OK(this.state == "done" ? TRUE : FALSE);
-      }
-      case "yield": {
+      },
+      yield: () => {
         if (args.length != 2 && args.length != 3)
           return ARITY_ERROR("<coroutine> yield ?value?");
         if (this.state == "inactive") return ERROR("coroutine is inactive");
@@ -55,10 +65,8 @@ class CoroutineValue implements CommandValue, Command {
           this.process.yieldBack(args[2]);
         }
         return this.run();
-      }
-      default:
-        return ERROR(`unknown subcommand "${subcommand}"`);
-    }
+      },
+    });
   }
 
   private run() {

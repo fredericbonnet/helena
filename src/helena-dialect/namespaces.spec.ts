@@ -224,6 +224,20 @@ describe("Helena namespaces", () => {
       });
     });
     describe("subcommands", () => {
+      describe("subcommands", () => {
+        it("should return list of subcommands", () => {
+          expect(evaluate("[namespace {}] subcommands")).to.eql(
+            evaluate("list (subcommands eval call import)")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("[namespace {}] subcommands a")).to.eql(
+              ERROR('wrong # args: should be "<namespace> subcommands"')
+            );
+          });
+        });
+      });
       describe("eval", () => {
         it("should evaluate body in namespace scope", () => {
           evaluate("namespace cmd {let cst val}");

@@ -197,6 +197,20 @@ describe("Helena aliases", () => {
       });
     });
     describe("subcommands", () => {
+      describe("subcommands", () => {
+        it("should return list of subcommands", () => {
+          expect(evaluate("[alias cmd idem] subcommands")).to.eql(
+            evaluate("list (subcommands command)")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("[alias cmd idem] subcommands a")).to.eql(
+              ERROR('wrong # args: should be "<alias> subcommands"')
+            );
+          });
+        });
+      });
       describe("command", () => {
         it("should return the aliased command", () => {
           evaluate("set cmd [alias cmd (idem val)]");

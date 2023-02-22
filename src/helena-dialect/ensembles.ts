@@ -18,6 +18,7 @@ import {
   Scope,
 } from "./core";
 import { ArgspecValue } from "./argspecs";
+import { Subcommands } from "./subcommands";
 
 export class EnsembleCommandValue implements CommandValue {
   readonly type = commandValueType;
@@ -41,16 +42,24 @@ export class EnsembleValue implements CommandValue, Command {
     this.ensemble = new EnsembleCommand(this);
   }
 
+  static readonly subcommands = new Subcommands([
+    "subcommands",
+    "eval",
+    "call",
+    "argspec",
+  ]);
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this);
-    const subcommand = args[1].asString?.();
-    if (subcommand == null) return ERROR("invalid subcommand name");
-    switch (subcommand) {
-      case "eval": {
+    return EnsembleValue.subcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length != 2) return ARITY_ERROR("<ensemble> subcommands");
+        return OK(EnsembleValue.subcommands.list);
+      },
+      eval: () => {
         if (args.length != 3) return ARITY_ERROR("<ensemble> eval body");
         return YIELD(new DeferredValue(args[2], this.scope));
-      }
-      case "call": {
+      },
+      call: () => {
         if (args.length < 3)
           return ARITY_ERROR("<ensemble> call cmdname ?arg ...?");
         const subcommand = args[2].asString?.();
@@ -60,13 +69,12 @@ export class EnsembleValue implements CommandValue, Command {
         const command = this.scope.resolveNamedCommand(subcommand);
         const cmdline = [new EnsembleCommandValue(command), ...args.slice(3)];
         return YIELD(new DeferredValue(new TupleValue(cmdline), scope));
-      }
-      case "argspec":
+      },
+      argspec: () => {
         if (args.length != 2) return ARITY_ERROR("<ensemble> argspec");
         return OK(this.argspec);
-      default:
-        return ERROR(`unknown subcommand "${subcommand}"`);
-    }
+      },
+    });
   }
 }
 

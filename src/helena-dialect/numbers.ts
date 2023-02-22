@@ -1,38 +1,49 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { ERROR, Result, ResultCode, OK } from "../core/results";
 import { Value, NumberValue, TRUE, FALSE, IntegerValue } from "../core/values";
+import { ARITY_ERROR } from "./arguments";
+import { Subcommands } from "./subcommands";
 
 const OPERATOR_ARITY_ERROR = (operator: string) =>
   ERROR(`wrong # operands: should be "operand1 ${operator} operand2"`);
+
+const numberSubcommands = new Subcommands([
+  "subcommands",
+  "+",
+  "-",
+  "*",
+  "/",
+  "==",
+  "!=",
+  ">",
+  ">=",
+  "<",
+  "<=",
+]);
 
 export const numberCmd = {
   execute(args: Value[]): Result {
     const { data: operand1, ...result } = NumberValue.toNumber(args[0]);
     if (result.code != ResultCode.OK) return result;
     if (args.length == 1) return OK(numberToValue(operand1));
-    const subcommand = args[1].asString?.();
-    if (subcommand == null) return ERROR("invalid subcommand name");
-    switch (subcommand) {
-      case "+":
-      case "-":
-      case "*":
-      case "/":
-        return arithmetics(args, operand1);
-      case "==":
-        return eqOp(args, operand1);
-      case "!=":
-        return neOp(args, operand1);
-      case ">":
-        return gtOp(args, operand1);
-      case ">=":
-        return geOp(args, operand1);
-      case "<":
-        return ltOp(args, operand1);
-      case "<=":
-        return leOp(args, operand1);
-      default:
-        return ERROR(`unknown subcommand "${subcommand}"`);
-    }
+    return numberSubcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length != 2) return ARITY_ERROR("<number> subcommands");
+        return OK(numberSubcommands.list);
+      },
+
+      "+": () => arithmetics(args, operand1),
+      "-": () => arithmetics(args, operand1),
+      "*": () => arithmetics(args, operand1),
+      "/": () => arithmetics(args, operand1),
+
+      "==": () => eqOp(args, operand1),
+      "!=": () => neOp(args, operand1),
+      ">": () => gtOp(args, operand1),
+      ">=": () => geOp(args, operand1),
+      "<": () => ltOp(args, operand1),
+      "<=": () => leOp(args, operand1),
+    });
   },
 };
 

@@ -1,9 +1,10 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Result, OK, ERROR, ResultCode } from "../core/results";
+import { Result, OK, ResultCode } from "../core/results";
 import { Command } from "../core/command";
 import { Value } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, commandValueType, expandPrefixCmd } from "./core";
+import { Subcommands } from "./subcommands";
 
 class AliasValue implements CommandValue, Command {
   readonly type = commandValueType;
@@ -16,18 +17,19 @@ class AliasValue implements CommandValue, Command {
     this.alias = new AliasCommand(this);
   }
 
+  static readonly subcommands = new Subcommands(["subcommands", "command"]);
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.alias);
-    const subcommand = args[1].asString?.();
-    if (subcommand == null) return ERROR("invalid subcommand name");
-    switch (subcommand) {
-      case "command": {
+    return AliasValue.subcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length != 2) return ARITY_ERROR("<alias> subcommands");
+        return OK(AliasValue.subcommands.list);
+      },
+      command: () => {
         if (args.length != 2) return ARITY_ERROR("<alias> command");
         return OK(this.cmd);
-      }
-      default:
-        return ERROR(`unknown subcommand "${subcommand}"`);
-    }
+      },
+    });
   }
   resume(result: Result, scope: Scope): Result {
     return this.alias.resume(result, scope);

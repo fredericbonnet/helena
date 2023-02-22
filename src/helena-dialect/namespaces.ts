@@ -17,6 +17,7 @@ import {
   Process,
   Scope,
 } from "./core";
+import { Subcommands } from "./subcommands";
 
 class NamespaceValue implements CommandValue, Command {
   readonly type = commandValueType;
@@ -33,16 +34,24 @@ class NamespaceValue implements CommandValue, Command {
     return this.scope.getVariable(key);
   }
 
+  static readonly subcommands = new Subcommands([
+    "subcommands",
+    "eval",
+    "call",
+    "import",
+  ]);
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this);
-    const subcommand = args[1].asString?.();
-    if (subcommand == null) return ERROR("invalid subcommand name");
-    switch (subcommand) {
-      case "eval": {
+    return NamespaceValue.subcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length != 2) return ARITY_ERROR("<namespace> subcommands");
+        return OK(NamespaceValue.subcommands.list);
+      },
+      eval: () => {
         if (args.length != 3) return ARITY_ERROR("<namespace> eval body");
         return YIELD(new DeferredValue(args[2], this.scope));
-      }
-      case "call": {
+      },
+      call: () => {
         if (args.length < 3)
           return ARITY_ERROR("<namespace> call cmdname ?arg ...?");
         const command = args[2].asString?.();
@@ -51,8 +60,8 @@ class NamespaceValue implements CommandValue, Command {
           return ERROR(`unknown command "${command}"`);
         const cmdline = args.slice(2);
         return YIELD(new DeferredValue(new TupleValue(cmdline), this.scope));
-      }
-      case "import": {
+      },
+      import: () => {
         if (args.length != 3) return ARITY_ERROR("<namespace> import name");
         const name = args[2].asString?.();
         if (!name) return ERROR("invalid import name");
@@ -60,10 +69,8 @@ class NamespaceValue implements CommandValue, Command {
         if (!command) return ERROR(`cannot resolve imported command "${name}"`);
         scope.registerNamedCommand(name, command);
         return OK(NIL);
-      }
-      default:
-        return ERROR(`unknown subcommand "${subcommand}"`);
-    }
+      },
+    });
   }
 }
 
