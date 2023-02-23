@@ -590,8 +590,8 @@ export class ScriptValue implements Value {
   display(
     fn: DisplayFunction = () => undisplayableValue("undisplayable script")
   ): string {
-    if (this.source) return `{${this.source}}`;
-    return fn(this);
+    if (this.source == null) return fn(this);
+    return `{${this.source}}`;
   }
 
   /** @override */

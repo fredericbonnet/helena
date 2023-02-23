@@ -704,6 +704,10 @@ describe("values", () => {
       expect(value.type).to.eql(ValueType.SCRIPT);
     });
     describe("should be displayed as a Helena block", () => {
+      specify("empty script", () => {
+        const value = new ScriptValue(new Script(), "");
+        expect(value.display()).to.eql(`{}`);
+      });
       specify("regular script", () => {
         const script = "cmd arg1 arg2";
         const value = new ScriptValue(new Script(), script);
