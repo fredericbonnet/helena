@@ -43,6 +43,22 @@ describe("Helena lists", () => {
       expect(evaluate("list {a b c}")).to.eql(evaluate("list (a b c)"));
     });
     describe("subcommands", () => {
+      describe("subcommands", () => {
+        it("should return list of subcommands", () => {
+          expect(evaluate("list {} subcommands")).to.eql(
+            evaluate(
+              "list (subcommands length at range append remove insert replace foreach)"
+            )
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("list {} subcommands a")).to.eql(
+              ERROR('wrong # args: should be "list value subcommands"')
+            );
+          });
+        });
+      });
       describe("length", () => {
         it("should return the list length", () => {
           expect(evaluate("list () length")).to.eql(new IntegerValue(0));

@@ -42,6 +42,20 @@ describe("Helena tuples", () => {
       expect(evaluate("tuple {a b c}")).to.eql(evaluate("tuple (a b c)"));
     });
     describe("subcommands", () => {
+      describe("subcommands", () => {
+        it("should return list of subcommands", () => {
+          expect(evaluate("tuple () subcommands")).to.eql(
+            evaluate("list (subcommands length at)")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("tuple () subcommands a")).to.eql(
+              ERROR('wrong # args: should be "tuple value subcommands"')
+            );
+          });
+        });
+      });
       describe("length", () => {
         it("should return the tuple length", () => {
           expect(evaluate("tuple () length")).to.eql(new IntegerValue(0));

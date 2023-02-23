@@ -8,7 +8,14 @@ import {
   RESULT_CODE_NAME,
 } from "../core/results";
 import { Command } from "../core/command";
-import { Value, ScriptValue, ValueType, TupleValue } from "../core/values";
+import {
+  Value,
+  ScriptValue,
+  ValueType,
+  TupleValue,
+  ListValue,
+  StringValue,
+} from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import {
   CommandValue,
@@ -78,6 +85,11 @@ export class EnsembleValue implements CommandValue, Command {
   }
 }
 
+const ENSEMBLE_ARITY_ERROR = (name, help, signature) =>
+  ARITY_ERROR(
+    `${name.asString?.() ?? "<ensemble>"} ${help ? help + " " : ""}${signature}`
+  );
+
 class EnsembleCommand implements Command {
   readonly value: EnsembleValue;
   constructor(value: EnsembleValue) {
@@ -88,16 +100,33 @@ class EnsembleCommand implements Command {
     if (args.length == 1) return OK(this.value);
     const minArgs = this.value.argspec.argspec.nbRequired + 1;
     if (args.length < minArgs)
-      return ARITY_ERROR(
-        `${
-          args[0].asString?.() ?? "<ensemble>"
-        } ${this.value.argspec.help()} ?cmdname? ?arg ...?`
+      return ENSEMBLE_ARITY_ERROR(
+        args[0],
+        this.value.argspec.help(),
+        "?cmdname? ?arg ...?"
       );
     if (args.length == minArgs) {
       return OK(new TupleValue(args.slice(1)));
     }
     const subcommand = args[minArgs].asString?.();
     if (subcommand == null) return ERROR("invalid subcommand name");
+    if (subcommand == "subcommands") {
+      if (args.length != minArgs + 1) {
+        return ENSEMBLE_ARITY_ERROR(
+          args[0],
+          this.value.argspec.help(),
+          "subcommands"
+        );
+      }
+      return OK(
+        new ListValue([
+          args[minArgs],
+          ...this.value.scope
+            .getLocalCommands()
+            .map((name) => new StringValue(name)),
+        ])
+      );
+    }
     if (!this.value.scope.hasLocalCommand(subcommand))
       return ERROR(`unknown subcommand "${subcommand}"`);
     const command = this.value.scope.resolveNamedCommand(subcommand);

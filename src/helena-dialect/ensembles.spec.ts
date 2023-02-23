@@ -564,6 +564,39 @@ describe("Helena ensembles", () => {
           new StringValue("foobarbazsprongval1val2")
         );
       });
+      describe("subcommands", () => {
+        beforeEach(() => {
+          evaluate("ensemble cmd1 {} {}");
+          evaluate("ensemble cmd2 {a b} {}");
+        });
+        it("should return list of subcommands", () => {
+          expect(evaluate("cmd1 subcommands")).to.eql(
+            evaluate("list (subcommands)")
+          );
+          evaluate("[cmd1] eval {macro mac1 {} {}}");
+          expect(evaluate("cmd1 subcommands")).to.eql(
+            evaluate("list (subcommands mac1)")
+          );
+
+          expect(evaluate("cmd2 a b subcommands")).to.eql(
+            evaluate("list (subcommands)")
+          );
+          evaluate("[cmd2] eval {macro mac2 {} {}}");
+          expect(evaluate("cmd2 a b subcommands")).to.eql(
+            evaluate("list (subcommands mac2)")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("cmd1 subcommands a")).to.eql(
+              ERROR('wrong # args: should be "cmd1 subcommands"')
+            );
+            expect(execute("cmd2 a b subcommands c")).to.eql(
+              ERROR('wrong # args: should be "cmd2 a b subcommands"')
+            );
+          });
+        });
+      });
       describe("control flow", () => {
         describe("return", () => {
           it("should interrupt the body with RETURN code", () => {

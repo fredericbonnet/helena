@@ -350,6 +350,9 @@ export class Scope {
   hasLocalCommand(name: string): boolean {
     return this.context.commands.has(name);
   }
+  getLocalCommands(): string[] {
+    return [...this.context.commands.keys()];
+  }
 }
 
 type ExpandPrefixState = {

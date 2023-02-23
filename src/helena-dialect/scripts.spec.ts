@@ -111,6 +111,20 @@ describe("Helena scripts", () => {
       });
     });
     describe("subcommands", () => {
+      describe("subcommands", () => {
+        it("should return list of subcommands", () => {
+          expect(evaluate("script {} subcommands")).to.eql(
+            evaluate("list (subcommands length append split)")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("script {} subcommands a")).to.eql(
+              ERROR('wrong # args: should be "script value subcommands"')
+            );
+          });
+        });
+      });
       describe("length", () => {
         it("should return the number of sentences", () => {
           expect(evaluate("script {} length")).to.eql(new IntegerValue(0));

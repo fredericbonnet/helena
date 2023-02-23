@@ -33,6 +33,22 @@ describe("Helena strings", () => {
       expect(evaluate("string [+ 1 3]")).to.eql(new StringValue("4"));
     });
     describe("subcommands", () => {
+      describe("subcommands", () => {
+        it("should return list of subcommands", () => {
+          expect(evaluate('string "" subcommands')).to.eql(
+            evaluate(
+              "list (subcommands length at range append remove insert replace == != > >= < <=)"
+            )
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute('string "" subcommands a')).to.eql(
+              ERROR('wrong # args: should be "string value subcommands"')
+            );
+          });
+        });
+      });
       describe("length", () => {
         it("should return the string length", () => {
           expect(evaluate('string "" length')).to.eql(new IntegerValue(0));

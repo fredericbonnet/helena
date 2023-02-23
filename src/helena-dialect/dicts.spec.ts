@@ -74,6 +74,22 @@ describe("Helena dictionaries", () => {
       );
     });
     describe("subcommands", () => {
+      describe("subcommands", () => {
+        it("should return list of subcommands", () => {
+          expect(evaluate("dict () subcommands")).to.eql(
+            evaluate(
+              "list (subcommands size has get add remove merge keys values entries foreach)"
+            )
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("dict () subcommands a")).to.eql(
+              ERROR('wrong # args: should be "dict value subcommands"')
+            );
+          });
+        });
+      });
       describe("size", () => {
         it("should return the map size", () => {
           expect(evaluate("dict () size")).to.eql(new IntegerValue(0));
