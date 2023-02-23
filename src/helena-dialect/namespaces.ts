@@ -8,7 +8,15 @@ import {
   RESULT_CODE_NAME,
 } from "../core/results";
 import { Command } from "../core/command";
-import { Value, ScriptValue, ValueType, TupleValue, NIL } from "../core/values";
+import {
+  Value,
+  ScriptValue,
+  ValueType,
+  TupleValue,
+  NIL,
+  ListValue,
+  StringValue,
+} from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import {
   CommandValue,
@@ -82,10 +90,25 @@ class NamespaceCommand implements Command {
 
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.value);
-    const command = args[1].asString?.();
-    if (command == null) return ERROR("invalid command name");
-    if (!this.value.scope.hasLocalCommand(command))
-      return ERROR(`unknown command "${command}"`);
+    const subcommand = args[1].asString?.();
+    if (subcommand == null) return ERROR("invalid subcommand name");
+    if (subcommand == "subcommands") {
+      if (args.length != 2) {
+        return ARITY_ERROR(
+          `${args[0].asString?.() ?? "<namespace>"} subcommands`
+        );
+      }
+      return OK(
+        new ListValue([
+          args[1],
+          ...this.value.scope
+            .getLocalCommands()
+            .map((name) => new StringValue(name)),
+        ])
+      );
+    }
+    if (!this.value.scope.hasLocalCommand(subcommand))
+      return ERROR(`unknown subcommand "${subcommand}"`);
     const cmdline = args.slice(1);
     return YIELD(new DeferredValue(new TupleValue(cmdline), this.value.scope));
   }

@@ -592,6 +592,26 @@ describe("Helena namespaces", () => {
         evaluate("namespace ns1 {namespace ns2 {macro opt {} {idem val}}}");
         expect(evaluate("ns1 ns2 opt")).to.eql(new StringValue("val"));
       });
+      describe("subcommands", () => {
+        it("should return list of subcommands", () => {
+          evaluate("namespace cmd {}");
+          expect(evaluate("cmd subcommands")).to.eql(
+            evaluate("list (subcommands)")
+          );
+          evaluate("[cmd] eval {macro mac {} {}}");
+          expect(evaluate("cmd subcommands")).to.eql(
+            evaluate("list (subcommands mac)")
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            evaluate("namespace cmd {}");
+            expect(execute("cmd subcommands a")).to.eql(
+              ERROR('wrong # args: should be "cmd subcommands"')
+            );
+          });
+        });
+      });
       describe("control flow", () => {
         describe("return", () => {
           it("should interrupt the body with RETURN code", () => {
@@ -666,19 +686,19 @@ describe("Helena namespaces", () => {
         });
       });
       describe("exceptions", () => {
-        specify("unknown command", () => {
+        specify("unknown subcommand", () => {
           evaluate("namespace cmd {}");
           expect(execute("cmd unknownCommand")).to.eql(
-            ERROR('unknown command "unknownCommand"')
+            ERROR('unknown subcommand "unknownCommand"')
           );
         });
-        specify("out-of-scope command", () => {
+        specify("out-of-scope subcommand", () => {
           evaluate("macro mac {} {}; namespace cmd {}");
-          expect(execute("cmd mac")).to.eql(ERROR('unknown command "mac"'));
+          expect(execute("cmd mac")).to.eql(ERROR('unknown subcommand "mac"'));
         });
-        specify("invalid command name", () => {
+        specify("invalid subcommand", () => {
           evaluate("namespace cmd {}");
-          expect(execute("cmd []")).to.eql(ERROR("invalid command name"));
+          expect(execute("cmd []")).to.eql(ERROR("invalid subcommand name"));
         });
       });
     });
