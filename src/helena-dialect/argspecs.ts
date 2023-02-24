@@ -108,6 +108,15 @@ export class ArgspecValue implements CommandValue, Command {
           i += remainders;
           break;
       }
+      if (arg.guard) {
+        const process = scope.prepareTupleValue(
+          new TupleValue([arg.guard, value])
+        );
+        const result = process.run();
+        // TODO handle YIELD?
+        if (result.code != ResultCode.OK) return result;
+        value = result.value;
+      }
       const result = setArgument(arg.name, value);
       // TODO handle YIELD?
       if (result.code != ResultCode.OK) return result;

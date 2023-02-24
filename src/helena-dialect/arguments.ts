@@ -7,9 +7,10 @@ export const ARITY_ERROR = (signature: string) =>
   ERROR(`wrong # args: should be "${signature}"`);
 
 export type Argument = {
-  name: string;
-  type: "required" | "optional" | "remainder";
-  default?: Value;
+  readonly name: string;
+  readonly type: "required" | "optional" | "remainder";
+  readonly default?: Value;
+  readonly guard?: Value;
 };
 
 export function buildArguments(specs: Value): Result<Argument[]> {
@@ -38,24 +39,66 @@ function buildArgument(value: Value): Result<Argument> {
     case ValueType.SCRIPT: {
       const { data: specs, ...result } = valueToArray(value);
       if (result.code != ResultCode.OK) return result;
-      if (specs.length == 0) return ERROR("empty argument specifier");
-      const name = specs[0].asString?.();
-      if (name == null) return ERROR("invalid argument name");
-      if (name == "" || name == "?") return ERROR("empty argument name");
-      if (specs.length > 2)
-        return ERROR(`too many specifiers for argument "${name}"`);
-      if (specs.length == 2) {
-        if (name[0] != "?")
-          return ERROR(`default argument "${name}" must be optional`);
-        return OK(NIL, {
-          name: name.substring(1),
-          type: "optional",
-          default: specs[1],
-        });
-      } else if (name[0] == "?") {
-        return OK(NIL, { name: name.substring(1), type: "optional" });
-      } else {
-        return OK(NIL, { name, type: "required" });
+      switch (specs.length) {
+        case 0:
+          return ERROR("empty argument specifier");
+        case 1: {
+          const name = specs[0].asString?.();
+          if (name == null) return ERROR("invalid argument name");
+          if (name == "" || name == "?") return ERROR("empty argument name");
+          if (name[0] == "?") {
+            return OK(NIL, { name: name.substring(1), type: "optional" });
+          } else {
+            return OK(NIL, { name, type: "required" });
+          }
+        }
+        case 2: {
+          const nameOrGuard = specs[0].asString?.();
+          const nameOrDefault = specs[1].asString?.();
+          if (nameOrGuard == null && nameOrDefault == null)
+            return ERROR("invalid argument name");
+          if (
+            (nameOrGuard == "" || nameOrGuard == "?") &&
+            (nameOrDefault == "" || nameOrDefault == "?")
+          )
+            return ERROR("empty argument name");
+          if (nameOrGuard && nameOrGuard[0] == "?") {
+            return OK(NIL, {
+              name: nameOrGuard.substring(1),
+              type: "optional",
+              default: specs[1],
+            });
+          } else if (nameOrDefault[0] == "?") {
+            return OK(NIL, {
+              name: nameOrDefault.substring(1),
+              type: "optional",
+              guard: specs[0],
+            });
+          } else {
+            return OK(NIL, {
+              name: nameOrDefault,
+              type: "required",
+              guard: specs[0],
+            });
+          }
+        }
+        case 3: {
+          const name = specs[1].asString?.();
+          if (name == null) return ERROR("invalid argument name");
+          if (name == "" || name == "?") return ERROR("empty argument name");
+          if (name[0] != "?")
+            return ERROR(`default argument "${name}" must be optional`);
+          return OK(NIL, {
+            name: name.substring(1),
+            type: "optional",
+            default: specs[2],
+            guard: specs[0],
+          });
+        }
+        default: {
+          const name = specs[0].asString?.();
+          return ERROR(`too many specifiers for argument "${name}"`);
+        }
       }
     }
     default: {

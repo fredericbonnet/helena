@@ -1,8 +1,15 @@
 import { expect } from "chai";
-import { ERROR, ResultCode } from "../core/results";
+import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { IntegerValue, TupleValue, NIL, StringValue } from "../core/values";
+import {
+  IntegerValue,
+  TupleValue,
+  NIL,
+  StringValue,
+  TRUE,
+  FALSE,
+} from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
@@ -403,7 +410,7 @@ describe("Helena argument handling", () => {
         });
       });
 
-      describe("default value", () => {
+      describe("default parameter", () => {
         specify("value", () => {
           const value = evaluate("argspec ((?a val))") as ArgspecValue;
           expect(evaluate("argspec {(?a val)}")).to.eql(value);
@@ -442,6 +449,118 @@ describe("Helena argument handling", () => {
             specify("one", () => {
               evaluate("[argspec ((?a def))] set (val)");
               expect(evaluate("get a")).to.eql(new StringValue("val"));
+            });
+          });
+        });
+      });
+
+      describe("guard", () => {
+        specify("required parameter", () => {
+          const value = evaluate("argspec ((list a))") as ArgspecValue;
+          expect(value.argspec).to.include({
+            nbRequired: 1,
+            nbOptional: 0,
+            hasRemainder: false,
+          });
+          expect(value.argspec.args).to.eql([
+            { name: "a", type: "required", guard: new StringValue("list") },
+          ]);
+        });
+        specify("optional parameter", () => {
+          const value = evaluate("argspec ((list ?a))") as ArgspecValue;
+          expect(value.argspec).to.include({
+            nbRequired: 0,
+            nbOptional: 1,
+            hasRemainder: false,
+          });
+          expect(value.argspec.args).to.eql([
+            { name: "a", type: "optional", guard: new StringValue("list") },
+          ]);
+        });
+        specify("default parameter", () => {
+          const value = evaluate("argspec ((list ?a val))") as ArgspecValue;
+          expect(value.argspec).to.include({
+            nbRequired: 0,
+            nbOptional: 1,
+            hasRemainder: false,
+          });
+          expect(value.argspec.args).to.eql([
+            {
+              name: "a",
+              type: "optional",
+              guard: new StringValue("list"),
+              default: new StringValue("val"),
+            },
+          ]);
+        });
+        specify("help", () => {
+          expect(evaluate("[argspec ((guard ?a def))] help")).to.eql(
+            new StringValue("?a?")
+          );
+        });
+        describe("set", () => {
+          describe("simple command", () => {
+            specify("required", () => {
+              evaluate("argspec cmd ( (list a) )");
+              expect(execute("cmd set ((1 2 3))")).to.eql(OK(NIL));
+              expect(evaluate("get a")).to.eql(evaluate("list (1 2 3)"));
+              expect(execute("cmd set (value)")).to.eql(ERROR("invalid list"));
+            });
+            specify("optional", () => {
+              evaluate("argspec cmd ( (list ?a) )");
+              expect(execute("cmd set ()")).to.eql(OK(NIL));
+              expect(execute("get a")).to.eql(
+                ERROR(`cannot get "a": no such variable`)
+              );
+              expect(execute("cmd set ((1 2 3))")).to.eql(OK(NIL));
+              expect(evaluate("get a")).to.eql(evaluate("list (1 2 3)"));
+              expect(execute("cmd set (value)")).to.eql(ERROR("invalid list"));
+            });
+            specify("default", () => {
+              evaluate("argspec cmd ( (list ?a ()) )");
+              expect(execute("cmd set ()")).to.eql(OK(NIL));
+              expect(evaluate("get a")).to.eql(evaluate("list ()"));
+              expect(execute("cmd set ((1 2 3))")).to.eql(OK(NIL));
+              expect(evaluate("get a")).to.eql(evaluate("list (1 2 3)"));
+              expect(execute("cmd set (value)")).to.eql(ERROR("invalid list"));
+            });
+          });
+          describe("tuple prefix", () => {
+            specify("required", () => {
+              evaluate("argspec cmd ( ((0 <) a) )");
+              expect(execute("cmd set (1)")).to.eql(OK(NIL));
+              expect(evaluate("get a")).to.eql(TRUE);
+              expect(execute("cmd set (-1)")).to.eql(OK(NIL));
+              expect(evaluate("get a")).to.eql(FALSE);
+              expect(execute("cmd set (value)")).to.eql(
+                ERROR('invalid number "value"')
+              );
+            });
+            specify("optional", () => {
+              evaluate("argspec cmd ( ((0 <) ?a) )");
+              expect(execute("cmd set ()")).to.eql(OK(NIL));
+              expect(execute("get a")).to.eql(
+                ERROR(`cannot get "a": no such variable`)
+              );
+              expect(execute("cmd set (1)")).to.eql(OK(NIL));
+              expect(evaluate("get a")).to.eql(TRUE);
+              expect(execute("cmd set (-1)")).to.eql(OK(NIL));
+              expect(evaluate("get a")).to.eql(FALSE);
+              expect(execute("cmd set (value)")).to.eql(
+                ERROR('invalid number "value"')
+              );
+            });
+            specify("default", () => {
+              evaluate("argspec cmd ( ((0 <) ?a 1) )");
+              expect(execute("cmd set ()")).to.eql(OK(NIL));
+              expect(evaluate("get a")).to.eql(TRUE);
+              expect(execute("cmd set (1)")).to.eql(OK(NIL));
+              expect(evaluate("get a")).to.eql(TRUE);
+              expect(execute("cmd set (-1)")).to.eql(OK(NIL));
+              expect(evaluate("get a")).to.eql(FALSE);
+              expect(execute("cmd set (value)")).to.eql(
+                ERROR('invalid number "value"')
+              );
             });
           });
         });
@@ -608,19 +727,19 @@ describe("Helena argument handling", () => {
         );
       });
       specify("too many specifiers", () => {
-        expect(execute("argspec ((a b c))")).to.eql(
+        expect(execute("argspec ((a b c d))")).to.eql(
           ERROR('too many specifiers for argument "a"')
         );
-        expect(execute("argspec ({a b c})")).to.eql(
+        expect(execute("argspec ({a b c d})")).to.eql(
           ERROR('too many specifiers for argument "a"')
         );
       });
-      specify("non-optional argument with default", () => {
-        expect(execute("argspec ((a b))")).to.eql(
-          ERROR('default argument "a" must be optional')
+      specify("non-optional parameter with guard and default", () => {
+        expect(execute("argspec ((a b c))")).to.eql(
+          ERROR('default argument "b" must be optional')
         );
-        expect(execute("argspec ({a b})")).to.eql(
-          ERROR('default argument "a" must be optional')
+        expect(execute("argspec ({a b c})")).to.eql(
+          ERROR('default argument "b" must be optional')
         );
       });
       specify("invalid command name", () => {
