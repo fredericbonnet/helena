@@ -45,16 +45,13 @@ function buildArgument(value: Value): Result<Argument> {
       if (specs.length > 2)
         return ERROR(`too many specifiers for argument "${name}"`);
       if (specs.length == 2) {
-        const def = specs[1];
-        if (name[0] == "?") {
-          return OK(NIL, {
-            name: name.substring(1),
-            type: "optional",
-            default: def,
-          });
-        } else {
-          return OK(NIL, { name, type: "optional", default: def });
-        }
+        if (name[0] != "?")
+          return ERROR(`default argument "${name}" must be optional`);
+        return OK(NIL, {
+          name: name.substring(1),
+          type: "optional",
+          default: specs[1],
+        });
       } else if (name[0] == "?") {
         return OK(NIL, { name: name.substring(1), type: "optional" });
       } else {

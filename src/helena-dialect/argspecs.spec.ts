@@ -514,7 +514,7 @@ describe("Helena argument handling", () => {
           expect(evaluate("get b")).to.eql(new StringValue("val"));
         });
         it("should skip missing optional attributes", () => {
-          evaluate("[argspec {?a b (c def)}] set (val)");
+          evaluate("[argspec {?a b (?c def)}] set (val)");
           expect(execute("get a")).to.eql(
             ERROR(`cannot get "a": no such variable`)
           );
@@ -522,7 +522,7 @@ describe("Helena argument handling", () => {
           expect(evaluate("get c")).to.eql(new StringValue("def"));
         });
         it("should set optional attributes in order", () => {
-          evaluate("[argspec {(a def) b ?c}] set (val1 val2)");
+          evaluate("[argspec {(?a def) b ?c}] set (val1 val2)");
           expect(evaluate("get a")).to.eql(new StringValue("val1"));
           expect(evaluate("get b")).to.eql(new StringValue("val2"));
           expect(execute("get c")).to.eql(
@@ -592,10 +592,10 @@ describe("Helena argument handling", () => {
         expect(execute("argspec (a a)")).to.eql(
           ERROR('duplicate argument "a"')
         );
-        expect(execute("argspec ((a def) a)")).to.eql(
+        expect(execute("argspec ((?a def) a)")).to.eql(
           ERROR('duplicate argument "a"')
         );
-        expect(execute("argspec (a (a def))")).to.eql(
+        expect(execute("argspec (a (?a def))")).to.eql(
           ERROR('duplicate argument "a"')
         );
       });
@@ -613,6 +613,14 @@ describe("Helena argument handling", () => {
         );
         expect(execute("argspec ({a b c})")).to.eql(
           ERROR('too many specifiers for argument "a"')
+        );
+      });
+      specify("non-optional argument with default", () => {
+        expect(execute("argspec ((a b))")).to.eql(
+          ERROR('default argument "a" must be optional')
+        );
+        expect(execute("argspec ({a b})")).to.eql(
+          ERROR('default argument "a" must be optional')
         );
       });
       specify("invalid command name", () => {
