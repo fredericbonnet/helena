@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { NIL, StringValue } from "../core/values";
+import { FALSE, NIL, StringValue } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -114,6 +114,53 @@ describe("Helena procedures", () => {
           );
           expect(execute("[[proc cmd {a} {}]]")).to.eql(
             ERROR('wrong # args: should be "<proc> a"')
+          );
+        });
+      });
+    });
+    describe("return guard", () => {
+      it("should apply to the return value", () => {
+        evaluate('macro guard {result} {idem "guarded:$result"}');
+        evaluate("proc cmd1 {var} {return $var}");
+        evaluate("proc cmd2 {var} (guard {return $var})");
+        expect(evaluate("cmd1 value")).to.eql(new StringValue("value"));
+        expect(evaluate("cmd2 value")).to.eql(new StringValue("guarded:value"));
+      });
+      it("should let body errors pass through", () => {
+        evaluate("macro guard {result} {unreachable}");
+        evaluate("proc cmd {var} (guard {error msg})");
+        expect(execute("cmd value")).to.eql(ERROR("msg"));
+      });
+      it("should not access proc arguments", () => {
+        evaluate("macro guard {result} {exists var}");
+        evaluate("proc cmd {var} (guard {return $var})");
+        expect(evaluate("cmd value")).to.eql(FALSE);
+      });
+      it("should evaluate in the proc parent scope", () => {
+        evaluate("macro guard {result} {idem root}");
+        evaluate("proc cmd {} (guard {true})");
+        evaluate("scope scp {macro guard {result} {idem scp}}");
+        expect(evaluate("scp eval {cmd}")).to.eql(new StringValue("root"));
+      });
+      describe("exceptions", () => {
+        specify("empty body specifier", () => {
+          expect(execute("proc a ()")).to.eql(ERROR("empty body specifier"));
+          expect(execute("proc a b ()")).to.eql(ERROR("empty body specifier"));
+        });
+        specify("invalid body specifier", () => {
+          expect(execute("proc a (b c d)")).to.eql(
+            ERROR("invalid body specifier")
+          );
+          expect(execute("proc a b (c d e)")).to.eql(
+            ERROR("invalid body specifier")
+          );
+        });
+        specify("non-script body", () => {
+          expect(execute("proc a (b c)")).to.eql(
+            ERROR("body must be a script")
+          );
+          expect(execute("proc a b (c d)")).to.eql(
+            ERROR("body must be a script")
           );
         });
       });

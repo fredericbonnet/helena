@@ -9,7 +9,7 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { NIL, StringValue } from "../core/values";
+import { FALSE, NIL, StringValue } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -151,6 +151,53 @@ describe("Helena macros", () => {
           );
           expect(execute("[[macro cmd {a} {}]]")).to.eql(
             ERROR('wrong # args: should be "<macro> a"')
+          );
+        });
+      });
+    });
+    describe("return guard", () => {
+      it("should apply to the return value", () => {
+        evaluate('macro guard {result} {idem "guarded:$result"}');
+        evaluate("macro cmd1 {var} {idem $var}");
+        evaluate("macro cmd2 {var} (guard {idem $var})");
+        expect(evaluate("cmd1 value")).to.eql(new StringValue("value"));
+        expect(evaluate("cmd2 value")).to.eql(new StringValue("guarded:value"));
+      });
+      it("should let body errors pass through", () => {
+        evaluate("macro guard {result} {unreachable}");
+        evaluate("macro cmd {var} (guard {error msg})");
+        expect(execute("cmd value")).to.eql(ERROR("msg"));
+      });
+      it("should not access macro arguments", () => {
+        evaluate("macro guard {result} {exists var}");
+        evaluate("macro cmd {var} (guard {idem $var})");
+        expect(evaluate("cmd value")).to.eql(FALSE);
+      });
+      it("should evaluate in the caller scope", () => {
+        evaluate("macro guard {result} {idem root}");
+        evaluate("macro cmd {} (guard {true})");
+        evaluate("scope scp {macro guard {result} {idem scp}}");
+        expect(evaluate("scp eval {cmd}")).to.eql(new StringValue("scp"));
+      });
+      describe("exceptions", () => {
+        specify("empty body specifier", () => {
+          expect(execute("macro a ()")).to.eql(ERROR("empty body specifier"));
+          expect(execute("macro a b ()")).to.eql(ERROR("empty body specifier"));
+        });
+        specify("invalid body specifier", () => {
+          expect(execute("macro a (b c d)")).to.eql(
+            ERROR("invalid body specifier")
+          );
+          expect(execute("macro a b (c d e)")).to.eql(
+            ERROR("invalid body specifier")
+          );
+        });
+        specify("non-script body", () => {
+          expect(execute("macro a (b c)")).to.eql(
+            ERROR("body must be a script")
+          );
+          expect(execute("macro a b (c d)")).to.eql(
+            ERROR("body must be a script")
           );
         });
       });

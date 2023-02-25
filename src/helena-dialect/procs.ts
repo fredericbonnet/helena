@@ -9,7 +9,7 @@ import {
 } from "../core/results";
 import { Command } from "../core/command";
 import { Program } from "../core/compiler";
-import { ScriptValue, Value, ValueType } from "../core/values";
+import { ScriptValue, TupleValue, Value, ValueType } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, commandValueType, Process } from "./core";
@@ -21,18 +21,21 @@ class ProcValue implements CommandValue, Command {
   readonly scope: Scope;
   readonly argspec: ArgspecValue;
   readonly body: ScriptValue;
+  readonly guard: Value;
   readonly program: Program;
   readonly proc: ProcCommand;
   constructor(
     scope: Scope,
     argspec: ArgspecValue,
     body: ScriptValue,
+    guard: Value,
     program: Program
   ) {
     this.command = this;
     this.scope = scope;
     this.argspec = argspec;
     this.body = body;
+    this.guard = guard;
     this.program = program;
     this.proc = new ProcCommand(this);
   }
@@ -100,8 +103,14 @@ class ProcCommand implements CommandValue, Command {
     if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
     switch (result.code) {
       case ResultCode.OK:
-        return result;
       case ResultCode.RETURN:
+        if (this.value.guard) {
+          const process = this.value.scope.prepareTupleValue(
+            new TupleValue([this.value.guard, result.value])
+          );
+          // TODO handle YIELD?
+          return process.run();
+        }
         return OK(result.value);
       case ResultCode.YIELD:
       case ResultCode.ERROR:
@@ -124,13 +133,41 @@ export const procCmd: Command = {
       default:
         return ARITY_ERROR("proc ?name? argspec body");
     }
+    let guard;
+    switch (body.type) {
+      case ValueType.SCRIPT:
+        break;
+      case ValueType.TUPLE: {
+        const bodySpec = (body as TupleValue).values;
+        switch (bodySpec.length) {
+          case 0:
+            return ERROR("empty body specifier");
+          case 2:
+            [guard, body] = bodySpec;
+            break;
+          default:
+            return ERROR(`invalid body specifier`);
+        }
+        if (body.type != ValueType.SCRIPT)
+          return ERROR("body must be a script");
+        break;
+      }
+      default:
+        return ERROR("body must be a script");
+    }
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
     const result = ArgspecValue.fromValue(specs);
     if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
     const program = scope.compile((body as ScriptValue).script);
-    const value = new ProcValue(scope, argspec, body as ScriptValue, program);
+    const value = new ProcValue(
+      scope,
+      argspec,
+      body as ScriptValue,
+      guard,
+      program
+    );
     if (name) {
       const result = scope.registerCommand(name, value.proc);
       if (result.code != ResultCode.OK) return result;
