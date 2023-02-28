@@ -9,7 +9,7 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { NIL, StringValue, TupleValue } from "../core/values";
+import { NIL, STR, TUPLE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -34,13 +34,9 @@ describe("Helena basic commands", () => {
 
   describe("idem", () => {
     it("should return its argument", () => {
-      expect(evaluate("idem val")).to.eql(new StringValue("val"));
+      expect(evaluate("idem val")).to.eql(STR("val"));
       expect(evaluate("idem (a b c)")).to.eql(
-        new TupleValue([
-          new StringValue("a"),
-          new StringValue("b"),
-          new StringValue("c"),
-        ])
+        TUPLE([STR("a"), STR("b"), STR("c")])
       );
     });
     describe("exceptions", () => {
@@ -63,7 +59,7 @@ describe("Helena basic commands", () => {
       expect(evaluate("return")).to.eql(NIL);
     });
     it("should return an optional result", () => {
-      expect(evaluate("return val")).to.eql(new StringValue("val"));
+      expect(evaluate("return val")).to.eql(STR("val"));
     });
     describe("exceptions", () => {
       specify("wrong arity", () => {
@@ -77,22 +73,18 @@ describe("Helena basic commands", () => {
   describe("tailcall", () => {
     it("should return the result of the script body", () => {
       expect(execute("tailcall {}")).to.eql(RETURN(NIL));
-      expect(execute("tailcall {idem val}")).to.eql(
-        RETURN(new StringValue("val"))
-      );
-      expect(execute("tailcall {return val}")).to.eql(
-        RETURN(new StringValue("val"))
-      );
+      expect(execute("tailcall {idem val}")).to.eql(RETURN(STR("val")));
+      expect(execute("tailcall {return val}")).to.eql(RETURN(STR("val")));
       expect(execute("tailcall {error msg}")).to.eql(ERROR("msg"));
       expect(execute("tailcall {break}")).to.eql(BREAK());
       expect(execute("tailcall {continue}")).to.eql(CONTINUE());
     });
     it("should return the result of the tuple body", () => {
       expect(execute("tailcall (idem val); unreachable")).to.eql(
-        RETURN(new StringValue("val"))
+        RETURN(STR("val"))
       );
       expect(execute("tailcall (return val); unreachable")).to.eql(
-        RETURN(new StringValue("val"))
+        RETURN(STR("val"))
       );
       expect(execute("tailcall (error msg); unreachable")).to.eql(ERROR("msg"));
       expect(execute("tailcall (break); unreachable")).to.eql(BREAK());
@@ -100,16 +92,16 @@ describe("Helena basic commands", () => {
     });
     it("should interrupt the script", () => {
       expect(execute("tailcall {idem val}; unreachable")).to.eql(
-        RETURN(new StringValue("val"))
+        RETURN(STR("val"))
       );
       expect(execute("tailcall (idem val); unreachable")).to.eql(
-        RETURN(new StringValue("val"))
+        RETURN(STR("val"))
       );
     });
     it("should work recursively", () => {
       expect(
         execute("tailcall {tailcall (idem val); unreachable}; unreachable")
-      ).to.eql(RETURN(new StringValue("val")));
+      ).to.eql(RETURN(STR("val")));
     });
     describe("exceptions", () => {
       specify("wrong arity", () => {
@@ -136,7 +128,7 @@ describe("Helena basic commands", () => {
       expect(evaluate("yield")).to.eql(NIL);
     });
     it("should yield an optional result", () => {
-      expect(evaluate("yield val")).to.eql(new StringValue("val"));
+      expect(evaluate("yield val")).to.eql(STR("val"));
     });
     describe("exceptions", () => {
       specify("wrong arity", () => {
@@ -152,7 +144,7 @@ describe("Helena basic commands", () => {
       expect(execute("error a").code).to.eql(ResultCode.ERROR);
     });
     specify("result value should be message", () => {
-      expect(evaluate("error val")).to.eql(new StringValue("val"));
+      expect(evaluate("error val")).to.eql(STR("val"));
     });
     describe("exceptions", () => {
       specify("wrong arity", () => {
@@ -200,16 +192,14 @@ describe("Helena basic commands", () => {
       expect(evaluate("eval {}")).to.eql(NIL);
     });
     it("should return the result of the last command", () => {
-      expect(execute("eval {idem val1; idem val2}")).to.eql(
-        OK(new StringValue("val2"))
-      );
+      expect(execute("eval {idem val1; idem val2}")).to.eql(OK(STR("val2")));
     });
     it("should evaluate the body", () => {
       evaluate("eval {let var val}");
-      expect(evaluate("get var")).to.eql(new StringValue("val"));
+      expect(evaluate("get var")).to.eql(STR("val"));
     });
     it("should accept tuple bodies", () => {
-      expect(evaluate("eval (idem val)")).to.eql(new StringValue("val"));
+      expect(evaluate("eval (idem val)")).to.eql(STR("val"));
     });
     it("should work recursively", () => {
       const process = rootScope.prepareScript(
@@ -218,19 +208,19 @@ describe("Helena basic commands", () => {
 
       let result = process.run();
       expect(result.code).to.eql(ResultCode.YIELD);
-      expect(result.value).to.eql(new StringValue("val1"));
+      expect(result.value).to.eql(STR("val1"));
 
       result = process.run();
       expect(result.code).to.eql(ResultCode.YIELD);
-      expect(result.value).to.eql(new StringValue("val2"));
+      expect(result.value).to.eql(STR("val2"));
 
       result = process.run();
       expect(result.code).to.eql(ResultCode.YIELD);
-      expect(result.value).to.eql(new StringValue("val3"));
+      expect(result.value).to.eql(STR("val3"));
 
-      process.yieldBack(new StringValue("val4"));
+      process.yieldBack(STR("val4"));
       result = process.run();
-      expect(result).to.eql(OK(new StringValue("val4")));
+      expect(result).to.eql(OK(STR("val4")));
     });
     describe("control flow", () => {
       describe("return", () => {
@@ -238,12 +228,10 @@ describe("Helena basic commands", () => {
           expect(
             execute("eval {set var val1; return; set var val2}").code
           ).to.eql(ResultCode.RETURN);
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
         it("should return passed value", () => {
-          expect(execute("eval {return val}")).to.eql(
-            RETURN(new StringValue("val"))
-          );
+          expect(execute("eval {return val}")).to.eql(RETURN(STR("val")));
         });
       });
       describe("tailcall", () => {
@@ -251,11 +239,11 @@ describe("Helena basic commands", () => {
           expect(
             execute("eval {set var val1; tailcall {}; set var val2}").code
           ).to.eql(ResultCode.RETURN);
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
         it("should return tailcall result", () => {
           expect(execute("eval {tailcall {idem val}}")).to.eql(
-            RETURN(new StringValue("val"))
+            RETURN(STR("val"))
           );
         });
       });
@@ -264,7 +252,7 @@ describe("Helena basic commands", () => {
           expect(
             execute("eval {set var val1; yield; set var val2}").code
           ).to.eql(ResultCode.YIELD);
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
         it("should provide a resumable state", () => {
           const process = rootScope.prepareScript(
@@ -273,13 +261,13 @@ describe("Helena basic commands", () => {
 
           let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("val2"));
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(result.value).to.eql(STR("val2"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
 
-          process.yieldBack(new StringValue("val3"));
+          process.yieldBack(STR("val3"));
           result = process.run();
-          expect(result).to.eql(OK(new StringValue("_val3_")));
-          expect(evaluate("get var")).to.eql(new StringValue("_val3_"));
+          expect(result).to.eql(OK(STR("_val3_")));
+          expect(evaluate("get var")).to.eql(STR("_val3_"));
         });
       });
       describe("error", () => {
@@ -287,7 +275,7 @@ describe("Helena basic commands", () => {
           expect(
             execute("eval {set var val1; error msg; set var val2}")
           ).to.eql(ERROR("msg"));
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
       });
       describe("break", () => {
@@ -295,7 +283,7 @@ describe("Helena basic commands", () => {
           expect(execute("eval {set var val1; break; set var val2}")).to.eql(
             BREAK()
           );
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
       });
       describe("continue", () => {
@@ -303,7 +291,7 @@ describe("Helena basic commands", () => {
           expect(execute("eval {set var val1; continue; set var val2}")).to.eql(
             CONTINUE()
           );
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
       });
     });

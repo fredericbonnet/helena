@@ -13,12 +13,13 @@ import {
   MapValue,
   ValueType,
   NIL,
-  StringValue,
-  IntegerValue,
-  TRUE,
-  FALSE,
-  ListValue,
   ScriptValue,
+  INT,
+  LIST,
+  MAP,
+  STR,
+  TUPLE,
+  BOOL,
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
@@ -31,9 +32,7 @@ class DictCommand implements Command {
   ensemble: EnsembleValue;
   constructor(scope: Scope) {
     this.scope = new Scope(scope);
-    const { data: argspec } = ArgspecValue.fromValue(
-      new ListValue([new StringValue("value")])
-    );
+    const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
     this.ensemble = new EnsembleValue(this.scope, argspec);
   }
   execute(args: Value[], scope): Result {
@@ -48,7 +47,7 @@ const dictSizeCmd: Command = {
     if (args.length != 2) return ARITY_ERROR("dict value size");
     const { data: map, ...result } = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
-    return OK(new IntegerValue(map.size));
+    return OK(INT(map.size));
   },
 };
 const dictHasCmd: Command = {
@@ -58,7 +57,7 @@ const dictHasCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     const key = args[2].asString?.();
     if (key == null) return ERROR("invalid key");
-    return OK(map.has(key) ? TRUE : FALSE);
+    return OK(BOOL(map.has(key)));
   },
 };
 const dictGetCmd: Command = {
@@ -79,7 +78,7 @@ const dictGetCmd: Command = {
           if (!map.has(key)) return ERROR(`unknown key "${key}"`);
           values.push(map.get(key));
         }
-        return OK(new TupleValue(values));
+        return OK(TUPLE(values));
       }
       default: {
         const key = args[2].asString?.();
@@ -99,7 +98,7 @@ const dictAddCmd: Command = {
     const key = args[2].asString?.();
     if (key == null) return ERROR("invalid key");
     const clone = new Map(map);
-    return OK(new MapValue(clone.set(key, args[3])));
+    return OK(MAP(clone.set(key, args[3])));
   },
 };
 const dictRemoveCmd: Command = {
@@ -113,7 +112,7 @@ const dictRemoveCmd: Command = {
       if (key == null) return ERROR("invalid key");
       clone.delete(key);
     }
-    return OK(new MapValue(clone));
+    return OK(MAP(clone));
   },
 };
 const dictMergeCmd: Command = {
@@ -129,7 +128,7 @@ const dictMergeCmd: Command = {
         clone.set(key, value);
       });
     }
-    return OK(new MapValue(clone));
+    return OK(MAP(clone));
   },
 };
 const dictKeysCmd: Command = {
@@ -139,9 +138,9 @@ const dictKeysCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     const values = [];
     for (const key of map.keys()) {
-      values.push(new StringValue(key));
+      values.push(STR(key));
     }
-    return OK(new ListValue(values));
+    return OK(LIST(values));
   },
 };
 const dictValuesCmd: Command = {
@@ -153,7 +152,7 @@ const dictValuesCmd: Command = {
     for (const value of map.values()) {
       values.push(value);
     }
-    return OK(new ListValue(values));
+    return OK(LIST(values));
   },
 };
 const dictEntriesCmd: Command = {
@@ -163,9 +162,9 @@ const dictEntriesCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     const values = [];
     for (const [key, value] of map.entries()) {
-      values.push(new TupleValue([new StringValue(key), value]));
+      values.push(TUPLE([STR(key), value]));
     }
-    return OK(new ListValue(values));
+    return OK(LIST(values));
   },
 };
 type DictForeachState = {
@@ -212,10 +211,7 @@ class DictForeachCommand implements Command {
             case ValueType.TUPLE: {
               const tuple = state.varname as TupleValue;
               if (tuple.values.length >= 1)
-                state.scope.setLocal(
-                  tuple.values[0].asString(),
-                  new StringValue(key)
-                );
+                state.scope.setLocal(tuple.values[0].asString(), STR(key));
               if (tuple.values.length >= 2)
                 state.scope.setLocal(tuple.values[1].asString(), value);
               break;
@@ -223,7 +219,7 @@ class DictForeachCommand implements Command {
             default:
               state.scope.setLocal(
                 state.varname.asString(),
-                new TupleValue([new StringValue(key), value])
+                TUPLE([STR(key), value])
               );
           }
           state.process = state.scope.prepareProcess(state.program);
@@ -256,7 +252,7 @@ function valueToMapValue(value: Value): Result {
     case ValueType.TUPLE: {
       const { data, ...result } = valueToMap(value);
       if (result.code != ResultCode.OK) return result;
-      return OK(new MapValue(data));
+      return OK(MAP(data));
     }
     default:
       return ERROR("invalid map");
@@ -285,7 +281,7 @@ export function displayMapValue(
 ) {
   const values = [];
   for (const [key, value] of map.map.entries()) {
-    values.push(new StringValue(key), value);
+    values.push(STR(key), value);
   }
   return `[dict (${displayList(values, fn)})]`;
 }

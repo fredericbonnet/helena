@@ -1,7 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
 import { ERROR, OK, ResultCode } from "../core/results";
-import { FALSE, TRUE, TupleValue, ValueType } from "../core/values";
+import { BOOL, FALSE, TupleValue, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Scope } from "./core";
 
@@ -73,14 +73,10 @@ const existsCmd: Command = {
           case ValueType.QUALIFIED: {
             const result = scope.resolveValue(args[1]);
             if (result.code != ResultCode.OK) return OK(FALSE);
-            return OK(
-              scope.resolveValue(args[1]).code == ResultCode.OK ? TRUE : FALSE
-            );
+            return OK(BOOL(scope.resolveValue(args[1]).code == ResultCode.OK));
           }
           default:
-            return OK(
-              scope.getVariable(args[1]).code == ResultCode.OK ? TRUE : FALSE
-            );
+            return OK(BOOL(scope.getVariable(args[1]).code == ResultCode.OK));
         }
       default:
         return ARITY_ERROR("exists varname");

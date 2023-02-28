@@ -14,7 +14,8 @@ import {
   BooleanValue,
   NIL,
   ScriptValue,
-  StringValue,
+  STR,
+  TUPLE,
   TupleValue,
   Value,
   ValueType,
@@ -356,9 +357,9 @@ class WhenCommand implements Command {
     if (command == NIL) return OK(test);
     switch (test.type) {
       case ValueType.TUPLE:
-        return OK(new TupleValue([command, ...(test as TupleValue).values]));
+        return OK(TUPLE([command, ...(test as TupleValue).values]));
       default:
-        return OK(new TupleValue([command, test]));
+        return OK(TUPLE([command, test]));
     }
   }
   private executeTest(test: Value, state: WhenState, scope: Scope) {
@@ -412,23 +413,19 @@ class CatchCommand implements Command {
       const result = scope.executeScriptValue(body as ScriptValue);
       switch (result.code) {
         case ResultCode.OK:
-          return OK(new TupleValue([new StringValue("ok"), result.value]));
+          return OK(TUPLE([STR("ok"), result.value]));
         case ResultCode.RETURN:
-          return OK(new TupleValue([new StringValue("return"), result.value]));
+          return OK(TUPLE([STR("return"), result.value]));
         case ResultCode.YIELD:
-          return OK(new TupleValue([new StringValue("yield"), result.value]));
+          return OK(TUPLE([STR("yield"), result.value]));
         case ResultCode.ERROR:
-          return OK(new TupleValue([new StringValue("error"), result.value]));
+          return OK(TUPLE([STR("error"), result.value]));
         case ResultCode.BREAK:
-          return OK(new TupleValue([new StringValue("break")]));
+          return OK(TUPLE([STR("break")]));
         case ResultCode.CONTINUE:
-          return OK(new TupleValue([new StringValue("continue")]));
+          return OK(TUPLE([STR("continue")]));
         default:
-          return OK(
-            new TupleValue([
-              new StringValue((result.code as CustomResultCode).name),
-            ])
-          );
+          return OK(TUPLE([STR((result.code as CustomResultCode).name)]));
       }
     }
     return this.run({ step: "beforeBody", args }, scope);

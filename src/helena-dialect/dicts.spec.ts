@@ -2,15 +2,7 @@ import { expect } from "chai";
 import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import {
-  FALSE,
-  IntegerValue,
-  MapValue,
-  NIL,
-  StringValue,
-  TRUE,
-  TupleValue,
-} from "../core/values";
+import { FALSE, INT, MAP, NIL, STR, TRUE, TUPLE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { displayMapValue } from "./dicts";
@@ -36,13 +28,13 @@ describe("Helena dictionaries", () => {
 
   describe("dict", () => {
     it("should return map value", () => {
-      expect(evaluate("dict ()")).to.eql(new MapValue({}));
+      expect(evaluate("dict ()")).to.eql(MAP({}));
     });
     it("should convert key-value tuples to maps", () => {
       expect(evaluate("dict (a b c d)")).to.eql(
-        new MapValue({
-          a: new StringValue("b"),
-          c: new StringValue("d"),
+        MAP({
+          a: STR("b"),
+          c: STR("d"),
         })
       );
     });
@@ -56,19 +48,19 @@ describe("Helena dictionaries", () => {
     });
     it("should convert non-string keys to strings", () => {
       expect(evaluate("dict ([1] a [2.5] b [true] c {block} d)")).to.eql(
-        new MapValue({
-          "1": new StringValue("a"),
-          "2.5": new StringValue("b"),
-          true: new StringValue("c"),
-          block: new StringValue("d"),
+        MAP({
+          "1": STR("a"),
+          "2.5": STR("b"),
+          true: STR("c"),
+          block: STR("d"),
         })
       );
     });
     it("should preserve values", () => {
       expect(evaluate("dict (a [1] b () c [])")).to.eql(
-        new MapValue({
-          a: new IntegerValue(1),
-          b: new TupleValue([]),
+        MAP({
+          a: INT(1),
+          b: TUPLE([]),
           c: NIL,
         })
       );
@@ -92,8 +84,8 @@ describe("Helena dictionaries", () => {
       });
       describe("size", () => {
         it("should return the map size", () => {
-          expect(evaluate("dict () size")).to.eql(new IntegerValue(0));
-          expect(evaluate("dict (a b c d) size")).to.eql(new IntegerValue(2));
+          expect(evaluate("dict () size")).to.eql(INT(0));
+          expect(evaluate("dict (a b c d) size")).to.eql(INT(2));
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
@@ -129,11 +121,11 @@ describe("Helena dictionaries", () => {
       });
       describe("get", () => {
         it("should return the value at the given key", () => {
-          expect(evaluate("dict (a b c d) get a")).to.eql(new StringValue("b"));
+          expect(evaluate("dict (a b c d) get a")).to.eql(STR("b"));
         });
         it("should return the default value for a non-existing key", () => {
           expect(evaluate("dict (a b c d) get e default")).to.eql(
-            new StringValue("default")
+            STR("default")
           );
         });
         it("should support key tuples", () => {
@@ -345,7 +337,7 @@ describe("Helena dictionaries", () => {
                 set i [+ $i 1]
               }
               `);
-            expect(evaluate("get i")).to.eql(new IntegerValue(3));
+            expect(evaluate("get i")).to.eql(INT(3));
           });
           it("should accept (key) tuple", () => {
             evaluate(`
@@ -374,7 +366,7 @@ describe("Helena dictionaries", () => {
             evaluate(
               "set i 0; dict (a b c d e f) foreach entry {set i [+ $i 1]}"
             )
-          ).to.eql(new IntegerValue(3));
+          ).to.eql(INT(3));
         });
         describe("control flow", () => {
           describe("return", () => {
@@ -384,7 +376,7 @@ describe("Helena dictionaries", () => {
                   "set i 0; dict (a b c d e f) foreach entry {set i [+ $i 1]; return $entry; unreachable}"
                 )
               ).to.eql(execute("return (a b)"));
-              expect(evaluate("get i")).to.eql(new IntegerValue(1));
+              expect(evaluate("get i")).to.eql(INT(1));
             });
           });
           describe("tailcall", () => {
@@ -394,7 +386,7 @@ describe("Helena dictionaries", () => {
                   "set i 0; dict (a b c d e f) foreach entry {set i [+ $i 1]; tailcall {idem $entry}; unreachable}"
                 )
               ).to.eql(execute("return (a b)"));
-              expect(evaluate("get i")).to.eql(new IntegerValue(1));
+              expect(evaluate("get i")).to.eql(INT(1));
             });
           });
           describe("yield", () => {
@@ -413,24 +405,24 @@ describe("Helena dictionaries", () => {
 
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("a"));
+              expect(result.value).to.eql(STR("a"));
               expect(result.data).to.exist;
 
-              process.yieldBack(new StringValue("step 1"));
+              process.yieldBack(STR("step 1"));
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("c"));
+              expect(result.value).to.eql(STR("c"));
               expect(result.data).to.exist;
 
-              process.yieldBack(new StringValue("step 2"));
+              process.yieldBack(STR("step 2"));
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("e"));
+              expect(result.value).to.eql(STR("e"));
               expect(result.data).to.exist;
 
-              process.yieldBack(new StringValue("step 3"));
+              process.yieldBack(STR("step 3"));
               result = process.run();
-              expect(result).to.eql(OK(new StringValue("_step 3_")));
+              expect(result).to.eql(OK(STR("_step 3_")));
             });
           });
           describe("error", () => {
@@ -440,7 +432,7 @@ describe("Helena dictionaries", () => {
                   "set i 0; dict (a b c d e f) foreach entry {set i [+ $i 1]; error msg; unreachable}"
                 )
               ).to.eql(ERROR("msg"));
-              expect(evaluate("get i")).to.eql(new IntegerValue(1));
+              expect(evaluate("get i")).to.eql(INT(1));
             });
           });
           describe("break", () => {
@@ -450,7 +442,7 @@ describe("Helena dictionaries", () => {
                   "set i 0; dict (a b c d e f) foreach entry {set i [+ $i 1]; break; unreachable}"
                 )
               ).to.eql(OK(NIL));
-              expect(evaluate("get i")).to.eql(new IntegerValue(1));
+              expect(evaluate("get i")).to.eql(INT(1));
             });
           });
           describe("continue", () => {
@@ -460,7 +452,7 @@ describe("Helena dictionaries", () => {
                   "set i 0; dict (a b c d e f) foreach entry {set i [+ $i 1]; continue; unreachable}"
                 )
               ).to.eql(OK(NIL));
-              expect(evaluate("get i")).to.eql(new IntegerValue(3));
+              expect(evaluate("get i")).to.eql(INT(3));
             });
           });
         });
@@ -500,7 +492,7 @@ describe("Helena dictionaries", () => {
             }
           }`
         );
-        expect(evaluate("dict (a b c d) foo")).to.eql(new StringValue("bar2"));
+        expect(evaluate("dict (a b c d) foo")).to.eql(STR("bar2"));
       });
     });
     describe("exceptions", () => {
@@ -533,11 +525,11 @@ describe("Helena dictionaries", () => {
     });
     specify("size", () => {
       evaluate("set d (dict (a b c d))");
-      expect(evaluate("$d size")).to.eql(new IntegerValue(2));
+      expect(evaluate("$d size")).to.eql(INT(2));
     });
     specify("get", () => {
       evaluate("set d (dict (a b c d))");
-      expect(evaluate("$d get a")).to.eql(new StringValue("b"));
+      expect(evaluate("$d get a")).to.eql(STR("b"));
     });
     specify("entries", () => {
       evaluate("set d (dict (a b c d))");
@@ -548,9 +540,9 @@ describe("Helena dictionaries", () => {
   specify("get <-> keyed selector equivalence", () => {
     rootScope.setNamedVariable(
       "v",
-      new MapValue({
-        a: new StringValue("b"),
-        c: new StringValue("d"),
+      MAP({
+        a: STR("b"),
+        c: STR("d"),
       })
     );
     evaluate("set d (dict $v)");
@@ -566,17 +558,17 @@ describe("Helena dictionaries", () => {
 
   describe("displayMapValue", () => {
     it("should display maps as dict command + key-value tuple", () => {
-      const map = new MapValue({
-        a: new StringValue("b"),
-        c: new StringValue("d"),
+      const map = MAP({
+        a: STR("b"),
+        c: STR("d"),
       });
 
       expect(displayMapValue(map)).to.eql("[dict (a b c d)]");
     });
     it("should produce an isomorphic string", () => {
-      const map = new MapValue({
-        a: new StringValue("b"),
-        c: new StringValue("d"),
+      const map = MAP({
+        a: STR("b"),
+        c: STR("d"),
       });
       expect(evaluate(`idem ${displayMapValue(map)}`)).to.eql(map);
     });

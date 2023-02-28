@@ -1,6 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { ERROR, Result, ResultCode, OK } from "../core/results";
-import { Value, NumberValue, TRUE, FALSE, IntegerValue } from "../core/values";
+import { Value, NumberValue, INT, NUM, BOOL } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Subcommands } from "./subcommands";
 
@@ -108,10 +108,10 @@ const binaryOp =
   ) =>
   (args: Value[], operand1: number): Result => {
     if (args.length != 3) return OPERATOR_ARITY_ERROR(operator);
-    if (args[0] == args[2]) return OK(whenEqual ? TRUE : FALSE);
+    if (args[0] == args[2]) return OK(BOOL(whenEqual));
     const { data: operand2, ...result } = NumberValue.toNumber(args[2]);
     if (result.code != ResultCode.OK) return result;
-    return OK(fn(operand1, operand2) ? TRUE : FALSE);
+    return OK(BOOL(fn(operand1, operand2)));
   };
 const eqOp = binaryOp("==", true, (op1, op2) => op1 == op2);
 const neOp = binaryOp("!=", false, (op1, op2) => op1 != op2);
@@ -121,7 +121,5 @@ const ltOp = binaryOp("<", false, (op1, op2) => op1 < op2);
 const leOp = binaryOp("<=", true, (op1, op2) => op1 <= op2);
 
 export function numberToValue(num: number) {
-  return Number.isSafeInteger(num)
-    ? new IntegerValue(num)
-    : new NumberValue(num);
+  return Number.isSafeInteger(num) ? INT(num) : NUM(num);
 }

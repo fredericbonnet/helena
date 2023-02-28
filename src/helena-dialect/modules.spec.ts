@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { ListValue, NIL, StringValue } from "../core/values";
+import { LIST, NIL, STR } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -61,7 +61,7 @@ describe("Helena modules", () => {
       it("should not define outer commands", () => {
         evaluate("closure cmd {} {idem outer}");
         evaluate("module {closure cmd {} {idem outer}}");
-        expect(evaluate("cmd")).to.eql(new StringValue("outer"));
+        expect(evaluate("cmd")).to.eql(STR("outer"));
       });
       it("should not access outer variables", () => {
         evaluate("set var val");
@@ -72,9 +72,7 @@ describe("Helena modules", () => {
       it("should not set outer variables", () => {
         evaluate("set var val");
         evaluate("module {set var val2; let cst val3}");
-        expect(rootScope.context.variables.get("var")).to.eql(
-          new StringValue("val")
-        );
+        expect(rootScope.context.variables.get("var")).to.eql(STR("val"));
         expect(rootScope.context.constants.has("cst")).to.be.false;
       });
       describe("control flow", () => {
@@ -168,7 +166,7 @@ describe("Helena modules", () => {
       });
       describe("exports", () => {
         it("should return a list", () => {
-          expect(evaluate("[module {}] exports")).to.eql(new ListValue([]));
+          expect(evaluate("[module {}] exports")).to.eql(LIST([]));
         });
         it("should return the list of module exports", () => {
           expect(
@@ -187,7 +185,7 @@ describe("Helena modules", () => {
         it("should declare imported commands in the calling scope", () => {
           evaluate(`module mod {macro cmd {} {idem value}; export cmd}`);
           evaluate("mod import cmd");
-          expect(evaluate("cmd")).to.eql(new StringValue("value"));
+          expect(evaluate("cmd")).to.eql(STR("value"));
         });
         it("should return nil", () => {
           evaluate(`module mod {macro cmd {} {idem value}; export cmd}`);
@@ -195,23 +193,23 @@ describe("Helena modules", () => {
         });
         it("should replace existing commands", () => {
           evaluate("closure cmd {} {idem val1} ");
-          expect(evaluate("cmd")).to.eql(new StringValue("val1"));
+          expect(evaluate("cmd")).to.eql(STR("val1"));
           evaluate(`module mod {macro cmd {} {idem val2}; export cmd}`);
           evaluate("mod import cmd");
-          expect(evaluate("cmd")).to.eql(new StringValue("val2"));
+          expect(evaluate("cmd")).to.eql(STR("val2"));
         });
         it("should evaluate macros in the caller scope", () => {
           evaluate(`module mod {macro cmd {} {set var val}; export cmd}`);
           evaluate("mod import cmd");
           evaluate("cmd");
-          expect(evaluate("get var")).to.eql(new StringValue("val"));
+          expect(evaluate("get var")).to.eql(STR("val"));
         });
         it("should evaluate closures in their scope", () => {
           evaluate(
             `module mod {set var val; closure cmd {} {get var}; export cmd}`
           );
           evaluate("mod import cmd");
-          expect(evaluate("cmd")).to.eql(new StringValue("val"));
+          expect(evaluate("cmd")).to.eql(STR("val"));
           expect(execute("get var").code).to.eql(ResultCode.ERROR);
         });
         it("should resolve exported commands at call time", () => {
@@ -225,14 +223,10 @@ describe("Helena modules", () => {
               export redefine
             }
           `);
-          expect(evaluate("mod import cmd; cmd")).to.eql(
-            new StringValue("val1")
-          );
+          expect(evaluate("mod import cmd; cmd")).to.eql(STR("val1"));
           evaluate("mod import redefine; redefine");
-          expect(evaluate("cmd")).to.eql(new StringValue("val1"));
-          expect(evaluate("mod import cmd; cmd")).to.eql(
-            new StringValue("val2")
-          );
+          expect(evaluate("cmd")).to.eql(STR("val1"));
+          expect(evaluate("mod import cmd; cmd")).to.eql(STR("val2"));
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {

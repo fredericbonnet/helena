@@ -10,7 +10,7 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, IntegerValue, NIL, StringValue, TRUE } from "../core/values";
+import { FALSE, INT, NIL, STR, TRUE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -39,43 +39,43 @@ describe("Helena control flow commands", () => {
     });
     it("should loop over the body while test is true", () => {
       evaluate("set i 0; while {$i < 10} {set i [+ $i 1]}");
-      expect(evaluate("get i")).to.eql(new IntegerValue(10));
+      expect(evaluate("get i")).to.eql(INT(10));
     });
     it("should return the result of the last command", () => {
       expect(execute(" while false {}")).to.eql(OK(NIL));
       expect(
         evaluate("set i 0; while {$i < 10} {set i [+ $i 1]; idem val$i}")
-      ).to.eql(new StringValue("val10"));
+      ).to.eql(STR("val10"));
     });
     describe("control flow", () => {
       describe("return", () => {
         it("should interrupt the test with RETURN code", () => {
           expect(
             execute("while {return val; unreachable} {unreachable}")
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
         });
         it("should interrupt the loop with RETURN code", () => {
           expect(
             execute(
               "set i 0; while {$i < 10} {set i [+ $i 1]; return val; unreachable}"
             )
-          ).to.eql(RETURN(new StringValue("val")));
-          expect(evaluate("get i")).to.eql(new IntegerValue(1));
+          ).to.eql(RETURN(STR("val")));
+          expect(evaluate("get i")).to.eql(INT(1));
         });
       });
       describe("tailcall", () => {
         it("should interrupt the test with RETURN code", () => {
           expect(
             execute("while {tailcall {idem val}; unreachable} {unreachable}")
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
         });
         it("should interrupt the loop with RETURN code", () => {
           expect(
             execute(
               "set i 0; while {$i < 10} {set i [+ $i 1]; tailcall {idem val}; unreachable}"
             )
-          ).to.eql(RETURN(new StringValue("val")));
-          expect(evaluate("get i")).to.eql(new IntegerValue(1));
+          ).to.eql(RETURN(STR("val")));
+          expect(evaluate("get i")).to.eql(INT(1));
         });
       });
       describe("yield", () => {
@@ -96,36 +96,36 @@ describe("Helena control flow commands", () => {
 
           let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("test"));
+          expect(result.value).to.eql(STR("test"));
           expect(result.data).to.exist;
 
           process.yieldBack(TRUE);
           result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("body"));
+          expect(result.value).to.eql(STR("body"));
           expect(result.data).to.exist;
 
-          process.yieldBack(new StringValue("step 1"));
+          process.yieldBack(STR("step 1"));
           result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("test"));
+          expect(result.value).to.eql(STR("test"));
           expect(result.data).to.exist;
 
           process.yieldBack(TRUE);
           result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("body"));
+          expect(result.value).to.eql(STR("body"));
           expect(result.data).to.exist;
 
-          process.yieldBack(new StringValue("step 2"));
+          process.yieldBack(STR("step 2"));
           result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("test"));
+          expect(result.value).to.eql(STR("test"));
           expect(result.data).to.exist;
 
           process.yieldBack(FALSE);
           result = process.run();
-          expect(result).to.eql(OK(new StringValue("step 2")));
+          expect(result).to.eql(OK(STR("step 2")));
         });
       });
       describe("error", () => {
@@ -141,7 +141,7 @@ describe("Helena control flow commands", () => {
               "set i 0; while {$i < 10} {set i [+ $i 1]; error msg; set var val}"
             )
           ).to.eql(ERROR("msg"));
-          expect(evaluate("get i")).to.eql(new IntegerValue(1));
+          expect(evaluate("get i")).to.eql(INT(1));
           expect(execute("get var").code).to.eql(ResultCode.ERROR);
         });
       });
@@ -157,7 +157,7 @@ describe("Helena control flow commands", () => {
               "set i 0; while {$i < 10} {set i [+ $i 1]; break; unreachable}"
             )
           ).to.eql(OK(NIL));
-          expect(evaluate("get i")).to.eql(new IntegerValue(1));
+          expect(evaluate("get i")).to.eql(INT(1));
         });
       });
       describe("continue", () => {
@@ -172,7 +172,7 @@ describe("Helena control flow commands", () => {
               "set i 0; while {$i < 10} {set i [+ $i 1]; continue; unreachable}"
             )
           ).to.eql(OK(NIL));
-          expect(evaluate("get i")).to.eql(new IntegerValue(10));
+          expect(evaluate("get i")).to.eql(INT(10));
         });
       });
     });
@@ -193,29 +193,23 @@ describe("Helena control flow commands", () => {
 
   describe("if", () => {
     it("should return the result of the first true body", () => {
-      expect(evaluate("if true {1}")).to.eql(new IntegerValue(1));
-      expect(evaluate("if true {1} else {2}")).to.eql(new IntegerValue(1));
-      expect(evaluate("if true {1} elseif true {2} else {3}")).to.eql(
-        new IntegerValue(1)
-      );
+      expect(evaluate("if true {1}")).to.eql(INT(1));
+      expect(evaluate("if true {1} else {2}")).to.eql(INT(1));
+      expect(evaluate("if true {1} elseif true {2} else {3}")).to.eql(INT(1));
       expect(
         evaluate("if false {1} elseif true {2} elseif true {3} else {4}")
-      ).to.eql(new IntegerValue(2));
-      expect(evaluate("if false {1} elseif true {2} else {3}")).to.eql(
-        new IntegerValue(2)
-      );
+      ).to.eql(INT(2));
+      expect(evaluate("if false {1} elseif true {2} else {3}")).to.eql(INT(2));
       expect(
         evaluate("if false {1} elseif true {2} elseif true {3} else {4}")
-      ).to.eql(new IntegerValue(2));
+      ).to.eql(INT(2));
     });
     it("should return the result of the else body when all tests are false", () => {
-      expect(evaluate("if false {1} else {2}")).to.eql(new IntegerValue(2));
-      expect(evaluate("if false {1} elseif false {2} else {3}")).to.eql(
-        new IntegerValue(3)
-      );
+      expect(evaluate("if false {1} else {2}")).to.eql(INT(2));
+      expect(evaluate("if false {1} elseif false {2} else {3}")).to.eql(INT(3));
       expect(
         evaluate("if false {1} elseif false {2} elseif false {3} else {4}")
-      ).to.eql(new IntegerValue(4));
+      ).to.eql(INT(4));
     });
     it("should skip leading false bodies", () => {
       expect(evaluate("if false {unreachable}")).to.eql(NIL);
@@ -229,74 +223,72 @@ describe("Helena control flow commands", () => {
       ).to.eql(NIL);
     });
     it("should skip trailing tests and bodies", () => {
-      expect(evaluate("if true {1} else {unreachable}")).to.eql(
-        new IntegerValue(1)
-      );
+      expect(evaluate("if true {1} else {unreachable}")).to.eql(INT(1));
       expect(evaluate("if true {1} elseif {unreachable} {unreachable}")).to.eql(
-        new IntegerValue(1)
+        INT(1)
       );
       expect(
         evaluate(
           "if true {1} elseif {unreachable} {unreachable} else {unreachable}"
         )
-      ).to.eql(new IntegerValue(1));
+      ).to.eql(INT(1));
       expect(
         evaluate(
           "if false {1} elseif true {2} elseif {unreachable} {unreachable}"
         )
-      ).to.eql(new IntegerValue(2));
+      ).to.eql(INT(2));
     });
     describe("control flow", () => {
       describe("return", () => {
         it("should interrupt tests with RETURN code", () => {
           expect(execute("if {return val; unreachable} {unreachable}")).to.eql(
-            RETURN(new StringValue("val"))
+            RETURN(STR("val"))
           );
           expect(
             execute(
               "if false {} elseif {return val; unreachable} {unreachable}"
             )
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
         });
         it("should interrupt bodies with RETURN code", () => {
           expect(execute("if true {return val; unreachable}")).to.eql(
-            RETURN(new StringValue("val"))
+            RETURN(STR("val"))
           );
           expect(
             execute("if false {} elseif true {return val; unreachable}")
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
           expect(
             execute(
               "if false {} elseif false {} else {return val; unreachable}"
             )
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
         });
       });
       describe("tailcall", () => {
         it("should interrupt tests with RETURN code", () => {
           expect(
             execute("if {tailcall {idem val}; unreachable} {unreachable}")
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
           expect(
             execute(
               "if false {} elseif {tailcall {idem val}; unreachable} {unreachable}"
             )
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
         });
         it("should interrupt bodies with RETURN code", () => {
           expect(execute("if true {tailcall {idem val}; unreachable}")).to.eql(
-            RETURN(new StringValue("val"))
+            RETURN(STR("val"))
           );
           expect(
             execute(
               "if false {} elseif true {tailcall {idem val}; unreachable}"
             )
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
           expect(
             execute(
               "if false {} elseif false {} else {tailcall {idem val}; unreachable}"
             )
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
         });
       });
       describe("yield", () => {
@@ -335,62 +327,62 @@ describe("Helena control flow commands", () => {
           specify("if", () => {
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(new StringValue("test1"));
+            expect(result.value).to.eql(STR("test1"));
             expect(result.data).to.exist;
 
             process.yieldBack(TRUE);
             result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(new StringValue("body1"));
+            expect(result.value).to.eql(STR("body1"));
             expect(result.data).to.exist;
 
-            process.yieldBack(new StringValue("result"));
+            process.yieldBack(STR("result"));
             result = process.run();
-            expect(result).to.eql(OK(new StringValue("result")));
+            expect(result).to.eql(OK(STR("result")));
           });
           specify("elseif", () => {
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(new StringValue("test1"));
+            expect(result.value).to.eql(STR("test1"));
             expect(result.data).to.exist;
 
             process.yieldBack(FALSE);
             result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(new StringValue("test2"));
+            expect(result.value).to.eql(STR("test2"));
             expect(result.data).to.exist;
 
             process.yieldBack(TRUE);
             result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(new StringValue("body2"));
+            expect(result.value).to.eql(STR("body2"));
             expect(result.data).to.exist;
 
-            process.yieldBack(new StringValue("result"));
+            process.yieldBack(STR("result"));
             result = process.run();
-            expect(result).to.eql(OK(new StringValue("result")));
+            expect(result).to.eql(OK(STR("result")));
           });
           specify("else", () => {
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(new StringValue("test1"));
+            expect(result.value).to.eql(STR("test1"));
             expect(result.data).to.exist;
 
             process.yieldBack(FALSE);
             result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(new StringValue("test2"));
+            expect(result.value).to.eql(STR("test2"));
             expect(result.data).to.exist;
 
             process.yieldBack(FALSE);
             result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(new StringValue("body3"));
+            expect(result.value).to.eql(STR("body3"));
             expect(result.data).to.exist;
 
-            process.yieldBack(new StringValue("result"));
+            process.yieldBack(STR("result"));
             result = process.run();
-            expect(result).to.eql(OK(new StringValue("result")));
+            expect(result).to.eql(OK(STR("result")));
           });
         });
       });
@@ -514,19 +506,13 @@ describe("Helena control flow commands", () => {
       expect(evaluate("when ()")).to.eql(NIL);
     });
     it("should return the result of the first true body", () => {
-      expect(evaluate("when {true {1}}")).to.eql(new IntegerValue(1));
-      expect(evaluate("when {true {1} {2}}")).to.eql(new IntegerValue(1));
-      expect(evaluate("when {true {1} true {2} {3}}")).to.eql(
-        new IntegerValue(1)
-      );
-      expect(evaluate("when {false {1} true {2} true {3} {4}}")).to.eql(
-        new IntegerValue(2)
-      );
-      expect(evaluate("when {false {1} true {2} {3}}")).to.eql(
-        new IntegerValue(2)
-      );
+      expect(evaluate("when {true {1}}")).to.eql(INT(1));
+      expect(evaluate("when {true {1} {2}}")).to.eql(INT(1));
+      expect(evaluate("when {true {1} true {2} {3}}")).to.eql(INT(1));
+      expect(evaluate("when {false {1} true {2} true {3} {4}}")).to.eql(INT(2));
+      expect(evaluate("when {false {1} true {2} {3}}")).to.eql(INT(2));
       expect(evaluate("when {false {1} true {2} true {3}  {4}}")).to.eql(
-        new IntegerValue(2)
+        INT(2)
       );
     });
     it("should skip leading false bodies", () => {
@@ -541,40 +527,34 @@ describe("Helena control flow commands", () => {
       ).to.eql(NIL);
     });
     it("should skip trailing tests and bodies", () => {
-      expect(evaluate("when {true {1} {unreachable}}")).to.eql(
-        new IntegerValue(1)
-      );
+      expect(evaluate("when {true {1} {unreachable}}")).to.eql(INT(1));
       expect(evaluate("when {true {1} {unreachable} {unreachable}}")).to.eql(
-        new IntegerValue(1)
+        INT(1)
       );
       expect(
         evaluate("when {true {1} {unreachable} {unreachable} {unreachable}}")
-      ).to.eql(new IntegerValue(1));
+      ).to.eql(INT(1));
       expect(
         evaluate("when {false {1} true {2} {unreachable} {unreachable}}")
-      ).to.eql(new IntegerValue(2));
+      ).to.eql(INT(2));
     });
     describe("no command", () => {
       it("should evaluate tests as boolean conditions", () => {
-        expect(evaluate("when {true {1}}")).to.eql(new IntegerValue(1));
-        expect(evaluate("when {{idem true} {1}}")).to.eql(new IntegerValue(1));
+        expect(evaluate("when {true {1}}")).to.eql(INT(1));
+        expect(evaluate("when {{idem true} {1}}")).to.eql(INT(1));
       });
     });
     describe("literal command", () => {
       it("should apply to tests", () => {
         expect(evaluate("when ! {true {1}}")).to.eql(NIL);
-        expect(evaluate("when ! {true {1} {2}}")).to.eql(new IntegerValue(2));
-        expect(evaluate("when ! {true {1} true {2} {3}}")).to.eql(
-          new IntegerValue(3)
-        );
+        expect(evaluate("when ! {true {1} {2}}")).to.eql(INT(2));
+        expect(evaluate("when ! {true {1} true {2} {3}}")).to.eql(INT(3));
       });
       it("should be called on each test", () => {
         evaluate("macro test {v} {set count [+ $count 1]; idem $v}");
         evaluate("set count 0");
-        expect(evaluate("when test {false {1} false {2} {3}}")).to.eql(
-          new IntegerValue(3)
-        );
-        expect(evaluate("get count")).to.eql(new IntegerValue(2));
+        expect(evaluate("when test {false {1} false {2} {3}}")).to.eql(INT(3));
+        expect(evaluate("get count")).to.eql(INT(2));
       });
       it("should pass test literal as argument", () => {
         expect(evaluate("when ! {false {1} true {2} true {3} {4}}")).to.eql(
@@ -595,67 +575,57 @@ describe("Helena control flow commands", () => {
     });
     describe("tuple command", () => {
       it("should apply to tests", () => {
-        expect(evaluate("when (1 ==) {2 {1} 1 {2} {3}}")).to.eql(
-          new IntegerValue(2)
-        );
+        expect(evaluate("when (1 ==) {2 {1} 1 {2} {3}}")).to.eql(INT(2));
       });
       it("should be called on each test", () => {
         evaluate("macro test {cmd v} {set count [+ $count 1]; $cmd $v}");
         evaluate("set count 0");
         expect(
           evaluate("when (test (true ?)) {false {1} false {2} {3}}")
-        ).to.eql(new IntegerValue(3));
-        expect(evaluate("get count")).to.eql(new IntegerValue(2));
+        ).to.eql(INT(3));
+        expect(evaluate("get count")).to.eql(INT(2));
       });
       it("should pass test literal as argument", () => {
-        expect(evaluate("when (1 ==) {2 {1} 3 {2} 1 {3} {4}}")).to.eql(
-          new IntegerValue(3)
-        );
+        expect(evaluate("when (1 ==) {2 {1} 3 {2} 1 {3} {4}}")).to.eql(INT(3));
       });
       it("should pass test tuple values as arguments", () => {
-        expect(evaluate("when () {false {1} true {2} {3}}")).to.eql(
-          new IntegerValue(2)
-        );
-        expect(evaluate("when (1) {(== 2) {1} (!= 1) {2} {3}}")).to.eql(
-          new IntegerValue(3)
-        );
+        expect(evaluate("when () {false {1} true {2} {3}}")).to.eql(INT(2));
+        expect(evaluate("when (1) {(== 2) {1} (!= 1) {2} {3}}")).to.eql(INT(3));
         expect(
           evaluate("when (&& true) {(true false) {1} (true) {2} {3}}")
-        ).to.eql(new IntegerValue(2));
+        ).to.eql(INT(2));
       });
     });
     describe("script command", () => {
       it("evaluation result should apply to tests", () => {
         evaluate("macro test {v} {idem $v}");
         expect(evaluate("when {idem test} {false {1} true {2} {3}}")).to.eql(
-          new IntegerValue(2)
+          INT(2)
         );
       });
       it("should be called on each test", () => {
         evaluate("macro test {cmd} {set count [+ $count 1]; idem $cmd}");
         evaluate("set count 0");
         expect(evaluate("when {test !} {true {1} true {2} {3}}")).to.eql(
-          new IntegerValue(3)
+          INT(3)
         );
-        expect(evaluate("get count")).to.eql(new IntegerValue(2));
+        expect(evaluate("get count")).to.eql(INT(2));
       });
       it("should pass test literal as argument", () => {
         evaluate("macro test {v} {1 == $v}");
         expect(evaluate("when {idem test} {2 {1} 3 {2} 1 {3} {4}}")).to.eql(
-          new IntegerValue(3)
+          INT(3)
         );
       });
       it("should pass test tuple values as arguments", () => {
         evaluate("macro test {v1 v2} {$v1 == $v2}");
         expect(evaluate("when {idem test} {(1 2) {1} (1 1) {2} {3}}")).to.eql(
-          new IntegerValue(2)
+          INT(2)
         );
-        expect(evaluate("when {1} {(== 2) {1} (!= 1) {2} {3}}")).to.eql(
-          new IntegerValue(3)
-        );
+        expect(evaluate("when {1} {(== 2) {1} (!= 1) {2} {3}}")).to.eql(INT(3));
         expect(
           evaluate("when {idem (&& true)} {(true false) {1} (true) {2} {3}}")
-        ).to.eql(new IntegerValue(2));
+        ).to.eql(INT(2));
       });
     });
     describe("control flow", () => {
@@ -663,68 +633,68 @@ describe("Helena control flow commands", () => {
         it("should interrupt tests with RETURN code", () => {
           expect(
             execute("when {{return val; unreachable} {unreachable}}")
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
           expect(
             execute("when {false {} {return val; unreachable} {unreachable}}")
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
         });
         it("should interrupt script command with RETURN code", () => {
           expect(
             execute("when {return val; unreachable} {true {unreachable}}")
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
           expect(
             execute(
               "set count 0; when {if {$count == 1} {return val; unreachable} else {set count [+ $count 1]; idem idem}} {false {unreachable} true {unreachable} {unreachable}}"
             )
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
         });
         it("should interrupt bodies with RETURN code", () => {
           expect(execute("when {true {return val; unreachable}}")).to.eql(
-            RETURN(new StringValue("val"))
+            RETURN(STR("val"))
           );
           expect(
             execute("when {false {} true {return val; unreachable}}")
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
           expect(
             execute("when {false {} false {} {return val; unreachable}}")
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
         });
       });
       describe("tailcall", () => {
         it("should interrupt tests with RETURN code", () => {
           expect(
             execute("when {{tailcall {idem val}; unreachable} {unreachable}}")
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
           expect(
             execute(
               "when {false {} {tailcall {idem val}; unreachable} {unreachable}}"
             )
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
         });
         it("should interrupt script command with RETURN code", () => {
           expect(
             execute(
               "when {tailcall {idem val}; unreachable} {true {unreachable}}"
             )
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
           expect(
             execute(
               "set count 0; when {if {$count == 1} {tailcall {idem val}; unreachable} else {set count [+ $count 1]; idem idem}} {false {unreachable} true {unreachable} {unreachable}}"
             )
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
         });
         it("should interrupt bodies with RETURN code", () => {
           expect(
             execute("when {true {tailcall {idem val}; unreachable}}")
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
           expect(
             execute("when {false {} true {tailcall {idem val}; unreachable}}")
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
           expect(
             execute(
               "when {false {} false {} {tailcall {idem val}; unreachable}}"
             )
-          ).to.eql(RETURN(new StringValue("val")));
+          ).to.eql(RETURN(STR("val")));
         });
       });
       describe("yield", () => {
@@ -770,62 +740,62 @@ describe("Helena control flow commands", () => {
             specify("first", () => {
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("test1"));
+              expect(result.value).to.eql(STR("test1"));
               expect(result.data).to.exist;
 
               process.yieldBack(TRUE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("body1"));
+              expect(result.value).to.eql(STR("body1"));
               expect(result.data).to.exist;
 
-              process.yieldBack(new StringValue("result"));
+              process.yieldBack(STR("result"));
               result = process.run();
-              expect(result).to.eql(OK(new StringValue("result")));
+              expect(result).to.eql(OK(STR("result")));
             });
             specify("second", () => {
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("test1"));
+              expect(result.value).to.eql(STR("test1"));
               expect(result.data).to.exist;
 
               process.yieldBack(FALSE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("test2"));
+              expect(result.value).to.eql(STR("test2"));
               expect(result.data).to.exist;
 
               process.yieldBack(TRUE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("body2"));
+              expect(result.value).to.eql(STR("body2"));
               expect(result.data).to.exist;
 
-              process.yieldBack(new StringValue("result"));
+              process.yieldBack(STR("result"));
               result = process.run();
-              expect(result).to.eql(OK(new StringValue("result")));
+              expect(result).to.eql(OK(STR("result")));
             });
             specify("default", () => {
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("test1"));
+              expect(result.value).to.eql(STR("test1"));
               expect(result.data).to.exist;
 
               process.yieldBack(FALSE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("test2"));
+              expect(result.value).to.eql(STR("test2"));
               expect(result.data).to.exist;
 
               process.yieldBack(FALSE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("body3"));
+              expect(result.value).to.eql(STR("body3"));
               expect(result.data).to.exist;
 
-              process.yieldBack(new StringValue("result"));
+              process.yieldBack(STR("result"));
               result = process.run();
-              expect(result).to.eql(OK(new StringValue("result")));
+              expect(result).to.eql(OK(STR("result")));
             });
           });
           describe("script command", () => {
@@ -841,92 +811,92 @@ describe("Helena control flow commands", () => {
             specify("first", () => {
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("command"));
+              expect(result.value).to.eql(STR("command"));
               expect(result.data).to.exist;
 
-              process.yieldBack(new StringValue("test"));
+              process.yieldBack(STR("test"));
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("test1"));
+              expect(result.value).to.eql(STR("test1"));
               expect(result.data).to.exist;
 
               process.yieldBack(TRUE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("body1"));
+              expect(result.value).to.eql(STR("body1"));
               expect(result.data).to.exist;
 
-              process.yieldBack(new StringValue("result"));
+              process.yieldBack(STR("result"));
               result = process.run();
-              expect(result).to.eql(OK(new StringValue("result")));
+              expect(result).to.eql(OK(STR("result")));
             });
             specify("second", () => {
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("command"));
+              expect(result.value).to.eql(STR("command"));
               expect(result.data).to.exist;
 
-              process.yieldBack(new StringValue("test"));
+              process.yieldBack(STR("test"));
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("test1"));
+              expect(result.value).to.eql(STR("test1"));
               expect(result.data).to.exist;
 
               process.yieldBack(FALSE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("command"));
+              expect(result.value).to.eql(STR("command"));
               expect(result.data).to.exist;
 
-              process.yieldBack(new StringValue("test"));
+              process.yieldBack(STR("test"));
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("test2"));
+              expect(result.value).to.eql(STR("test2"));
               expect(result.data).to.exist;
 
               process.yieldBack(TRUE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("body2"));
+              expect(result.value).to.eql(STR("body2"));
               expect(result.data).to.exist;
 
-              process.yieldBack(new StringValue("result"));
+              process.yieldBack(STR("result"));
               result = process.run();
-              expect(result).to.eql(OK(new StringValue("result")));
+              expect(result).to.eql(OK(STR("result")));
             });
             specify("default", () => {
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("command"));
+              expect(result.value).to.eql(STR("command"));
               expect(result.data).to.exist;
 
-              process.yieldBack(new StringValue("test"));
+              process.yieldBack(STR("test"));
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("test1"));
+              expect(result.value).to.eql(STR("test1"));
               expect(result.data).to.exist;
 
               process.yieldBack(FALSE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("command"));
+              expect(result.value).to.eql(STR("command"));
               expect(result.data).to.exist;
 
-              process.yieldBack(new StringValue("test"));
+              process.yieldBack(STR("test"));
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("test2"));
+              expect(result.value).to.eql(STR("test2"));
               expect(result.data).to.exist;
 
               process.yieldBack(FALSE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("body3"));
+              expect(result.value).to.eql(STR("body3"));
               expect(result.data).to.exist;
 
-              process.yieldBack(new StringValue("result"));
+              process.yieldBack(STR("result"));
               result = process.run();
-              expect(result).to.eql(OK(new StringValue("result")));
+              expect(result).to.eql(OK(STR("result")));
             });
           });
         });
@@ -1094,14 +1064,14 @@ describe("Helena control flow commands", () => {
     describe("return handler", () => {
       it("should catch RETURN code", () => {
         evaluate("catch {return} return res {set var handler}");
-        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+        expect(evaluate("get var")).to.eql(STR("handler"));
       });
       it("should let other codes pass through", () => {
         expect(execute("catch {idem value} return res {unreachable}")).to.eql(
-          OK(new StringValue("value"))
+          OK(STR("value"))
         );
         expect(execute("catch {yield value} return res {unreachable}")).to.eql(
-          YIELD(new StringValue("value"))
+          YIELD(STR("value"))
         );
         expect(
           execute("catch {error message} return res {unreachable}")
@@ -1115,12 +1085,12 @@ describe("Helena control flow commands", () => {
       });
       it("should return handler result", () => {
         expect(evaluate("catch {return} return res {idem handler}")).to.eql(
-          new StringValue("handler")
+          STR("handler")
         );
       });
       specify("handler value should be handler-local", () => {
         expect(evaluate("catch {return value} return res {idem _$res}")).to.eql(
-          new StringValue("_value")
+          STR("_value")
         );
         expect(evaluate("exists res")).to.eql(FALSE);
       });
@@ -1131,14 +1101,14 @@ describe("Helena control flow commands", () => {
               execute(
                 "catch {return val} return res {return handler; unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
           it("should bypass finally handler", () => {
             expect(
               execute(
                 "catch {return val} return res {return handler; unreachable} finally {unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
         });
         describe("tailcall", () => {
@@ -1147,14 +1117,14 @@ describe("Helena control flow commands", () => {
               execute(
                 "catch {return val} return res {tailcall {idem handler}; unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
           it("should bypass finally handler", () => {
             expect(
               execute(
                 "catch {return val} return res {tailcall {idem handler}; unreachable} finally {unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
         });
         describe("yield", () => {
@@ -1170,12 +1140,12 @@ describe("Helena control flow commands", () => {
 
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(new StringValue("handler"));
+            expect(result.value).to.eql(STR("handler"));
             expect(result.data).to.exist;
 
-            process.yieldBack(new StringValue("value"));
+            process.yieldBack(STR("value"));
             result = process.run();
-            expect(result).to.eql(OK(new StringValue("_value")));
+            expect(result).to.eql(OK(STR("_value")));
           });
           it("should not bypass finally handler", () => {
             const process = rootScope.prepareScript(
@@ -1186,8 +1156,8 @@ describe("Helena control flow commands", () => {
 
             let result = process.run();
             result = process.run();
-            expect(result).to.eql(OK(new StringValue("handler")));
-            expect(evaluate("get var")).to.eql(new StringValue("finally"));
+            expect(result).to.eql(OK(STR("handler")));
+            expect(evaluate("get var")).to.eql(STR("finally"));
           });
         });
         describe("error", () => {
@@ -1254,14 +1224,14 @@ describe("Helena control flow commands", () => {
     describe("yield handler", () => {
       it("should catch YIELD code", () => {
         evaluate("catch {yield} yield res {set var handler}");
-        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+        expect(evaluate("get var")).to.eql(STR("handler"));
       });
       it("should let other codes pass through", () => {
         expect(execute("catch {idem value} yield res {unreachable}")).to.eql(
-          OK(new StringValue("value"))
+          OK(STR("value"))
         );
         expect(execute("catch {return value} yield res {unreachable}")).to.eql(
-          RETURN(new StringValue("value"))
+          RETURN(STR("value"))
         );
         expect(execute("catch {error message} yield res {unreachable}")).to.eql(
           ERROR("message")
@@ -1275,12 +1245,12 @@ describe("Helena control flow commands", () => {
       });
       it("should return handler result", () => {
         expect(evaluate("catch {yield} yield res {idem handler}")).to.eql(
-          new StringValue("handler")
+          STR("handler")
         );
       });
       specify("handler value should be handler-local", () => {
         expect(evaluate("catch {yield value} yield res {idem _$res}")).to.eql(
-          new StringValue("_value")
+          STR("_value")
         );
         expect(evaluate("exists res")).to.eql(FALSE);
       });
@@ -1291,14 +1261,14 @@ describe("Helena control flow commands", () => {
               execute(
                 "catch {yield val} yield res {return handler; unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
           it("should bypass finally handler", () => {
             expect(
               execute(
                 "catch {yield val} yield res {return handler; unreachable} finally {unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
         });
         describe("tailcall", () => {
@@ -1307,14 +1277,14 @@ describe("Helena control flow commands", () => {
               execute(
                 "catch {yield val} yield res {tailcall {idem handler}; unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
           it("should bypass finally handler", () => {
             expect(
               execute(
                 "catch {yield val} yield res {tailcall {idem handler}; unreachable} finally {unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
         });
         describe("yield", () => {
@@ -1330,12 +1300,12 @@ describe("Helena control flow commands", () => {
 
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(new StringValue("handler"));
+            expect(result.value).to.eql(STR("handler"));
             expect(result.data).to.exist;
 
-            process.yieldBack(new StringValue("value"));
+            process.yieldBack(STR("value"));
             result = process.run();
-            expect(result).to.eql(OK(new StringValue("_value")));
+            expect(result).to.eql(OK(STR("_value")));
           });
           it("should not bypass finally handler", () => {
             const process = rootScope.prepareScript(
@@ -1346,8 +1316,8 @@ describe("Helena control flow commands", () => {
 
             let result = process.run();
             result = process.run();
-            expect(result).to.eql(OK(new StringValue("handler")));
-            expect(evaluate("get var")).to.eql(new StringValue("finally"));
+            expect(result).to.eql(OK(STR("handler")));
+            expect(evaluate("get var")).to.eql(STR("finally"));
           });
         });
         describe("error", () => {
@@ -1414,17 +1384,17 @@ describe("Helena control flow commands", () => {
     describe("error handler", () => {
       it("should catch ERROR code", () => {
         evaluate("catch {error message} error msg {set var handler}");
-        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+        expect(evaluate("get var")).to.eql(STR("handler"));
       });
       it("should let other codes pass through", () => {
         expect(execute("catch {idem value} error msg {unreachable}")).to.eql(
-          OK(new StringValue("value"))
+          OK(STR("value"))
         );
         expect(execute("catch {return value} error msg {unreachable}")).to.eql(
-          RETURN(new StringValue("value"))
+          RETURN(STR("value"))
         );
         expect(execute("catch {yield value} error msg {unreachable}")).to.eql(
-          YIELD(new StringValue("value"))
+          YIELD(STR("value"))
         );
         expect(execute("catch {break} error msg {unreachable}")).to.eql(
           BREAK()
@@ -1436,11 +1406,11 @@ describe("Helena control flow commands", () => {
       it("should return handler result", () => {
         expect(
           evaluate("catch {error message} error msg {idem handler}")
-        ).to.eql(new StringValue("handler"));
+        ).to.eql(STR("handler"));
       });
       specify("handler value should be handler-local", () => {
         expect(evaluate("catch {error message} error msg {idem _$msg}")).to.eql(
-          new StringValue("_message")
+          STR("_message")
         );
         expect(evaluate("exists msg")).to.eql(FALSE);
       });
@@ -1451,14 +1421,14 @@ describe("Helena control flow commands", () => {
               execute(
                 "catch {error message} error msg {return handler; unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
           it("should bypass finally handler", () => {
             expect(
               execute(
                 "catch {error message} error msg {return handler; unreachable} finally {unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
         });
         describe("tailcall", () => {
@@ -1467,14 +1437,14 @@ describe("Helena control flow commands", () => {
               execute(
                 "catch {error message} error msg {tailcall {idem handler}; unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
           it("should bypass finally handler", () => {
             expect(
               execute(
                 "catch {error message} error msg {tailcall {idem handler}; unreachable} finally {unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
         });
         describe("yield", () => {
@@ -1491,12 +1461,12 @@ describe("Helena control flow commands", () => {
 
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(new StringValue("handler"));
+            expect(result.value).to.eql(STR("handler"));
             expect(result.data).to.exist;
 
-            process.yieldBack(new StringValue("value"));
+            process.yieldBack(STR("value"));
             result = process.run();
-            expect(result).to.eql(OK(new StringValue("_value")));
+            expect(result).to.eql(OK(STR("_value")));
           });
           it("should not bypass finally handler", () => {
             const process = rootScope.prepareScript(
@@ -1507,8 +1477,8 @@ describe("Helena control flow commands", () => {
 
             let result = process.run();
             result = process.run();
-            expect(result).to.eql(OK(new StringValue("handler")));
-            expect(evaluate("get var")).to.eql(new StringValue("finally"));
+            expect(result).to.eql(OK(STR("handler")));
+            expect(evaluate("get var")).to.eql(STR("finally"));
           });
         });
         describe("error", () => {
@@ -1575,17 +1545,17 @@ describe("Helena control flow commands", () => {
     describe("break handler", () => {
       it("should catch BREAK code", () => {
         evaluate("catch {break} break {set var handler}");
-        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+        expect(evaluate("get var")).to.eql(STR("handler"));
       });
       it("should let other codes pass through", () => {
         expect(execute("catch {idem value} break {unreachable}")).to.eql(
-          OK(new StringValue("value"))
+          OK(STR("value"))
         );
         expect(execute("catch {return value} break {unreachable}")).to.eql(
-          RETURN(new StringValue("value"))
+          RETURN(STR("value"))
         );
         expect(execute("catch {yield value} break {unreachable}")).to.eql(
-          YIELD(new StringValue("value"))
+          YIELD(STR("value"))
         );
         expect(execute("catch {error message} break {unreachable}")).to.eql(
           ERROR("message")
@@ -1596,7 +1566,7 @@ describe("Helena control flow commands", () => {
       });
       it("should return handler result", () => {
         expect(evaluate("catch {break} break {idem handler}")).to.eql(
-          new StringValue("handler")
+          STR("handler")
         );
       });
       describe("control flow", () => {
@@ -1604,14 +1574,14 @@ describe("Helena control flow commands", () => {
           it("should interrupt handler with RETURN code", () => {
             expect(
               execute("catch {break} break {return handler; unreachable}")
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
           it("should bypass finally handler", () => {
             expect(
               execute(
                 "catch {break} break {return handler; unreachable} finally {unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
         });
         describe("tailcall", () => {
@@ -1620,14 +1590,14 @@ describe("Helena control flow commands", () => {
               execute(
                 "catch {break} break {tailcall {idem handler}; unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
           it("should bypass finally handler", () => {
             expect(
               execute(
                 "catch {break} break {tailcall {idem handler}; unreachable} finally {unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
         });
         describe("yield", () => {
@@ -1643,12 +1613,12 @@ describe("Helena control flow commands", () => {
 
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(new StringValue("handler"));
+            expect(result.value).to.eql(STR("handler"));
             expect(result.data).to.exist;
 
-            process.yieldBack(new StringValue("value"));
+            process.yieldBack(STR("value"));
             result = process.run();
-            expect(result).to.eql(OK(new StringValue("_value")));
+            expect(result).to.eql(OK(STR("_value")));
           });
           it("should not bypass finally handler", () => {
             const process = rootScope.prepareScript(
@@ -1659,8 +1629,8 @@ describe("Helena control flow commands", () => {
 
             let result = process.run();
             result = process.run();
-            expect(result).to.eql(OK(new StringValue("handler")));
-            expect(evaluate("get var")).to.eql(new StringValue("finally"));
+            expect(result).to.eql(OK(STR("handler")));
+            expect(evaluate("get var")).to.eql(STR("finally"));
           });
         });
         describe("error", () => {
@@ -1717,17 +1687,17 @@ describe("Helena control flow commands", () => {
     describe("continue handler", () => {
       it("should catch CONTINUE code", () => {
         evaluate("catch {continue} continue {set var handler}");
-        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+        expect(evaluate("get var")).to.eql(STR("handler"));
       });
       it("should let other codes pass through", () => {
         expect(execute("catch {idem value} continue {unreachable}")).to.eql(
-          OK(new StringValue("value"))
+          OK(STR("value"))
         );
         expect(execute("catch {return value} continue {unreachable}")).to.eql(
-          RETURN(new StringValue("value"))
+          RETURN(STR("value"))
         );
         expect(execute("catch {yield value} continue {unreachable}")).to.eql(
-          YIELD(new StringValue("value"))
+          YIELD(STR("value"))
         );
         expect(execute("catch {error message} continue {unreachable}")).to.eql(
           ERROR("message")
@@ -1736,7 +1706,7 @@ describe("Helena control flow commands", () => {
       });
       it("should return handler result", () => {
         expect(evaluate("catch {continue} continue {idem handler}")).to.eql(
-          new StringValue("handler")
+          STR("handler")
         );
       });
       describe("control flow", () => {
@@ -1744,14 +1714,14 @@ describe("Helena control flow commands", () => {
           it("should interrupt handler with RETURN code", () => {
             expect(
               execute("catch {continue} continue {return handler; unreachable}")
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
           it("should bypass finally handler", () => {
             expect(
               execute(
                 "catch {continue} continue {return handler; unreachable} finally {unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
         });
         describe("tailcall", () => {
@@ -1760,14 +1730,14 @@ describe("Helena control flow commands", () => {
               execute(
                 "catch {continue} continue {tailcall {idem handler}; unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
           it("should bypass finally handler", () => {
             expect(
               execute(
                 "catch {continue} continue {tailcall {idem handler}; unreachable} finally {unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
         });
         describe("yield", () => {
@@ -1783,12 +1753,12 @@ describe("Helena control flow commands", () => {
 
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(new StringValue("handler"));
+            expect(result.value).to.eql(STR("handler"));
             expect(result.data).to.exist;
 
-            process.yieldBack(new StringValue("value"));
+            process.yieldBack(STR("value"));
             result = process.run();
-            expect(result).to.eql(OK(new StringValue("_value")));
+            expect(result).to.eql(OK(STR("_value")));
           });
           it("should not bypass finally handler", () => {
             const process = rootScope.prepareScript(
@@ -1799,8 +1769,8 @@ describe("Helena control flow commands", () => {
 
             let result = process.run();
             result = process.run();
-            expect(result).to.eql(OK(new StringValue("handler")));
-            expect(evaluate("get var")).to.eql(new StringValue("finally"));
+            expect(result).to.eql(OK(STR("handler")));
+            expect(evaluate("get var")).to.eql(STR("finally"));
           });
         });
         describe("error", () => {
@@ -1857,37 +1827,37 @@ describe("Helena control flow commands", () => {
     describe("finally handler", () => {
       it("should execute for OK code", () => {
         evaluate("catch {idem value} finally {set var handler}");
-        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+        expect(evaluate("get var")).to.eql(STR("handler"));
       });
       it("should execute for RETURN code", () => {
         evaluate("catch {return} finally {set var handler}");
-        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+        expect(evaluate("get var")).to.eql(STR("handler"));
       });
       it("should execute for YIELD code", () => {
         evaluate("catch {yield} finally {set var handler}");
-        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+        expect(evaluate("get var")).to.eql(STR("handler"));
       });
       it("should execute for ERROR code", () => {
         evaluate("catch {error message} finally {set var handler}");
-        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+        expect(evaluate("get var")).to.eql(STR("handler"));
       });
       it("should execute for BREAK code", () => {
         evaluate("catch {break} finally {set var handler}");
-        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+        expect(evaluate("get var")).to.eql(STR("handler"));
       });
       it("should execute for CONTINUE code", () => {
         evaluate("catch {continue} finally {set var handler}");
-        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+        expect(evaluate("get var")).to.eql(STR("handler"));
       });
       it("should let all codes pass through", () => {
         expect(execute("catch {idem value} finally {idem handler}")).to.eql(
-          OK(new StringValue("value"))
+          OK(STR("value"))
         );
         expect(execute("catch {return value} finally {idem handler}")).to.eql(
-          RETURN(new StringValue("value"))
+          RETURN(STR("value"))
         );
         expect(execute("catch {yield value} finally {idem handler}")).to.eql(
-          YIELD(new StringValue("value"))
+          YIELD(STR("value"))
         );
         expect(execute("catch {error message} finally {idem handler}")).to.eql(
           ERROR("message")
@@ -1904,7 +1874,7 @@ describe("Helena control flow commands", () => {
               execute(
                 "catch {error message} finally {return handler; unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
         });
         describe("tailcall", () => {
@@ -1913,7 +1883,7 @@ describe("Helena control flow commands", () => {
               execute(
                 "catch {error message} finally {tailcall {idem handler}; unreachable}"
               )
-            ).to.eql(RETURN(new StringValue("handler")));
+            ).to.eql(RETURN(STR("handler")));
           });
         });
         describe("yield", () => {
@@ -1929,10 +1899,10 @@ describe("Helena control flow commands", () => {
 
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(new StringValue("handler"));
+            expect(result.value).to.eql(STR("handler"));
             expect(result.data).to.exist;
 
-            process.yieldBack(new StringValue("value"));
+            process.yieldBack(STR("value"));
             result = process.run();
             expect(result).to.eql(ERROR("message"));
           });
@@ -1998,14 +1968,14 @@ describe("Helena control flow commands", () => {
       specify("RETURN", () => {
         expect(
           execute("catch {return value} return res {pass; unreachable}")
-        ).to.eql(RETURN(new StringValue("value")));
+        ).to.eql(RETURN(STR("value")));
       });
       specify("YIELD", () => {
         const result = execute(
           "catch {yield value} yield res {pass; unreachable}"
         );
         expect(result.code).to.eql(ResultCode.YIELD);
-        expect(result.value).to.eql(new StringValue("value"));
+        expect(result.value).to.eql(STR("value"));
       });
       specify("ERROR", () => {
         expect(
@@ -2029,8 +1999,8 @@ describe("Helena control flow commands", () => {
           execute(
             "catch {return value} return res {pass} finally {set var handler}"
           )
-        ).to.eql(RETURN(new StringValue("value")));
-        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+        ).to.eql(RETURN(STR("value")));
+        expect(evaluate("get var")).to.eql(STR("handler"));
       });
       specify("YIELD", () => {
         const process = rootScope.prepareScript(
@@ -2041,10 +2011,10 @@ describe("Helena control flow commands", () => {
 
         const result = process.run();
         expect(result.code).to.eql(ResultCode.YIELD);
-        expect(result.value).to.eql(new StringValue("value"));
+        expect(result.value).to.eql(STR("value"));
 
         process.run();
-        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+        expect(evaluate("get var")).to.eql(STR("handler"));
       });
       specify("ERROR", () => {
         expect(
@@ -2052,19 +2022,19 @@ describe("Helena control flow commands", () => {
             "catch {error message} error msg {pass} finally {set var handler}"
           )
         ).to.eql(ERROR("message"));
-        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+        expect(evaluate("get var")).to.eql(STR("handler"));
       });
       specify("BREAK", () => {
         expect(
           execute("catch {break} break {pass} finally {set var handler}")
         ).to.eql(BREAK());
-        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+        expect(evaluate("get var")).to.eql(STR("handler"));
       });
       specify("CONTINUE", () => {
         expect(
           execute("catch {continue} continue {pass} finally {set var handler}")
         ).to.eql(CONTINUE());
-        expect(evaluate("get var")).to.eql(new StringValue("handler"));
+        expect(evaluate("get var")).to.eql(STR("handler"));
       });
     });
     it("should resume yielded body", () => {
@@ -2076,19 +2046,19 @@ describe("Helena control flow commands", () => {
 
       let result = process.run();
       expect(result.code).to.eql(ResultCode.YIELD);
-      expect(result.value).to.eql(new StringValue("step1"));
+      expect(result.value).to.eql(STR("step1"));
       expect(result.data).to.exist;
 
-      process.yieldBack(new StringValue("value1"));
+      process.yieldBack(STR("value1"));
       result = process.run();
       expect(result.code).to.eql(ResultCode.YIELD);
-      expect(result.value).to.eql(new StringValue("step2"));
+      expect(result.value).to.eql(STR("step2"));
       expect(result.data).to.exist;
-      expect(evaluate("get var")).to.eql(new StringValue("value1"));
+      expect(evaluate("get var")).to.eql(STR("value1"));
 
-      process.yieldBack(new StringValue("value2"));
+      process.yieldBack(STR("value2"));
       result = process.run();
-      expect(result).to.eql(OK(new StringValue("_value2")));
+      expect(result).to.eql(OK(STR("_value2")));
     });
     describe("exceptions", () => {
       specify("wrong arity", () => {

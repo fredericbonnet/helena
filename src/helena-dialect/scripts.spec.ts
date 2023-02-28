@@ -2,13 +2,7 @@ import { expect } from "chai";
 import { ERROR } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import {
-  IntegerValue,
-  ListValue,
-  ScriptValue,
-  StringValue,
-  TupleValue,
-} from "../core/values";
+import { INT, LIST, ScriptValue, STR, TUPLE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -104,9 +98,9 @@ describe("Helena scripts", () => {
         ) as ScriptValue;
         expect(script.script.sentences).to.have.lengthOf(1);
         expect(script.script.sentences[0].words).to.eql([
-          new StringValue("cmd"),
-          new TupleValue([new StringValue("a")]),
-          new IntegerValue(1),
+          STR("cmd"),
+          TUPLE([STR("a")]),
+          INT(1),
         ]);
       });
     });
@@ -127,14 +121,10 @@ describe("Helena scripts", () => {
       });
       describe("length", () => {
         it("should return the number of sentences", () => {
-          expect(evaluate("script {} length")).to.eql(new IntegerValue(0));
-          expect(evaluate("script {a b; c d;; ;} length")).to.eql(
-            new IntegerValue(2)
-          );
-          expect(evaluate("script () length")).to.eql(new IntegerValue(0));
-          expect(evaluate("script (a b; c d;; ;) length")).to.eql(
-            new IntegerValue(1)
-          );
+          expect(evaluate("script {} length")).to.eql(INT(0));
+          expect(evaluate("script {a b; c d;; ;} length")).to.eql(INT(2));
+          expect(evaluate("script () length")).to.eql(INT(0));
+          expect(evaluate("script (a b; c d;; ;) length")).to.eql(INT(1));
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
@@ -192,12 +182,12 @@ describe("Helena scripts", () => {
         it("should split script sentences into list of scripts", () => {
           expect(evaluate("script {} split")).to.eql(evaluate("list {}"));
           expect(evaluate("script {a b; c d;; ;} split")).to.eql(
-            new ListValue([
+            LIST([
               new ScriptValue(parse("a b"), undefined),
               new ScriptValue(parse("c d"), undefined),
             ])
           );
-          expect(evaluate("script () split")).to.eql(new ListValue([]));
+          expect(evaluate("script () split")).to.eql(LIST([]));
           expect(evaluate("script (a b; c d;; ;) split")).to.eql(
             evaluate("list ([script (a b c d)])")
           );

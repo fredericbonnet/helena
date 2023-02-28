@@ -7,7 +7,7 @@ import {
   ResultCode,
 } from "../core/results";
 import { Command } from "../core/command";
-import { Value, ScriptValue, FALSE, TRUE, ValueType } from "../core/values";
+import { Value, ScriptValue, ValueType, BOOL } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { CommandValue, commandValueType, Process, Scope } from "./core";
 import { Subcommands } from "./subcommands";
@@ -50,11 +50,11 @@ class CoroutineValue implements CommandValue, Command {
       },
       active: () => {
         if (args.length != 2) return ARITY_ERROR("<coroutine> active");
-        return OK(this.state == "active" ? TRUE : FALSE);
+        return OK(BOOL(this.state == "active"));
       },
       done: () => {
         if (args.length != 2) return ARITY_ERROR("<coroutine> done");
-        return OK(this.state == "done" ? TRUE : FALSE);
+        return OK(BOOL(this.state == "done"));
       },
       yield: () => {
         if (args.length != 2 && args.length != 3)

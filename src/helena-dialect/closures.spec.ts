@@ -9,7 +9,7 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, NIL, StringValue } from "../core/values";
+import { FALSE, NIL, STR } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -49,7 +49,7 @@ describe("Helena closures", () => {
       const value = evaluate("set cmd [closure {val} {idem _${val}_}]");
       expect(evaluate("$cmd").type).to.eql(commandValueType);
       expect(evaluate("$cmd")).to.not.eql(value);
-      expect(evaluate("[$cmd] arg")).to.eql(new StringValue("_arg_"));
+      expect(evaluate("[$cmd] arg")).to.eql(STR("_arg_"));
     });
     describe("calls", () => {
       it("should return nil for empty body", () => {
@@ -58,7 +58,7 @@ describe("Helena closures", () => {
       });
       it("should return the result of the last command", () => {
         evaluate("closure cmd {} {idem val1; idem val2}");
-        expect(execute("cmd")).to.eql(OK(new StringValue("val2")));
+        expect(execute("cmd")).to.eql(OK(STR("val2")));
       });
       describe("should evaluate in the closure parent scope", () => {
         specify("global scope", () => {
@@ -66,12 +66,8 @@ describe("Helena closures", () => {
             "closure cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}"
           );
           evaluate("cmd");
-          expect(rootScope.context.constants.get("cst")).to.eql(
-            new StringValue("val1")
-          );
-          expect(rootScope.context.variables.get("var")).to.eql(
-            new StringValue("val2")
-          );
+          expect(rootScope.context.constants.get("cst")).to.eql(STR("val1"));
+          expect(rootScope.context.variables.get("var")).to.eql(STR("val2"));
           expect(rootScope.context.commands.has("cmd2")).to.be.true;
         });
         specify("child scope", () => {
@@ -79,12 +75,8 @@ describe("Helena closures", () => {
             "closure cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}"
           );
           evaluate("scope scp {cmd}");
-          expect(rootScope.context.constants.get("cst")).to.eql(
-            new StringValue("val1")
-          );
-          expect(rootScope.context.variables.get("var")).to.eql(
-            new StringValue("val2")
-          );
+          expect(rootScope.context.constants.get("cst")).to.eql(STR("val1"));
+          expect(rootScope.context.variables.get("var")).to.eql(STR("val2"));
           expect(rootScope.context.commands.has("cmd2")).to.be.true;
         });
         specify("scoped closure", () => {
@@ -92,13 +84,9 @@ describe("Helena closures", () => {
             "scope scp1 {set cmd [closure {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}]}"
           );
           evaluate("scope scp2 {[[scp1 eval {get cmd}]]}");
-          expect(evaluate("scp1 eval {get cst}")).to.eql(
-            new StringValue("val1")
-          );
-          expect(evaluate("scp1 eval {get var}")).to.eql(
-            new StringValue("val2")
-          );
-          expect(evaluate("scp1 eval {cmd2}")).to.eql(new StringValue("val3"));
+          expect(evaluate("scp1 eval {get cst}")).to.eql(STR("val1"));
+          expect(evaluate("scp1 eval {get var}")).to.eql(STR("val2"));
+          expect(evaluate("scp1 eval {cmd2}")).to.eql(STR("val3"));
           expect(execute("scp2 eval {get cst}").code).to.eql(ResultCode.ERROR);
           expect(execute("scp2 eval {get var}").code).to.eql(ResultCode.ERROR);
           expect(execute("scp2 eval {cmd2}").code).to.eql(ResultCode.ERROR);
@@ -109,12 +97,12 @@ describe("Helena closures", () => {
       it("should shadow scope variables", () => {
         evaluate("set var val");
         evaluate("closure cmd {var} {idem $var}");
-        expect(evaluate("cmd val2")).to.eql(new StringValue("val2"));
+        expect(evaluate("cmd val2")).to.eql(STR("val2"));
       });
       it("should be closure-local", () => {
         evaluate("set var val");
         evaluate("closure cmd {var} {[[closure {} {idem $var}]]}");
-        expect(evaluate("cmd val2")).to.eql(new StringValue("val"));
+        expect(evaluate("cmd val2")).to.eql(STR("val"));
       });
       describe("exceptions", () => {
         specify("wrong arity", () => {
@@ -139,8 +127,8 @@ describe("Helena closures", () => {
         evaluate('macro guard {result} {idem "guarded:$result"}');
         evaluate("closure cmd1 {var} {idem $var}");
         evaluate("closure cmd2 {var} (guard {idem $var})");
-        expect(evaluate("cmd1 value")).to.eql(new StringValue("value"));
-        expect(evaluate("cmd2 value")).to.eql(new StringValue("guarded:value"));
+        expect(evaluate("cmd1 value")).to.eql(STR("value"));
+        expect(evaluate("cmd2 value")).to.eql(STR("guarded:value"));
       });
       it("should let body errors pass through", () => {
         evaluate("macro guard {result} {unreachable}");
@@ -156,7 +144,7 @@ describe("Helena closures", () => {
         evaluate("macro guard {result} {idem root}");
         evaluate("closure cmd {} (guard {true})");
         evaluate("scope scp {macro guard {result} {idem scp}}");
-        expect(evaluate("scp eval {cmd}")).to.eql(new StringValue("root"));
+        expect(evaluate("scp eval {cmd}")).to.eql(STR("root"));
       });
       describe("exceptions", () => {
         specify("empty body specifier", () => {
@@ -187,13 +175,13 @@ describe("Helena closures", () => {
       describe("return", () => {
         it("should interrupt a closure with RETURN code", () => {
           evaluate("closure cmd {} {return val1; idem val2}");
-          expect(execute("cmd")).to.eql(RETURN(new StringValue("val1")));
+          expect(execute("cmd")).to.eql(RETURN(STR("val1")));
         });
       });
       describe("tailcall", () => {
         it("should interrupt a closure with RETURN code", () => {
           evaluate("closure cmd {} {tailcall (idem val1); idem val2}");
-          expect(execute("cmd")).to.eql(RETURN(new StringValue("val1")));
+          expect(execute("cmd")).to.eql(RETURN(STR("val1")));
         });
       });
       describe("yield", () => {
@@ -201,7 +189,7 @@ describe("Helena closures", () => {
           evaluate("closure cmd {} {yield val1; idem val2}");
           const result = execute("cmd");
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("val1"));
+          expect(result.value).to.eql(STR("val1"));
         });
         it("should provide a resumable state", () => {
           evaluate("closure cmd {} {idem _[yield val1]_}");
@@ -209,11 +197,11 @@ describe("Helena closures", () => {
 
           let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("val1"));
+          expect(result.value).to.eql(STR("val1"));
 
-          process.yieldBack(new StringValue("val2"));
+          process.yieldBack(STR("val2"));
           result = process.run();
-          expect(result).to.eql(OK(new StringValue("_val2_")));
+          expect(result).to.eql(OK(STR("_val2_")));
         });
         it("should work recursively", () => {
           evaluate("closure cmd1 {} {yield [cmd2]; idem val5}");
@@ -224,24 +212,24 @@ describe("Helena closures", () => {
 
           let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("val1"));
+          expect(result.value).to.eql(STR("val1"));
 
-          process.yieldBack(new StringValue("val2"));
+          process.yieldBack(STR("val2"));
           result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("val2"));
+          expect(result.value).to.eql(STR("val2"));
 
           result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("val3"));
+          expect(result.value).to.eql(STR("val3"));
 
-          process.yieldBack(new StringValue("val4"));
+          process.yieldBack(STR("val4"));
           result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("val4"));
+          expect(result.value).to.eql(STR("val4"));
 
           result = process.run();
-          expect(result).to.eql(OK(new StringValue("val5")));
+          expect(result).to.eql(OK(STR("val5")));
         });
       });
       describe("error", () => {

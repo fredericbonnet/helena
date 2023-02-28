@@ -9,7 +9,7 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { StringValue, TupleValue } from "../core/values";
+import { STR, TUPLE } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -58,9 +58,7 @@ describe("Helena ensembles", () => {
         evaluate("closure cmd {} {let var val}");
         expect(rootScope.context.constants.has("var")).to.be.false;
         evaluate("ensemble {} {cmd}");
-        expect(rootScope.context.constants.get("var")).to.eql(
-          new StringValue("val")
-        );
+        expect(rootScope.context.constants.get("var")).to.eql(STR("val"));
       });
       it("should access global commands", () => {
         expect(execute("ensemble {} {idem val}").code).to.eql(ResultCode.OK);
@@ -72,24 +70,16 @@ describe("Helena ensembles", () => {
       it("should not set global variables", () => {
         evaluate("set var val");
         evaluate("ensemble {} {set var val2; let cst val3}");
-        expect(rootScope.context.variables.get("var")).to.eql(
-          new StringValue("val")
-        );
+        expect(rootScope.context.variables.get("var")).to.eql(STR("val"));
         expect(rootScope.context.constants.has("cst")).to.be.false;
       });
       it("should set ensemble variables", () => {
         evaluate("set var val");
         evaluate("ensemble cmd {} {set var val2; let cst val3}");
-        expect(rootScope.context.variables.get("var")).to.eql(
-          new StringValue("val")
-        );
+        expect(rootScope.context.variables.get("var")).to.eql(STR("val"));
         expect(rootScope.context.constants.has("cst")).to.be.false;
-        expect(evaluate("[cmd] eval {get var}")).to.eql(
-          new StringValue("val2")
-        );
-        expect(evaluate("[cmd] eval {get cst}")).to.eql(
-          new StringValue("val3")
-        );
+        expect(evaluate("[cmd] eval {get var}")).to.eql(STR("val2"));
+        expect(evaluate("[cmd] eval {get cst}")).to.eql(STR("val3"));
       });
       describe("exceptions", () => {
         specify("non-script body", () => {
@@ -110,16 +100,14 @@ describe("Helena ensembles", () => {
           expect(execute("ensemble {} {cmd1; return; cmd2}").code).to.eql(
             ResultCode.OK
           );
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
         it("should still define the named command", () => {
           evaluate("ensemble cmd {} {return}");
           expect(rootScope.context.commands.has("cmd")).to.be.true;
         });
         it("should return passed value instead of the command object", () => {
-          expect(execute("ensemble {} {return val}")).to.eql(
-            OK(new StringValue("val"))
-          );
+          expect(execute("ensemble {} {return val}")).to.eql(OK(STR("val")));
         });
       });
       describe("tailcall", () => {
@@ -129,7 +117,7 @@ describe("Helena ensembles", () => {
           expect(execute("ensemble {} {cmd1; tailcall {}; cmd2}").code).to.eql(
             ResultCode.OK
           );
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
         it("should still define the named command", () => {
           evaluate("ensemble cmd {} {tailcall {}}");
@@ -137,7 +125,7 @@ describe("Helena ensembles", () => {
         });
         it("should return passed value instead of the command object", () => {
           expect(execute("ensemble {} {tailcall {idem val}}")).to.eql(
-            OK(new StringValue("val"))
+            OK(STR("val"))
           );
         });
       });
@@ -148,7 +136,7 @@ describe("Helena ensembles", () => {
           expect(execute("ensemble cmd {} {cmd1; yield; cmd2}").code).to.eql(
             ResultCode.YIELD
           );
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
         it("should provide a resumable state", () => {
           evaluate("closure cmd1 {} {set var val1}");
@@ -159,14 +147,14 @@ describe("Helena ensembles", () => {
 
           let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("val2"));
+          expect(result.value).to.eql(STR("val2"));
           expect(result.data).to.exist;
 
-          process.yieldBack(new StringValue("val3"));
+          process.yieldBack(STR("val3"));
           result = process.run();
           expect(result.code).to.eql(ResultCode.OK);
           expect(result.value.type).to.eql(commandValueType);
-          expect(evaluate("get var")).to.eql(new StringValue("_val3_"));
+          expect(evaluate("get var")).to.eql(STR("_val3_"));
         });
         it("should delay the definition of ensemble command until resumed", () => {
           const process = rootScope.prepareScript(
@@ -189,7 +177,7 @@ describe("Helena ensembles", () => {
           expect(execute("ensemble {} {cmd1; error msg; cmd2}")).to.eql(
             ERROR("msg")
           );
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
         it("should not define the ensemble command", () => {
           evaluate("ensemble cmd {} {error msg}");
@@ -203,7 +191,7 @@ describe("Helena ensembles", () => {
           expect(execute("ensemble {} {cmd1; break; cmd2}")).to.eql(
             ERROR("unexpected break")
           );
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
         it("should not define the ensemble command", () => {
           evaluate("ensemble cmd {} {break}");
@@ -217,7 +205,7 @@ describe("Helena ensembles", () => {
           expect(execute("ensemble {} {cmd1; continue; cmd2}")).to.eql(
             ERROR("unexpected continue")
           );
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
         it("should not define the ensemble command", () => {
           evaluate("ensemble cmd {} {continue}");
@@ -243,31 +231,23 @@ describe("Helena ensembles", () => {
       describe("eval", () => {
         it("should evaluate body in ensemble scope", () => {
           evaluate("ensemble cmd {} {let cst val}");
-          expect(evaluate("[cmd] eval {get cst}")).to.eql(
-            new StringValue("val")
-          );
+          expect(evaluate("[cmd] eval {get cst}")).to.eql(STR("val"));
         });
         it("should accept tuple bodies", () => {
           evaluate("ensemble cmd {} {let cst val}");
-          expect(evaluate("[cmd] eval (get cst)")).to.eql(
-            new StringValue("val")
-          );
+          expect(evaluate("[cmd] eval (get cst)")).to.eql(STR("val"));
         });
         it("should evaluate macros in ensemble scope", () => {
           evaluate("ensemble cmd {} {macro mac {} {let cst val}}");
           evaluate("[cmd] eval {mac}");
           expect(rootScope.context.constants.has("cst")).to.be.false;
-          expect(evaluate("[cmd] eval {get cst}")).to.eql(
-            new StringValue("val")
-          );
+          expect(evaluate("[cmd] eval {get cst}")).to.eql(STR("val"));
         });
         it("should evaluate closures in their scope", () => {
           evaluate("closure cls {} {let cst val}");
           evaluate("ensemble cmd {} {}");
           evaluate("[cmd] eval {cls}");
-          expect(rootScope.context.constants.get("cst")).to.eql(
-            new StringValue("val")
-          );
+          expect(rootScope.context.constants.get("cst")).to.eql(STR("val"));
           expect(execute("[cmd] eval {get cst}").code).to.eql(ResultCode.ERROR);
         });
         describe("control flow", () => {
@@ -277,9 +257,9 @@ describe("Helena ensembles", () => {
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("ensemble cmd {} {}");
               expect(execute("[cmd] eval {cmd1; return val3; cmd2}")).to.eql(
-                RETURN(new StringValue("val3"))
+                RETURN(STR("val3"))
               );
-              expect(evaluate("get var")).to.eql(new StringValue("val1"));
+              expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
           describe("tailcall", () => {
@@ -289,8 +269,8 @@ describe("Helena ensembles", () => {
               evaluate("ensemble cmd {} {}");
               expect(
                 execute("[cmd] eval {cmd1; tailcall {idem val3}; cmd2}")
-              ).to.eql(RETURN(new StringValue("val3")));
-              expect(evaluate("get var")).to.eql(new StringValue("val1"));
+              ).to.eql(RETURN(STR("val3")));
+              expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
           describe("yield", () => {
@@ -301,7 +281,7 @@ describe("Helena ensembles", () => {
               expect(execute("[cmd] eval {cmd1; yield; cmd2}").code).to.eql(
                 ResultCode.YIELD
               );
-              expect(evaluate("get var")).to.eql(new StringValue("val1"));
+              expect(evaluate("get var")).to.eql(STR("val1"));
             });
             it("should provide a resumable state", () => {
               evaluate("closure cmd1 {} {set var val1}");
@@ -313,12 +293,12 @@ describe("Helena ensembles", () => {
 
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("val2"));
+              expect(result.value).to.eql(STR("val2"));
 
-              process.yieldBack(new StringValue("val3"));
+              process.yieldBack(STR("val3"));
               result = process.run();
-              expect(result).to.eql(OK(new StringValue("_val3_")));
-              expect(evaluate("get var")).to.eql(new StringValue("_val3_"));
+              expect(result).to.eql(OK(STR("_val3_")));
+              expect(evaluate("get var")).to.eql(STR("_val3_"));
             });
           });
           describe("error", () => {
@@ -329,7 +309,7 @@ describe("Helena ensembles", () => {
               expect(execute("[cmd] eval {cmd1; error msg; cmd2}")).to.eql(
                 ERROR("msg")
               );
-              expect(evaluate("get var")).to.eql(new StringValue("val1"));
+              expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
           describe("break", () => {
@@ -338,7 +318,7 @@ describe("Helena ensembles", () => {
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("ensemble cmd {} {}");
               expect(execute("[cmd] eval {cmd1; break; cmd2}")).to.eql(BREAK());
-              expect(evaluate("get var")).to.eql(new StringValue("val1"));
+              expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
           describe("continue", () => {
@@ -349,7 +329,7 @@ describe("Helena ensembles", () => {
               expect(execute("[cmd] eval {cmd1; continue; cmd2}")).to.eql(
                 CONTINUE()
               );
-              expect(evaluate("get var")).to.eql(new StringValue("val1"));
+              expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
         });
@@ -372,26 +352,20 @@ describe("Helena ensembles", () => {
       describe("call", () => {
         it("should call ensemble commands", () => {
           evaluate("ensemble cmd {} {macro mac {} {idem val}}");
-          expect(evaluate("[cmd] call mac")).to.eql(new StringValue("val"));
+          expect(evaluate("[cmd] call mac")).to.eql(STR("val"));
         });
         it("should evaluate macros in the caller scope", () => {
           evaluate("ensemble cmd {} {macro mac {} {let cst val}}");
           evaluate("[cmd] call mac");
-          expect(rootScope.context.constants.get("cst")).to.eql(
-            new StringValue("val")
-          );
+          expect(rootScope.context.constants.get("cst")).to.eql(STR("val"));
           evaluate("scope scp {[cmd] call mac}");
-          expect(evaluate("[scp] eval {get cst}")).to.eql(
-            new StringValue("val")
-          );
+          expect(evaluate("[scp] eval {get cst}")).to.eql(STR("val"));
         });
         it("should evaluate ensemble closures in ensemble scope", () => {
           evaluate("ensemble cmd {} {closure cls {} {let cst val}}");
           evaluate("[cmd] call cls");
           expect(rootScope.context.constants.has("cst")).to.be.false;
-          expect(evaluate("[cmd] eval {get cst}")).to.eql(
-            new StringValue("val")
-          );
+          expect(evaluate("[cmd] eval {get cst}")).to.eql(STR("val"));
         });
         describe("control flow", () => {
           describe("return", () => {
@@ -401,10 +375,8 @@ describe("Helena ensembles", () => {
               evaluate(
                 "ensemble cmd {} {macro mac {} {cmd1; return val3; cmd2}}"
               );
-              expect(execute("[cmd] call mac")).to.eql(
-                RETURN(new StringValue("val3"))
-              );
-              expect(evaluate("get var")).to.eql(new StringValue("val1"));
+              expect(execute("[cmd] call mac")).to.eql(RETURN(STR("val3")));
+              expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
           describe("tailcall", () => {
@@ -414,10 +386,8 @@ describe("Helena ensembles", () => {
               evaluate(
                 "ensemble cmd {} {macro mac {} {cmd1; tailcall {idem val3}; cmd2}}"
               );
-              expect(execute("[cmd] call mac")).to.eql(
-                RETURN(new StringValue("val3"))
-              );
-              expect(evaluate("get var")).to.eql(new StringValue("val1"));
+              expect(execute("[cmd] call mac")).to.eql(RETURN(STR("val3")));
+              expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
           describe("yield", () => {
@@ -426,7 +396,7 @@ describe("Helena ensembles", () => {
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("ensemble cmd {} {macro mac {} {cmd1; yield; cmd2}}");
               expect(execute("[cmd] call mac").code).to.eql(ResultCode.YIELD);
-              expect(evaluate("get var")).to.eql(new StringValue("val1"));
+              expect(evaluate("get var")).to.eql(STR("val1"));
             });
             it("should provide a resumable state", () => {
               evaluate("closure cmd1 {} {set var val1}");
@@ -438,12 +408,12 @@ describe("Helena ensembles", () => {
 
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("val2"));
+              expect(result.value).to.eql(STR("val2"));
 
-              process.yieldBack(new StringValue("val3"));
+              process.yieldBack(STR("val3"));
               result = process.run();
-              expect(result).to.eql(OK(new StringValue("_val3_")));
-              expect(evaluate("get var")).to.eql(new StringValue("_val3_"));
+              expect(result).to.eql(OK(STR("_val3_")));
+              expect(evaluate("get var")).to.eql(STR("_val3_"));
             });
           });
           describe("error", () => {
@@ -454,7 +424,7 @@ describe("Helena ensembles", () => {
                 "ensemble cmd {} {macro mac {} {cmd1; error msg; cmd2}}"
               );
               expect(execute("[cmd] call mac")).to.eql(ERROR("msg"));
-              expect(evaluate("get var")).to.eql(new StringValue("val1"));
+              expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
           describe("break", () => {
@@ -463,7 +433,7 @@ describe("Helena ensembles", () => {
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("ensemble cmd {} {macro mac {} {cmd1; break; cmd2}}");
               expect(execute("[cmd] call mac")).to.eql(BREAK());
-              expect(evaluate("get var")).to.eql(new StringValue("val1"));
+              expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
           describe("continue", () => {
@@ -472,7 +442,7 @@ describe("Helena ensembles", () => {
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("ensemble cmd {} {macro mac {} {cmd1; continue; cmd2}}");
               expect(execute("[cmd] call mac")).to.eql(CONTINUE());
-              expect(evaluate("get var")).to.eql(new StringValue("val1"));
+              expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
         });
@@ -526,42 +496,38 @@ describe("Helena ensembles", () => {
     describe("ensemble subcommands", () => {
       specify("when missing should return ensemble arguments tuple", () => {
         evaluate("ensemble cmd {a b} {macro opt {a b} {idem val}}");
-        expect(evaluate("cmd foo bar")).to.eql(
-          new TupleValue([new StringValue("foo"), new StringValue("bar")])
-        );
+        expect(evaluate("cmd foo bar")).to.eql(TUPLE([STR("foo"), STR("bar")]));
       });
       specify(
         "first argument after ensemble arguments should be ensemble command name",
         () => {
           evaluate("ensemble cmd {a b} {macro opt {a b} {idem val}}");
-          expect(evaluate("cmd foo bar opt")).to.eql(new StringValue("val"));
+          expect(evaluate("cmd foo bar opt")).to.eql(STR("val"));
         }
       );
       it("should pass ensemble arguments to ensemble command", () => {
         evaluate("ensemble cmd {a b} {macro opt {a b} {idem $a$b}}");
-        expect(evaluate("cmd foo bar opt")).to.eql(new StringValue("foobar"));
+        expect(evaluate("cmd foo bar opt")).to.eql(STR("foobar"));
       });
       it("should pass remaining arguments to ensemble command", () => {
         evaluate("ensemble cmd {a b} {macro opt {a b c d} {idem $a$b$c$d}}");
         expect(evaluate("cmd foo bar opt baz sprong")).to.eql(
-          new StringValue("foobarbazsprong")
+          STR("foobarbazsprong")
         );
       });
       it("should evaluate command in the caller scope", () => {
         evaluate("ensemble cmd {} {macro mac {} {let cst val}}");
         evaluate("cmd mac");
-        expect(rootScope.context.constants.get("cst")).to.eql(
-          new StringValue("val")
-        );
+        expect(rootScope.context.constants.get("cst")).to.eql(STR("val"));
         evaluate("scope scp {cmd mac}");
-        expect(evaluate("[scp] eval {get cst}")).to.eql(new StringValue("val"));
+        expect(evaluate("[scp] eval {get cst}")).to.eql(STR("val"));
       });
       it("should work recursively", () => {
         evaluate(
           "ensemble en1 {a b} {ensemble en2 {a b c d} {macro opt {a b c d e f} {idem $a$b$c$d$e$f}}}"
         );
         expect(evaluate("en1 foo bar en2 baz sprong opt val1 val2")).to.eql(
-          new StringValue("foobarbazsprongval1val2")
+          STR("foobarbazsprongval1val2")
         );
       });
       describe("subcommands", () => {
@@ -605,8 +571,8 @@ describe("Helena ensembles", () => {
             evaluate(
               "ensemble cmd {} {macro mac {} {cmd1; return val3; cmd2}}"
             );
-            expect(execute("cmd mac")).to.eql(RETURN(new StringValue("val3")));
-            expect(evaluate("get var")).to.eql(new StringValue("val1"));
+            expect(execute("cmd mac")).to.eql(RETURN(STR("val3")));
+            expect(evaluate("get var")).to.eql(STR("val1"));
           });
         });
         describe("tailcall", () => {
@@ -616,8 +582,8 @@ describe("Helena ensembles", () => {
             evaluate(
               "ensemble cmd {} {macro mac {} {cmd1; tailcall {idem val3}; cmd2}}"
             );
-            expect(execute("cmd mac")).to.eql(RETURN(new StringValue("val3")));
-            expect(evaluate("get var")).to.eql(new StringValue("val1"));
+            expect(execute("cmd mac")).to.eql(RETURN(STR("val3")));
+            expect(evaluate("get var")).to.eql(STR("val1"));
           });
         });
         describe("yield", () => {
@@ -626,7 +592,7 @@ describe("Helena ensembles", () => {
             evaluate("closure cmd2 {} {set var val2}");
             evaluate("ensemble cmd {} {macro mac {} {cmd1; yield; cmd2}}");
             expect(execute("cmd mac").code).to.eql(ResultCode.YIELD);
-            expect(evaluate("get var")).to.eql(new StringValue("val1"));
+            expect(evaluate("get var")).to.eql(STR("val1"));
           });
           it("should provide a resumable state", () => {
             evaluate("closure cmd1 {} {set var val1}");
@@ -636,12 +602,12 @@ describe("Helena ensembles", () => {
 
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(new StringValue("val2"));
+            expect(result.value).to.eql(STR("val2"));
 
-            process.yieldBack(new StringValue("val3"));
+            process.yieldBack(STR("val3"));
             result = process.run();
-            expect(result).to.eql(OK(new StringValue("_val3_")));
-            expect(evaluate("get var")).to.eql(new StringValue("_val3_"));
+            expect(result).to.eql(OK(STR("_val3_")));
+            expect(evaluate("get var")).to.eql(STR("_val3_"));
           });
         });
         describe("error", () => {
@@ -650,7 +616,7 @@ describe("Helena ensembles", () => {
             evaluate("closure cmd2 {} {set var val2}");
             evaluate("ensemble cmd {} {macro mac {} {cmd1; error msg; cmd2}}");
             expect(execute("cmd mac")).to.eql(ERROR("msg"));
-            expect(evaluate("get var")).to.eql(new StringValue("val1"));
+            expect(evaluate("get var")).to.eql(STR("val1"));
           });
         });
         describe("break", () => {
@@ -659,7 +625,7 @@ describe("Helena ensembles", () => {
             evaluate("closure cmd2 {} {set var val2}");
             evaluate("ensemble cmd {} {macro mac {} {cmd1; break; cmd2}}");
             expect(execute("cmd mac")).to.eql(BREAK());
-            expect(evaluate("get var")).to.eql(new StringValue("val1"));
+            expect(evaluate("get var")).to.eql(STR("val1"));
           });
         });
         describe("continue", () => {
@@ -668,7 +634,7 @@ describe("Helena ensembles", () => {
             evaluate("closure cmd2 {} {set var val2}");
             evaluate("ensemble cmd {} {macro mac {} {cmd1; continue; cmd2}}");
             expect(execute("cmd mac")).to.eql(CONTINUE());
-            expect(evaluate("get var")).to.eql(new StringValue("val1"));
+            expect(evaluate("get var")).to.eql(STR("val1"));
           });
         });
       });

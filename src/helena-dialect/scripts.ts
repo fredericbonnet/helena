@@ -10,8 +10,9 @@ import {
   ValueType,
   ScriptValue,
   StringValue,
-  IntegerValue,
-  ListValue,
+  INT,
+  LIST,
+  STR,
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
@@ -38,9 +39,7 @@ class ScriptCommand implements Command {
   ensemble: EnsembleValue;
   constructor(scope: Scope) {
     this.scope = new Scope(scope);
-    const { data: argspec } = ArgspecValue.fromValue(
-      new ListValue([new StringValue("value")])
-    );
+    const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
     this.ensemble = new EnsembleValue(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {
@@ -55,9 +54,7 @@ const scriptLengthCmd: Command = {
     if (args.length != 2) return ARITY_ERROR("script value length");
     const result = valueToScript(args[1]);
     if (result.code != ResultCode.OK) return result;
-    return OK(
-      new IntegerValue((result.value as ScriptValue).script.sentences.length)
-    );
+    return OK(INT((result.value as ScriptValue).script.sentences.length));
   },
 };
 const scriptAppendCmd: Command = {
@@ -86,7 +83,7 @@ const scriptSplitCmd: Command = {
       script.sentences.push(sentence);
       sentences.push(new ScriptValue(script, undefined));
     }
-    return OK(new ListValue(sentences));
+    return OK(LIST(sentences));
   },
 };
 

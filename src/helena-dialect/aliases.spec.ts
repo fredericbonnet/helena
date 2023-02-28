@@ -9,7 +9,7 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { NIL, StringValue, TupleValue } from "../core/values";
+import { NIL, STR, TUPLE } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -48,43 +48,43 @@ describe("Helena aliases", () => {
       const value = evaluate("set cmd [alias cmd set]");
       expect(evaluate("$cmd").type).to.eql(commandValueType);
       expect(evaluate("$cmd")).to.not.eql(value);
-      expect(evaluate("[$cmd] var val")).to.eql(new StringValue("val"));
-      expect(evaluate("get var")).to.eql(new StringValue("val"));
+      expect(evaluate("[$cmd] var val")).to.eql(STR("val"));
+      expect(evaluate("get var")).to.eql(STR("val"));
     });
     describe("calls", () => {
       it("should call the aliased command", () => {
         evaluate("macro mac {} {set var val}");
         evaluate("alias cmd mac");
         evaluate("cmd");
-        expect(evaluate("get var")).to.eql(new StringValue("val"));
+        expect(evaluate("get var")).to.eql(STR("val"));
       });
       describe("command tuples", () => {
         specify("zero", () => {
           evaluate("alias cmd ()");
           expect(execute("cmd")).to.eql(OK(NIL));
-          expect(execute("cmd idem val")).to.eql(OK(new StringValue("val")));
+          expect(execute("cmd idem val")).to.eql(OK(STR("val")));
         });
         specify("one", () => {
           evaluate("alias cmd return");
           expect(execute("cmd")).to.eql(RETURN());
-          expect(execute("cmd val")).to.eql(RETURN(new StringValue("val")));
+          expect(execute("cmd val")).to.eql(RETURN(STR("val")));
         });
         specify("two", () => {
           evaluate("alias cmd (idem val)");
-          expect(execute("cmd")).to.eql(OK(new StringValue("val")));
+          expect(execute("cmd")).to.eql(OK(STR("val")));
         });
         specify("three", () => {
           evaluate("alias cmd (set var val)");
-          expect(execute("cmd")).to.eql(OK(new StringValue("val")));
-          expect(evaluate("get var")).to.eql(new StringValue("val"));
+          expect(execute("cmd")).to.eql(OK(STR("val")));
+          expect(evaluate("get var")).to.eql(STR("val"));
         });
       });
     });
     describe("arguments", () => {
       it("should be passed to aliased commands", () => {
         evaluate("alias cmd (set var)");
-        expect(execute("cmd val")).to.eql(OK(new StringValue("val")));
-        expect(evaluate("get var")).to.eql(new StringValue("val"));
+        expect(execute("cmd val")).to.eql(OK(STR("val")));
+        expect(evaluate("get var")).to.eql(STR("val"));
       });
       describe("exceptions", () => {
         specify("wrong arity", () => {
@@ -103,22 +103,22 @@ describe("Helena aliases", () => {
         it("should interrupt a macro alias with RETURN code", () => {
           evaluate("macro mac {} {return val1; idem val2}");
           evaluate("alias cmd mac");
-          expect(execute("cmd")).to.eql(RETURN(new StringValue("val1")));
+          expect(execute("cmd")).to.eql(RETURN(STR("val1")));
         });
         it("should interrupt a tuple alias with RETURN code", () => {
           evaluate("alias cmd (return val)");
-          expect(execute("cmd")).to.eql(RETURN(new StringValue("val")));
+          expect(execute("cmd")).to.eql(RETURN(STR("val")));
         });
       });
       describe("tailcall", () => {
         it("should interrupt a macro alias with RETURN code", () => {
           evaluate("macro mac {} {tailcall {idem val1}; idem val2}");
           evaluate("alias cmd mac");
-          expect(execute("cmd")).to.eql(RETURN(new StringValue("val1")));
+          expect(execute("cmd")).to.eql(RETURN(STR("val1")));
         });
         it("should interrupt a tuple alias with RETURN code", () => {
           evaluate("alias cmd (tailcall {idem val})");
-          expect(execute("cmd")).to.eql(RETURN(new StringValue("val")));
+          expect(execute("cmd")).to.eql(RETURN(STR("val")));
         });
       });
       describe("yield", () => {
@@ -127,13 +127,13 @@ describe("Helena aliases", () => {
           evaluate("alias cmd mac");
           const result = execute("cmd");
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("val1"));
+          expect(result.value).to.eql(STR("val1"));
         });
         it("should interrupt a tuple alias with YIELD code", () => {
           evaluate("alias cmd (yield val1)");
           const result = execute("cmd");
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("val1"));
+          expect(result.value).to.eql(STR("val1"));
         });
         it("should provide a resumable state for macro alias", () => {
           evaluate("macro mac {} {idem _[yield val1]_}");
@@ -142,11 +142,11 @@ describe("Helena aliases", () => {
 
           let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("val1"));
+          expect(result.value).to.eql(STR("val1"));
 
-          process.yieldBack(new StringValue("val2"));
+          process.yieldBack(STR("val2"));
           result = process.run();
-          expect(result).to.eql(OK(new StringValue("_val2_")));
+          expect(result).to.eql(OK(STR("_val2_")));
         });
         it("should provide a resumable state for tuple alias", () => {
           evaluate("alias cmd (yield val1)");
@@ -154,12 +154,12 @@ describe("Helena aliases", () => {
 
           let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(new StringValue("val1"));
+          expect(result.value).to.eql(STR("val1"));
           expect(result.data).to.exist;
 
-          process.yieldBack(new StringValue("val2"));
+          process.yieldBack(STR("val2"));
           result = process.run();
-          expect(result).to.eql(OK(new StringValue("val2")));
+          expect(result).to.eql(OK(STR("val2")));
         });
       });
       describe("error", () => {
@@ -215,7 +215,7 @@ describe("Helena aliases", () => {
         it("should return the aliased command", () => {
           evaluate("set cmd [alias cmd (idem val)]");
           expect(evaluate("$cmd command")).to.eql(
-            new TupleValue([new StringValue("idem"), new StringValue("val")])
+            TUPLE([STR("idem"), STR("val")])
           );
         });
         describe("exceptions", () => {

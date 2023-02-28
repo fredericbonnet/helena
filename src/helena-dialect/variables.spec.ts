@@ -2,14 +2,7 @@ import { expect } from "chai";
 import { ERROR } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import {
-  FALSE,
-  ListValue,
-  MapValue,
-  NIL,
-  StringValue,
-  TRUE,
-} from "../core/values";
+import { FALSE, LIST, MAP, NIL, STR, TRUE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -35,21 +28,19 @@ describe("Helena constants and variables", () => {
   describe("let", () => {
     it("should define the value of a new constant", () => {
       evaluate("let cst val");
-      expect(rootScope.context.constants.get("cst")).to.eql(
-        new StringValue("val")
-      );
+      expect(rootScope.context.constants.get("cst")).to.eql(STR("val"));
     });
     it("should return the constant value", () => {
-      expect(evaluate("let cst val")).to.eql(new StringValue("val"));
+      expect(evaluate("let cst val")).to.eql(STR("val"));
     });
     describe("name tuples", () => {
       it("should be supported", () => {
         expect(execute("let (var1 (var2 var3)) (val1 (val2 val3))")).to.eql(
           execute("idem (val1 (val2 val3))")
         );
-        expect(evaluate("get var1")).to.eql(new StringValue("val1"));
-        expect(evaluate("get var2")).to.eql(new StringValue("val2"));
-        expect(evaluate("get var3")).to.eql(new StringValue("val3"));
+        expect(evaluate("get var1")).to.eql(STR("val1"));
+        expect(evaluate("get var2")).to.eql(STR("val2"));
+        expect(evaluate("get var3")).to.eql(STR("val3"));
       });
       it("should not define constants in case of missing value", () => {
         expect(execute("let (var1 var2) (val1)")).to.eql(
@@ -76,13 +67,13 @@ describe("Helena constants and variables", () => {
     });
     describe("exceptions", () => {
       specify("existing constant", () => {
-        rootScope.context.constants.set("cst", new StringValue("old"));
+        rootScope.context.constants.set("cst", STR("old"));
         expect(execute("let cst val")).to.eql(
           ERROR('cannot redefine constant "cst"')
         );
       });
       specify("existing variable", () => {
-        rootScope.context.variables.set("var", new StringValue("old"));
+        rootScope.context.variables.set("var", STR("old"));
         expect(execute("let var val")).to.eql(
           ERROR('cannot define constant "var": variable already exists')
         );
@@ -113,28 +104,24 @@ describe("Helena constants and variables", () => {
   describe("set", () => {
     it("should set the value of a new variable", () => {
       evaluate("set var val");
-      expect(rootScope.context.variables.get("var")).to.eql(
-        new StringValue("val")
-      );
+      expect(rootScope.context.variables.get("var")).to.eql(STR("val"));
     });
     it("should overwrite the value of an existing variable", () => {
-      rootScope.context.variables.set("var", new StringValue("old"));
+      rootScope.context.variables.set("var", STR("old"));
       evaluate("set var val");
-      expect(rootScope.context.variables.get("var")).to.eql(
-        new StringValue("val")
-      );
+      expect(rootScope.context.variables.get("var")).to.eql(STR("val"));
     });
     it("should return the set value", () => {
-      expect(evaluate("set var val")).to.eql(new StringValue("val"));
+      expect(evaluate("set var val")).to.eql(STR("val"));
     });
     describe("name tuples", () => {
       it("should be supported", () => {
         expect(execute("set (var1 (var2 var3)) (val1 (val2 val3))")).to.eql(
           execute("idem (val1 (val2 val3))")
         );
-        expect(evaluate("get var1")).to.eql(new StringValue("val1"));
-        expect(evaluate("get var2")).to.eql(new StringValue("val2"));
-        expect(evaluate("get var3")).to.eql(new StringValue("val3"));
+        expect(evaluate("get var1")).to.eql(STR("val1"));
+        expect(evaluate("get var2")).to.eql(STR("val2"));
+        expect(evaluate("get var3")).to.eql(STR("val3"));
       });
       it("should not set variables in case of missing value", () => {
         expect(execute("set (var1 var2) (val1)")).to.eql(
@@ -161,7 +148,7 @@ describe("Helena constants and variables", () => {
     });
     describe("exceptions", () => {
       specify("existing constant", () => {
-        rootScope.context.constants.set("cst", new StringValue("old"));
+        rootScope.context.constants.set("cst", STR("old"));
         expect(execute("set cst val")).to.eql(
           ERROR('cannot redefine constant "cst"')
         );
@@ -192,18 +179,16 @@ describe("Helena constants and variables", () => {
   describe("get", () => {
     it("should return the value of an existing variable", () => {
       evaluate("let cst val");
-      expect(evaluate("get cst")).to.eql(new StringValue("val"));
+      expect(evaluate("get cst")).to.eql(STR("val"));
     });
     it("should return the value of an existing constant", () => {
       evaluate("set var val");
-      expect(evaluate("get var")).to.eql(new StringValue("val"));
+      expect(evaluate("get var")).to.eql(STR("val"));
     });
     it("should return the default value for a unknown variable", () => {
-      expect(evaluate("get var default")).to.eql(new StringValue("default"));
-      expect(evaluate("get var(key) default")).to.eql(
-        new StringValue("default")
-      );
-      expect(evaluate("get var[1] default")).to.eql(new StringValue("default"));
+      expect(evaluate("get var default")).to.eql(STR("default"));
+      expect(evaluate("get var(key) default")).to.eql(STR("default"));
+      expect(evaluate("get var[1] default")).to.eql(STR("default"));
     });
     it("should support name tuples", () => {
       evaluate("set var1 val1");
@@ -215,32 +200,17 @@ describe("Helena constants and variables", () => {
     });
     describe("should support qualified names", () => {
       specify("indexed selector", () => {
-        rootScope.setNamedVariable(
-          "var",
-          new ListValue([new StringValue("val1"), new StringValue("val2")])
-        );
-        expect(evaluate("get var[1]")).to.eql(new StringValue("val2"));
+        rootScope.setNamedVariable("var", LIST([STR("val1"), STR("val2")]));
+        expect(evaluate("get var[1]")).to.eql(STR("val2"));
       });
       specify("keyed selector", () => {
-        rootScope.setNamedVariable(
-          "var",
-          new MapValue({ key: new StringValue("val") })
-        );
-        expect(evaluate("get var(key)")).to.eql(new StringValue("val"));
+        rootScope.setNamedVariable("var", MAP({ key: STR("val") }));
+        expect(evaluate("get var(key)")).to.eql(STR("val"));
       });
       specify("complex case", () => {
-        rootScope.setNamedVariable(
-          "var1",
-          new ListValue([new StringValue("val1"), new StringValue("val2")])
-        );
-        rootScope.setNamedVariable(
-          "var2",
-          new ListValue([new StringValue("val3"), new StringValue("val4")])
-        );
-        rootScope.setNamedVariable(
-          "var3",
-          new ListValue([new StringValue("val5"), new StringValue("val6")])
-        );
+        rootScope.setNamedVariable("var1", LIST([STR("val1"), STR("val2")]));
+        rootScope.setNamedVariable("var2", LIST([STR("val3"), STR("val4")]));
+        rootScope.setNamedVariable("var3", LIST([STR("val5"), STR("val6")]));
         expect(evaluate("get (var1 (var2 var3))[1]")).to.eql(
           evaluate("idem (val2 (val4 val6))")
         );
@@ -248,12 +218,12 @@ describe("Helena constants and variables", () => {
       });
     });
     it("should return the default value when a selector fails", () => {
-      rootScope.setNamedConstant("l", new ListValue([]));
-      rootScope.setNamedConstant("m", new MapValue({}));
-      expect(evaluate("get l[1] default")).to.eql(new StringValue("default"));
-      expect(evaluate("get l(key) default")).to.eql(new StringValue("default"));
-      expect(evaluate("get m[1] default")).to.eql(new StringValue("default"));
-      expect(evaluate("get m(key) default")).to.eql(new StringValue("default"));
+      rootScope.setNamedConstant("l", LIST([]));
+      rootScope.setNamedConstant("m", MAP({}));
+      expect(evaluate("get l[1] default")).to.eql(STR("default"));
+      expect(evaluate("get l(key) default")).to.eql(STR("default"));
+      expect(evaluate("get m[1] default")).to.eql(STR("default"));
+      expect(evaluate("get m(key) default")).to.eql(STR("default"));
     });
     describe("exceptions", () => {
       specify("unknown variable", () => {
@@ -292,23 +262,17 @@ describe("Helena constants and variables", () => {
     });
     describe("should support qualified names", () => {
       specify("indexed selector", () => {
-        rootScope.setNamedVariable(
-          "var",
-          new ListValue([new StringValue("val1"), new StringValue("val2")])
-        );
+        rootScope.setNamedVariable("var", LIST([STR("val1"), STR("val2")]));
         expect(evaluate("exists var[1]")).to.eql(TRUE);
       });
       specify("keyed selector", () => {
-        rootScope.setNamedVariable(
-          "var",
-          new MapValue({ key: new StringValue("val") })
-        );
+        rootScope.setNamedVariable("var", MAP({ key: STR("val") }));
         expect(evaluate("exists var(key)")).to.eql(TRUE);
       });
     });
     it("should return false when a selector fails", () => {
-      rootScope.setNamedConstant("l", new ListValue([]));
-      rootScope.setNamedConstant("m", new MapValue({}));
+      rootScope.setNamedConstant("l", LIST([]));
+      rootScope.setNamedConstant("m", MAP({}));
       expect(evaluate("exists l[1]")).to.eql(FALSE);
       expect(evaluate("exists l(key)")).to.eql(FALSE);
       expect(evaluate("exists m[1]")).to.eql(FALSE);
@@ -341,7 +305,7 @@ describe("Helena constants and variables", () => {
     });
     describe("exceptions", () => {
       specify("existing constant", () => {
-        rootScope.context.constants.set("cst", new StringValue("old"));
+        rootScope.context.constants.set("cst", STR("old"));
         expect(execute("unset cst")).to.eql(
           ERROR('cannot unset constant "cst"')
         );

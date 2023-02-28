@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ERROR } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, IntegerValue, NumberValue, TRUE } from "../core/values";
+import { FALSE, INT, NUM, TRUE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -27,13 +27,13 @@ describe("Helena numbers", () => {
 
   describe("integers", () => {
     it("are valid commands", () => {
-      expect(evaluate("1")).to.eql(new IntegerValue(1));
+      expect(evaluate("1")).to.eql(INT(1));
     });
     it("are idempotent", () => {
-      expect(evaluate("[1]")).to.eql(new IntegerValue(1));
+      expect(evaluate("[1]")).to.eql(INT(1));
     });
     it("can be expressed as strings", () => {
-      expect(evaluate('"123"')).to.eql(new IntegerValue(123));
+      expect(evaluate('"123"')).to.eql(INT(123));
     });
     describe("exceptions", () => {
       specify("unknown subcommand", () => {
@@ -49,13 +49,13 @@ describe("Helena numbers", () => {
 
   describe("numbers", () => {
     it("are valid commands", () => {
-      expect(evaluate("1.25")).to.eql(new NumberValue(1.25));
+      expect(evaluate("1.25")).to.eql(NUM(1.25));
     });
     it("are idempotent", () => {
-      expect(evaluate("[1.25]")).to.eql(new NumberValue(1.25));
+      expect(evaluate("[1.25]")).to.eql(NUM(1.25));
     });
     it("can be expressed as strings", () => {
-      expect(evaluate('"0.5"')).to.eql(new NumberValue(0.5));
+      expect(evaluate('"0.5"')).to.eql(NUM(0.5));
     });
     describe("exceptions", () => {
       specify("unknown subcommand", () => {
@@ -72,33 +72,29 @@ describe("Helena numbers", () => {
   describe("infix operators", () => {
     describe("arithmetic", () => {
       specify("+", () => {
-        expect(evaluate("1 + 2")).to.eql(new IntegerValue(3));
-        expect(evaluate("1 + 2 + 3 + 4")).to.eql(new IntegerValue(10));
+        expect(evaluate("1 + 2")).to.eql(INT(3));
+        expect(evaluate("1 + 2 + 3 + 4")).to.eql(INT(10));
       });
       specify("-", () => {
-        expect(evaluate("1 - 2")).to.eql(new IntegerValue(-1));
-        expect(evaluate("1 - 2 - 3 - 4")).to.eql(new IntegerValue(-8));
+        expect(evaluate("1 - 2")).to.eql(INT(-1));
+        expect(evaluate("1 - 2 - 3 - 4")).to.eql(INT(-8));
       });
       specify("*", () => {
-        expect(evaluate("1 * 2")).to.eql(new IntegerValue(2));
-        expect(evaluate("1 * 2 * 3 * 4")).to.eql(new IntegerValue(24));
+        expect(evaluate("1 * 2")).to.eql(INT(2));
+        expect(evaluate("1 * 2 * 3 * 4")).to.eql(INT(24));
       });
       specify("/", () => {
-        expect(evaluate("1 / 2")).to.eql(new NumberValue(0.5));
-        expect(evaluate("1 / 2 / 4 / 8")).to.eql(new NumberValue(0.015625));
-        expect(evaluate("1 / 0")).to.eql(new NumberValue(Infinity));
-        expect(evaluate("-1 / 0")).to.eql(new NumberValue(-Infinity));
-        expect(evaluate("0 / 0")).to.eql(new NumberValue(NaN));
+        expect(evaluate("1 / 2")).to.eql(NUM(0.5));
+        expect(evaluate("1 / 2 / 4 / 8")).to.eql(NUM(0.015625));
+        expect(evaluate("1 / 0")).to.eql(NUM(Infinity));
+        expect(evaluate("-1 / 0")).to.eql(NUM(-Infinity));
+        expect(evaluate("0 / 0")).to.eql(NUM(NaN));
       });
       specify("precedence", () => {
-        expect(evaluate("1 + 2 * 3 * 4 + 5")).to.eql(new IntegerValue(30));
-        expect(evaluate("1 * 2 + 3 * 4 + 5 + 6 * 7")).to.eql(
-          new IntegerValue(61)
-        );
-        expect(evaluate("1 - 2 * 3 * 4 + 5")).to.eql(new IntegerValue(-18));
-        expect(evaluate("1 - 2 * 3 / 4 + 5 * 6 / 10")).to.eql(
-          new NumberValue(2.5)
-        );
+        expect(evaluate("1 + 2 * 3 * 4 + 5")).to.eql(INT(30));
+        expect(evaluate("1 * 2 + 3 * 4 + 5 + 6 * 7")).to.eql(INT(61));
+        expect(evaluate("1 - 2 * 3 * 4 + 5")).to.eql(INT(-18));
+        expect(evaluate("1 - 2 * 3 / 4 + 5 * 6 / 10")).to.eql(NUM(2.5));
       });
       describe("exceptions", () => {
         specify("wrong arity", () => {

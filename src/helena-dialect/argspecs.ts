@@ -7,7 +7,8 @@ import {
   ValueType,
   ScriptValue,
   NIL,
-  TupleValue,
+  STR,
+  TUPLE,
 } from "../core/values";
 import { Argument, ARITY_ERROR, buildArguments, buildHelp } from "./arguments";
 import { CommandValue, commandValueType, Scope } from "./core";
@@ -22,7 +23,7 @@ export class Argspec {
   readonly hasRemainder: boolean = false;
   constructor(args: Argument[]) {
     this.args = args;
-    this.help = new StringValue(buildHelp(args));
+    this.help = STR(buildHelp(args));
     for (const arg of args) {
       switch (arg.type) {
         case "required":
@@ -104,14 +105,12 @@ export class ArgspecValue implements CommandValue, Command {
           } else continue; // Skip missing optional
           break;
         case "remainder":
-          value = new TupleValue(values.slice(i, i + remainders));
+          value = TUPLE(values.slice(i, i + remainders));
           i += remainders;
           break;
       }
       if (arg.guard) {
-        const process = scope.prepareTupleValue(
-          new TupleValue([arg.guard, value])
-        );
+        const process = scope.prepareTupleValue(TUPLE([arg.guard, value]));
         const result = process.run();
         // TODO handle YIELD?
         if (result.code != ResultCode.OK) return result;

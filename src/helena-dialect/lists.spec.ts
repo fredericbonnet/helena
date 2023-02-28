@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { IntegerValue, ListValue, NIL, StringValue } from "../core/values";
+import { INT, LIST, NIL, STR } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { displayListValue } from "./lists";
@@ -28,15 +28,11 @@ describe("Helena lists", () => {
 
   describe("list", () => {
     it("should return list value", () => {
-      expect(evaluate("list ()")).to.eql(new ListValue([]));
+      expect(evaluate("list ()")).to.eql(LIST([]));
     });
     it("should convert tuples to lists", () => {
       expect(evaluate("list (a b c)")).to.eql(
-        new ListValue([
-          new StringValue("a"),
-          new StringValue("b"),
-          new StringValue("c"),
-        ])
+        LIST([STR("a"), STR("b"), STR("c")])
       );
     });
     it("should convert blocks to lists", () => {
@@ -61,8 +57,8 @@ describe("Helena lists", () => {
       });
       describe("length", () => {
         it("should return the list length", () => {
-          expect(evaluate("list () length")).to.eql(new IntegerValue(0));
-          expect(evaluate("list (a b c) length")).to.eql(new IntegerValue(3));
+          expect(evaluate("list () length")).to.eql(INT(0));
+          expect(evaluate("list (a b c) length")).to.eql(INT(3));
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
@@ -74,12 +70,10 @@ describe("Helena lists", () => {
       });
       describe("at", () => {
         it("should return the element at the given index", () => {
-          expect(evaluate("list (a b c) at 1")).to.eql(new StringValue("b"));
+          expect(evaluate("list (a b c) at 1")).to.eql(STR("b"));
         });
         it("should return the default value for an out-of-range index", () => {
-          expect(evaluate("list (a b c) at 10 default")).to.eql(
-            new StringValue("default")
-          );
+          expect(evaluate("list (a b c) at 10 default")).to.eql(STR("default"));
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
@@ -129,7 +123,7 @@ describe("Helena lists", () => {
           );
         });
         it("should return an empty list when last is before first", () => {
-          expect(evaluate("list (a b c) range 2 0")).to.eql(new ListValue([]));
+          expect(evaluate("list (a b c) range 2 0")).to.eql(LIST([]));
         });
         it("should return an empty list when first is past the list length", () => {
           expect(evaluate("list (a b c) range 10 12")).to.eql(
@@ -368,7 +362,7 @@ describe("Helena lists", () => {
           expect(execute("list (a b c) foreach element {}")).to.eql(OK(NIL));
           expect(
             evaluate("set i 0; list (a b c) foreach element {set i [+ $i 1]}")
-          ).to.eql(new IntegerValue(3));
+          ).to.eql(INT(3));
         });
         describe("control flow", () => {
           describe("return", () => {
@@ -378,7 +372,7 @@ describe("Helena lists", () => {
                   "set i 0; list (a b c) foreach element {set i [+ $i 1]; return $element; unreachable}"
                 )
               ).to.eql(execute("return a"));
-              expect(evaluate("get i")).to.eql(new IntegerValue(1));
+              expect(evaluate("get i")).to.eql(INT(1));
             });
           });
           describe("tailcall", () => {
@@ -388,7 +382,7 @@ describe("Helena lists", () => {
                   "set i 0; list (a b c) foreach element {set i [+ $i 1]; tailcall {idem $element}; unreachable}"
                 )
               ).to.eql(execute("return a"));
-              expect(evaluate("get i")).to.eql(new IntegerValue(1));
+              expect(evaluate("get i")).to.eql(INT(1));
             });
           });
           describe("yield", () => {
@@ -405,24 +399,24 @@ describe("Helena lists", () => {
 
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("a"));
+              expect(result.value).to.eql(STR("a"));
               expect(result.data).to.exist;
 
-              process.yieldBack(new StringValue("step 1"));
+              process.yieldBack(STR("step 1"));
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("b"));
+              expect(result.value).to.eql(STR("b"));
               expect(result.data).to.exist;
 
-              process.yieldBack(new StringValue("step 2"));
+              process.yieldBack(STR("step 2"));
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("c"));
+              expect(result.value).to.eql(STR("c"));
               expect(result.data).to.exist;
 
-              process.yieldBack(new StringValue("step 3"));
+              process.yieldBack(STR("step 3"));
               result = process.run();
-              expect(result).to.eql(OK(new StringValue("_step 3_")));
+              expect(result).to.eql(OK(STR("_step 3_")));
             });
           });
           describe("error", () => {
@@ -432,7 +426,7 @@ describe("Helena lists", () => {
                   "set i 0; list (a b c) foreach element {set i [+ $i 1]; error msg; unreachable}"
                 )
               ).to.eql(ERROR("msg"));
-              expect(evaluate("get i")).to.eql(new IntegerValue(1));
+              expect(evaluate("get i")).to.eql(INT(1));
             });
           });
           describe("break", () => {
@@ -442,7 +436,7 @@ describe("Helena lists", () => {
                   "set i 0; list (a b c) foreach element {set i [+ $i 1]; break; unreachable}"
                 )
               ).to.eql(OK(NIL));
-              expect(evaluate("get i")).to.eql(new IntegerValue(1));
+              expect(evaluate("get i")).to.eql(INT(1));
             });
           });
           describe("continue", () => {
@@ -452,7 +446,7 @@ describe("Helena lists", () => {
                   "set i 0; list (a b c) foreach element {set i [+ $i 1]; continue; unreachable}"
                 )
               ).to.eql(OK(NIL));
-              expect(evaluate("get i")).to.eql(new IntegerValue(3));
+              expect(evaluate("get i")).to.eql(INT(3));
             });
           });
         });
@@ -492,7 +486,7 @@ describe("Helena lists", () => {
             }
           }`
         );
-        expect(evaluate("list (a b c) last")).to.eql(new StringValue("c"));
+        expect(evaluate("list (a b c) last")).to.eql(STR("c"));
       });
     });
     describe("exceptions", () => {
@@ -517,11 +511,11 @@ describe("Helena lists", () => {
     });
     specify("length", () => {
       evaluate("set l (list (a b c))");
-      expect(evaluate("$l length")).to.eql(new IntegerValue(3));
+      expect(evaluate("$l length")).to.eql(INT(3));
     });
     specify("at", () => {
       evaluate("set l (list (a b c))");
-      expect(evaluate("$l at 2")).to.eql(new StringValue("c"));
+      expect(evaluate("$l at 2")).to.eql(STR("c"));
     });
     specify("range", () => {
       evaluate("set l (list (a b c d e f g))");
@@ -530,14 +524,7 @@ describe("Helena lists", () => {
   });
 
   specify("at <-> indexed selector equivalence", () => {
-    rootScope.setNamedVariable(
-      "v",
-      new ListValue([
-        new StringValue("a"),
-        new StringValue("b"),
-        new StringValue("c"),
-      ])
-    );
+    rootScope.setNamedVariable("v", LIST([STR("a"), STR("b"), STR("c")]));
     evaluate("set l (list $v)");
 
     expect(execute("list $v at 2")).to.eql(execute("idem $v[2]"));
@@ -551,19 +538,11 @@ describe("Helena lists", () => {
 
   describe("displayListValue", () => {
     it("should display lists as list command + tuple values", () => {
-      const list = new ListValue([
-        new StringValue("a"),
-        new StringValue("b"),
-        new StringValue("c"),
-      ]);
+      const list = LIST([STR("a"), STR("b"), STR("c")]);
       expect(displayListValue(list)).to.eql("[list (a b c)]");
     });
     it("should produce an isomorphic string", () => {
-      const list = new ListValue([
-        new StringValue("a"),
-        new StringValue("b"),
-        new StringValue("c"),
-      ]);
+      const list = LIST([STR("a"), STR("b"), STR("c")]);
       expect(evaluate(`idem ${displayListValue(list)}`)).to.eql(list);
     });
   });

@@ -3,7 +3,7 @@ import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Scope, initCommands } from "./helena-dialect";
 import { Tokenizer } from "../core/tokenizer";
-import { IntegerValue, NIL, StringValue } from "../core/values";
+import { INT, NIL, STR } from "../core/values";
 
 describe("Helena dialect", () => {
   let rootScope: Scope;
@@ -27,41 +27,41 @@ describe("Helena dialect", () => {
   describe("leading tuple auto-expansion", () => {
     specify("zero", () => {
       expect(evaluate("()")).to.eql(NIL);
-      expect(evaluate("() idem val")).to.eql(new StringValue("val"));
+      expect(evaluate("() idem val")).to.eql(STR("val"));
       expect(evaluate("(())")).to.eql(NIL);
-      expect(evaluate("(()) idem val")).to.eql(new StringValue("val"));
-      expect(evaluate("((())) idem val")).to.eql(new StringValue("val"));
+      expect(evaluate("(()) idem val")).to.eql(STR("val"));
+      expect(evaluate("((())) idem val")).to.eql(STR("val"));
     });
     specify("one", () => {
-      expect(evaluate("(idem) val")).to.eql(new StringValue("val"));
-      expect(evaluate("((idem)) val")).to.eql(new StringValue("val"));
-      expect(evaluate("((idem)) val")).to.eql(new StringValue("val"));
-      expect(evaluate("(((idem))) val")).to.eql(new StringValue("val"));
+      expect(evaluate("(idem) val")).to.eql(STR("val"));
+      expect(evaluate("((idem)) val")).to.eql(STR("val"));
+      expect(evaluate("((idem)) val")).to.eql(STR("val"));
+      expect(evaluate("(((idem))) val")).to.eql(STR("val"));
     });
     specify("two", () => {
-      expect(evaluate("(idem val)")).to.eql(new StringValue("val"));
-      expect(evaluate("((idem) val)")).to.eql(new StringValue("val"));
-      expect(evaluate("(((idem val)))")).to.eql(new StringValue("val"));
-      expect(evaluate("(((idem) val))")).to.eql(new StringValue("val"));
-      expect(evaluate("((() idem) val)")).to.eql(new StringValue("val"));
+      expect(evaluate("(idem val)")).to.eql(STR("val"));
+      expect(evaluate("((idem) val)")).to.eql(STR("val"));
+      expect(evaluate("(((idem val)))")).to.eql(STR("val"));
+      expect(evaluate("(((idem) val))")).to.eql(STR("val"));
+      expect(evaluate("((() idem) val)")).to.eql(STR("val"));
     });
     specify("multiple", () => {
-      expect(evaluate("(1)")).to.eql(new IntegerValue(1));
-      expect(evaluate("(+ 1 2)")).to.eql(new IntegerValue(3));
-      expect(evaluate("(+ 1) 2 3")).to.eql(new IntegerValue(6));
-      expect(evaluate("(+ 1 2 3) 4")).to.eql(new IntegerValue(10));
-      expect(evaluate("((+ 1) 2 3) 4 5")).to.eql(new IntegerValue(15));
+      expect(evaluate("(1)")).to.eql(INT(1));
+      expect(evaluate("(+ 1 2)")).to.eql(INT(3));
+      expect(evaluate("(+ 1) 2 3")).to.eql(INT(6));
+      expect(evaluate("(+ 1 2 3) 4")).to.eql(INT(10));
+      expect(evaluate("((+ 1) 2 3) 4 5")).to.eql(INT(15));
     });
     specify("indirect", () => {
       evaluate("let mac [macro {*args} {+ $*args}]");
       evaluate("let sum ([$mac] 1)");
-      expect(evaluate("$sum 2 3")).to.eql(new IntegerValue(6));
+      expect(evaluate("$sum 2 3")).to.eql(INT(6));
     });
     specify("currying", () => {
       evaluate("let double (* 2)");
       evaluate("let quadruple ($double 2)");
-      expect(evaluate("$double 5")).to.eql(new IntegerValue(10));
-      expect(evaluate("$quadruple 3")).to.eql(new IntegerValue(12));
+      expect(evaluate("$double 5")).to.eql(INT(10));
+      expect(evaluate("$quadruple 3")).to.eql(INT(12));
     });
     describe("yield", () => {
       it("should provide a resumable state", () => {
@@ -70,10 +70,10 @@ describe("Helena dialect", () => {
 
         let result = process.run();
         expect(result.code).to.eql(ResultCode.YIELD);
-        expect(result.value).to.eql(new StringValue("val1"));
+        expect(result.value).to.eql(STR("val1"));
 
         result = process.run();
-        expect(result).to.eql(OK(new StringValue("val2")));
+        expect(result).to.eql(OK(STR("val2")));
       });
       it("should work on several levels", () => {
         evaluate("macro cmd2 {*} {yield val2}");
@@ -82,19 +82,19 @@ describe("Helena dialect", () => {
 
         let result = process.run();
         expect(result.code).to.eql(ResultCode.YIELD);
-        expect(result.value).to.eql(new StringValue("val1"));
+        expect(result.value).to.eql(STR("val1"));
 
         result = process.run();
         expect(result.code).to.eql(ResultCode.YIELD);
-        expect(result.value).to.eql(new StringValue("val2"));
+        expect(result.value).to.eql(STR("val2"));
 
-        process.yieldBack(new StringValue("val3"));
+        process.yieldBack(STR("val3"));
         result = process.run();
         expect(result.code).to.eql(ResultCode.YIELD);
-        expect(result.value).to.eql(new StringValue("val3"));
+        expect(result.value).to.eql(STR("val3"));
 
         result = process.run();
-        expect(result).to.eql(OK(new StringValue("val4")));
+        expect(result).to.eql(OK(STR("val4")));
       });
     });
     specify("error", () => {

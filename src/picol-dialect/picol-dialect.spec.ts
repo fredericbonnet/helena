@@ -8,13 +8,7 @@ import {
 import { Parser } from "../core/parser";
 import { PicolScope, initPicolCommands } from "./picol-dialect";
 import { Tokenizer } from "../core/tokenizer";
-import {
-  FALSE,
-  TRUE,
-  NumberValue,
-  StringValue,
-  TupleValue,
-} from "../core/values";
+import { FALSE, TRUE, NUM, STR, TUPLE } from "../core/values";
 
 describe("Picol dialect", () => {
   for (const klass of [InlineEvaluator, CompilingEvaluator]) {
@@ -48,12 +42,12 @@ describe("Picol dialect", () => {
       describe("math", () => {
         describe("+", () => {
           it("should accept one number", () => {
-            expect(evaluate("+ 3")).to.eql(new NumberValue(3));
-            expect(evaluate("+ -1.2e3")).to.eql(new NumberValue(-1.2e3));
+            expect(evaluate("+ 3")).to.eql(NUM(3));
+            expect(evaluate("+ -1.2e3")).to.eql(NUM(-1.2e3));
           });
           it("should add two numbers", () => {
-            expect(evaluate("+ 6 23")).to.eql(new NumberValue(6 + 23));
-            expect(evaluate("+ 4.5e-3 -6")).to.eql(new NumberValue(4.5e-3 - 6));
+            expect(evaluate("+ 6 23")).to.eql(NUM(6 + 23));
+            expect(evaluate("+ 4.5e-3 -6")).to.eql(NUM(4.5e-3 - 6));
           });
           it("should add several numbers", () => {
             const numbers = [];
@@ -63,9 +57,7 @@ describe("Picol dialect", () => {
               numbers.push(v);
               total += v;
             }
-            expect(evaluate("+ " + numbers.join(" "))).to.eql(
-              new NumberValue(total)
-            );
+            expect(evaluate("+ " + numbers.join(" "))).to.eql(NUM(total));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -80,14 +72,12 @@ describe("Picol dialect", () => {
         });
         describe("-", () => {
           it("should negate one number", () => {
-            expect(evaluate("- 6")).to.eql(new NumberValue(-6));
-            expect(evaluate("- -3.4e5")).to.eql(new NumberValue(3.4e5));
+            expect(evaluate("- 6")).to.eql(NUM(-6));
+            expect(evaluate("- -3.4e5")).to.eql(NUM(3.4e5));
           });
           it("should subtract two numbers", () => {
-            expect(evaluate("- 4 12")).to.eql(new NumberValue(4 - 12));
-            expect(evaluate("- 12.3e4 -56")).to.eql(
-              new NumberValue(12.3e4 + 56)
-            );
+            expect(evaluate("- 4 12")).to.eql(NUM(4 - 12));
+            expect(evaluate("- 12.3e4 -56")).to.eql(NUM(12.3e4 + 56));
           });
           it("should subtract several numbers", () => {
             const numbers = [];
@@ -98,9 +88,7 @@ describe("Picol dialect", () => {
               if (i == 0) total = v;
               else total -= v;
             }
-            expect(evaluate("- " + numbers.join(" "))).to.eql(
-              new NumberValue(total)
-            );
+            expect(evaluate("- " + numbers.join(" "))).to.eql(NUM(total));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -115,14 +103,12 @@ describe("Picol dialect", () => {
         });
         describe("*", () => {
           it("should accept one number", () => {
-            expect(evaluate("* 12")).to.eql(new NumberValue(12));
-            expect(evaluate("* -67.89")).to.eql(new NumberValue(-67.89));
+            expect(evaluate("* 12")).to.eql(NUM(12));
+            expect(evaluate("* -67.89")).to.eql(NUM(-67.89));
           });
           it("should multiply two numbers", () => {
-            expect(evaluate("* 45 67")).to.eql(new NumberValue(45 * 67));
-            expect(evaluate("* 1.23e-4 -56")).to.eql(
-              new NumberValue(1.23e-4 * -56)
-            );
+            expect(evaluate("* 45 67")).to.eql(NUM(45 * 67));
+            expect(evaluate("* 1.23e-4 -56")).to.eql(NUM(1.23e-4 * -56));
           });
           it("should add several numbers", () => {
             const numbers = [];
@@ -132,9 +118,7 @@ describe("Picol dialect", () => {
               numbers.push(v);
               total *= v;
             }
-            expect(evaluate("* " + numbers.join(" "))).to.eql(
-              new NumberValue(total)
-            );
+            expect(evaluate("* " + numbers.join(" "))).to.eql(NUM(total));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -149,10 +133,8 @@ describe("Picol dialect", () => {
         });
         describe("/", () => {
           it("should divide two numbers", () => {
-            expect(evaluate("/ 12 -34")).to.eql(new NumberValue(12 / -34));
-            expect(evaluate("/ 45.67e8 -123")).to.eql(
-              new NumberValue(45.67e8 / -123)
-            );
+            expect(evaluate("/ 12 -34")).to.eql(NUM(12 / -34));
+            expect(evaluate("/ 45.67e8 -123")).to.eql(NUM(45.67e8 / -123));
           });
           it("should divide several numbers", () => {
             const numbers = [];
@@ -163,9 +145,7 @@ describe("Picol dialect", () => {
               if (i == 0) total = v;
               else total /= v;
             }
-            expect(evaluate("/ " + numbers.join(" "))).to.eql(
-              new NumberValue(total)
-            );
+            expect(evaluate("/ " + numbers.join(" "))).to.eql(NUM(total));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -321,7 +301,7 @@ describe("Picol dialect", () => {
           it("should propagate return", () => {
             expect(
               evaluate("proc cmd {} {! {return value}; error}; cmd")
-            ).to.eql(new StringValue("value"));
+            ).to.eql(STR("value"));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -359,7 +339,7 @@ describe("Picol dialect", () => {
           it("should propagate return", () => {
             expect(
               evaluate("proc cmd {} {&& {return value}; error}; cmd")
-            ).to.eql(new StringValue("value"));
+            ).to.eql(STR("value"));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -393,7 +373,7 @@ describe("Picol dialect", () => {
           it("should propagate return", () => {
             expect(
               evaluate("proc cmd {} {|| {return value}; error}; cmd")
-            ).to.eql(new StringValue("value"));
+            ).to.eql(STR("value"));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -411,43 +391,37 @@ describe("Picol dialect", () => {
       describe("control flow", () => {
         describe("if", () => {
           it("should evaluate the if branch when test is true", () => {
-            expect(evaluate("if true {set var if}")).to.eql(
-              new StringValue("if")
-            );
-            expect(evaluate("if 1 {set var if}")).to.eql(new StringValue("if"));
+            expect(evaluate("if true {set var if}")).to.eql(STR("if"));
+            expect(evaluate("if 1 {set var if}")).to.eql(STR("if"));
           });
           it("should evaluate the else branch when test is false", () => {
             expect(
               evaluate("if false {set var if} else {set var else}")
-            ).to.eql(new StringValue("else"));
+            ).to.eql(STR("else"));
             expect(evaluate("if 0 {set var if} else {set var else}")).to.eql(
-              new StringValue("else")
+              STR("else")
             );
           });
           it("should accept block expressions", () => {
             expect(
               evaluate("if {!= 1 2} {set var if} else {set var else}")
-            ).to.eql(new StringValue("if"));
+            ).to.eql(STR("if"));
             expect(
               evaluate("if {== 1 2} {set var if} else {set var else}")
-            ).to.eql(new StringValue("else"));
+            ).to.eql(STR("else"));
           });
           it("should return empty when test is false and there is no else branch", () => {
-            expect(evaluate("if false {set var if}")).to.eql(
-              new StringValue("")
-            );
+            expect(evaluate("if false {set var if}")).to.eql(STR(""));
           });
           it("should propagate return", () => {
             evaluate(
               "proc cmd {expr} {if $expr {return if} else {return else}; error}"
             );
-            expect(evaluate("cmd true")).to.eql(new StringValue("if"));
-            expect(evaluate("cmd false")).to.eql(new StringValue("else"));
-            expect(evaluate("cmd {!= 1 2}")).to.eql(new StringValue("if"));
-            expect(evaluate("cmd {== 1 2}")).to.eql(new StringValue("else"));
-            expect(evaluate("cmd {return test}")).to.eql(
-              new StringValue("test")
-            );
+            expect(evaluate("cmd true")).to.eql(STR("if"));
+            expect(evaluate("cmd false")).to.eql(STR("else"));
+            expect(evaluate("cmd {!= 1 2}")).to.eql(STR("if"));
+            expect(evaluate("cmd {== 1 2}")).to.eql(STR("else"));
+            expect(evaluate("cmd {return test}")).to.eql(STR("test"));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -480,53 +454,51 @@ describe("Picol dialect", () => {
         describe("for", () => {
           it("should always evaluate the start segment", () => {
             expect(evaluate("for {set var start} false {} {}; set var")).to.eql(
-              new StringValue("start")
+              STR("start")
             );
             expect(
               evaluate(
                 "for {set var start} {== $var start} {set var ${var}2} {}; set var"
               )
-            ).to.eql(new StringValue("start2"));
+            ).to.eql(STR("start2"));
           });
           it("should skip the body when test is false", () => {
             expect(
               evaluate(
                 "set var before; for {} false {set var next} {set var body}; set var"
               )
-            ).to.eql(new StringValue("before"));
+            ).to.eql(STR("before"));
           });
           it("should skip next statement when test is false", () => {
             expect(
               evaluate(
                 "set var before; for {} false {set var next} {}; set var"
               )
-            ).to.eql(new StringValue("before"));
+            ).to.eql(STR("before"));
           });
           it("should loop over the body while test is true", () => {
             expect(
               evaluate("for {set i 0} {< $i 10} {incr i} {set var $i}; set var")
-            ).to.eql(new NumberValue(9));
+            ).to.eql(NUM(9));
           });
           it("should return empty", () => {
             expect(
               evaluate("for {set i 0} {< $i 10} {incr i} {set var $i}")
-            ).to.eql(new StringValue(""));
+            ).to.eql(STR(""));
           });
           it("should propagate return", () => {
             evaluate(
               "proc cmd {start test next body} {for $start $test $next $body; set var val}"
             );
             expect(evaluate("cmd {return start} {} {} {}")).to.eql(
-              new StringValue("start")
+              STR("start")
             );
-            expect(evaluate("cmd {} {return test} {} {}")).to.eql(
-              new StringValue("test")
-            );
+            expect(evaluate("cmd {} {return test} {} {}")).to.eql(STR("test"));
             expect(evaluate("cmd {} true {return next} {}")).to.eql(
-              new StringValue("next")
+              STR("next")
             );
             expect(evaluate("cmd {} true {} {return body}")).to.eql(
-              new StringValue("body")
+              STR("body")
             );
           });
           describe("exceptions", () => {
@@ -552,29 +524,27 @@ describe("Picol dialect", () => {
           it("should skip the body when test is false", () => {
             expect(
               evaluate("set var before; while false {set var body}; set var")
-            ).to.eql(new StringValue("before"));
+            ).to.eql(STR("before"));
           });
           it("should loop over the body while test is true", () => {
             expect(evaluate("set i 0; while {< $i 10} {incr i}; set i")).to.eql(
-              new NumberValue(10)
+              NUM(10)
             );
           });
           it("should return empty", () => {
             expect(evaluate("set i 0; while {< $i 10} {incr i}")).to.eql(
-              new StringValue("")
+              STR("")
             );
           });
           it("should propagate return", () => {
             evaluate(
               "proc cmd {test} {while $test {return body; error}; set var val}"
             );
-            expect(evaluate("cmd true")).to.eql(new StringValue("body"));
-            expect(evaluate("cmd false")).to.eql(new StringValue("val"));
-            expect(evaluate("cmd {!= 1 2}")).to.eql(new StringValue("body"));
-            expect(evaluate("cmd {== 1 2}")).to.eql(new StringValue("val"));
-            expect(evaluate("cmd {return test}")).to.eql(
-              new StringValue("test")
-            );
+            expect(evaluate("cmd true")).to.eql(STR("body"));
+            expect(evaluate("cmd false")).to.eql(STR("val"));
+            expect(evaluate("cmd {!= 1 2}")).to.eql(STR("body"));
+            expect(evaluate("cmd {== 1 2}")).to.eql(STR("val"));
+            expect(evaluate("cmd {return test}")).to.eql(STR("test"));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -597,20 +567,20 @@ describe("Picol dialect", () => {
         });
         describe("return", () => {
           it("should return empty by default", () => {
-            expect(evaluate("return")).to.eql(new StringValue(""));
+            expect(evaluate("return")).to.eql(STR(""));
           });
           it("should return an optional result", () => {
-            expect(evaluate("return value")).to.eql(new StringValue("value"));
+            expect(evaluate("return value")).to.eql(STR("value"));
           });
           it("should interrupt a proc", () => {
             expect(evaluate("proc cmd {} {return; set var val}; cmd")).to.eql(
-              new StringValue("")
+              STR("")
             );
           });
           it("should return result from a proc", () => {
             expect(
               evaluate("proc cmd {} {return result; set var val}; cmd")
-            ).to.eql(new StringValue("result"));
+            ).to.eql(STR("result"));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -626,21 +596,21 @@ describe("Picol dialect", () => {
               evaluate(
                 "for {set i 0} {< $i 10} {incr i} {set var before$i; break; set var after$i}; set var"
               )
-            ).to.eql(new StringValue("before0"));
+            ).to.eql(STR("before0"));
           });
           it("should interrupt a while loop", () => {
             expect(
               evaluate(
                 "while true {set var before; break; set var after}; set var"
               )
-            ).to.eql(new StringValue("before"));
+            ).to.eql(STR("before"));
           });
           it("should not interrupt a proc", () => {
             expect(
               evaluate(
                 "proc cmd {} {for {set i 0} {< $i 10} {incr i} {break}; set i}; cmd"
               )
-            ).to.eql(new StringValue("0"));
+            ).to.eql(STR("0"));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -656,21 +626,21 @@ describe("Picol dialect", () => {
               evaluate(
                 "for {set i 0} {< $i 10} {incr i} {set var before$i; continue; set var after$i}; set var"
               )
-            ).to.eql(new StringValue("before9"));
+            ).to.eql(STR("before9"));
           });
           it("should interrupt a while loop iteration", () => {
             expect(
               evaluate(
                 "set i 0; while {< $i 10} {incr i; set var before$i; continue; set var after$i}; set var"
               )
-            ).to.eql(new StringValue("before10"));
+            ).to.eql(STR("before10"));
           });
           it("should not interrupt a proc", () => {
             expect(
               evaluate(
                 "proc cmd {} {for {set i 0} {< $i 10} {incr i} {continue}; set i}; cmd"
               )
-            ).to.eql(new NumberValue(10));
+            ).to.eql(NUM(10));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -712,20 +682,20 @@ describe("Picol dialect", () => {
 
       describe("set", () => {
         it("should return the value of an existing variable", () => {
-          rootScope.variables.set("var", new StringValue("val"));
-          expect(evaluate("set var")).to.eql(new StringValue("val"));
+          rootScope.variables.set("var", STR("val"));
+          expect(evaluate("set var")).to.eql(STR("val"));
         });
         it("should set the value of a new variable", () => {
           evaluate("set var val");
-          expect(rootScope.variables.get("var")).to.eql(new StringValue("val"));
+          expect(rootScope.variables.get("var")).to.eql(STR("val"));
         });
         it("should overwrite the value of an existing variable", () => {
-          rootScope.variables.set("var", new StringValue("old"));
+          rootScope.variables.set("var", STR("old"));
           evaluate("set var val");
-          expect(rootScope.variables.get("var")).to.eql(new StringValue("val"));
+          expect(rootScope.variables.get("var")).to.eql(STR("val"));
         });
         it("should return the set value", () => {
-          expect(evaluate("set var val")).to.eql(new StringValue("val"));
+          expect(evaluate("set var val")).to.eql(STR("val"));
         });
         describe("exceptions", () => {
           specify("non-existing variable", () => {
@@ -746,20 +716,20 @@ describe("Picol dialect", () => {
       describe("incr", () => {
         it("should set new variables to the increment", () => {
           evaluate("incr var 5");
-          expect(rootScope.variables.get("var")).to.eql(new NumberValue(5));
+          expect(rootScope.variables.get("var")).to.eql(NUM(5));
         });
         it("should increment existing variables by the increment", () => {
-          rootScope.variables.set("var", new NumberValue(2));
+          rootScope.variables.set("var", NUM(2));
           evaluate("incr var 4");
-          expect(rootScope.variables.get("var")).to.eql(new NumberValue(6));
+          expect(rootScope.variables.get("var")).to.eql(NUM(6));
         });
         specify("increment should default to 1", () => {
-          rootScope.variables.set("var", new NumberValue(1));
+          rootScope.variables.set("var", NUM(1));
           evaluate("incr var");
-          expect(rootScope.variables.get("var")).to.eql(new NumberValue(2));
+          expect(rootScope.variables.get("var")).to.eql(NUM(2));
         });
         it("should return the new value", () => {
-          expect(evaluate("set var 1; incr var")).to.eql(new NumberValue(2));
+          expect(evaluate("set var 1; incr var")).to.eql(NUM(2));
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
@@ -792,21 +762,21 @@ describe("Picol dialect", () => {
           expect(execute("proc cmd {} {}").code).to.eql(ResultCode.OK);
         });
         it("should return empty", () => {
-          expect(evaluate("proc cmd {} {}")).to.eql(new StringValue(""));
+          expect(evaluate("proc cmd {} {}")).to.eql(STR(""));
         });
         describe("calls", () => {
           it("should return empty string for empty body", () => {
             evaluate("proc cmd {} {}");
-            expect(evaluate("cmd")).to.eql(new StringValue(""));
+            expect(evaluate("cmd")).to.eql(STR(""));
           });
           it("should return the result of the last command", () => {
             evaluate("proc cmd {} {set var val}");
-            expect(evaluate("cmd")).to.eql(new StringValue("val"));
+            expect(evaluate("cmd")).to.eql(STR("val"));
           });
           it("should access global commands", () => {
             evaluate("proc cmd2 {} {set var val}");
             evaluate("proc cmd {} {cmd2}");
-            expect(evaluate("cmd")).to.eql(new StringValue("val"));
+            expect(evaluate("cmd")).to.eql(STR("val"));
           });
           it("should not access global variables", () => {
             evaluate("set var val");
@@ -817,9 +787,7 @@ describe("Picol dialect", () => {
             evaluate("set var val");
             evaluate("proc cmd {} {set var val2}");
             evaluate("cmd");
-            expect(rootScope.variables.get("var")).to.eql(
-              new StringValue("val")
-            );
+            expect(rootScope.variables.get("var")).to.eql(STR("val"));
           });
           it("should set local variables", () => {
             evaluate("set var val");
@@ -829,38 +797,27 @@ describe("Picol dialect", () => {
           });
           it("should map arguments to local variables", () => {
             evaluate("proc cmd {param} {set param}");
-            expect(evaluate("cmd arg")).to.eql(new StringValue("arg"));
+            expect(evaluate("cmd arg")).to.eql(STR("arg"));
             expect(!rootScope.variables.has("param"));
           });
           it("should accept default argument values", () => {
             evaluate(
               "proc cmd {param1 {param2 def}} {set var ($param1 $param2)}"
             );
-            expect(evaluate("cmd arg")).to.eql(
-              new TupleValue([new StringValue("arg"), new StringValue("def")])
-            );
+            expect(evaluate("cmd arg")).to.eql(TUPLE([STR("arg"), STR("def")]));
           });
           it("should accept remaining args", () => {
             evaluate("proc cmd {param1 param2 args} {set var $args}");
-            expect(evaluate("cmd 1 2")).to.eql(new TupleValue([]));
-            expect(evaluate("cmd 1 2 3 4")).to.eql(
-              new TupleValue([new StringValue("3"), new StringValue("4")])
-            );
+            expect(evaluate("cmd 1 2")).to.eql(TUPLE([]));
+            expect(evaluate("cmd 1 2 3 4")).to.eql(TUPLE([STR("3"), STR("4")]));
           });
           it("should accept both default and remaining args", () => {
             evaluate(
               "proc cmd {param1 {param2 def} args} {set var ($param1 $param2 $*args)}"
             );
-            expect(evaluate("cmd 1 2")).to.eql(
-              new TupleValue([new StringValue("1"), new StringValue("2")])
-            );
+            expect(evaluate("cmd 1 2")).to.eql(TUPLE([STR("1"), STR("2")]));
             expect(evaluate("cmd 1 2 3 4")).to.eql(
-              new TupleValue([
-                new StringValue("1"),
-                new StringValue("2"),
-                new StringValue("3"),
-                new StringValue("4"),
-              ])
+              TUPLE([STR("1"), STR("2"), STR("3"), STR("4")])
             );
           });
           describe("exceptions", () => {

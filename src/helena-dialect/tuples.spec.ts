@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ERROR } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { IntegerValue, StringValue, TupleValue } from "../core/values";
+import { INT, STR, TUPLE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -27,15 +27,11 @@ describe("Helena tuples", () => {
 
   describe("tuple", () => {
     it("should return tuple value", () => {
-      expect(evaluate("tuple ()")).to.eql(new TupleValue([]));
+      expect(evaluate("tuple ()")).to.eql(TUPLE([]));
     });
     it("should convert lists to tuple", () => {
       expect(evaluate("tuple [list (a b c)]")).to.eql(
-        new TupleValue([
-          new StringValue("a"),
-          new StringValue("b"),
-          new StringValue("c"),
-        ])
+        TUPLE([STR("a"), STR("b"), STR("c")])
       );
     });
     it("should convert blocks to tuples", () => {
@@ -58,8 +54,8 @@ describe("Helena tuples", () => {
       });
       describe("length", () => {
         it("should return the tuple length", () => {
-          expect(evaluate("tuple () length")).to.eql(new IntegerValue(0));
-          expect(evaluate("tuple (a b c) length")).to.eql(new IntegerValue(3));
+          expect(evaluate("tuple () length")).to.eql(INT(0));
+          expect(evaluate("tuple (a b c) length")).to.eql(INT(3));
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
@@ -71,11 +67,11 @@ describe("Helena tuples", () => {
       });
       describe("at", () => {
         it("should return the element at the given index", () => {
-          expect(evaluate("tuple (a b c) at 1")).to.eql(new StringValue("b"));
+          expect(evaluate("tuple (a b c) at 1")).to.eql(STR("b"));
         });
         it("should return the default value for an out-of-range index", () => {
           expect(evaluate("tuple (a b c) at 10 default")).to.eql(
-            new StringValue("default")
+            STR("default")
           );
         });
         describe("exceptions", () => {
@@ -122,7 +118,7 @@ describe("Helena tuples", () => {
             }
           }`
         );
-        expect(evaluate("tuple (a b c) last")).to.eql(new StringValue("c"));
+        expect(evaluate("tuple (a b c) last")).to.eql(STR("c"));
       });
     });
     describe("exceptions", () => {
@@ -147,11 +143,11 @@ describe("Helena tuples", () => {
     });
     specify("length", () => {
       evaluate("set l (tuple (a b c))");
-      expect(evaluate("$l length")).to.eql(new IntegerValue(3));
+      expect(evaluate("$l length")).to.eql(INT(3));
     });
     specify("at", () => {
       evaluate("set l (tuple (a b c))");
-      expect(evaluate("$l at 2")).to.eql(new StringValue("c"));
+      expect(evaluate("$l at 2")).to.eql(STR("c"));
     });
   });
 });

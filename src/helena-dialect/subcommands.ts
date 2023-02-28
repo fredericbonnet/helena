@@ -1,11 +1,11 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { ERROR, Result } from "../core/results";
-import { ListValue, StringValue, Value } from "../core/values";
+import { LIST, ListValue, STR, Value } from "../core/values";
 
 export class Subcommands {
   readonly list: ListValue;
   constructor(names: string[]) {
-    this.list = new ListValue(names.map((name) => new StringValue(name)));
+    this.list = LIST(names.map((name) => STR(name)));
   }
   unknown(subcommand: string) {
     if (subcommand == null) return "invalid subcommand name";

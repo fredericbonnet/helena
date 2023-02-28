@@ -9,7 +9,7 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, TRUE, StringValue, NIL } from "../core/values";
+import { FALSE, TRUE, NIL, STR } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -65,7 +65,7 @@ describe("Helena logic operations", () => {
       describe("?", () => {
         describe("true", () => {
           it("should return first argument", () => {
-            expect(evaluate("true ? a b")).to.eql(new StringValue("a"));
+            expect(evaluate("true ? a b")).to.eql(STR("a"));
           });
         });
         describe("false", () => {
@@ -73,7 +73,7 @@ describe("Helena logic operations", () => {
             expect(evaluate("false ? a")).to.eql(NIL);
           });
           it("should return second argument", () => {
-            expect(evaluate("false ? a b")).to.eql(new StringValue("b"));
+            expect(evaluate("false ? a b")).to.eql(STR("b"));
           });
         });
         describe("exceptions", () => {
@@ -93,12 +93,12 @@ describe("Helena logic operations", () => {
             expect(evaluate("true !? a")).to.eql(NIL);
           });
           it("should return second argument", () => {
-            expect(evaluate("true !? a b")).to.eql(new StringValue("b"));
+            expect(evaluate("true !? a b")).to.eql(STR("b"));
           });
         });
         describe("false", () => {
           it("should return first argument", () => {
-            expect(evaluate("false !? a b")).to.eql(new StringValue("a"));
+            expect(evaluate("false !? a b")).to.eql(STR("a"));
           });
         });
         describe("exceptions", () => {
@@ -144,14 +144,14 @@ describe("Helena logic operations", () => {
           describe("return", () => {
             it("should interrupt expression with RETURN code", () => {
               expect(execute("! {return value; unreachable}")).to.eql(
-                RETURN(new StringValue("value"))
+                RETURN(STR("value"))
               );
             });
           });
           describe("tailcall", () => {
             it("should interrupt expression with RETURN code", () => {
               expect(execute("! {tailcall {idem value}; unreachable}")).to.eql(
-                RETURN(new StringValue("value"))
+                RETURN(STR("value"))
               );
             });
           });
@@ -159,7 +159,7 @@ describe("Helena logic operations", () => {
             it("should interrupt expression with YIELD code", () => {
               const result = execute("! {yield value; true}");
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("value"));
+              expect(result.value).to.eql(STR("value"));
             });
             it("should provide a resumable state", () => {
               const process = rootScope.prepareScript(
@@ -168,12 +168,12 @@ describe("Helena logic operations", () => {
 
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("val1"));
+              expect(result.value).to.eql(STR("val1"));
               expect(result.data).to.exist;
 
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("val2"));
+              expect(result.value).to.eql(STR("val2"));
               expect(result.data).to.exist;
 
               process.yieldBack(TRUE);
@@ -237,21 +237,21 @@ describe("Helena logic operations", () => {
             it("should interrupt expression with RETURN code", () => {
               expect(
                 execute("&& true {return value; unreachable} false")
-              ).to.eql(RETURN(new StringValue("value")));
+              ).to.eql(RETURN(STR("value")));
             });
           });
           describe("tailcall", () => {
             it("should interrupt expression with RETURN code", () => {
               expect(
                 execute("&& true {tailcall {idem value}; unreachable} false")
-              ).to.eql(RETURN(new StringValue("value")));
+              ).to.eql(RETURN(STR("value")));
             });
           });
           describe("yield", () => {
             it("should interrupt expression with YIELD code", () => {
               const result = execute("&& true {yield value; true}");
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("value"));
+              expect(result.value).to.eql(STR("value"));
             });
             it("should provide a resumable state", () => {
               const process = rootScope.prepareScript(
@@ -260,13 +260,13 @@ describe("Helena logic operations", () => {
 
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("val1"));
+              expect(result.value).to.eql(STR("val1"));
               expect(result.data).to.exist;
 
               process.yieldBack(TRUE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("val2"));
+              expect(result.value).to.eql(STR("val2"));
               expect(result.data).to.exist;
 
               process.yieldBack(FALSE);
@@ -334,21 +334,21 @@ describe("Helena logic operations", () => {
             it("should interrupt expression with RETURN code", () => {
               expect(
                 execute("|| false {return value; unreachable} true")
-              ).to.eql(RETURN(new StringValue("value")));
+              ).to.eql(RETURN(STR("value")));
             });
           });
           describe("tailcall", () => {
             it("should interrupt expression with RETURN code", () => {
               expect(
                 execute("|| false {tailcall {idem value}; unreachable} true")
-              ).to.eql(RETURN(new StringValue("value")));
+              ).to.eql(RETURN(STR("value")));
             });
           });
           describe("yield", () => {
             it("should interrupt expression with YIELD code", () => {
               const result = execute("|| false {yield value; false}");
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("value"));
+              expect(result.value).to.eql(STR("value"));
             });
             it("should provide a resumable state", () => {
               const process = rootScope.prepareScript(
@@ -357,13 +357,13 @@ describe("Helena logic operations", () => {
 
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("val1"));
+              expect(result.value).to.eql(STR("val1"));
               expect(result.data).to.exist;
 
               process.yieldBack(FALSE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(new StringValue("val2"));
+              expect(result.value).to.eql(STR("val2"));
               expect(result.data).to.exist;
 
               process.yieldBack(TRUE);

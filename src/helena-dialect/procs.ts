@@ -9,7 +9,13 @@ import {
 } from "../core/results";
 import { Command } from "../core/command";
 import { Program } from "../core/compiler";
-import { ScriptValue, TupleValue, Value, ValueType } from "../core/values";
+import {
+  ScriptValue,
+  TUPLE,
+  TupleValue,
+  Value,
+  ValueType,
+} from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, commandValueType, Process } from "./core";
@@ -106,7 +112,7 @@ class ProcCommand implements CommandValue, Command {
       case ResultCode.RETURN:
         if (this.value.guard) {
           const process = this.value.scope.prepareTupleValue(
-            new TupleValue([this.value.guard, result.value])
+            TUPLE([this.value.guard, result.value])
           );
           // TODO handle YIELD?
           return process.run();

@@ -17,14 +17,16 @@ import {
 import { BlockMorpheme, Script, Word } from "./syntax";
 import { Tokenizer } from "./tokenizer";
 import {
+  INT,
   IntegerValue,
+  LIST,
   ListValue,
-  MapValue,
+  MAP,
   NIL,
   QualifiedValue,
   ScriptValue,
-  StringValue,
-  TupleValue,
+  STR,
+  TUPLE,
   Value,
   ValueType,
 } from "./values";
@@ -134,9 +136,9 @@ describe("Compilation and execution", () => {
               const script = parse("word");
               const program = compileFirstWord(script);
               expect(program.opCodes).to.eql([OpCode.PUSH_CONSTANT]);
-              expect(program.constants).to.eql([new StringValue("word")]);
+              expect(program.constants).to.eql([STR("word")]);
 
-              expect(evaluate(program)).to.eql(new StringValue("word"));
+              expect(evaluate(program)).to.eql(STR("word"));
             });
 
             describe("tuples", () => {
@@ -148,7 +150,7 @@ describe("Compilation and execution", () => {
                   OpCode.CLOSE_FRAME,
                 ]);
 
-                expect(evaluate(program)).to.eql(new TupleValue([]));
+                expect(evaluate(program)).to.eql(TUPLE([]));
               });
               specify("tuple with literals", () => {
                 const script = parse("( lit1 lit2 )");
@@ -159,16 +161,10 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("lit1"),
-                  new StringValue("lit2"),
-                ]);
+                expect(program.constants).to.eql([STR("lit1"), STR("lit2")]);
 
                 expect(evaluate(program)).to.eql(
-                  new TupleValue([
-                    new StringValue("lit1"),
-                    new StringValue("lit2"),
-                  ])
+                  TUPLE([STR("lit1"), STR("lit2")])
                 );
               });
               specify("complex case", () => {
@@ -199,30 +195,27 @@ describe("Compilation and execution", () => {
                   OpCode.CLOSE_FRAME,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("this"),
-                  new StringValue("cmd"),
-                  new StringValue("var1"),
-                  new StringValue("complex"),
-                  new StringValue("var2"),
-                  new StringValue("key"),
+                  STR("this"),
+                  STR("cmd"),
+                  STR("var1"),
+                  STR("complex"),
+                  STR("var2"),
+                  STR("key"),
                 ]);
 
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(() => new StringValue("is"))
+                  new FunctionCommand(() => STR("is"))
                 );
-                variableResolver.register("var1", new StringValue("a"));
-                variableResolver.register(
-                  "var2",
-                  new MapValue({ key: new StringValue("tuple") })
-                );
+                variableResolver.register("var1", STR("a"));
+                variableResolver.register("var2", MAP({ key: STR("tuple") }));
                 expect(evaluate(program)).to.eql(
-                  new TupleValue([
-                    new StringValue("this"),
-                    new StringValue("is"),
-                    new StringValue("a"),
-                    new StringValue("complex"),
-                    new StringValue("tuple"),
+                  TUPLE([
+                    STR("this"),
+                    STR("is"),
+                    STR("a"),
+                    STR("complex"),
+                    STR("tuple"),
                   ])
                 );
               });
@@ -282,23 +275,14 @@ describe("Compilation and execution", () => {
                   OpCode.EVALUATE_SENTENCE,
                   OpCode.PUSH_RESULT,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("cmd"),
-                  new StringValue("arg"),
-                ]);
+                expect(program.constants).to.eql([STR("cmd"), STR("arg")]);
 
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(
-                    (args) => new TupleValue([...args, new StringValue("foo")])
-                  )
+                  new FunctionCommand((args) => TUPLE([...args, STR("foo")]))
                 );
                 expect(evaluate(program)).to.eql(
-                  new TupleValue([
-                    new StringValue("cmd"),
-                    new StringValue("arg"),
-                    new StringValue("foo"),
-                  ])
+                  TUPLE([STR("cmd"), STR("arg"), STR("foo")])
                 );
               });
               specify("complex case", () => {
@@ -331,34 +315,34 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_RESULT,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("this"),
-                  new StringValue("cmd"),
-                  new StringValue("var1"),
-                  new StringValue("complex"),
-                  new StringValue("var2"),
-                  new StringValue("key"),
+                  STR("this"),
+                  STR("cmd"),
+                  STR("var1"),
+                  STR("complex"),
+                  STR("var2"),
+                  STR("key"),
                 ]);
 
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(() => new StringValue("is"))
+                  new FunctionCommand(() => STR("is"))
                 );
-                variableResolver.register("var1", new StringValue("a"));
+                variableResolver.register("var1", STR("a"));
                 variableResolver.register(
                   "var2",
-                  new MapValue({ key: new StringValue("expression") })
+                  MAP({ key: STR("expression") })
                 );
                 commandResolver.register(
                   "this",
-                  new FunctionCommand((args) => new TupleValue(args))
+                  new FunctionCommand((args) => TUPLE(args))
                 );
                 expect(evaluate(program)).to.eql(
-                  new TupleValue([
-                    new StringValue("this"),
-                    new StringValue("is"),
-                    new StringValue("a"),
-                    new StringValue("complex"),
-                    new StringValue("expression"),
+                  TUPLE([
+                    STR("this"),
+                    STR("is"),
+                    STR("a"),
+                    STR("complex"),
+                    STR("expression"),
                   ])
                 );
               });
@@ -374,7 +358,7 @@ describe("Compilation and execution", () => {
                   OpCode.JOIN_STRINGS,
                 ]);
 
-                expect(evaluate(program)).to.eql(new StringValue(""));
+                expect(evaluate(program)).to.eql(STR(""));
               });
               specify("simple string", () => {
                 const script = parse('"this is a string"');
@@ -385,13 +369,9 @@ describe("Compilation and execution", () => {
                   OpCode.CLOSE_FRAME,
                   OpCode.JOIN_STRINGS,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("this is a string"),
-                ]);
+                expect(program.constants).to.eql([STR("this is a string")]);
 
-                expect(evaluate(program)).to.eql(
-                  new StringValue("this is a string")
-                );
+                expect(evaluate(program)).to.eql(STR("this is a string"));
               });
 
               describe("expressions", () => {
@@ -411,18 +391,16 @@ describe("Compilation and execution", () => {
                     OpCode.JOIN_STRINGS,
                   ]);
                   expect(program.constants).to.eql([
-                    new StringValue("this "),
-                    new StringValue("cmd"),
-                    new StringValue(" a string"),
+                    STR("this "),
+                    STR("cmd"),
+                    STR(" a string"),
                   ]);
 
                   commandResolver.register(
                     "cmd",
-                    new FunctionCommand(() => new StringValue("is"))
+                    new FunctionCommand(() => STR("is"))
                   );
-                  expect(evaluate(program)).to.eql(
-                    new StringValue("this is a string")
-                  );
+                  expect(evaluate(program)).to.eql(STR("this is a string"));
                 });
                 specify("multiple commands", () => {
                   const script = parse('"this [cmd1][cmd2] a string"');
@@ -445,23 +423,21 @@ describe("Compilation and execution", () => {
                     OpCode.JOIN_STRINGS,
                   ]);
                   expect(program.constants).to.eql([
-                    new StringValue("this "),
-                    new StringValue("cmd1"),
-                    new StringValue("cmd2"),
-                    new StringValue(" a string"),
+                    STR("this "),
+                    STR("cmd1"),
+                    STR("cmd2"),
+                    STR(" a string"),
                   ]);
 
                   commandResolver.register(
                     "cmd1",
-                    new FunctionCommand(() => new StringValue("i"))
+                    new FunctionCommand(() => STR("i"))
                   );
                   commandResolver.register(
                     "cmd2",
-                    new FunctionCommand(() => new StringValue("s"))
+                    new FunctionCommand(() => STR("s"))
                   );
-                  expect(evaluate(program)).to.eql(
-                    new StringValue("this is a string")
-                  );
+                  expect(evaluate(program)).to.eql(STR("this is a string"));
                 });
               });
 
@@ -505,40 +481,40 @@ describe("Compilation and execution", () => {
                   OpCode.JOIN_STRINGS,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("this "),
-                  new StringValue("var1"),
-                  new StringValue(" "),
-                  new StringValue("variable 2"),
-                  new StringValue(" "),
-                  new StringValue("cmd1"),
-                  new StringValue(" with subst"),
-                  new StringValue("cmd2"),
-                  new StringValue("var3"),
-                  new StringValue("cmd3"),
-                  new StringValue("var4"),
+                  STR("this "),
+                  STR("var1"),
+                  STR(" "),
+                  STR("variable 2"),
+                  STR(" "),
+                  STR("cmd1"),
+                  STR(" with subst"),
+                  STR("cmd2"),
+                  STR("var3"),
+                  STR("cmd3"),
+                  STR("var4"),
                 ]);
 
-                variableResolver.register("var1", new StringValue("is"));
-                variableResolver.register("variable 2", new StringValue("a"));
+                variableResolver.register("var1", STR("is"));
+                variableResolver.register("variable 2", STR("a"));
                 commandResolver.register(
                   "cmd1",
-                  new FunctionCommand(() => new StringValue("string"))
+                  new FunctionCommand(() => STR("string"))
                 );
                 commandResolver.register(
                   "cmd2",
-                  new FunctionCommand(() => new StringValue("it"))
+                  new FunctionCommand(() => STR("it"))
                 );
                 variableResolver.register(
                   "var3",
-                  new ListValue([new StringValue("foo"), new StringValue("ut")])
+                  LIST([STR("foo"), STR("ut")])
                 );
                 commandResolver.register(
                   "cmd3",
-                  new FunctionCommand(() => new IntegerValue(1))
+                  new FunctionCommand(() => INT(1))
                 );
-                variableResolver.register("var4", new StringValue("ions"));
+                variableResolver.register("var4", STR("ions"));
                 expect(evaluate(program)).to.eql(
-                  new StringValue("this is a string with substitutions")
+                  STR("this is a string with substitutions")
                 );
               });
             });
@@ -548,11 +524,11 @@ describe("Compilation and execution", () => {
               const program = compileFirstWord(script);
               expect(program.opCodes).to.eql([OpCode.PUSH_CONSTANT]);
               expect(program.constants).to.eql([
-                new StringValue("this is a \"'\\ $ \nhere-string"),
+                STR("this is a \"'\\ $ \nhere-string"),
               ]);
 
               expect(evaluate(program)).to.eql(
-                new StringValue("this is a \"'\\ $ \nhere-string")
+                STR("this is a \"'\\ $ \nhere-string")
               );
             });
 
@@ -563,11 +539,11 @@ describe("Compilation and execution", () => {
               const program = compileFirstWord(script);
               expect(program.opCodes).to.eql([OpCode.PUSH_CONSTANT]);
               expect(program.constants).to.eql([
-                new StringValue("this is \n a \n \"'\\ $ tagged string\n"),
+                STR("this is \n a \n \"'\\ $ tagged string\n"),
               ]);
 
               expect(evaluate(program)).to.eql(
-                new StringValue("this is \n a \n \"'\\ $ tagged string\n")
+                STR("this is \n a \n \"'\\ $ tagged string\n")
               );
             });
           });
@@ -598,26 +574,23 @@ describe("Compilation and execution", () => {
                 OpCode.JOIN_STRINGS,
               ]);
               expect(program.constants).to.eql([
-                new StringValue("this_"),
-                new StringValue("var"),
-                new StringValue("key"),
-                new StringValue("_a_"),
-                new StringValue("cmd"),
-                new StringValue("a"),
-                new StringValue("b"),
-                new StringValue("_compound"),
+                STR("this_"),
+                STR("var"),
+                STR("key"),
+                STR("_a_"),
+                STR("cmd"),
+                STR("a"),
+                STR("b"),
+                STR("_compound"),
               ]);
 
-              variableResolver.register(
-                "var",
-                new MapValue({ key: new StringValue("is") })
-              );
+              variableResolver.register("var", MAP({ key: STR("is") }));
               commandResolver.register(
                 "cmd",
-                new FunctionCommand(() => new StringValue("literal-prefixed"))
+                new FunctionCommand(() => STR("literal-prefixed"))
               );
               expect(evaluate(program)).to.eql(
-                new StringValue("this_is_a_literal-prefixed_compound")
+                STR("this_is_a_literal-prefixed_compound")
               );
             });
             specify("expression prefix", () => {
@@ -644,25 +617,25 @@ describe("Compilation and execution", () => {
                 OpCode.JOIN_STRINGS,
               ]);
               expect(program.constants).to.eql([
-                new StringValue("cmd"),
-                new StringValue("a"),
-                new StringValue("b"),
-                new StringValue("_is_an_"),
-                new StringValue("var"),
-                new StringValue("key"),
-                new StringValue("_compound"),
+                STR("cmd"),
+                STR("a"),
+                STR("b"),
+                STR("_is_an_"),
+                STR("var"),
+                STR("key"),
+                STR("_compound"),
               ]);
 
               commandResolver.register(
                 "cmd",
-                new FunctionCommand(() => new StringValue("this"))
+                new FunctionCommand(() => STR("this"))
               );
               variableResolver.register(
                 "var",
-                new MapValue({ key: new StringValue("expression-prefixed") })
+                MAP({ key: STR("expression-prefixed") })
               );
               expect(evaluate(program)).to.eql(
-                new StringValue("this_is_an_expression-prefixed_compound")
+                STR("this_is_an_expression-prefixed_compound")
               );
             });
             specify("substitution prefix", () => {
@@ -689,27 +662,22 @@ describe("Compilation and execution", () => {
                 OpCode.JOIN_STRINGS,
               ]);
               expect(program.constants).to.eql([
-                new StringValue("var"),
-                new StringValue("key"),
-                new StringValue("_is_a_"),
-                new StringValue("cmd"),
-                new StringValue("a"),
-                new StringValue("b"),
-                new StringValue("_compound"),
+                STR("var"),
+                STR("key"),
+                STR("_is_a_"),
+                STR("cmd"),
+                STR("a"),
+                STR("b"),
+                STR("_compound"),
               ]);
 
-              variableResolver.register(
-                "var",
-                new MapValue({ key: new StringValue("this") })
-              );
+              variableResolver.register("var", MAP({ key: STR("this") }));
               commandResolver.register(
                 "cmd",
-                new FunctionCommand(
-                  () => new StringValue("substitution-prefixed")
-                )
+                new FunctionCommand(() => STR("substitution-prefixed"))
               );
               expect(evaluate(program)).to.eql(
-                new StringValue("this_is_a_substitution-prefixed_compound")
+                STR("this_is_a_substitution-prefixed_compound")
               );
             });
           });
@@ -723,10 +691,10 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.RESOLVE_VALUE,
                 ]);
-                expect(program.constants).to.eql([new StringValue("varname")]);
+                expect(program.constants).to.eql([STR("varname")]);
 
-                variableResolver.register("varname", new StringValue("value"));
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                variableResolver.register("varname", STR("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("double substitution", () => {
                 const script = parse("$$var1");
@@ -736,11 +704,11 @@ describe("Compilation and execution", () => {
                   OpCode.RESOLVE_VALUE,
                   OpCode.RESOLVE_VALUE,
                 ]);
-                expect(program.constants).to.eql([new StringValue("var1")]);
+                expect(program.constants).to.eql([STR("var1")]);
 
-                variableResolver.register("var1", new StringValue("var2"));
-                variableResolver.register("var2", new StringValue("value"));
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                variableResolver.register("var1", STR("var2"));
+                variableResolver.register("var2", STR("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("triple substitution", () => {
                 const script = parse("$$$var1");
@@ -751,12 +719,12 @@ describe("Compilation and execution", () => {
                   OpCode.RESOLVE_VALUE,
                   OpCode.RESOLVE_VALUE,
                 ]);
-                expect(program.constants).to.eql([new StringValue("var1")]);
+                expect(program.constants).to.eql([STR("var1")]);
 
-                variableResolver.register("var1", new StringValue("var2"));
-                variableResolver.register("var2", new StringValue("var3"));
-                variableResolver.register("var3", new StringValue("value"));
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                variableResolver.register("var1", STR("var2"));
+                variableResolver.register("var2", STR("var3"));
+                variableResolver.register("var3", STR("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
             });
 
@@ -770,12 +738,10 @@ describe("Compilation and execution", () => {
                   OpCode.CLOSE_FRAME,
                   OpCode.RESOLVE_VALUE,
                 ]);
-                expect(program.constants).to.eql([new StringValue("varname")]);
+                expect(program.constants).to.eql([STR("varname")]);
 
-                variableResolver.register("varname", new StringValue("value"));
-                expect(evaluate(program)).to.eql(
-                  new TupleValue([new StringValue("value")])
-                );
+                variableResolver.register("varname", STR("value"));
+                expect(evaluate(program)).to.eql(TUPLE([STR("value")]));
               });
               specify("multiple variables", () => {
                 const script = parse("$(var1 var2)");
@@ -787,18 +753,12 @@ describe("Compilation and execution", () => {
                   OpCode.CLOSE_FRAME,
                   OpCode.RESOLVE_VALUE,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("var1"),
-                  new StringValue("var2"),
-                ]);
+                expect(program.constants).to.eql([STR("var1"), STR("var2")]);
 
-                variableResolver.register("var1", new StringValue("value1"));
-                variableResolver.register("var2", new StringValue("value2"));
+                variableResolver.register("var1", STR("value1"));
+                variableResolver.register("var2", STR("value2"));
                 expect(evaluate(program)).to.eql(
-                  new TupleValue([
-                    new StringValue("value1"),
-                    new StringValue("value2"),
-                  ])
+                  TUPLE([STR("value1"), STR("value2")])
                 );
               });
               specify("double substitution", () => {
@@ -811,13 +771,11 @@ describe("Compilation and execution", () => {
                   OpCode.RESOLVE_VALUE,
                   OpCode.RESOLVE_VALUE,
                 ]);
-                expect(program.constants).to.eql([new StringValue("var1")]);
+                expect(program.constants).to.eql([STR("var1")]);
 
-                variableResolver.register("var1", new StringValue("var2"));
-                variableResolver.register("var2", new StringValue("value"));
-                expect(evaluate(program)).to.eql(
-                  new TupleValue([new StringValue("value")])
-                );
+                variableResolver.register("var1", STR("var2"));
+                variableResolver.register("var2", STR("value"));
+                expect(evaluate(program)).to.eql(TUPLE([STR("value")]));
               });
               specify("nested tuples", () => {
                 const script = parse("$(var1 (var2))");
@@ -831,18 +789,12 @@ describe("Compilation and execution", () => {
                   OpCode.CLOSE_FRAME,
                   OpCode.RESOLVE_VALUE,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("var1"),
-                  new StringValue("var2"),
-                ]);
+                expect(program.constants).to.eql([STR("var1"), STR("var2")]);
 
-                variableResolver.register("var1", new StringValue("value1"));
-                variableResolver.register("var2", new StringValue("value2"));
+                variableResolver.register("var1", STR("value1"));
+                variableResolver.register("var2", STR("value2"));
                 expect(evaluate(program)).to.eql(
-                  new TupleValue([
-                    new StringValue("value1"),
-                    new TupleValue([new StringValue("value2")]),
-                  ])
+                  TUPLE([STR("value1"), TUPLE([STR("value2")])])
                 );
               });
               specify("nested double substitution", () => {
@@ -857,12 +809,12 @@ describe("Compilation and execution", () => {
                   OpCode.RESOLVE_VALUE,
                   OpCode.RESOLVE_VALUE,
                 ]);
-                expect(program.constants).to.eql([new StringValue("var1")]);
+                expect(program.constants).to.eql([STR("var1")]);
 
-                variableResolver.register("var1", new StringValue("var2"));
-                variableResolver.register("var2", new StringValue("value"));
+                variableResolver.register("var1", STR("var2"));
+                variableResolver.register("var2", STR("value"));
                 expect(evaluate(program)).to.eql(
-                  new TupleValue([new TupleValue([new StringValue("value")])])
+                  TUPLE([TUPLE([STR("value")])])
                 );
               });
             });
@@ -875,15 +827,10 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.RESOLVE_VALUE,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("variable name"),
-                ]);
+                expect(program.constants).to.eql([STR("variable name")]);
 
-                variableResolver.register(
-                  "variable name",
-                  new StringValue("value")
-                );
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                variableResolver.register("variable name", STR("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("varname with special characters", () => {
                 const script = parse('${variable " " name}');
@@ -892,15 +839,10 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.RESOLVE_VALUE,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue('variable " " name'),
-                ]);
+                expect(program.constants).to.eql([STR('variable " " name')]);
 
-                variableResolver.register(
-                  'variable " " name',
-                  new StringValue("value")
-                );
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                variableResolver.register('variable " " name', STR("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("varname with continuations", () => {
                 const script = parse("${variable\\\n \t\r     name}");
@@ -909,19 +851,11 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.RESOLVE_VALUE,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("variable name"),
-                ]);
+                expect(program.constants).to.eql([STR("variable name")]);
 
-                variableResolver.register(
-                  "variable name",
-                  new StringValue("value")
-                );
-                variableResolver.register(
-                  'variable " " name',
-                  new StringValue("value")
-                );
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                variableResolver.register("variable name", STR("value"));
+                variableResolver.register('variable " " name', STR("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
             });
 
@@ -936,23 +870,16 @@ describe("Compilation and execution", () => {
                   OpCode.EVALUATE_SENTENCE,
                   OpCode.PUSH_RESULT,
                 ]);
-                expect(program.constants).to.eql([new StringValue("cmd")]);
+                expect(program.constants).to.eql([STR("cmd")]);
 
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(
-                    () =>
-                      new ListValue([
-                        new StringValue("value1"),
-                        new StringValue("value2"),
-                      ])
+                  new FunctionCommand(() =>
+                    LIST([STR("value1"), STR("value2")])
                   )
                 );
                 expect(evaluate(program)).to.eql(
-                  new ListValue([
-                    new StringValue("value1"),
-                    new StringValue("value2"),
-                  ])
+                  LIST([STR("value1"), STR("value2")])
                 );
               });
               specify("double substitution, scalar", () => {
@@ -966,14 +893,14 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_RESULT,
                   OpCode.RESOLVE_VALUE,
                 ]);
-                expect(program.constants).to.eql([new StringValue("cmd")]);
+                expect(program.constants).to.eql([STR("cmd")]);
 
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(() => new StringValue("var"))
+                  new FunctionCommand(() => STR("var"))
                 );
-                variableResolver.register("var", new StringValue("value"));
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                variableResolver.register("var", STR("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("double substitution, tuple", () => {
                 const script = parse("$$[cmd]");
@@ -986,25 +913,16 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_RESULT,
                   OpCode.RESOLVE_VALUE,
                 ]);
-                expect(program.constants).to.eql([new StringValue("cmd")]);
+                expect(program.constants).to.eql([STR("cmd")]);
 
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(
-                    () =>
-                      new TupleValue([
-                        new StringValue("var1"),
-                        new StringValue("var2"),
-                      ])
-                  )
+                  new FunctionCommand(() => TUPLE([STR("var1"), STR("var2")]))
                 );
-                variableResolver.register("var1", new StringValue("value1"));
-                variableResolver.register("var2", new StringValue("value2"));
+                variableResolver.register("var1", STR("value1"));
+                variableResolver.register("var2", STR("value2"));
                 expect(evaluate(program)).to.eql(
-                  new TupleValue([
-                    new StringValue("value1"),
-                    new StringValue("value2"),
-                  ])
+                  TUPLE([STR("value1"), STR("value2")])
                 );
               });
               specify("two sentences", () => {
@@ -1024,10 +942,10 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_RESULT,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("cmd1"),
-                  new StringValue("result1"),
-                  new StringValue("cmd2"),
-                  new StringValue("result2"),
+                  STR("cmd1"),
+                  STR("result1"),
+                  STR("cmd2"),
+                  STR("result2"),
                 ]);
 
                 const called = {};
@@ -1038,7 +956,7 @@ describe("Compilation and execution", () => {
                 });
                 commandResolver.register("cmd1", fn);
                 commandResolver.register("cmd2", fn);
-                expect(evaluate(program)).to.eql(new StringValue("result2"));
+                expect(evaluate(program)).to.eql(STR("result2"));
                 expect(called).to.eql({ cmd1: 1, cmd2: 1 });
               });
               specify("indirect command", () => {
@@ -1052,14 +970,14 @@ describe("Compilation and execution", () => {
                   OpCode.EVALUATE_SENTENCE,
                   OpCode.PUSH_RESULT,
                 ]);
-                expect(program.constants).to.eql([new StringValue("cmdname")]);
+                expect(program.constants).to.eql([STR("cmdname")]);
 
-                variableResolver.register("cmdname", new StringValue("cmd"));
+                variableResolver.register("cmdname", STR("cmd"));
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(() => new StringValue("value"))
+                  new FunctionCommand(() => STR("value"))
                 );
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
             });
 
@@ -1077,19 +995,13 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_RESULT,
                   OpCode.SELECT_INDEX,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("varname"),
-                  new StringValue("1"),
-                ]);
+                expect(program.constants).to.eql([STR("varname"), STR("1")]);
 
                 variableResolver.register(
                   "varname",
-                  new ListValue([
-                    new StringValue("value1"),
-                    new StringValue("value2"),
-                  ])
+                  LIST([STR("value1"), STR("value2")])
                 );
-                expect(evaluate(program)).to.eql(new StringValue("value2"));
+                expect(evaluate(program)).to.eql(STR("value2"));
               });
               specify("double substitution", () => {
                 const script = parse("$$var1[0]");
@@ -1105,17 +1017,11 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_INDEX,
                   OpCode.RESOLVE_VALUE,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("var1"),
-                  new StringValue("0"),
-                ]);
+                expect(program.constants).to.eql([STR("var1"), STR("0")]);
 
-                variableResolver.register(
-                  "var1",
-                  new ListValue([new StringValue("var2")])
-                );
-                variableResolver.register("var2", new StringValue("value"));
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                variableResolver.register("var1", LIST([STR("var2")]));
+                variableResolver.register("var2", STR("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("successive indexes", () => {
                 const script = parse("$varname[1][0]");
@@ -1137,22 +1043,19 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_INDEX,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("varname"),
-                  new StringValue("1"),
-                  new StringValue("0"),
+                  STR("varname"),
+                  STR("1"),
+                  STR("0"),
                 ]);
 
                 variableResolver.register(
                   "varname",
-                  new ListValue([
-                    new StringValue("value1"),
-                    new ListValue([
-                      new StringValue("value2_1"),
-                      new StringValue("value2_2"),
-                    ]),
+                  LIST([
+                    STR("value1"),
+                    LIST([STR("value2_1"), STR("value2_2")]),
                   ])
                 );
-                expect(evaluate(program)).to.eql(new StringValue("value2_1"));
+                expect(evaluate(program)).to.eql(STR("value2_1"));
               });
               specify("indirect index", () => {
                 const script = parse("$var1[$var2]");
@@ -1168,21 +1071,14 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_RESULT,
                   OpCode.SELECT_INDEX,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("var1"),
-                  new StringValue("var2"),
-                ]);
+                expect(program.constants).to.eql([STR("var1"), STR("var2")]);
 
                 variableResolver.register(
                   "var1",
-                  new ListValue([
-                    new StringValue("value1"),
-                    new StringValue("value2"),
-                    new StringValue("value3"),
-                  ])
+                  LIST([STR("value1"), STR("value2"), STR("value3")])
                 );
-                variableResolver.register("var2", new StringValue("1"));
-                expect(evaluate(program)).to.eql(new StringValue("value2"));
+                variableResolver.register("var2", STR("1"));
+                expect(evaluate(program)).to.eql(STR("value2"));
               });
               specify("command index", () => {
                 const script = parse("$varname[cmd]");
@@ -1197,24 +1093,17 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_RESULT,
                   OpCode.SELECT_INDEX,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("varname"),
-                  new StringValue("cmd"),
-                ]);
+                expect(program.constants).to.eql([STR("varname"), STR("cmd")]);
 
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(() => new StringValue("1"))
+                  new FunctionCommand(() => STR("1"))
                 );
                 variableResolver.register(
                   "varname",
-                  new ListValue([
-                    new StringValue("value1"),
-                    new StringValue("value2"),
-                    new StringValue("value3"),
-                  ])
+                  LIST([STR("value1"), STR("value2"), STR("value3")])
                 );
-                expect(evaluate(program)).to.eql(new StringValue("value2"));
+                expect(evaluate(program)).to.eql(STR("value2"));
               });
               specify("scalar expression", () => {
                 const script = parse("$[cmd][0]");
@@ -1232,18 +1121,13 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_RESULT,
                   OpCode.SELECT_INDEX,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("cmd"),
-                  new StringValue("0"),
-                ]);
+                expect(program.constants).to.eql([STR("cmd"), STR("0")]);
 
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(
-                    () => new ListValue([new StringValue("value")])
-                  )
+                  new FunctionCommand(() => LIST([STR("value")]))
                 );
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("tuple expression", () => {
                 const script = parse("$[cmd][0]");
@@ -1261,26 +1145,16 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_RESULT,
                   OpCode.SELECT_INDEX,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("cmd"),
-                  new StringValue("0"),
-                ]);
+                expect(program.constants).to.eql([STR("cmd"), STR("0")]);
 
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(
-                    () =>
-                      new TupleValue([
-                        new ListValue([new StringValue("value1")]),
-                        new ListValue([new StringValue("value2")]),
-                      ])
+                  new FunctionCommand(() =>
+                    TUPLE([LIST([STR("value1")]), LIST([STR("value2")])])
                   )
                 );
                 expect(evaluate(program)).to.eql(
-                  new TupleValue([
-                    new StringValue("value1"),
-                    new StringValue("value2"),
-                  ])
+                  TUPLE([STR("value1"), STR("value2")])
                 );
               });
             });
@@ -1297,18 +1171,15 @@ describe("Compilation and execution", () => {
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_KEYS,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("varname"),
-                  new StringValue("key"),
-                ]);
+                expect(program.constants).to.eql([STR("varname"), STR("key")]);
 
                 variableResolver.register(
                   "varname",
-                  new MapValue({
-                    key: new StringValue("value"),
+                  MAP({
+                    key: STR("value"),
                   })
                 );
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("double substitution", () => {
                 const script = parse("$$var1(key)");
@@ -1322,17 +1193,11 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_KEYS,
                   OpCode.RESOLVE_VALUE,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("var1"),
-                  new StringValue("key"),
-                ]);
+                expect(program.constants).to.eql([STR("var1"), STR("key")]);
 
-                variableResolver.register(
-                  "var1",
-                  new MapValue({ key: new StringValue("var2") })
-                );
-                variableResolver.register("var2", new StringValue("value"));
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                variableResolver.register("var1", MAP({ key: STR("var2") }));
+                variableResolver.register("var2", STR("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("recursive keys", () => {
                 const script = parse("$varname(key1 key2)");
@@ -1347,18 +1212,18 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_KEYS,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("varname"),
-                  new StringValue("key1"),
-                  new StringValue("key2"),
+                  STR("varname"),
+                  STR("key1"),
+                  STR("key2"),
                 ]);
 
                 variableResolver.register(
                   "varname",
-                  new MapValue({
-                    key1: new MapValue({ key2: new StringValue("value") }),
+                  MAP({
+                    key1: MAP({ key2: STR("value") }),
                   })
                 );
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("successive keys", () => {
                 const script = parse("$varname(key1)(key2)");
@@ -1376,18 +1241,18 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_KEYS,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("varname"),
-                  new StringValue("key1"),
-                  new StringValue("key2"),
+                  STR("varname"),
+                  STR("key1"),
+                  STR("key2"),
                 ]);
 
                 variableResolver.register(
                   "varname",
-                  new MapValue({
-                    key1: new MapValue({ key2: new StringValue("value") }),
+                  MAP({
+                    key1: MAP({ key2: STR("value") }),
                   })
                 );
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("indirect key", () => {
                 const script = parse("$var1($var2)");
@@ -1401,19 +1266,16 @@ describe("Compilation and execution", () => {
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_KEYS,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("var1"),
-                  new StringValue("var2"),
-                ]);
+                expect(program.constants).to.eql([STR("var1"), STR("var2")]);
 
                 variableResolver.register(
                   "var1",
-                  new MapValue({
-                    key: new StringValue("value"),
+                  MAP({
+                    key: STR("value"),
                   })
                 );
-                variableResolver.register("var2", new StringValue("key"));
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                variableResolver.register("var2", STR("key"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("string key", () => {
                 const script = parse('$varname("arbitrary key")');
@@ -1430,17 +1292,17 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_KEYS,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("varname"),
-                  new StringValue("arbitrary key"),
+                  STR("varname"),
+                  STR("arbitrary key"),
                 ]);
 
                 variableResolver.register(
                   "varname",
-                  new MapValue({
-                    "arbitrary key": new StringValue("value"),
+                  MAP({
+                    "arbitrary key": STR("value"),
                   })
                 );
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("block key", () => {
                 const script = parse("$varname({arbitrary key})");
@@ -1454,17 +1316,17 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_KEYS,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("varname"),
+                  STR("varname"),
                   new ScriptValue(parse("arbitrary key"), "arbitrary key"),
                 ]);
 
                 variableResolver.register(
                   "varname",
-                  new MapValue({
-                    "arbitrary key": new StringValue("value"),
+                  MAP({
+                    "arbitrary key": STR("value"),
                   })
                 );
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("tuple", () => {
                 const script = parse("$(var1 var2)(key)");
@@ -1481,24 +1343,15 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_KEYS,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("var1"),
-                  new StringValue("var2"),
-                  new StringValue("key"),
+                  STR("var1"),
+                  STR("var2"),
+                  STR("key"),
                 ]);
 
-                variableResolver.register(
-                  "var1",
-                  new MapValue({ key: new StringValue("value1") })
-                );
-                variableResolver.register(
-                  "var2",
-                  new MapValue({ key: new StringValue("value2") })
-                );
+                variableResolver.register("var1", MAP({ key: STR("value1") }));
+                variableResolver.register("var2", MAP({ key: STR("value2") }));
                 expect(evaluate(program)).to.eql(
-                  new TupleValue([
-                    new StringValue("value1"),
-                    new StringValue("value2"),
-                  ])
+                  TUPLE([STR("value1"), STR("value2")])
                 );
               });
               specify("recursive tuple", () => {
@@ -1518,24 +1371,15 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_KEYS,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("var1"),
-                  new StringValue("var2"),
-                  new StringValue("key"),
+                  STR("var1"),
+                  STR("var2"),
+                  STR("key"),
                 ]);
 
-                variableResolver.register(
-                  "var1",
-                  new MapValue({ key: new StringValue("value1") })
-                );
-                variableResolver.register(
-                  "var2",
-                  new MapValue({ key: new StringValue("value2") })
-                );
+                variableResolver.register("var1", MAP({ key: STR("value1") }));
+                variableResolver.register("var2", MAP({ key: STR("value2") }));
                 expect(evaluate(program)).to.eql(
-                  new TupleValue([
-                    new StringValue("value1"),
-                    new TupleValue([new StringValue("value2")]),
-                  ])
+                  TUPLE([STR("value1"), TUPLE([STR("value2")])])
                 );
               });
               specify("tuple with double substitution", () => {
@@ -1554,26 +1398,17 @@ describe("Compilation and execution", () => {
                   OpCode.RESOLVE_VALUE,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("var1"),
-                  new StringValue("var2"),
-                  new StringValue("key"),
+                  STR("var1"),
+                  STR("var2"),
+                  STR("key"),
                 ]);
 
-                variableResolver.register(
-                  "var1",
-                  new MapValue({ key: new StringValue("var3") })
-                );
-                variableResolver.register(
-                  "var2",
-                  new MapValue({ key: new StringValue("var4") })
-                );
-                variableResolver.register("var3", new StringValue("value3"));
-                variableResolver.register("var4", new StringValue("value4"));
+                variableResolver.register("var1", MAP({ key: STR("var3") }));
+                variableResolver.register("var2", MAP({ key: STR("var4") }));
+                variableResolver.register("var3", STR("value3"));
+                variableResolver.register("var4", STR("value4"));
                 expect(evaluate(program)).to.eql(
-                  new TupleValue([
-                    new StringValue("value3"),
-                    new StringValue("value4"),
-                  ])
+                  TUPLE([STR("value3"), STR("value4")])
                 );
               });
               specify("scalar expression", () => {
@@ -1590,18 +1425,13 @@ describe("Compilation and execution", () => {
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_KEYS,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("cmd"),
-                  new StringValue("key"),
-                ]);
+                expect(program.constants).to.eql([STR("cmd"), STR("key")]);
 
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(
-                    () => new MapValue({ key: new StringValue("value") })
-                  )
+                  new FunctionCommand(() => MAP({ key: STR("value") }))
                 );
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("tuple expression", () => {
                 const script = parse("$[cmd](key)");
@@ -1617,26 +1447,19 @@ describe("Compilation and execution", () => {
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_KEYS,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("cmd"),
-                  new StringValue("key"),
-                ]);
+                expect(program.constants).to.eql([STR("cmd"), STR("key")]);
 
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(
-                    () =>
-                      new TupleValue([
-                        new MapValue({ key: new StringValue("value1") }),
-                        new MapValue({ key: new StringValue("value2") }),
-                      ])
+                  new FunctionCommand(() =>
+                    TUPLE([
+                      MAP({ key: STR("value1") }),
+                      MAP({ key: STR("value2") }),
+                    ])
                   )
                 );
                 expect(evaluate(program)).to.eql(
-                  new TupleValue([
-                    new StringValue("value1"),
-                    new StringValue("value2"),
-                  ])
+                  TUPLE([STR("value1"), STR("value2")])
                 );
               });
             });
@@ -1664,20 +1487,13 @@ describe("Compilation and execution", () => {
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_RULES,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("varname"),
-                  new StringValue("last"),
-                ]);
+                expect(program.constants).to.eql([STR("varname"), STR("last")]);
 
                 variableResolver.register(
                   "varname",
-                  new ListValue([
-                    new StringValue("value1"),
-                    new StringValue("value2"),
-                    new StringValue("value3"),
-                  ])
+                  LIST([STR("value1"), STR("value2"), STR("value3")])
                 );
-                expect(evaluate(program)).to.eql(new StringValue("value3"));
+                expect(evaluate(program)).to.eql(STR("value3"));
               });
               specify("double substitution", () => {
                 const script = parse("$$var1{last}");
@@ -1693,20 +1509,14 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_RULES,
                   OpCode.RESOLVE_VALUE,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("var1"),
-                  new StringValue("last"),
-                ]);
+                expect(program.constants).to.eql([STR("var1"), STR("last")]);
 
                 variableResolver.register(
                   "var1",
-                  new ListValue([
-                    new StringValue("var2"),
-                    new StringValue("var3"),
-                  ])
+                  LIST([STR("var2"), STR("var3")])
                 );
-                variableResolver.register("var3", new StringValue("value"));
-                expect(evaluate(program)).to.eql(new StringValue("value"));
+                variableResolver.register("var3", STR("value"));
+                expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("successive selectors", () => {
                 const script = parse("$var{last}{last}");
@@ -1728,22 +1538,19 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_RULES,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("var"),
-                  new StringValue("last"),
-                  new StringValue("last"),
+                  STR("var"),
+                  STR("last"),
+                  STR("last"),
                 ]);
 
                 variableResolver.register(
                   "var",
-                  new ListValue([
-                    new StringValue("value1"),
-                    new ListValue([
-                      new StringValue("value2_1"),
-                      new StringValue("value2_2"),
-                    ]),
+                  LIST([
+                    STR("value1"),
+                    LIST([STR("value2_1"), STR("value2_2")]),
                   ])
                 );
-                expect(evaluate(program)).to.eql(new StringValue("value2_2"));
+                expect(evaluate(program)).to.eql(STR("value2_2"));
               });
               specify("indirect selector", () => {
                 const script = parse("$var1{$var2}");
@@ -1759,27 +1566,20 @@ describe("Compilation and execution", () => {
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_RULES,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("var1"),
-                  new StringValue("var2"),
-                ]);
+                expect(program.constants).to.eql([STR("var1"), STR("var2")]);
 
                 variableResolver.register(
                   "var1",
-                  new ListValue([
-                    new StringValue("value1"),
-                    new StringValue("value2"),
-                    new StringValue("value3"),
-                  ])
+                  LIST([STR("value1"), STR("value2"), STR("value3")])
                 );
-                variableResolver.register("var2", new StringValue("last"));
+                variableResolver.register("var2", STR("last"));
                 selectorResolver.register(() => ({
                   apply(value: Value): Result {
                     const list = value as ListValue;
                     return OK(list.values[list.values.length - 1]);
                   },
                 }));
-                expect(evaluate(program)).to.eql(new StringValue("value3"));
+                expect(evaluate(program)).to.eql(STR("value3"));
               });
               specify("expression", () => {
                 const script = parse("$[cmd]{last}");
@@ -1797,22 +1597,15 @@ describe("Compilation and execution", () => {
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_RULES,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("cmd"),
-                  new StringValue("last"),
-                ]);
+                expect(program.constants).to.eql([STR("cmd"), STR("last")]);
 
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(
-                    () =>
-                      new ListValue([
-                        new StringValue("value1"),
-                        new StringValue("value2"),
-                      ])
+                  new FunctionCommand(() =>
+                    LIST([STR("value1"), STR("value2")])
                   )
                 );
-                expect(evaluate(program)).to.eql(new StringValue("value2"));
+                expect(evaluate(program)).to.eql(STR("value2"));
               });
             });
           });
@@ -1832,18 +1625,15 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_RESULT,
                   OpCode.SELECT_INDEX,
                 ]);
-                expect(program.constants).to.eql([
-                  new StringValue("varname"),
-                  new StringValue("cmd"),
-                ]);
+                expect(program.constants).to.eql([STR("varname"), STR("cmd")]);
 
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(() => new StringValue("index"))
+                  new FunctionCommand(() => STR("index"))
                 );
                 expect(evaluate(program)).to.eql(
-                  new QualifiedValue(new StringValue("varname"), [
-                    new IndexedSelector(new StringValue("index")),
+                  new QualifiedValue(STR("varname"), [
+                    new IndexedSelector(STR("index")),
                   ])
                 );
               });
@@ -1860,17 +1650,14 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_KEYS,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("varname"),
-                  new StringValue("key1"),
-                  new StringValue("key2"),
+                  STR("varname"),
+                  STR("key1"),
+                  STR("key2"),
                 ]);
 
                 expect(evaluate(program)).to.eql(
-                  new QualifiedValue(new StringValue("varname"), [
-                    new KeyedSelector([
-                      new StringValue("key1"),
-                      new StringValue("key2"),
-                    ]),
+                  new QualifiedValue(STR("varname"), [
+                    new KeyedSelector([STR("key1"), STR("key2")]),
                   ])
                 );
               });
@@ -1893,27 +1680,21 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_RULES,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("varname"),
-                  new StringValue("rule1"),
-                  new StringValue("arg1"),
-                  new StringValue("rule2"),
-                  new StringValue("arg2"),
+                  STR("varname"),
+                  STR("rule1"),
+                  STR("arg1"),
+                  STR("rule2"),
+                  STR("arg2"),
                 ]);
 
                 selectorResolver.register(
                   (rules) => new GenericSelector(rules)
                 );
                 expect(evaluate(program)).to.eql(
-                  new QualifiedValue(new StringValue("varname"), [
+                  new QualifiedValue(STR("varname"), [
                     new GenericSelector([
-                      new TupleValue([
-                        new StringValue("rule1"),
-                        new StringValue("arg1"),
-                      ]),
-                      new TupleValue([
-                        new StringValue("rule2"),
-                        new StringValue("arg2"),
-                      ]),
+                      TUPLE([STR("rule1"), STR("arg1")]),
+                      TUPLE([STR("rule2"), STR("arg2")]),
                     ]),
                   ])
                 );
@@ -1967,49 +1748,43 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_KEYS,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("varname"),
-                  new StringValue("key1"),
-                  new StringValue("var1"),
-                  new StringValue("var2"),
-                  new StringValue("cmd1"),
-                  new StringValue("cmd2"),
-                  new StringValue("var3"),
-                  new StringValue("key4"),
+                  STR("varname"),
+                  STR("key1"),
+                  STR("var1"),
+                  STR("var2"),
+                  STR("cmd1"),
+                  STR("cmd2"),
+                  STR("var3"),
+                  STR("key4"),
                 ]);
 
-                variableResolver.register("var1", new StringValue("key2"));
-                variableResolver.register("var2", new StringValue("rule1"));
-                variableResolver.register("var3", new StringValue("cmd3"));
+                variableResolver.register("var1", STR("key2"));
+                variableResolver.register("var2", STR("rule1"));
+                variableResolver.register("var3", STR("cmd3"));
                 commandResolver.register(
                   "cmd1",
-                  new FunctionCommand(() => new StringValue("rule2"))
+                  new FunctionCommand(() => STR("rule2"))
                 );
                 commandResolver.register(
                   "cmd2",
-                  new FunctionCommand(() => new StringValue("index1"))
+                  new FunctionCommand(() => STR("index1"))
                 );
                 commandResolver.register(
                   "cmd3",
-                  new FunctionCommand(() => new StringValue("key3"))
+                  new FunctionCommand(() => STR("key3"))
                 );
                 selectorResolver.register(
                   (rules) => new GenericSelector(rules)
                 );
                 expect(evaluate(program)).to.eql(
-                  new QualifiedValue(new StringValue("varname"), [
-                    new KeyedSelector([
-                      new StringValue("key1"),
-                      new StringValue("key2"),
-                    ]),
+                  new QualifiedValue(STR("varname"), [
+                    new KeyedSelector([STR("key1"), STR("key2")]),
                     new GenericSelector([
-                      new TupleValue([new StringValue("rule1")]),
-                      new TupleValue([new StringValue("rule2")]),
+                      TUPLE([STR("rule1")]),
+                      TUPLE([STR("rule2")]),
                     ]),
-                    new IndexedSelector(new StringValue("index1")),
-                    new KeyedSelector([
-                      new StringValue("key3"),
-                      new StringValue("key4"),
-                    ]),
+                    new IndexedSelector(STR("index1")),
+                    new KeyedSelector([STR("key3"), STR("key4")]),
                   ])
                 );
               });
@@ -2032,22 +1807,19 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_INDEX,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("varname1"),
-                  new StringValue("varname2"),
-                  new StringValue("cmd"),
+                  STR("varname1"),
+                  STR("varname2"),
+                  STR("cmd"),
                 ]);
 
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(() => new StringValue("index"))
+                  new FunctionCommand(() => STR("index"))
                 );
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(
-                    new TupleValue([
-                      new StringValue("varname1"),
-                      new StringValue("varname2"),
-                    ]),
-                    [new IndexedSelector(new StringValue("index"))]
+                    TUPLE([STR("varname1"), STR("varname2")]),
+                    [new IndexedSelector(STR("index"))]
                   )
                 );
               });
@@ -2067,24 +1839,16 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_KEYS,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("varname1"),
-                  new StringValue("varname2"),
-                  new StringValue("key1"),
-                  new StringValue("key2"),
+                  STR("varname1"),
+                  STR("varname2"),
+                  STR("key1"),
+                  STR("key2"),
                 ]);
 
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(
-                    new TupleValue([
-                      new StringValue("varname1"),
-                      new StringValue("varname2"),
-                    ]),
-                    [
-                      new KeyedSelector([
-                        new StringValue("key1"),
-                        new StringValue("key2"),
-                      ]),
-                    ]
+                    TUPLE([STR("varname1"), STR("varname2")]),
+                    [new KeyedSelector([STR("key1"), STR("key2")])]
                   )
                 );
               });
@@ -2112,12 +1876,12 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_RULES,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("varname1"),
-                  new StringValue("varname2"),
-                  new StringValue("rule1"),
-                  new StringValue("arg1"),
-                  new StringValue("rule2"),
-                  new StringValue("arg2"),
+                  STR("varname1"),
+                  STR("varname2"),
+                  STR("rule1"),
+                  STR("arg1"),
+                  STR("rule2"),
+                  STR("arg2"),
                 ]);
 
                 selectorResolver.register(
@@ -2125,20 +1889,11 @@ describe("Compilation and execution", () => {
                 );
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(
-                    new TupleValue([
-                      new StringValue("varname1"),
-                      new StringValue("varname2"),
-                    ]),
+                    TUPLE([STR("varname1"), STR("varname2")]),
                     [
                       new GenericSelector([
-                        new TupleValue([
-                          new StringValue("rule1"),
-                          new StringValue("arg1"),
-                        ]),
-                        new TupleValue([
-                          new StringValue("rule2"),
-                          new StringValue("arg2"),
-                        ]),
+                        TUPLE([STR("rule1"), STR("arg1")]),
+                        TUPLE([STR("rule2"), STR("arg2")]),
                       ]),
                     ]
                   )
@@ -2199,58 +1954,55 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_INDEX,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("varname1"),
-                  new StringValue("var1"),
-                  new StringValue("cmd1"),
-                  new StringValue("key1"),
-                  new StringValue("var2"),
-                  new StringValue("var3"),
-                  new StringValue("var4"),
-                  new StringValue("cmd2"),
-                  new StringValue("cmd4"),
+                  STR("varname1"),
+                  STR("var1"),
+                  STR("cmd1"),
+                  STR("key1"),
+                  STR("var2"),
+                  STR("var3"),
+                  STR("var4"),
+                  STR("cmd2"),
+                  STR("cmd4"),
                 ]);
 
-                variableResolver.register("var1", new StringValue("varname2"));
-                variableResolver.register("var2", new StringValue("key2"));
-                variableResolver.register("var3", new StringValue("cmd3"));
-                variableResolver.register("var4", new StringValue("rule1"));
+                variableResolver.register("var1", STR("varname2"));
+                variableResolver.register("var2", STR("key2"));
+                variableResolver.register("var3", STR("cmd3"));
+                variableResolver.register("var4", STR("rule1"));
                 commandResolver.register(
                   "cmd1",
-                  new FunctionCommand(() => new StringValue("index1"))
+                  new FunctionCommand(() => STR("index1"))
                 );
                 commandResolver.register(
                   "cmd2",
-                  new FunctionCommand(() => new StringValue("rule2"))
+                  new FunctionCommand(() => STR("rule2"))
                 );
                 commandResolver.register(
                   "cmd3",
-                  new FunctionCommand(() => new StringValue("key3"))
+                  new FunctionCommand(() => STR("key3"))
                 );
                 commandResolver.register(
                   "cmd4",
-                  new FunctionCommand(() => new StringValue("index2"))
+                  new FunctionCommand(() => STR("index2"))
                 );
                 selectorResolver.register(
                   (rules) => new GenericSelector(rules)
                 );
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(
-                    new TupleValue([
-                      new StringValue("varname1"),
-                      new StringValue("varname2"),
-                    ]),
+                    TUPLE([STR("varname1"), STR("varname2")]),
                     [
-                      new IndexedSelector(new StringValue("index1")),
+                      new IndexedSelector(STR("index1")),
                       new KeyedSelector([
-                        new StringValue("key1"),
-                        new StringValue("key2"),
-                        new StringValue("key3"),
+                        STR("key1"),
+                        STR("key2"),
+                        STR("key3"),
                       ]),
                       new GenericSelector([
-                        new TupleValue([new StringValue("rule1")]),
-                        new TupleValue([new StringValue("rule2")]),
+                        TUPLE([STR("rule1")]),
+                        TUPLE([STR("rule2")]),
                       ]),
-                      new IndexedSelector(new StringValue("index2")),
+                      new IndexedSelector(STR("index2")),
                     ]
                   )
                 );
@@ -2271,17 +2023,17 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_INDEX,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("source name"),
-                  new StringValue("cmd"),
+                  STR("source name"),
+                  STR("cmd"),
                 ]);
 
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(() => new StringValue("index"))
+                  new FunctionCommand(() => STR("index"))
                 );
                 expect(evaluate(program)).to.eql(
-                  new QualifiedValue(new StringValue("source name"), [
-                    new IndexedSelector(new StringValue("index")),
+                  new QualifiedValue(STR("source name"), [
+                    new IndexedSelector(STR("index")),
                   ])
                 );
               });
@@ -2298,17 +2050,14 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_KEYS,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("source name"),
-                  new StringValue("key1"),
-                  new StringValue("key2"),
+                  STR("source name"),
+                  STR("key1"),
+                  STR("key2"),
                 ]);
 
                 expect(evaluate(program)).to.eql(
-                  new QualifiedValue(new StringValue("source name"), [
-                    new KeyedSelector([
-                      new StringValue("key1"),
-                      new StringValue("key2"),
-                    ]),
+                  new QualifiedValue(STR("source name"), [
+                    new KeyedSelector([STR("key1"), STR("key2")]),
                   ])
                 );
               });
@@ -2331,27 +2080,21 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_RULES,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("source name"),
-                  new StringValue("rule1"),
-                  new StringValue("arg1"),
-                  new StringValue("rule2"),
-                  new StringValue("arg2"),
+                  STR("source name"),
+                  STR("rule1"),
+                  STR("arg1"),
+                  STR("rule2"),
+                  STR("arg2"),
                 ]);
 
                 selectorResolver.register(
                   (rules) => new GenericSelector(rules)
                 );
                 expect(evaluate(program)).to.eql(
-                  new QualifiedValue(new StringValue("source name"), [
+                  new QualifiedValue(STR("source name"), [
                     new GenericSelector([
-                      new TupleValue([
-                        new StringValue("rule1"),
-                        new StringValue("arg1"),
-                      ]),
-                      new TupleValue([
-                        new StringValue("rule2"),
-                        new StringValue("arg2"),
-                      ]),
+                      TUPLE([STR("rule1"), STR("arg1")]),
+                      TUPLE([STR("rule2"), STR("arg2")]),
                     ]),
                   ])
                 );
@@ -2405,49 +2148,43 @@ describe("Compilation and execution", () => {
                   OpCode.SELECT_KEYS,
                 ]);
                 expect(program.constants).to.eql([
-                  new StringValue("source name"),
-                  new StringValue("key1"),
-                  new StringValue("var1"),
-                  new StringValue("var2"),
-                  new StringValue("cmd1"),
-                  new StringValue("cmd2"),
-                  new StringValue("var3"),
-                  new StringValue("key4"),
+                  STR("source name"),
+                  STR("key1"),
+                  STR("var1"),
+                  STR("var2"),
+                  STR("cmd1"),
+                  STR("cmd2"),
+                  STR("var3"),
+                  STR("key4"),
                 ]);
 
-                variableResolver.register("var1", new StringValue("key2"));
-                variableResolver.register("var2", new StringValue("rule1"));
-                variableResolver.register("var3", new StringValue("cmd3"));
+                variableResolver.register("var1", STR("key2"));
+                variableResolver.register("var2", STR("rule1"));
+                variableResolver.register("var3", STR("cmd3"));
                 commandResolver.register(
                   "cmd1",
-                  new FunctionCommand(() => new StringValue("rule2"))
+                  new FunctionCommand(() => STR("rule2"))
                 );
                 commandResolver.register(
                   "cmd2",
-                  new FunctionCommand(() => new StringValue("index1"))
+                  new FunctionCommand(() => STR("index1"))
                 );
                 commandResolver.register(
                   "cmd3",
-                  new FunctionCommand(() => new StringValue("key3"))
+                  new FunctionCommand(() => STR("key3"))
                 );
                 selectorResolver.register(
                   (rules) => new GenericSelector(rules)
                 );
                 expect(evaluate(program)).to.eql(
-                  new QualifiedValue(new StringValue("source name"), [
-                    new KeyedSelector([
-                      new StringValue("key1"),
-                      new StringValue("key2"),
-                    ]),
+                  new QualifiedValue(STR("source name"), [
+                    new KeyedSelector([STR("key1"), STR("key2")]),
                     new GenericSelector([
-                      new TupleValue([new StringValue("rule1")]),
-                      new TupleValue([new StringValue("rule2")]),
+                      TUPLE([STR("rule1")]),
+                      TUPLE([STR("rule2")]),
                     ]),
-                    new IndexedSelector(new StringValue("index1")),
-                    new KeyedSelector([
-                      new StringValue("key3"),
-                      new StringValue("key4"),
-                    ]),
+                    new IndexedSelector(STR("index1")),
+                    new KeyedSelector([STR("key3"), STR("key4")]),
                   ])
                 );
               });
@@ -2470,12 +2207,12 @@ describe("Compilation and execution", () => {
         });
 
         specify("constants", () => {
-          const value = new StringValue("value");
+          const value = STR("value");
           const program = compiler.compileConstant(value);
           expect(program.opCodes).to.eql([OpCode.PUSH_CONSTANT]);
-          expect(program.constants).to.eql([new StringValue("value")]);
+          expect(program.constants).to.eql([STR("value")]);
 
-          expect(evaluate(program)).to.eql(new StringValue("value"));
+          expect(evaluate(program)).to.eql(STR("value"));
         });
 
         describe("word expansion", () => {
@@ -2492,24 +2229,21 @@ describe("Compilation and execution", () => {
               OpCode.CLOSE_FRAME,
             ]);
             expect(program.constants).to.eql([
-              new StringValue("prefix"),
-              new StringValue("var"),
-              new StringValue("suffix"),
+              STR("prefix"),
+              STR("var"),
+              STR("suffix"),
             ]);
 
             variableResolver.register(
               "var",
-              new TupleValue([
-                new StringValue("value1"),
-                new StringValue("value2"),
-              ])
+              TUPLE([STR("value1"), STR("value2")])
             );
             expect(evaluate(program)).to.eql(
-              new TupleValue([
-                new StringValue("prefix"),
-                new StringValue("value1"),
-                new StringValue("value2"),
-                new StringValue("suffix"),
+              TUPLE([
+                STR("prefix"),
+                STR("value1"),
+                STR("value2"),
+                STR("suffix"),
               ])
             );
           });
@@ -2529,27 +2263,21 @@ describe("Compilation and execution", () => {
               OpCode.CLOSE_FRAME,
             ]);
             expect(program.constants).to.eql([
-              new StringValue("prefix"),
-              new StringValue("cmd"),
-              new StringValue("suffix"),
+              STR("prefix"),
+              STR("cmd"),
+              STR("suffix"),
             ]);
 
             commandResolver.register(
               "cmd",
-              new FunctionCommand(
-                () =>
-                  new TupleValue([
-                    new StringValue("value1"),
-                    new StringValue("value2"),
-                  ])
-              )
+              new FunctionCommand(() => TUPLE([STR("value1"), STR("value2")]))
             );
             expect(evaluate(program)).to.eql(
-              new TupleValue([
-                new StringValue("prefix"),
-                new StringValue("value1"),
-                new StringValue("value2"),
-                new StringValue("suffix"),
+              TUPLE([
+                STR("prefix"),
+                STR("value1"),
+                STR("value2"),
+                STR("suffix"),
               ])
             );
           });
@@ -2557,7 +2285,7 @@ describe("Compilation and execution", () => {
             beforeEach(() => {
               commandResolver.register(
                 "cmd",
-                new FunctionCommand((args) => new TupleValue(args))
+                new FunctionCommand((args) => TUPLE(args))
               );
             });
             specify("single variable", () => {
@@ -2575,25 +2303,17 @@ describe("Compilation and execution", () => {
                 OpCode.PUSH_RESULT,
               ]);
               expect(program.constants).to.eql([
-                new StringValue("cmd"),
-                new StringValue("var"),
-                new StringValue("arg"),
+                STR("cmd"),
+                STR("var"),
+                STR("arg"),
               ]);
 
               variableResolver.register(
                 "var",
-                new TupleValue([
-                  new StringValue("value1"),
-                  new StringValue("value2"),
-                ])
+                TUPLE([STR("value1"), STR("value2")])
               );
               expect(evaluate(program)).to.eql(
-                new TupleValue([
-                  new StringValue("cmd"),
-                  new StringValue("value1"),
-                  new StringValue("value2"),
-                  new StringValue("arg"),
-                ])
+                TUPLE([STR("cmd"), STR("value1"), STR("value2"), STR("arg")])
               );
             });
             specify("multiple variables", () => {
@@ -2614,21 +2334,16 @@ describe("Compilation and execution", () => {
                 OpCode.PUSH_RESULT,
               ]);
               expect(program.constants).to.eql([
-                new StringValue("cmd"),
-                new StringValue("var1"),
-                new StringValue("var2"),
-                new StringValue("arg"),
+                STR("cmd"),
+                STR("var1"),
+                STR("var2"),
+                STR("arg"),
               ]);
 
-              variableResolver.register("var1", new StringValue("value1"));
-              variableResolver.register("var2", new StringValue("value2"));
+              variableResolver.register("var1", STR("value1"));
+              variableResolver.register("var2", STR("value2"));
               expect(evaluate(program)).to.eql(
-                new TupleValue([
-                  new StringValue("cmd"),
-                  new StringValue("value1"),
-                  new StringValue("value2"),
-                  new StringValue("arg"),
-                ])
+                TUPLE([STR("cmd"), STR("value1"), STR("value2"), STR("arg")])
               );
             });
             specify("expressions", () => {
@@ -2649,28 +2364,17 @@ describe("Compilation and execution", () => {
                 OpCode.PUSH_RESULT,
               ]);
               expect(program.constants).to.eql([
-                new StringValue("cmd"),
-                new StringValue("cmd2"),
-                new StringValue("arg"),
+                STR("cmd"),
+                STR("cmd2"),
+                STR("arg"),
               ]);
 
               commandResolver.register(
                 "cmd2",
-                new FunctionCommand(
-                  () =>
-                    new TupleValue([
-                      new StringValue("value1"),
-                      new StringValue("value2"),
-                    ])
-                )
+                new FunctionCommand(() => TUPLE([STR("value1"), STR("value2")]))
               );
               expect(evaluate(program)).to.eql(
-                new TupleValue([
-                  new StringValue("cmd"),
-                  new StringValue("value1"),
-                  new StringValue("value2"),
-                  new StringValue("arg"),
-                ])
+                TUPLE([STR("cmd"), STR("value1"), STR("value2"), STR("arg")])
               );
             });
           });
@@ -2699,10 +2403,10 @@ describe("Compilation and execution", () => {
               OpCode.PUSH_RESULT,
             ]);
             expect(program1.constants).to.eql([
-              new StringValue("if"),
-              new StringValue("true"),
+              STR("if"),
+              STR("true"),
               new ScriptValue(parse("cmd1 a"), "cmd1 a"),
-              new StringValue("else"),
+              STR("else"),
               new ScriptValue(parse("cmd2 b"), "cmd2 b"),
             ]);
 
@@ -2720,10 +2424,10 @@ describe("Compilation and execution", () => {
               OpCode.PUSH_RESULT,
             ]);
             expect(program2.constants).to.eql([
-              new StringValue("if"),
-              new StringValue("false"),
+              STR("if"),
+              STR("false"),
               new ScriptValue(parse("cmd1 a"), "cmd1 a"),
-              new StringValue("else"),
+              STR("else"),
               new ScriptValue(parse("cmd2 b"), "cmd2 b"),
             ]);
 
@@ -2750,8 +2454,8 @@ describe("Compilation and execution", () => {
               new FunctionCommand((args) => args[1])
             );
 
-            expect(evaluate(program1)).to.eql(new StringValue("a"));
-            expect(evaluate(program2)).to.eql(new StringValue("b"));
+            expect(evaluate(program1)).to.eql(STR("a"));
+            expect(evaluate(program2)).to.eql(STR("b"));
           });
 
           specify("loop", () => {
@@ -2767,8 +2471,8 @@ describe("Compilation and execution", () => {
               OpCode.PUSH_RESULT,
             ]);
             expect(program.constants).to.eql([
-              new StringValue("repeat"),
-              new StringValue("10"),
+              STR("repeat"),
+              STR("10"),
               new ScriptValue(parse("cmd foo"), "cmd foo"),
             ]);
 
@@ -2796,10 +2500,10 @@ describe("Compilation and execution", () => {
               new FunctionCommand((args) => {
                 const value = args[1].asString();
                 acc += value;
-                return new IntegerValue(counter++);
+                return INT(counter++);
               })
             );
-            expect(evaluate(program)).to.eql(new IntegerValue(9));
+            expect(evaluate(program)).to.eql(INT(9));
             expect(counter).to.eql(10);
             expect(acc).to.eql("foo".repeat(10));
           });
@@ -2882,21 +2586,11 @@ describe("Compilation and execution", () => {
             },
           });
           const state = new ProgramState();
-          expect(executor.execute(program, state)).to.eql(
-            BREAK(new StringValue("1"))
-          );
-          expect(executor.execute(program, state)).to.eql(
-            BREAK(new StringValue("3"))
-          );
-          expect(executor.execute(program, state)).to.eql(
-            BREAK(new StringValue("4"))
-          );
-          expect(executor.execute(program, state)).to.eql(
-            BREAK(new StringValue("6"))
-          );
-          expect(executor.execute(program, state)).to.eql(
-            OK(new StringValue("6"))
-          );
+          expect(executor.execute(program, state)).to.eql(BREAK(STR("1")));
+          expect(executor.execute(program, state)).to.eql(BREAK(STR("3")));
+          expect(executor.execute(program, state)).to.eql(BREAK(STR("4")));
+          expect(executor.execute(program, state)).to.eql(BREAK(STR("6")));
+          expect(executor.execute(program, state)).to.eql(OK(STR("6")));
         });
         it("result should be settable", () => {
           const script = parse("ok [break 1]");
@@ -2913,13 +2607,9 @@ describe("Compilation and execution", () => {
             },
           });
           const state = new ProgramState();
-          expect(executor.execute(program, state)).to.eql(
-            BREAK(new StringValue("1"))
-          );
-          state.result = OK(new StringValue("2"));
-          expect(executor.execute(program, state)).to.eql(
-            OK(new StringValue("2"))
-          );
+          expect(executor.execute(program, state)).to.eql(BREAK(STR("1")));
+          state.result = OK(STR("2"));
+          expect(executor.execute(program, state)).to.eql(OK(STR("2")));
         });
         it("should support resumable commands", () => {
           const script = parse("ok [cmd]");
@@ -2927,12 +2617,12 @@ describe("Compilation and execution", () => {
 
           commandResolver.register("cmd", {
             execute(_args) {
-              return YIELD(new IntegerValue(1));
+              return YIELD(INT(1));
             },
             resume(result) {
               const i = (result.value as IntegerValue).value;
-              if (i == 5) return OK(new StringValue("done"));
-              return YIELD(new IntegerValue(i + 1));
+              if (i == 5) return OK(STR("done"));
+              return YIELD(INT(i + 1));
             },
           });
           commandResolver.register("ok", {
@@ -2942,24 +2632,12 @@ describe("Compilation and execution", () => {
           });
 
           const state = new ProgramState();
-          expect(executor.execute(program, state)).to.eql(
-            YIELD(new IntegerValue(1))
-          );
-          expect(executor.execute(program, state)).to.eql(
-            YIELD(new IntegerValue(2))
-          );
-          expect(executor.execute(program, state)).to.eql(
-            YIELD(new IntegerValue(3))
-          );
-          expect(executor.execute(program, state)).to.eql(
-            YIELD(new IntegerValue(4))
-          );
-          expect(executor.execute(program, state)).to.eql(
-            YIELD(new IntegerValue(5))
-          );
-          expect(executor.execute(program, state)).to.eql(
-            OK(new StringValue("done"))
-          );
+          expect(executor.execute(program, state)).to.eql(YIELD(INT(1)));
+          expect(executor.execute(program, state)).to.eql(YIELD(INT(2)));
+          expect(executor.execute(program, state)).to.eql(YIELD(INT(3)));
+          expect(executor.execute(program, state)).to.eql(YIELD(INT(4)));
+          expect(executor.execute(program, state)).to.eql(YIELD(INT(5)));
+          expect(executor.execute(program, state)).to.eql(OK(STR("done")));
         });
         it("should support resumable command state", () => {
           const script = parse("ok [cmd]");
@@ -2967,19 +2645,19 @@ describe("Compilation and execution", () => {
 
           commandResolver.register("cmd", {
             execute(_args) {
-              return YIELD(new StringValue("begin"), 1);
+              return YIELD(STR("begin"), 1);
             },
             resume(result) {
               const step = result.data as number;
               switch (step) {
                 case 1:
-                  return YIELD(new StringValue(`step one`), step + 1);
+                  return YIELD(STR(`step one`), step + 1);
                 case 2:
-                  return YIELD(new StringValue(`step two`), step + 1);
+                  return YIELD(STR(`step two`), step + 1);
                 case 3:
-                  return YIELD(new StringValue(`step three`), step + 1);
+                  return YIELD(STR(`step three`), step + 1);
                 case 4:
-                  return OK(new StringValue("end"));
+                  return OK(STR("end"));
               }
             },
           });
@@ -2991,20 +2669,18 @@ describe("Compilation and execution", () => {
 
           const state = new ProgramState();
           expect(executor.execute(program, state)).to.eql(
-            YIELD(new StringValue("begin"), 1)
+            YIELD(STR("begin"), 1)
           );
           expect(executor.execute(program, state)).to.eql(
-            YIELD(new StringValue("step one"), 2)
+            YIELD(STR("step one"), 2)
           );
           expect(executor.execute(program, state)).to.eql(
-            YIELD(new StringValue("step two"), 3)
+            YIELD(STR("step two"), 3)
           );
           expect(executor.execute(program, state)).to.eql(
-            YIELD(new StringValue("step three"), 4)
+            YIELD(STR("step three"), 4)
           );
-          expect(executor.execute(program, state)).to.eql(
-            OK(new StringValue("end"))
-          );
+          expect(executor.execute(program, state)).to.eql(OK(STR("end")));
         });
       });
     });

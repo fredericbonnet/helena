@@ -8,11 +8,13 @@ import {
 } from "../core/display";
 import { ERROR, OK, Result, ResultCode, YIELD } from "../core/results";
 import {
+  INT,
   IntegerValue,
+  LIST,
   ListValue,
   NIL,
   ScriptValue,
-  StringValue,
+  STR,
   TupleValue,
   Value,
   ValueType,
@@ -27,9 +29,7 @@ class ListCommand implements Command {
   ensemble: EnsembleValue;
   constructor(scope: Scope) {
     this.scope = new Scope(scope);
-    const { data: argspec } = ArgspecValue.fromValue(
-      new ListValue([new StringValue("value")])
-    );
+    const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
     this.ensemble = new EnsembleValue(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {
@@ -44,7 +44,7 @@ const listLengthCmd: Command = {
     if (args.length != 2) return ARITY_ERROR("list value length");
     const { data: values, ...result } = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
-    return OK(new IntegerValue(values.length));
+    return OK(INT(values.length));
   },
 };
 const listAtCmd: Command = {
@@ -66,15 +66,15 @@ const listRangeCmd: Command = {
     if (firstResult.code != ResultCode.OK) return firstResult;
     const first = Math.max(0, firstResult.data);
     if (args.length == 3) {
-      if (first >= values.length) return OK(new ListValue([]));
-      return OK(new ListValue(values.slice(first)));
+      if (first >= values.length) return OK(LIST([]));
+      return OK(LIST(values.slice(first)));
     } else {
       const lastResult = IntegerValue.toInteger(args[3]);
       if (lastResult.code != ResultCode.OK) return lastResult;
       const last = lastResult.data;
       if (first >= values.length || last < first || last < 0)
-        return OK(new ListValue([]));
-      return OK(new ListValue(values.slice(first, last + 1)));
+        return OK(LIST([]));
+      return OK(LIST(values.slice(first, last + 1)));
     }
   },
 };
@@ -88,7 +88,7 @@ const listAppendCmd: Command = {
       if (result.code != ResultCode.OK) return result;
       values2.push(...values);
     }
-    return OK(new ListValue(values2));
+    return OK(LIST(values2));
   },
 };
 const listRemoveCmd: Command = {
@@ -105,7 +105,7 @@ const listRemoveCmd: Command = {
     const last = lastResult.data;
     const head = values.slice(0, first);
     const tail = values.slice(Math.max(first, last + 1));
-    return OK(new ListValue([...head, ...tail]));
+    return OK(LIST([...head, ...tail]));
   },
 };
 const listInsertCmd: Command = {
@@ -120,7 +120,7 @@ const listInsertCmd: Command = {
     if (result2.code != ResultCode.OK) return result2;
     const head = values.slice(0, index);
     const tail = values.slice(index);
-    return OK(new ListValue([...head, ...insert, ...tail]));
+    return OK(LIST([...head, ...insert, ...tail]));
   },
 };
 const listReplaceCmd: Command = {
@@ -139,7 +139,7 @@ const listReplaceCmd: Command = {
     const tail = values.slice(Math.max(first, last + 1));
     const { data: insert, ...result2 } = valueToArray(args[4]);
     if (result2.code != ResultCode.OK) return result2;
-    return OK(new ListValue([...head, ...insert, ...tail]));
+    return OK(LIST([...head, ...insert, ...tail]));
   },
 };
 type ListForeachState = {
@@ -208,7 +208,7 @@ export function valueToList(value: Value): Result {
   if (value.type == ValueType.SCRIPT) {
     const { data, ...result } = valueToArray(value);
     if (result.code != ResultCode.OK) return result;
-    return OK(new ListValue(data));
+    return OK(LIST(data));
   }
   return ListValue.fromValue(value);
 }

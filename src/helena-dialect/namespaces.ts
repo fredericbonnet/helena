@@ -12,10 +12,10 @@ import {
   Value,
   ScriptValue,
   ValueType,
-  TupleValue,
   NIL,
-  ListValue,
-  StringValue,
+  LIST,
+  STR,
+  TUPLE,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import {
@@ -67,7 +67,7 @@ class NamespaceValue implements CommandValue, Command {
         if (!this.scope.hasLocalCommand(command))
           return ERROR(`unknown command "${command}"`);
         const cmdline = args.slice(2);
-        return YIELD(new DeferredValue(new TupleValue(cmdline), this.scope));
+        return YIELD(new DeferredValue(TUPLE(cmdline), this.scope));
       },
       import: () => {
         if (args.length != 3) return ARITY_ERROR("<namespace> import name");
@@ -99,18 +99,16 @@ class NamespaceCommand implements Command {
         );
       }
       return OK(
-        new ListValue([
+        LIST([
           args[1],
-          ...this.value.scope
-            .getLocalCommands()
-            .map((name) => new StringValue(name)),
+          ...this.value.scope.getLocalCommands().map((name) => STR(name)),
         ])
       );
     }
     if (!this.value.scope.hasLocalCommand(subcommand))
       return ERROR(`unknown subcommand "${subcommand}"`);
     const cmdline = args.slice(1);
-    return YIELD(new DeferredValue(new TupleValue(cmdline), this.value.scope));
+    return YIELD(new DeferredValue(TUPLE(cmdline), this.value.scope));
   }
 }
 

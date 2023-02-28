@@ -8,7 +8,7 @@ import {
   RESULT_CODE_NAME,
 } from "../core/results";
 import { Command } from "../core/command";
-import { Value, ScriptValue, ValueType, TupleValue } from "../core/values";
+import { Value, ScriptValue, ValueType, TUPLE } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import {
   CommandValue,
@@ -52,7 +52,7 @@ class ScopeValue implements CommandValue, Command {
         if (!this.scope.hasLocalCommand(command))
           return ERROR(`unknown command "${command}"`);
         const cmdline = args.slice(2);
-        return YIELD(new DeferredValue(new TupleValue(cmdline), this.scope));
+        return YIELD(new DeferredValue(TUPLE(cmdline), this.scope));
       },
     });
   }

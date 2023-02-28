@@ -12,9 +12,9 @@ import {
   Value,
   ScriptValue,
   ValueType,
-  TupleValue,
-  ListValue,
-  StringValue,
+  LIST,
+  STR,
+  TUPLE,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import {
@@ -75,7 +75,7 @@ export class EnsembleValue implements CommandValue, Command {
           return ERROR(`unknown command "${subcommand}"`);
         const command = this.scope.resolveNamedCommand(subcommand);
         const cmdline = [new EnsembleCommandValue(command), ...args.slice(3)];
-        return YIELD(new DeferredValue(new TupleValue(cmdline), scope));
+        return YIELD(new DeferredValue(TUPLE(cmdline), scope));
       },
       argspec: () => {
         if (args.length != 2) return ARITY_ERROR("<ensemble> argspec");
@@ -106,7 +106,7 @@ class EnsembleCommand implements Command {
         "?cmdname? ?arg ...?"
       );
     if (args.length == minArgs) {
-      return OK(new TupleValue(args.slice(1)));
+      return OK(TUPLE(args.slice(1)));
     }
     const subcommand = args[minArgs].asString?.();
     if (subcommand == null) return ERROR("invalid subcommand name");
@@ -119,11 +119,9 @@ class EnsembleCommand implements Command {
         );
       }
       return OK(
-        new ListValue([
+        LIST([
           args[minArgs],
-          ...this.value.scope
-            .getLocalCommands()
-            .map((name) => new StringValue(name)),
+          ...this.value.scope.getLocalCommands().map((name) => STR(name)),
         ])
       );
     }
@@ -135,7 +133,7 @@ class EnsembleCommand implements Command {
       ...args.slice(1, minArgs),
       ...args.slice(minArgs + 1),
     ];
-    return YIELD(new DeferredValue(new TupleValue(cmdline), scope));
+    return YIELD(new DeferredValue(TUPLE(cmdline), scope));
   }
 }
 

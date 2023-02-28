@@ -2,14 +2,7 @@ import { expect } from "chai";
 import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import {
-  IntegerValue,
-  TupleValue,
-  NIL,
-  StringValue,
-  TRUE,
-  FALSE,
-} from "../core/values";
+import { NIL, TRUE, FALSE, INT, STR, TUPLE } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
@@ -67,7 +60,7 @@ describe("Helena argument handling", () => {
           expect(value.argspec.args).to.be.empty;
         });
         specify("help", () => {
-          expect(evaluate("[argspec ()] help")).to.eql(new StringValue(""));
+          expect(evaluate("[argspec ()] help")).to.eql(STR(""));
         });
         specify("set", () => {
           evaluate("[argspec ()] set ()");
@@ -87,13 +80,13 @@ describe("Helena argument handling", () => {
           expect(value.argspec.args).to.eql([{ name: "a", type: "required" }]);
         });
         specify("help", () => {
-          expect(evaluate("[argspec (a)] help")).to.eql(new StringValue("a"));
+          expect(evaluate("[argspec (a)] help")).to.eql(STR("a"));
         });
         specify("set", () => {
           evaluate("[argspec (a)] set (val1)");
-          expect(evaluate("get a")).to.eql(new StringValue("val1"));
+          expect(evaluate("get a")).to.eql(STR("val1"));
           evaluate("[argspec (a)] set (val2)");
-          expect(evaluate("get a")).to.eql(new StringValue("val2"));
+          expect(evaluate("get a")).to.eql(STR("val2"));
         });
       });
 
@@ -112,14 +105,12 @@ describe("Helena argument handling", () => {
           ]);
         });
         specify("help", () => {
-          expect(evaluate("[argspec (a b)] help")).to.eql(
-            new StringValue("a b")
-          );
+          expect(evaluate("[argspec (a b)] help")).to.eql(STR("a b"));
         });
         specify("set", () => {
           evaluate("[argspec {a b}] set (val1 val2)");
-          expect(evaluate("get a")).to.eql(new StringValue("val1"));
-          expect(evaluate("get b")).to.eql(new StringValue("val2"));
+          expect(evaluate("get a")).to.eql(STR("val1"));
+          expect(evaluate("get b")).to.eql(STR("val2"));
         });
       });
 
@@ -138,28 +129,21 @@ describe("Helena argument handling", () => {
             ]);
           });
           specify("help", () => {
-            expect(evaluate("[argspec (*)] help")).to.eql(
-              new StringValue("?arg ...?")
-            );
+            expect(evaluate("[argspec (*)] help")).to.eql(STR("?arg ...?"));
           });
           describe("set", () => {
             specify("zero", () => {
               evaluate("[argspec (*)] set ()");
-              expect(evaluate("get *")).to.eql(new TupleValue([]));
+              expect(evaluate("get *")).to.eql(TUPLE([]));
             });
             specify("one", () => {
               evaluate("[argspec (*)] set (val)");
-              expect(evaluate("get *")).to.eql(
-                new TupleValue([new StringValue("val")])
-              );
+              expect(evaluate("get *")).to.eql(TUPLE([STR("val")]));
             });
             specify("two", () => {
               evaluate("[argspec (*)] set (val1 val2)");
               expect(evaluate("get *")).to.eql(
-                new TupleValue([
-                  new StringValue("val1"),
-                  new StringValue("val2"),
-                ])
+                TUPLE([STR("val1"), STR("val2")])
               );
             });
           });
@@ -180,27 +164,22 @@ describe("Helena argument handling", () => {
           });
           specify("help", () => {
             expect(evaluate("[argspec (*remainder)] help")).to.eql(
-              new StringValue("?remainder ...?")
+              STR("?remainder ...?")
             );
           });
           describe("set", () => {
             specify("zero", () => {
               evaluate("[argspec (*args)] set ()");
-              expect(evaluate("get args")).to.eql(new TupleValue([]));
+              expect(evaluate("get args")).to.eql(TUPLE([]));
             });
             specify("one", () => {
               evaluate("[argspec (*args)] set (val)");
-              expect(evaluate("get args")).to.eql(
-                new TupleValue([new StringValue("val")])
-              );
+              expect(evaluate("get args")).to.eql(TUPLE([STR("val")]));
             });
             specify("two", () => {
               evaluate("[argspec (*args)] set (val1 val2)");
               expect(evaluate("get args")).to.eql(
-                new TupleValue([
-                  new StringValue("val1"),
-                  new StringValue("val2"),
-                ])
+                TUPLE([STR("val1"), STR("val2")])
               );
             });
           });
@@ -209,68 +188,56 @@ describe("Helena argument handling", () => {
         describe("prefix", () => {
           specify("one", () => {
             evaluate("[argspec (* a)] set (val)");
-            expect(evaluate("get *")).to.eql(new TupleValue([]));
-            expect(evaluate("get a")).to.eql(new StringValue("val"));
+            expect(evaluate("get *")).to.eql(TUPLE([]));
+            expect(evaluate("get a")).to.eql(STR("val"));
           });
           specify("two", () => {
             evaluate("[argspec (* a)] set (val1 val2)");
-            expect(evaluate("get *")).to.eql(
-              new TupleValue([new StringValue("val1")])
-            );
-            expect(evaluate("get a")).to.eql(new StringValue("val2"));
+            expect(evaluate("get *")).to.eql(TUPLE([STR("val1")]));
+            expect(evaluate("get a")).to.eql(STR("val2"));
           });
           specify("three", () => {
             evaluate("[argspec (* a)] set (val1 val2 val3)");
-            expect(evaluate("get *")).to.eql(
-              new TupleValue([new StringValue("val1"), new StringValue("val2")])
-            );
-            expect(evaluate("get a")).to.eql(new StringValue("val3"));
+            expect(evaluate("get *")).to.eql(TUPLE([STR("val1"), STR("val2")]));
+            expect(evaluate("get a")).to.eql(STR("val3"));
           });
         });
         describe("infix", () => {
           specify("two", () => {
             evaluate("[argspec (a * b)] set (val1 val2)");
-            expect(evaluate("get a")).to.eql(new StringValue("val1"));
-            expect(evaluate("get *")).to.eql(new TupleValue([]));
-            expect(evaluate("get b")).to.eql(new StringValue("val2"));
+            expect(evaluate("get a")).to.eql(STR("val1"));
+            expect(evaluate("get *")).to.eql(TUPLE([]));
+            expect(evaluate("get b")).to.eql(STR("val2"));
           });
           specify("three", () => {
             evaluate("[argspec (a * b)] set (val1 val2 val3)");
-            expect(evaluate("get a")).to.eql(new StringValue("val1"));
-            expect(evaluate("get *")).to.eql(
-              new TupleValue([new StringValue("val2")])
-            );
-            expect(evaluate("get b")).to.eql(new StringValue("val3"));
+            expect(evaluate("get a")).to.eql(STR("val1"));
+            expect(evaluate("get *")).to.eql(TUPLE([STR("val2")]));
+            expect(evaluate("get b")).to.eql(STR("val3"));
           });
           specify("four", () => {
             evaluate("[argspec (a * b)] set (val1 val2 val3 val4)");
-            expect(evaluate("get a")).to.eql(new StringValue("val1"));
-            expect(evaluate("get *")).to.eql(
-              new TupleValue([new StringValue("val2"), new StringValue("val3")])
-            );
-            expect(evaluate("get b")).to.eql(new StringValue("val4"));
+            expect(evaluate("get a")).to.eql(STR("val1"));
+            expect(evaluate("get *")).to.eql(TUPLE([STR("val2"), STR("val3")]));
+            expect(evaluate("get b")).to.eql(STR("val4"));
           });
         });
         describe("suffix", () => {
           specify("one", () => {
             evaluate("[argspec (a *)] set (val)");
-            expect(evaluate("get *")).to.eql(new TupleValue([]));
-            expect(evaluate("get a")).to.eql(new StringValue("val"));
-            expect(evaluate("get *")).to.eql(new TupleValue([]));
+            expect(evaluate("get *")).to.eql(TUPLE([]));
+            expect(evaluate("get a")).to.eql(STR("val"));
+            expect(evaluate("get *")).to.eql(TUPLE([]));
           });
           specify("two", () => {
             evaluate("[argspec (a *)] set (val1 val2)");
-            expect(evaluate("get a")).to.eql(new StringValue("val1"));
-            expect(evaluate("get *")).to.eql(
-              new TupleValue([new StringValue("val2")])
-            );
+            expect(evaluate("get a")).to.eql(STR("val1"));
+            expect(evaluate("get *")).to.eql(TUPLE([STR("val2")]));
           });
           specify("three", () => {
             evaluate("[argspec (a *)] set (val1 val2 val3)");
-            expect(evaluate("get a")).to.eql(new StringValue("val1"));
-            expect(evaluate("get *")).to.eql(
-              new TupleValue([new StringValue("val2"), new StringValue("val3")])
-            );
+            expect(evaluate("get a")).to.eql(STR("val1"));
+            expect(evaluate("get *")).to.eql(TUPLE([STR("val2"), STR("val3")]));
           });
         });
 
@@ -303,9 +270,7 @@ describe("Helena argument handling", () => {
             ]);
           });
           specify("help", () => {
-            expect(evaluate("[argspec (?a)] help")).to.eql(
-              new StringValue("?a?")
-            );
+            expect(evaluate("[argspec (?a)] help")).to.eql(STR("?a?"));
           });
           describe("set", () => {
             specify("zero", () => {
@@ -316,7 +281,7 @@ describe("Helena argument handling", () => {
             });
             specify("one", () => {
               evaluate("[argspec (?a)] set (val)");
-              expect(evaluate("get a")).to.eql(new StringValue("val"));
+              expect(evaluate("get a")).to.eql(STR("val"));
             });
           });
         });
@@ -335,9 +300,7 @@ describe("Helena argument handling", () => {
             ]);
           });
           specify("help", () => {
-            expect(evaluate("[argspec (?a ?b)] help")).to.eql(
-              new StringValue("?a? ?b?")
-            );
+            expect(evaluate("[argspec (?a ?b)] help")).to.eql(STR("?a? ?b?"));
           });
           describe("set", () => {
             specify("zero", () => {
@@ -351,15 +314,15 @@ describe("Helena argument handling", () => {
             });
             specify("one", () => {
               evaluate("[argspec (?a ?b)] set (val)");
-              expect(evaluate("get a")).to.eql(new StringValue("val"));
+              expect(evaluate("get a")).to.eql(STR("val"));
               expect(execute("get b")).to.eql(
                 ERROR(`cannot get "b": no such variable`)
               );
             });
             specify("one two", () => {
               evaluate("[argspec (?a ?b)] set (val1 val2)");
-              expect(evaluate("get a")).to.eql(new StringValue("val1"));
-              expect(evaluate("get b")).to.eql(new StringValue("val2"));
+              expect(evaluate("get a")).to.eql(STR("val1"));
+              expect(evaluate("get b")).to.eql(STR("val2"));
             });
           });
         });
@@ -370,42 +333,42 @@ describe("Helena argument handling", () => {
             expect(execute("get a")).to.eql(
               ERROR(`cannot get "a": no such variable`)
             );
-            expect(evaluate("get b")).to.eql(new StringValue("val"));
+            expect(evaluate("get b")).to.eql(STR("val"));
           });
           specify("two", () => {
             evaluate("[argspec (?a b)] set (val1 val2)");
-            expect(evaluate("get a")).to.eql(new StringValue("val1"));
-            expect(evaluate("get b")).to.eql(new StringValue("val2"));
+            expect(evaluate("get a")).to.eql(STR("val1"));
+            expect(evaluate("get b")).to.eql(STR("val2"));
           });
         });
         describe("infix", () => {
           specify("two", () => {
             evaluate("[argspec (a ?b c)] set (val1 val2)");
-            expect(evaluate("get a")).to.eql(new StringValue("val1"));
+            expect(evaluate("get a")).to.eql(STR("val1"));
             expect(execute("get b")).to.eql(
               ERROR(`cannot get "b": no such variable`)
             );
-            expect(evaluate("get c")).to.eql(new StringValue("val2"));
+            expect(evaluate("get c")).to.eql(STR("val2"));
           });
           specify("three", () => {
             evaluate("[argspec (a ?b c)] set (val1 val2 val3)");
-            expect(evaluate("get a")).to.eql(new StringValue("val1"));
-            expect(evaluate("get b")).to.eql(new StringValue("val2"));
-            expect(evaluate("get c")).to.eql(new StringValue("val3"));
+            expect(evaluate("get a")).to.eql(STR("val1"));
+            expect(evaluate("get b")).to.eql(STR("val2"));
+            expect(evaluate("get c")).to.eql(STR("val3"));
           });
         });
         describe("suffix", () => {
           specify("one", () => {
             evaluate("[argspec (a ?b)] set (val)");
-            expect(evaluate("get a")).to.eql(new StringValue("val"));
+            expect(evaluate("get a")).to.eql(STR("val"));
             expect(execute("get b")).to.eql(
               ERROR(`cannot get "b": no such variable`)
             );
           });
           specify("two", () => {
             evaluate("[argspec (a ?b)] set (val1 val2)");
-            expect(evaluate("get a")).to.eql(new StringValue("val1"));
-            expect(evaluate("get b")).to.eql(new StringValue("val2"));
+            expect(evaluate("get a")).to.eql(STR("val1"));
+            expect(evaluate("get b")).to.eql(STR("val2"));
           });
         });
       });
@@ -422,33 +385,31 @@ describe("Helena argument handling", () => {
             hasRemainder: false,
           });
           expect(value.argspec.args).to.eql([
-            { name: "a", type: "optional", default: new StringValue("val") },
+            { name: "a", type: "optional", default: STR("val") },
           ]);
         });
         specify("help", () => {
-          expect(evaluate("[argspec ((?a def))] help")).to.eql(
-            new StringValue("?a?")
-          );
+          expect(evaluate("[argspec ((?a def))] help")).to.eql(STR("?a?"));
         });
         describe("set", () => {
           describe("static", () => {
             specify("zero", () => {
               evaluate("[argspec ((?a def))] set ()");
-              expect(evaluate("get a")).to.eql(new StringValue("def"));
+              expect(evaluate("get a")).to.eql(STR("def"));
             });
             specify("one", () => {
               evaluate("[argspec ((?a def))] set (val)");
-              expect(evaluate("get a")).to.eql(new StringValue("val"));
+              expect(evaluate("get a")).to.eql(STR("val"));
             });
           });
           describe("dynamic", () => {
             specify("zero", () => {
               evaluate("[argspec ((?a {+ 1 2}))] set ()");
-              expect(evaluate("get a")).to.eql(new IntegerValue(3));
+              expect(evaluate("get a")).to.eql(INT(3));
             });
             specify("one", () => {
               evaluate("[argspec ((?a def))] set (val)");
-              expect(evaluate("get a")).to.eql(new StringValue("val"));
+              expect(evaluate("get a")).to.eql(STR("val"));
             });
           });
         });
@@ -463,7 +424,7 @@ describe("Helena argument handling", () => {
             hasRemainder: false,
           });
           expect(value.argspec.args).to.eql([
-            { name: "a", type: "required", guard: new StringValue("list") },
+            { name: "a", type: "required", guard: STR("list") },
           ]);
         });
         specify("optional parameter", () => {
@@ -474,7 +435,7 @@ describe("Helena argument handling", () => {
             hasRemainder: false,
           });
           expect(value.argspec.args).to.eql([
-            { name: "a", type: "optional", guard: new StringValue("list") },
+            { name: "a", type: "optional", guard: STR("list") },
           ]);
         });
         specify("default parameter", () => {
@@ -488,14 +449,14 @@ describe("Helena argument handling", () => {
             {
               name: "a",
               type: "optional",
-              guard: new StringValue("list"),
-              default: new StringValue("val"),
+              guard: STR("list"),
+              default: STR("val"),
             },
           ]);
         });
         specify("help", () => {
           expect(evaluate("[argspec ((guard ?a def))] help")).to.eql(
-            new StringValue("?a?")
+            STR("?a?")
           );
         });
         describe("set", () => {
@@ -584,7 +545,7 @@ describe("Helena argument handling", () => {
       describe("help", () => {
         it("should return a help string with argument names", () => {
           expect(evaluate("[argspec {a b ?c *}] help")).to.eql(
-            new StringValue("a b ?c? ?arg ...?")
+            STR("a b ?c? ?arg ...?")
           );
         });
         describe("exceptions", () => {
@@ -601,7 +562,7 @@ describe("Helena argument handling", () => {
         });
         it("should set argument variables in the caller scope", () => {
           evaluate("[argspec {a}] set (val)");
-          expect(evaluate("get a")).to.eql(new StringValue("val"));
+          expect(evaluate("get a")).to.eql(STR("val"));
         });
         it("should enforce minimum number of arguments", () => {
           expect(execute("[argspec {a}] set ()")).to.eql(
@@ -630,37 +591,35 @@ describe("Helena argument handling", () => {
         });
         it("should set required attributes first", () => {
           evaluate("[argspec {?a b ?c}] set (val)");
-          expect(evaluate("get b")).to.eql(new StringValue("val"));
+          expect(evaluate("get b")).to.eql(STR("val"));
         });
         it("should skip missing optional attributes", () => {
           evaluate("[argspec {?a b (?c def)}] set (val)");
           expect(execute("get a")).to.eql(
             ERROR(`cannot get "a": no such variable`)
           );
-          expect(evaluate("get b")).to.eql(new StringValue("val"));
-          expect(evaluate("get c")).to.eql(new StringValue("def"));
+          expect(evaluate("get b")).to.eql(STR("val"));
+          expect(evaluate("get c")).to.eql(STR("def"));
         });
         it("should set optional attributes in order", () => {
           evaluate("[argspec {(?a def) b ?c}] set (val1 val2)");
-          expect(evaluate("get a")).to.eql(new StringValue("val1"));
-          expect(evaluate("get b")).to.eql(new StringValue("val2"));
+          expect(evaluate("get a")).to.eql(STR("val1"));
+          expect(evaluate("get b")).to.eql(STR("val2"));
           expect(execute("get c")).to.eql(
             ERROR(`cannot get "c": no such variable`)
           );
         });
         it("should set remainder after optional attributes", () => {
           evaluate("[argspec {?a *b c}] set (val1 val2)");
-          expect(evaluate("get a")).to.eql(new StringValue("val1"));
-          expect(evaluate("get b")).to.eql(new TupleValue([]));
-          expect(evaluate("get c")).to.eql(new StringValue("val2"));
+          expect(evaluate("get a")).to.eql(STR("val1"));
+          expect(evaluate("get b")).to.eql(TUPLE([]));
+          expect(evaluate("get c")).to.eql(STR("val2"));
         });
         it("should set all present attributes in order", () => {
           evaluate("[argspec {?a *b c}] set (val1 val2 val3 val4)");
-          expect(evaluate("get a")).to.eql(new StringValue("val1"));
-          expect(evaluate("get b")).to.eql(
-            new TupleValue([new StringValue("val2"), new StringValue("val3")])
-          );
-          expect(evaluate("get c")).to.eql(new StringValue("val4"));
+          expect(evaluate("get a")).to.eql(STR("val1"));
+          expect(evaluate("get b")).to.eql(TUPLE([STR("val2"), STR("val3")]));
+          expect(evaluate("get c")).to.eql(STR("val4"));
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {

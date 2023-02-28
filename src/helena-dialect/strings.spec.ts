@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ERROR } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, IntegerValue, StringValue, TRUE } from "../core/values";
+import { FALSE, INT, STR, TRUE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -27,10 +27,10 @@ describe("Helena strings", () => {
 
   describe("string", () => {
     it("should return string value", () => {
-      expect(evaluate("string example")).to.eql(new StringValue("example"));
+      expect(evaluate("string example")).to.eql(STR("example"));
     });
     it("should convert non-string values to strings", () => {
-      expect(evaluate("string [+ 1 3]")).to.eql(new StringValue("4"));
+      expect(evaluate("string [+ 1 3]")).to.eql(STR("4"));
     });
     describe("subcommands", () => {
       describe("subcommands", () => {
@@ -51,8 +51,8 @@ describe("Helena strings", () => {
       });
       describe("length", () => {
         it("should return the string length", () => {
-          expect(evaluate('string "" length')).to.eql(new IntegerValue(0));
-          expect(evaluate("string example length")).to.eql(new IntegerValue(7));
+          expect(evaluate('string "" length')).to.eql(INT(0));
+          expect(evaluate("string example length")).to.eql(INT(7));
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
@@ -64,11 +64,11 @@ describe("Helena strings", () => {
       });
       describe("at", () => {
         it("should return the character at the given index", () => {
-          expect(evaluate("string example at 1")).to.eql(new StringValue("x"));
+          expect(evaluate("string example at 1")).to.eql(STR("x"));
         });
         it("should return the default value for an out-of-range index", () => {
           expect(evaluate("string example at 10 default")).to.eql(
-            new StringValue("default")
+            STR("default")
           );
         });
         describe("exceptions", () => {
@@ -97,43 +97,25 @@ describe("Helena strings", () => {
       });
       describe("range", () => {
         it("should return the string included within [first, last]", () => {
-          expect(evaluate("string example range 1 3")).to.eql(
-            new StringValue("xam")
-          );
+          expect(evaluate("string example range 1 3")).to.eql(STR("xam"));
         });
         it("should return the remainder of the string when given first only", () => {
-          expect(evaluate("string example range 2")).to.eql(
-            new StringValue("ample")
-          );
+          expect(evaluate("string example range 2")).to.eql(STR("ample"));
         });
         it("should truncate out of range boundaries", () => {
-          expect(evaluate("string example range -1")).to.eql(
-            new StringValue("example")
-          );
-          expect(evaluate("string example range -10 1")).to.eql(
-            new StringValue("ex")
-          );
-          expect(evaluate("string example range 2 10")).to.eql(
-            new StringValue("ample")
-          );
-          expect(evaluate("string example range -2 10")).to.eql(
-            new StringValue("example")
-          );
+          expect(evaluate("string example range -1")).to.eql(STR("example"));
+          expect(evaluate("string example range -10 1")).to.eql(STR("ex"));
+          expect(evaluate("string example range 2 10")).to.eql(STR("ample"));
+          expect(evaluate("string example range -2 10")).to.eql(STR("example"));
         });
         it("should return an empty string when last is before first", () => {
-          expect(evaluate("string example range 2 0")).to.eql(
-            new StringValue("")
-          );
+          expect(evaluate("string example range 2 0")).to.eql(STR(""));
         });
         it("should return an empty string when first is past the string length", () => {
-          expect(evaluate("string example range 10 12")).to.eql(
-            new StringValue("")
-          );
+          expect(evaluate("string example range 10 12")).to.eql(STR(""));
         });
         it("should return an empty string when last is negative", () => {
-          expect(evaluate("string example range -3 -1")).to.eql(
-            new StringValue("")
-          );
+          expect(evaluate("string example range -3 -1")).to.eql(STR(""));
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
@@ -156,34 +138,24 @@ describe("Helena strings", () => {
       });
       describe("remove", () => {
         it("should remove the range included within [first, last]", () => {
-          expect(evaluate("string example remove 1 3")).to.eql(
-            new StringValue("eple")
-          );
+          expect(evaluate("string example remove 1 3")).to.eql(STR("eple"));
         });
         it("should truncate out of range boundaries", () => {
-          expect(evaluate("string example remove -10 1")).to.eql(
-            new StringValue("ample")
-          );
-          expect(evaluate("string example remove 2 10")).to.eql(
-            new StringValue("ex")
-          );
-          expect(evaluate("string example remove -2 10")).to.eql(
-            new StringValue("")
-          );
+          expect(evaluate("string example remove -10 1")).to.eql(STR("ample"));
+          expect(evaluate("string example remove 2 10")).to.eql(STR("ex"));
+          expect(evaluate("string example remove -2 10")).to.eql(STR(""));
         });
         it("should do nothing when last is before first", () => {
-          expect(evaluate("string example remove 2 0")).to.eql(
-            new StringValue("example")
-          );
+          expect(evaluate("string example remove 2 0")).to.eql(STR("example"));
         });
         it("should do nothing when last is negative", () => {
           expect(evaluate("string example remove -3 -1")).to.eql(
-            new StringValue("example")
+            STR("example")
           );
         });
         it("should do nothing when first is past the string length", () => {
           expect(evaluate("string example remove 10 12")).to.eql(
-            new StringValue("example")
+            STR("example")
           );
         });
         describe("exceptions", () => {
@@ -209,18 +181,16 @@ describe("Helena strings", () => {
         describe("append", () => {
           it("should append two strings", () => {
             expect(evaluate("string example append foo")).to.eql(
-              new StringValue("examplefoo")
+              STR("examplefoo")
             );
           });
           it("should accept several strings", () => {
             expect(evaluate("string example append foo bar baz")).to.eql(
-              new StringValue("examplefoobarbaz")
+              STR("examplefoobarbaz")
             );
           });
           it("should accept zero string", () => {
-            expect(evaluate("string example append")).to.eql(
-              new StringValue("example")
-            );
+            expect(evaluate("string example append")).to.eql(STR("example"));
           });
           describe("exceptions", () => {
             specify("values with no string representation", () => {
@@ -236,17 +206,17 @@ describe("Helena strings", () => {
         describe("insert", () => {
           it("should insert the string at the given index", () => {
             expect(evaluate("string example insert 1 foo")).to.eql(
-              new StringValue("efooxample")
+              STR("efooxample")
             );
           });
           it("should prepend the string when index is negative", () => {
             expect(evaluate("string example insert -10 foo")).to.eql(
-              new StringValue("fooexample")
+              STR("fooexample")
             );
           });
           it("should append the string when index is past the string length", () => {
             expect(evaluate("string example insert 10 foo")).to.eql(
-              new StringValue("examplefoo")
+              STR("examplefoo")
             );
           });
           describe("exceptions", () => {
@@ -276,33 +246,33 @@ describe("Helena strings", () => {
         describe("replace", () => {
           it("should replace the range included within [first, last] with the given string", () => {
             expect(evaluate("string example replace 1 3 foo")).to.eql(
-              new StringValue("efoople")
+              STR("efoople")
             );
           });
           it("should truncate out of range boundaries", () => {
             expect(evaluate("string example replace -10 1 foo")).to.eql(
-              new StringValue("fooample")
+              STR("fooample")
             );
             expect(evaluate("string example replace 2 10 foo")).to.eql(
-              new StringValue("exfoo")
+              STR("exfoo")
             );
             expect(evaluate("string example replace -2 10 foo")).to.eql(
-              new StringValue("foo")
+              STR("foo")
             );
           });
           it("should insert the string at first index when last is before first", () => {
             expect(evaluate("string example replace 2 0 foo")).to.eql(
-              new StringValue("exfooample")
+              STR("exfooample")
             );
           });
           it("should prepend the string when last is negative", () => {
             expect(evaluate("string example replace -3 -1 foo")).to.eql(
-              new StringValue("fooexample")
+              STR("fooexample")
             );
           });
           it("should append the string when first is past the string length", () => {
             expect(evaluate("string example replace 10 12 foo")).to.eql(
-              new StringValue("examplefoo")
+              STR("examplefoo")
             );
           });
           describe("exceptions", () => {
@@ -509,7 +479,7 @@ describe("Helena strings", () => {
             }
           }`
         );
-        expect(evaluate("string example last")).to.eql(new StringValue("e"));
+        expect(evaluate("string example last")).to.eql(STR("e"));
       });
       describe("exceptions", () => {
         specify("unknown subcommand", () => {
@@ -539,19 +509,19 @@ describe("Helena strings", () => {
   describe("currying", () => {
     specify("identity", () => {
       evaluate("set s (string example)");
-      expect(evaluate("$s")).to.eql(new StringValue("example"));
+      expect(evaluate("$s")).to.eql(STR("example"));
     });
     specify("length", () => {
       evaluate("set s (string example)");
-      expect(evaluate("$s length")).to.eql(new IntegerValue(7));
+      expect(evaluate("$s length")).to.eql(INT(7));
     });
     specify("at", () => {
       evaluate("set s (string example)");
-      expect(evaluate("$s at 2")).to.eql(new StringValue("a"));
+      expect(evaluate("$s at 2")).to.eql(STR("a"));
     });
     specify("range", () => {
       evaluate("set s (string example)");
-      expect(evaluate("$s range 3 5")).to.eql(new StringValue("mpl"));
+      expect(evaluate("$s range 3 5")).to.eql(STR("mpl"));
     });
     specify("==", () => {
       evaluate("set s (string example)");
@@ -561,7 +531,7 @@ describe("Helena strings", () => {
   });
 
   specify("at <-> indexed selector equivalence", () => {
-    rootScope.setNamedVariable("v", new StringValue("example"));
+    rootScope.setNamedVariable("v", STR("example"));
     evaluate("set s (string $v)");
 
     expect(execute("string $v at 2")).to.eql(execute("idem $v[2]"));

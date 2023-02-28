@@ -7,14 +7,7 @@ import {
   RESULT_CODE_NAME,
 } from "../core/results";
 import { Command } from "../core/command";
-import {
-  Value,
-  ScriptValue,
-  ValueType,
-  ListValue,
-  NIL,
-  StringValue,
-} from "../core/values";
+import { Value, ScriptValue, ValueType, NIL, LIST, STR } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { CommandValue, commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
@@ -31,7 +24,7 @@ class ExportCommand implements Command {
     if (args.length != 2) return ARITY_ERROR("export name");
     const name = args[1].asString?.();
     if (name == null) return ERROR("invalid export name");
-    this.exports.set(name, new StringValue(name));
+    this.exports.set(name, STR(name));
     return OK(NIL);
   }
 }
@@ -61,7 +54,7 @@ class ModuleValue implements CommandValue, Command {
       },
       exports: () => {
         if (args.length != 2) return ARITY_ERROR("<module> exports");
-        return OK(new ListValue([...this.exports.values()]));
+        return OK(LIST([...this.exports.values()]));
       },
       import: () => {
         if (args.length != 3) return ARITY_ERROR("<module> import name");

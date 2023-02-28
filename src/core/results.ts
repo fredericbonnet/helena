@@ -2,7 +2,7 @@
  * @file Helena results
  */
 
-import { Value, NIL, StringValue } from "./values";
+import { Value, NIL, STR } from "./values";
 
 /** Helena standard result codes */
 export enum ResultCode {
@@ -57,7 +57,7 @@ export const YIELD_BACK = (result: Result, value: Value): Result => ({
 });
 export const ERROR = (message: string): Result<never> => ({
   code: ResultCode.ERROR,
-  value: new StringValue(message),
+  value: STR(message),
 });
 export const BREAK = (value: Value = NIL): Result => ({
   code: ResultCode.BREAK,

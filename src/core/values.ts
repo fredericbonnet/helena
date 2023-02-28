@@ -666,3 +666,17 @@ export class QualifiedValue implements Value {
     return OK(new QualifiedValue(this.source, [...this.selectors, selector]));
   }
 }
+
+/*
+ * Convenience functions for primitive value creation
+ */
+
+/* eslint-disable jsdoc/require-jsdoc */
+export const BOOL = (v) => (v ? TRUE : FALSE);
+export const INT = (v) => new IntegerValue(v);
+export const NUM = (v) => new NumberValue(v);
+export const STR = (v) => new StringValue(v);
+export const LIST = (v) => new ListValue(v);
+export const MAP = (v) => new MapValue(v);
+export const TUPLE = (v) => new TupleValue(v);
+/* eslint-enable jsdoc/require-jsdoc */

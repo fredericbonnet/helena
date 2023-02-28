@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, StringValue, TRUE } from "../core/values";
+import { FALSE, STR, TRUE } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 
@@ -36,21 +36,19 @@ describe("Helena coroutines", () => {
     describe("body", () => {
       it("should access scope variables", () => {
         evaluate("set var val");
-        expect(evaluate("[coroutine {get var}] wait")).to.eql(
-          new StringValue("val")
-        );
+        expect(evaluate("[coroutine {get var}] wait")).to.eql(STR("val"));
       });
       it("should set scope variables", () => {
         evaluate("set var old");
         evaluate("[coroutine {set var val; set var2 val2}] wait");
-        expect(evaluate("get var")).to.eql(new StringValue("val"));
-        expect(evaluate("get var2")).to.eql(new StringValue("val2"));
+        expect(evaluate("get var")).to.eql(STR("val"));
+        expect(evaluate("get var2")).to.eql(STR("val2"));
       });
       it("should access scope commands", () => {
         evaluate("macro cmd2 {} {set var val}");
         evaluate("macro cmd {} {cmd2}");
         evaluate("[coroutine {cmd}] wait");
-        expect(evaluate("get var")).to.eql(new StringValue("val"));
+        expect(evaluate("get var")).to.eql(STR("val"));
       });
     });
     describe("control flow", () => {
@@ -60,11 +58,11 @@ describe("Helena coroutines", () => {
             execute("[coroutine {set var val1; return; set var val2}] wait")
               .code
           ).to.eql(ResultCode.OK);
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
         it("should return passed value", () => {
           expect(execute("[coroutine {return val}] wait")).to.eql(
-            OK(new StringValue("val"))
+            OK(STR("val"))
           );
         });
       });
@@ -75,11 +73,11 @@ describe("Helena coroutines", () => {
               "[coroutine {set var val1; tailcall {}; set var val2}] wait"
             ).code
           ).to.eql(ResultCode.OK);
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
         it("should return passed value", () => {
           expect(execute("[coroutine {tailcall {idem val}}] wait")).to.eql(
-            OK(new StringValue("val"))
+            OK(STR("val"))
           );
         });
       });
@@ -89,11 +87,11 @@ describe("Helena coroutines", () => {
             execute("[coroutine {set var val1; return; set var val2}] wait")
               .code
           ).to.eql(ResultCode.OK);
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
         it("should return yielded value", () => {
           expect(execute("[coroutine {yield val}] wait")).to.eql(
-            OK(new StringValue("val"))
+            OK(STR("val"))
           );
         });
         it("should work recursively", () => {
@@ -102,15 +100,15 @@ describe("Helena coroutines", () => {
           evaluate("macro cmd3 {} {yield val1; idem val2}");
           evaluate("macro cmd4 {} {yield val3; idem val4}");
           evaluate("set cr [coroutine {cmd1}]");
-          expect(execute("$cr wait")).to.eql(OK(new StringValue("val1")));
+          expect(execute("$cr wait")).to.eql(OK(STR("val1")));
           expect(execute("$cr done")).to.eql(OK(FALSE));
-          expect(execute("$cr wait")).to.eql(OK(new StringValue("val2")));
+          expect(execute("$cr wait")).to.eql(OK(STR("val2")));
           expect(execute("$cr done")).to.eql(OK(FALSE));
-          expect(execute("$cr wait")).to.eql(OK(new StringValue("val3")));
+          expect(execute("$cr wait")).to.eql(OK(STR("val3")));
           expect(execute("$cr done")).to.eql(OK(FALSE));
-          expect(execute("$cr wait")).to.eql(OK(new StringValue("val4")));
+          expect(execute("$cr wait")).to.eql(OK(STR("val4")));
           expect(execute("$cr done")).to.eql(OK(FALSE));
-          expect(execute("$cr wait")).to.eql(OK(new StringValue("val5")));
+          expect(execute("$cr wait")).to.eql(OK(STR("val5")));
           expect(execute("$cr done")).to.eql(OK(TRUE));
         });
       });
@@ -119,7 +117,7 @@ describe("Helena coroutines", () => {
           expect(
             execute("[coroutine {set var val1; error msg; set var val2}] wait")
           ).to.eql(ERROR("msg"));
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
       });
       describe("break", () => {
@@ -127,7 +125,7 @@ describe("Helena coroutines", () => {
           expect(
             execute("[coroutine {set var val1; break; set var val2}] wait")
           ).to.eql(ERROR("unexpected break"));
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
       });
       describe("continue", () => {
@@ -135,7 +133,7 @@ describe("Helena coroutines", () => {
           expect(
             execute("[coroutine {set var val1; continue; set var val2}] wait")
           ).to.eql(ERROR("unexpected continue"));
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
         });
       });
     });
@@ -157,16 +155,16 @@ describe("Helena coroutines", () => {
       describe("wait", () => {
         it("should evaluate body", () => {
           evaluate("set cr [coroutine {idem val}]");
-          expect(evaluate("$cr wait")).to.eql(new StringValue("val"));
+          expect(evaluate("$cr wait")).to.eql(STR("val"));
         });
         it("should resume yielded body", () => {
           evaluate("set cr [coroutine {yield val1; idem val2}]");
-          expect(evaluate("$cr wait")).to.eql(new StringValue("val1"));
-          expect(evaluate("$cr wait")).to.eql(new StringValue("val2"));
+          expect(evaluate("$cr wait")).to.eql(STR("val1"));
+          expect(evaluate("$cr wait")).to.eql(STR("val2"));
         });
         it("should return result of completed coroutines", () => {
           evaluate("set cr [coroutine {idem val}]; $cr wait");
-          expect(evaluate("$cr wait")).to.eql(new StringValue("val"));
+          expect(evaluate("$cr wait")).to.eql(STR("val"));
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
@@ -238,14 +236,14 @@ describe("Helena coroutines", () => {
         it("should resume yielded body", () => {
           evaluate("set cr [coroutine {set var val1; yield; set var val2}]");
           evaluate("$cr wait");
-          expect(evaluate("get var")).to.eql(new StringValue("val1"));
-          expect(evaluate("$cr yield")).to.eql(new StringValue("val2"));
-          expect(evaluate("get var")).to.eql(new StringValue("val2"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
+          expect(evaluate("$cr yield")).to.eql(STR("val2"));
+          expect(evaluate("get var")).to.eql(STR("val2"));
         });
         it("should yield back value to coroutine", () => {
           evaluate("set cr [coroutine {set var [yield]}]");
           evaluate("$cr wait; $cr yield val");
-          expect(evaluate("get var")).to.eql(new StringValue("val"));
+          expect(evaluate("get var")).to.eql(STR("val"));
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {

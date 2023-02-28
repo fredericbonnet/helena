@@ -2,10 +2,11 @@
 import { Command } from "../core/command";
 import { ERROR, OK, Result, ResultCode } from "../core/results";
 import {
-  IntegerValue,
+  INT,
+  LIST,
   ListValue,
-  StringValue,
-  TupleValue,
+  STR,
+  TUPLE,
   Value,
   ValueType,
 } from "../core/values";
@@ -20,9 +21,7 @@ class TupleCommand implements Command {
   ensemble: EnsembleValue;
   constructor(scope: Scope) {
     this.scope = new Scope(scope);
-    const { data: argspec } = ArgspecValue.fromValue(
-      new ListValue([new StringValue("value")])
-    );
+    const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
     this.ensemble = new EnsembleValue(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {
@@ -37,7 +36,7 @@ const tupleLength: Command = {
     if (args.length != 2) return ARITY_ERROR("tuple value length");
     const { data: values, ...result } = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
-    return OK(new IntegerValue(values.length));
+    return OK(INT(values.length));
   },
 };
 const tupleAtCmd: Command = {
@@ -58,7 +57,7 @@ export function valueToTuple(value: Value): Result {
     case ValueType.SCRIPT: {
       const { data: values, ...result } = valueToArray(value);
       if (result.code != ResultCode.OK) return result;
-      return OK(new TupleValue(values));
+      return OK(TUPLE(values));
     }
     default:
       return ERROR("invalid tuple");

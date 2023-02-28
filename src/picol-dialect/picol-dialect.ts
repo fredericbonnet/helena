@@ -20,7 +20,6 @@ import {
   Value,
   ScriptValue,
   NIL,
-  StringValue,
   ValueType,
   TupleValue,
   NumberValue,
@@ -28,6 +27,10 @@ import {
   TRUE,
   BooleanValue,
   IntegerValue,
+  NUM,
+  STR,
+  TUPLE,
+  BOOL,
 } from "../core/values";
 import { Word } from "../core/syntax";
 
@@ -71,7 +74,7 @@ export class PicolScope {
   }
 }
 
-const EMPTY: Result = OK(new StringValue(""));
+const EMPTY: Result = OK(STR(""));
 
 const ARITY_ERROR = (signature: string) =>
   ERROR(`wrong # args: should be "${signature}"`);
@@ -83,7 +86,7 @@ const addCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     const first = result.data;
     if (args.length == 2) {
-      return OK(new NumberValue(first));
+      return OK(NUM(first));
     }
     let total = first;
     for (let i = 2; i < args.length; i++) {
@@ -91,7 +94,7 @@ const addCmd: Command = {
       if (result.code != ResultCode.OK) return result;
       total += result.data;
     }
-    return OK(new NumberValue(total));
+    return OK(NUM(total));
   },
 };
 const subtractCmd: Command = {
@@ -101,7 +104,7 @@ const subtractCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     const first = result.data;
     if (args.length == 2) {
-      return OK(new NumberValue(-first));
+      return OK(NUM(-first));
     }
     let total = first;
     for (let i = 2; i < args.length; i++) {
@@ -109,7 +112,7 @@ const subtractCmd: Command = {
       if (result.code != ResultCode.OK) return result;
       total -= result.data;
     }
-    return OK(new NumberValue(total));
+    return OK(NUM(total));
   },
 };
 
@@ -120,7 +123,7 @@ const multiplyCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     const first = result.data;
     if (args.length == 2) {
-      return OK(new NumberValue(first));
+      return OK(NUM(first));
     }
     let total = first;
     for (let i = 2; i < args.length; i++) {
@@ -128,7 +131,7 @@ const multiplyCmd: Command = {
       if (result.code != ResultCode.OK) return result;
       total *= result.data;
     }
-    return OK(new NumberValue(total));
+    return OK(NUM(total));
   },
 };
 const divideCmd: Command = {
@@ -143,7 +146,7 @@ const divideCmd: Command = {
       if (result.code != ResultCode.OK) return result;
       total /= result.data;
     }
-    return OK(new NumberValue(total));
+    return OK(NUM(total));
   },
 };
 
@@ -300,8 +303,7 @@ const whileCmd: Command = {
 
 function evaluateCondition(value: Value, scope: PicolScope): Result {
   if (value.type == ValueType.BOOLEAN) return OK(value);
-  if (value.type == ValueType.INTEGER)
-    return OK((value as IntegerValue) ? TRUE : FALSE);
+  if (value.type == ValueType.INTEGER) return OK(BOOL(value as IntegerValue));
   if (value.type == ValueType.SCRIPT) {
     const result = scope.evaluator.evaluateScript(
       (value as ScriptValue).script
@@ -314,7 +316,7 @@ function evaluateCondition(value: Value, scope: PicolScope): Result {
   if (s == "false" || s == "no" || s == "0") return OK(FALSE);
   const i = parseInt(s);
   if (isNaN(i)) return ERROR(`invalid boolean "${s}"`);
-  return OK(i ? TRUE : FALSE);
+  return OK(BOOL(i));
 }
 
 const setCmd: Command = {
@@ -357,9 +359,9 @@ const incrCmd: Command = {
     if (value) {
       const result = NumberValue.toNumber(value);
       if (result.code != ResultCode.OK) return result;
-      incremented = new NumberValue(result.data + increment);
+      incremented = NUM(result.data + increment);
     } else {
-      incremented = new NumberValue(increment);
+      incremented = NUM(increment);
     }
     scope.variables.set(varName, incremented);
     return OK(incremented);
@@ -385,7 +387,7 @@ class ProcCommand implements Command {
       const argspec = this.argspecs[p];
       let value;
       if (p == this.argspecs.length - 1 && argspec.name == "args") {
-        value = new TupleValue(args.slice(a));
+        value = TUPLE(args.slice(a));
         a = args.length - 1;
       } else if (p < args.length - 1) {
         value = args[a];
@@ -494,7 +496,7 @@ const procCmd: Command = {
 const returnCmd: Command = {
   execute: (args) => {
     if (args.length > 2) return ARITY_ERROR("return ?result?");
-    return args.length == 2 ? RETURN(args[1]) : RETURN(new StringValue(""));
+    return args.length == 2 ? RETURN(args[1]) : RETURN(STR(""));
   },
 };
 const breakCmd: Command = {

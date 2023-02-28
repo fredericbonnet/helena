@@ -1,7 +1,13 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Result, ResultCode, YIELD, OK, ERROR } from "../core/results";
 import { Command } from "../core/command";
-import { ScriptValue, TupleValue, Value, ValueType } from "../core/values";
+import {
+  ScriptValue,
+  TUPLE,
+  TupleValue,
+  Value,
+  ValueType,
+} from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, DeferredValue, commandValueType } from "./core";
@@ -66,7 +72,7 @@ class MacroCommand implements CommandValue, Command {
   resume(result: Result, scope: Scope): Result {
     if (this.value.guard) {
       const process = scope.prepareTupleValue(
-        new TupleValue([this.value.guard, result.value])
+        TUPLE([this.value.guard, result.value])
       );
       // TODO handle YIELD?
       return process.run();
