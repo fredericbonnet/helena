@@ -25,6 +25,7 @@ import { displayListValue } from "./src/helena-dialect/lists";
 import { displayMapValue } from "./src/helena-dialect/dicts";
 import { Command } from "./src/core/command";
 import { ARITY_ERROR } from "./src/helena-dialect/arguments";
+import { regexpCmd } from "./src/native/javascript-regexp";
 
 function sourceFile(path: string, scope: Scope): Result {
   const data = fs.readFileSync(path, "utf-8");
@@ -69,6 +70,8 @@ function source(path: string) {
 
 function prompt() {
   const rootScope = init();
+  initCommands(rootScope);
+  rootScope.registerNamedCommand("javascript:RegExp", regexpCmd);
   repl.start({
     eval: (cmd, _context, _filename, callback) => run(rootScope, cmd, callback),
     writer: (output) => resultWriter(output),
