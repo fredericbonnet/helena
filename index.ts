@@ -28,6 +28,7 @@ import { ARITY_ERROR } from "./src/helena-dialect/arguments";
 import { regexpCmd } from "./src/native/javascript-regexp";
 import { childProcessCmd } from "./src/native/node-child_process";
 import { consoleCmd } from "./src/native/javascript-console";
+import { fsCmd } from "./src/native/node-fs";
 
 function sourceFile(path: string, scope: Scope): Result {
   const data = fs.readFileSync(path, "utf-8");
@@ -76,6 +77,7 @@ function prompt() {
   rootScope.registerNamedCommand("javascript:RegExp", regexpCmd);
   rootScope.registerNamedCommand("javascript:console", consoleCmd);
   rootScope.registerNamedCommand("node:child_process", childProcessCmd);
+  rootScope.registerNamedCommand("node:fs", fsCmd);
   repl.start({
     eval: (cmd, _context, _filename, callback) => run(rootScope, cmd, callback),
     writer: (output) => resultWriter(output),
