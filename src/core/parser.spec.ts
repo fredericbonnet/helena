@@ -483,21 +483,6 @@ describe("Parser", () => {
             [[{ STRING: [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a\u1234" }] }]],
           ]);
         });
-        specify("tuple", () => {
-          const script = parse('"$(a)"');
-          expect(toTree(script)).to.eql([
-            [
-              [
-                {
-                  STRING: [
-                    { SUBSTITUTE_NEXT: 1 },
-                    { TUPLE: [[[{ LITERAL: "a" }]]] },
-                  ],
-                },
-              ],
-            ],
-          ]);
-        });
         specify("block", () => {
           const script = parse('"${a}"');
           expect(toTree(script)).to.eql([
@@ -580,6 +565,18 @@ describe("Parser", () => {
               [
                 [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a" }, { LITERAL: "b" }],
                 [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "c" }, { LITERAL: "d" }],
+              ],
+            ]);
+          });
+          specify("parentheses", () => {
+            const script = parse('"$(a"');
+            expect(toTree(script)).to.eql([
+              [
+                [
+                  {
+                    STRING: [{ LITERAL: "$(a" }],
+                  },
+                ],
               ],
             ]);
           });

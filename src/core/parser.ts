@@ -616,7 +616,6 @@ export class Parser {
       switch (token.type) {
         case TokenType.TEXT:
         case TokenType.DOLLAR:
-        case TokenType.OPEN_TUPLE:
         case TokenType.OPEN_BLOCK:
         case TokenType.OPEN_EXPRESSION:
           break;
