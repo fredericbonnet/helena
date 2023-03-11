@@ -14,13 +14,45 @@ import {
 
 const asString = (value) => StringValue.toString(value).data;
 
+export type CallbackContext = {
+  callback: (args: Value[], context?: unknown) => void;
+  context?: unknown;
+};
+
 export const fsCmd: Command = {
-  execute: (args: Value[]): Result => {
+  execute: (args: Value[], context?: CallbackContext): Result => {
     if (args.length < 2)
       return ERROR('wrong # args: should be "node:fs method ?arg ...?"');
     const method = asString(args[1]);
     if (method == null) return ERROR("invalid method value");
     switch (method) {
+      case "readFile": {
+        if (args.length != 4 && args.length != 5)
+          return ERROR(
+            'wrong # args: should be "node:fs readFile path ?options? callback"'
+          );
+        const path = asString(args[2]);
+        if (path == null) return ERROR("invalid path value");
+        if (args.length == 5 && args[3].type != ValueType.DICTIONARY)
+          return ERROR("options must be a map");
+        const options =
+          args.length == 5 ? toOptions(args[3] as DictionaryValue) : {};
+        try {
+          fs.readFile(path, options, (err, data) => {
+            context.callback(
+              [
+                args[args.length - 1],
+                err ? STR(err.message) : NIL,
+                data ? STR(data) : NIL,
+              ],
+              context.context
+            );
+          });
+          return OK(NIL);
+        } catch (e) {
+          return ERROR(e.message);
+        }
+      }
       case "readFileSync": {
         if (args.length != 3 && args.length != 4)
           return ERROR(
@@ -35,6 +67,31 @@ export const fsCmd: Command = {
         try {
           const data = fs.readFileSync(path, options);
           return OK(STR(data));
+        } catch (e) {
+          return ERROR(e.message);
+        }
+      }
+      case "writeFile": {
+        if (args.length != 5 && args.length != 6)
+          return ERROR(
+            'wrong # args: should be "node:fs writeFile file data ?options? callback"'
+          );
+        const file = asString(args[2]);
+        if (file == null) return ERROR("invalid path value");
+        const data = asString(args[3]);
+        if (data == null) return ERROR("invalid data value");
+        if (args.length == 6 && args[4].type != ValueType.DICTIONARY)
+          return ERROR("options must be a map");
+        const options =
+          args.length == 6 ? toOptions(args[4] as DictionaryValue) : {};
+        try {
+          fs.writeFile(file, data, options, (err) => {
+            context.callback(
+              [args[args.length - 1], err ? STR(err.message) : NIL],
+              context.context
+            );
+          });
+          return OK(NIL);
         } catch (e) {
           return ERROR(e.message);
         }

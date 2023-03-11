@@ -4,11 +4,11 @@ import { Command } from "../core/command";
 import { Compiler, Executor } from "../core/compiler";
 import { CommandResolver, VariableResolver } from "../core/resolvers";
 import { Parser } from "../core/parser";
-import { ERROR, ResultCode } from "../core/results";
+import { ERROR, OK, ResultCode } from "../core/results";
 import { Script } from "../core/syntax";
 import { Tokenizer } from "../core/tokenizer";
-import { DICT, STR, StringValue, Value } from "../core/values";
-import { fsCmd } from "./node-fs";
+import { DICT, NIL, STR, StringValue, Value } from "../core/values";
+import { CallbackContext, fsCmd } from "./node-fs";
 
 const asString = (value) => StringValue.toString(value).data;
 
@@ -53,7 +53,17 @@ describe("Node.js node:fs", () => {
     compiler = new Compiler();
     variableResolver = new MockVariableResolver();
     commandResolver = new MockCommandResolver();
-    executor = new Executor(variableResolver, commandResolver, null);
+    const callbackContext: CallbackContext = {
+      callback: (args) => {
+        return commandResolver.resolve(args[0])?.execute(args);
+      },
+    };
+    executor = new Executor(
+      variableResolver,
+      commandResolver,
+      null,
+      callbackContext
+    );
   });
 
   describe("node:fs", () => {
@@ -61,6 +71,69 @@ describe("Node.js node:fs", () => {
       commandResolver.register("node:fs", fsCmd);
     });
     describe("methods", () => {
+      describe("readFile", () => {
+        specify("current file", (done) => {
+          const output = fs.readFileSync(__filename);
+          variableResolver.register("path", STR(__filename));
+          commandResolver.register("callback", {
+            execute: (args: Value[]) => {
+              expect(args[1]).to.eql(NIL);
+              expect(args[2]).to.eql(STR(output));
+              done();
+              return OK(NIL);
+            },
+          });
+          expect(evaluate("node:fs readFile $path callback")).to.eql(NIL);
+        });
+        specify("encoding", (done) => {
+          const output = fs.readFileSync(__filename, { encoding: "binary" });
+          variableResolver.register("path", STR(__filename));
+          variableResolver.register(
+            "options",
+            DICT({ encoding: STR("binary") })
+          );
+          commandResolver.register("callback", {
+            execute: (args: Value[]) => {
+              expect(args[1]).to.eql(NIL);
+              expect(args[2]).to.eql(STR(output));
+              done();
+              return OK(NIL);
+            },
+          });
+          expect(evaluate("node:fs readFile $path $options callback")).to.eql(
+            NIL
+          );
+        });
+        specify("error", () => {
+          expect(execute("node:fs readFile ThisFileDoesNotExist").code).to.eql(
+            ResultCode.ERROR
+          );
+        });
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("node:fs readFile a")).to.eql(
+              ERROR(
+                'wrong # args: should be "node:fs readFile path ?options? callback"'
+              )
+            );
+            expect(execute("node:fs readFile a b c d")).to.eql(
+              ERROR(
+                'wrong # args: should be "node:fs readFile path ?options? callback"'
+              )
+            );
+          });
+          specify("invalid path value", () => {
+            expect(execute("node:fs readFile [] callback")).to.eql(
+              ERROR("invalid path value")
+            );
+          });
+          specify("invalid options value", () => {
+            expect(execute("node:fs readFile path [] callback")).to.eql(
+              ERROR("options must be a map")
+            );
+          });
+        });
+      });
       describe("readFileSync", () => {
         specify("current file", () => {
           const output = fs.readFileSync(__filename);
@@ -103,6 +176,37 @@ describe("Node.js node:fs", () => {
           });
           specify("invalid options value", () => {
             expect(execute("node:fs readFileSync path []")).to.eql(
+              ERROR("options must be a map")
+            );
+          });
+        });
+      });
+      describe("writeFile", () => {
+        describe("exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("node:fs writeFile a callback")).to.eql(
+              ERROR(
+                'wrong # args: should be "node:fs writeFile file data ?options? callback"'
+              )
+            );
+            expect(execute("node:fs writeFile a b c d e")).to.eql(
+              ERROR(
+                'wrong # args: should be "node:fs writeFile file data ?options? callback"'
+              )
+            );
+          });
+          specify("invalid file value", () => {
+            expect(execute("node:fs writeFile [] a callback")).to.eql(
+              ERROR("invalid path value")
+            );
+          });
+          specify("invalid data value", () => {
+            expect(execute("node:fs writeFile a [] callback")).to.eql(
+              ERROR("invalid data value")
+            );
+          });
+          specify("invalid options value", () => {
+            expect(execute("node:fs writeFile a b [] callback")).to.eql(
               ERROR("options must be a map")
             );
           });

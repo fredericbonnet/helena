@@ -19,6 +19,7 @@ import {
   isValue,
   ListValue,
   DictionaryValue,
+  TupleValue,
   Value,
   ValueType,
   StringValue,
@@ -35,7 +36,7 @@ import {
 import { regexpCmd } from "./src/native/javascript-regexp";
 import { childProcessCmd } from "./src/native/node-child_process";
 import { consoleCmd } from "./src/native/javascript-console";
-import { fsCmd } from "./src/native/node-fs";
+import { CallbackContext, fsCmd } from "./src/native/node-fs";
 
 function sourceFile(path: string, scope: Scope): Result {
   const data = fs.readFileSync(path, "utf-8");
@@ -102,7 +103,20 @@ function prompt() {
   rootScope.registerNamedCommand("javascript:RegExp", regexpCmd);
   rootScope.registerNamedCommand("javascript:console", consoleCmd);
   rootScope.registerNamedCommand("node:child_process", childProcessCmd);
-  rootScope.registerNamedCommand("node:fs", fsCmd);
+  rootScope.registerNamedCommand("node:fs", {
+    execute: (args: Value[], scope: Scope): Result => {
+      const callbackContext: CallbackContext = {
+        callback: (args, scope: Scope) => {
+          const process = scope.prepareTupleValue(new TupleValue(args));
+          const result = process.run();
+          if (result.code == ResultCode.ERROR)
+            throw new Error(StringValue.toString(result.value).data);
+        },
+        context: scope,
+      };
+      return fsCmd.execute(args, callbackContext);
+    },
+  });
   repl.start({
     eval: (cmd, _context, _filename, callback) => run(rootScope, cmd, callback),
     writer: (output) => resultWriter(output),
