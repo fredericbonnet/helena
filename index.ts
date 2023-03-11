@@ -18,6 +18,7 @@ import {
   isValue,
   ListValue,
   MapValue,
+  TupleValue,
   Value,
   ValueType,
 } from "./src/core/values";
@@ -28,7 +29,7 @@ import { ARITY_ERROR } from "./src/helena-dialect/arguments";
 import { regexpCmd } from "./src/native/javascript-regexp";
 import { childProcessCmd } from "./src/native/node-child_process";
 import { consoleCmd } from "./src/native/javascript-console";
-import { fsCmd } from "./src/native/node-fs";
+import { CallbackContext, fsCmd } from "./src/native/node-fs";
 
 function sourceFile(path: string, scope: Scope): Result {
   const data = fs.readFileSync(path, "utf-8");
@@ -77,7 +78,20 @@ function prompt() {
   rootScope.registerNamedCommand("javascript:RegExp", regexpCmd);
   rootScope.registerNamedCommand("javascript:console", consoleCmd);
   rootScope.registerNamedCommand("node:child_process", childProcessCmd);
-  rootScope.registerNamedCommand("node:fs", fsCmd);
+  rootScope.registerNamedCommand("node:fs", {
+    execute: (args: Value[], scope: Scope): Result => {
+      const callbackContext: CallbackContext = {
+        callback: (args, scope: Scope) => {
+          const process = scope.prepareTupleValue(new TupleValue(args));
+          const result = process.run();
+          if (result.code == ResultCode.ERROR)
+            throw new Error(result.value.asString());
+        },
+        context: scope,
+      };
+      return fsCmd.execute(args, callbackContext);
+    },
+  });
   repl.start({
     eval: (cmd, _context, _filename, callback) => run(rootScope, cmd, callback),
     writer: (output) => resultWriter(output),
