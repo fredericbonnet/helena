@@ -628,7 +628,9 @@ export class QualifiedValue implements Value {
   /** @override */
   display(fn = defaultDisplayFunction): string {
     return (
-      displayLiteralOrBlock(this.source.asString?.()) +
+      (this.source.type == ValueType.TUPLE
+        ? this.source.display(fn)
+        : displayLiteralOrBlock(this.source.asString?.())) +
       this.selectors.map((selector) => display(selector, fn)).join("")
     );
   }
