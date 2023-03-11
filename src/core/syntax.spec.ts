@@ -120,6 +120,18 @@ describe("SyntaxChecker", () => {
           expect(checker.checkWord(word)).to.eql(WordType.INVALID);
         });
       }
+      specify("literal/tuple substitution", () => {
+        const script = parse(LITERAL + "$" + TUPLE);
+        const word = firstWord(script);
+        expect(word.morphemes).to.have.length(3);
+        expect(checker.checkWord(word)).to.eql(WordType.INVALID);
+      });
+      specify("tuple substitution/literal", () => {
+        const script = parse("$" + TUPLE + LITERAL);
+        const word = firstWord(script);
+        expect(word.morphemes).to.have.length(3);
+        expect(checker.checkWord(word)).to.eql(WordType.INVALID);
+      });
     });
   });
   describe("substitutions", () => {

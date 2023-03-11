@@ -289,13 +289,17 @@ export class SyntaxChecker {
   private checkStems(morphemes: Morpheme[]): number {
     let nbStems = 0;
     let substitute = false;
+    let hasTuples = false;
     for (let i = 0; i < morphemes.length; i++) {
       const morpheme = morphemes[i];
       if (substitute) {
         /* Expect valid root followed by selectors */
         switch (morpheme.type) {
-          case MorphemeType.LITERAL:
           case MorphemeType.TUPLE:
+            hasTuples = true;
+          /* continued */
+          // eslint-disable-next-line no-fallthrough
+          case MorphemeType.LITERAL:
           case MorphemeType.BLOCK:
           case MorphemeType.EXPRESSION:
             i = this.skipSelectors(morphemes, i + 1) - 1;
@@ -323,6 +327,9 @@ export class SyntaxChecker {
         }
       }
     }
+    /* Tuples are invalid in compound words */
+    if (hasTuples && nbStems > 1) return -1;
+
     return nbStems;
   }
 
