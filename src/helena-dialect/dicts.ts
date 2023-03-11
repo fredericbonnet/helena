@@ -23,7 +23,7 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Process, Scope } from "./core";
+import { destructureValue, Process, Scope } from "./core";
 import { EnsembleValue } from "./ensembles";
 import { valueToArray } from "./lists";
 
@@ -207,21 +207,11 @@ class DictForeachCommand implements Command {
           const { value: entry, done } = state.it.next();
           if (done) return state.lastResult;
           const [key, value] = entry;
-          switch (state.varname.type) {
-            case ValueType.TUPLE: {
-              const tuple = state.varname as TupleValue;
-              if (tuple.values.length >= 1)
-                state.scope.setLocal(tuple.values[0].asString(), STR(key));
-              if (tuple.values.length >= 2)
-                state.scope.setLocal(tuple.values[1].asString(), value);
-              break;
-            }
-            default:
-              state.scope.setLocal(
-                state.varname.asString(),
-                TUPLE([STR(key), value])
-              );
-          }
+          const setLocal = (name, value) => {
+            state.scope.setLocal(name.asString(), value);
+            return OK(value);
+          };
+          destructureValue(setLocal, state.varname, TUPLE([STR(key), value]));
           state.process = state.scope.prepareProcess(state.program);
           state.step = "inBody";
           break;

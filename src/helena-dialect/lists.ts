@@ -21,7 +21,7 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Process, Scope } from "./core";
+import { destructureValue, Process, Scope } from "./core";
 import { EnsembleValue } from "./ensembles";
 
 class ListCommand implements Command {
@@ -169,7 +169,6 @@ class ListForeachCommand implements Command {
       scope: subscope,
       lastResult: OK(NIL),
     });
-    return ERROR("TODO");
   }
   resume(result: Result): Result {
     const state = result.data as ListForeachState;
@@ -182,7 +181,11 @@ class ListForeachCommand implements Command {
         case "beforeBody": {
           const { value, done } = state.it.next();
           if (done) return state.lastResult;
-          state.scope.setLocal(state.varname.asString(), value);
+          const setLocal = (name, value) => {
+            state.scope.setLocal(name.asString(), value);
+            return OK(value);
+          };
+          destructureValue(setLocal, state.varname, value);
           state.process = state.scope.prepareProcess(state.program);
           state.step = "inBody";
           break;
