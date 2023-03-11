@@ -214,44 +214,6 @@ export class Scope {
     if (name == null) return ERROR("invalid constant name");
     return this.setNamedConstant(name, value, check);
   }
-  setConstants(constants: TupleValue, value: Value, check = false): Result {
-    if (value.type != ValueType.TUPLE) return ERROR("bad value shape");
-    const values = (value as TupleValue).values;
-    if (values.length < constants.values.length)
-      return ERROR("bad value shape");
-    // First pass for error checking
-    for (let i = 0; i < constants.values.length; i++) {
-      const constant = constants.values[i];
-      switch (constant.type) {
-        case ValueType.TUPLE: {
-          const result = this.setConstants(
-            constant as TupleValue,
-            values[i],
-            true
-          );
-          if (result.code != ResultCode.OK) return result;
-          break;
-        }
-        default: {
-          const result = this.setConstant(constant, values[i], true);
-          if (result.code != ResultCode.OK) return result;
-        }
-      }
-    }
-    if (check) return OK(NIL);
-    // Second pass for actual setting
-    for (let i = 0; i < constants.values.length; i++) {
-      const constant = constants.values[i];
-      switch (constant.type) {
-        case ValueType.TUPLE:
-          this.setConstants(constant as TupleValue, values[i]);
-          break;
-        default:
-          this.setConstant(constant, values[i]);
-      }
-    }
-    return OK(value);
-  }
   setNamedVariable(name: string, value: Value, check = false): Result {
     if (this.locals.has(name)) {
       return ERROR(`cannot redefine local "${name}"`);
@@ -267,44 +229,6 @@ export class Scope {
     const name = variable.asString?.();
     if (name == null) return ERROR("invalid variable name");
     return this.setNamedVariable(name, value, check);
-  }
-  setVariables(variables: TupleValue, value: Value, check = false): Result {
-    if (value.type != ValueType.TUPLE) return ERROR("bad value shape");
-    const values = (value as TupleValue).values;
-    if (values.length < variables.values.length)
-      return ERROR("bad value shape");
-    // First pass for error checking
-    for (let i = 0; i < variables.values.length; i++) {
-      const variable = variables.values[i];
-      switch (variable.type) {
-        case ValueType.TUPLE: {
-          const result = this.setVariables(
-            variable as TupleValue,
-            values[i],
-            true
-          );
-          if (result.code != ResultCode.OK) return result;
-          break;
-        }
-        default: {
-          const result = this.setVariable(variable, values[i], true);
-          if (result.code != ResultCode.OK) return result;
-        }
-      }
-    }
-    if (check) return OK(NIL);
-    // Second pass for actual setting
-    for (let i = 0; i < variables.values.length; i++) {
-      const variable = variables.values[i];
-      switch (variable.type) {
-        case ValueType.TUPLE:
-          this.setVariables(variable as TupleValue, values[i]);
-          break;
-        default:
-          this.setVariable(variable, values[i]);
-      }
-    }
-    return OK(value);
   }
   unsetVariable(variable: Value): Result {
     const name = variable.asString?.();
@@ -398,4 +322,33 @@ function resolveLeadingTuple(args: Value[], scope: Scope): [Command, Value[]] {
   }
   const tuple = lead as TupleValue;
   return resolveLeadingTuple([...tuple.values, ...rest], scope);
+}
+
+export function destructureValue(
+  apply: (name: Value, value: Value, check: boolean) => Result,
+  shape: Value,
+  value: Value,
+  check = false
+): Result {
+  if (shape.type != ValueType.TUPLE) return apply(shape, value, check);
+  const variables = shape as TupleValue;
+  if (value.type != ValueType.TUPLE) return ERROR("bad value shape");
+  const values = (value as TupleValue).values;
+  if (values.length < variables.values.length) return ERROR("bad value shape");
+  // First pass for error checking
+  for (let i = 0; i < variables.values.length; i++) {
+    const result = destructureValue(
+      apply,
+      variables.values[i],
+      values[i],
+      true
+    );
+    if (result.code != ResultCode.OK) return result;
+  }
+  if (check) return OK(NIL);
+  // Second pass for actual setting
+  for (let i = 0; i < variables.values.length; i++) {
+    destructureValue(apply, variables.values[i], values[i]);
+  }
+  return OK(value);
 }
