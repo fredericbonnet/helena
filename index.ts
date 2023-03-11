@@ -8,7 +8,13 @@ import { Parser, TokenStream } from "./src/core/parser";
 import { ResultCode } from "./src/core/results";
 import { Tokenizer, TokenType } from "./src/core/tokenizer";
 import { initCommands, Scope } from "./src/helena-dialect/helena-dialect";
-import { ListValue, MapValue } from "./src/core/values";
+import {
+  isCustomValueType,
+  isValue,
+  ListValue,
+  MapValue,
+  ValueType,
+} from "./src/core/values";
 import { displayListValue } from "./src/helena-dialect/lists";
 import { displayMapValue } from "./src/helena-dialect/dicts";
 
@@ -85,14 +91,20 @@ function run(scope: Scope, cmd, callback?: (err?: Error, result?) => void) {
 }
 function printResult(output) {
   if (output instanceof Error) return c.red(output.message);
-  return c.gray(
-    display(output, (displayable) => {
-      if (displayable instanceof ListValue)
-        return displayListValue(displayable);
-      if (displayable instanceof MapValue) return displayMapValue(displayable);
-      return defaultDisplayFunction(displayable);
-    })
-  );
+  const value = display(output, (displayable) => {
+    if (displayable instanceof ListValue) return displayListValue(displayable);
+    if (displayable instanceof MapValue) return displayMapValue(displayable);
+    return defaultDisplayFunction(displayable);
+  });
+  let type;
+  if (isValue(output)) {
+    if (isCustomValueType(output.type)) {
+      type = output.type["name"];
+    } else {
+      type = ValueType[output.type];
+    }
+  }
+  return c.green(value) + (type ? c.gray(c.italic(" # " + type)) : "");
 }
 
 if (process.argv.length > 3) {
