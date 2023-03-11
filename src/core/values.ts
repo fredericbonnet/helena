@@ -670,6 +670,34 @@ export class QualifiedValue implements Value {
 }
 
 /*
+ * Type predicates
+ *
+ * See https://www.typescriptlang.org/docs/handbook/2/narrowing.html#using-type-predicates
+ */
+
+/**
+ * Type predicate for Value
+ *
+ * @param value - Object to test
+ * @returns       Whether value is a Value
+ */
+export function isValue(value: Displayable): value is Value {
+  return !!value["type"];
+}
+
+/**
+ * Type predicate for CustomValueType
+ *
+ * @param type - Type to test
+ * @returns      Whether type is a CustomValueType
+ */
+export function isCustomValueType(
+  type: ValueType | CustomValueType
+): type is CustomValueType {
+  return !!type["name"];
+}
+
+/*
  * Convenience functions for primitive value creation
  */
 
