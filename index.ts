@@ -5,7 +5,12 @@ import * as repl from "repl";
 import * as c from "ansi-colors";
 import { defaultDisplayFunction, display } from "./src/core/display";
 import { Parser, TokenStream } from "./src/core/parser";
-import { ResultCode } from "./src/core/results";
+import {
+  ERROR,
+  Result,
+  ResultCode,
+  RESULT_CODE_NAME,
+} from "./src/core/results";
 import { Tokenizer, TokenType } from "./src/core/tokenizer";
 import { initCommands, Scope } from "./src/helena-dialect/helena-dialect";
 import {
@@ -13,45 +18,63 @@ import {
   isValue,
   ListValue,
   MapValue,
+  Value,
   ValueType,
 } from "./src/core/values";
 import { displayListValue } from "./src/helena-dialect/lists";
 import { displayMapValue } from "./src/helena-dialect/dicts";
+import { Command } from "./src/core/command";
+import { ARITY_ERROR } from "./src/helena-dialect/arguments";
 
-function source(path: string) {
+function sourceFile(path: string, scope: Scope): Result {
   const data = fs.readFileSync(path, "utf-8");
   const tokens = new Tokenizer().tokenize(data);
   const { success, script, message } = new Parser().parse(tokens);
   if (!success) {
-    console.error(message);
-    exit(-1);
+    return ERROR(message);
   }
+  return scope.executeScript(script);
+}
+
+const sourceCmd: Command = {
+  execute: function (args: Value[], scope: Scope): Result {
+    if (args.length != 2) return ARITY_ERROR("source path");
+    const path = args[1].asString();
+    return sourceFile(path, scope);
+  },
+};
+
+function init() {
   const rootScope = new Scope();
   initCommands(rootScope);
-  const result = rootScope.executeScript(script);
-  switch (result.code) {
-    case ResultCode.OK: {
-      console.log(result.value.asString());
-      break;
+  rootScope.registerNamedCommand("source", sourceCmd);
+  return rootScope;
+}
+
+function source(path: string) {
+  const rootScope = init();
+  const result = sourceFile(path, rootScope);
+  processResult(
+    result,
+    (value) => {
+      console.log(resultWriter(value));
+      exit(0);
+    },
+    (error) => {
+      console.error(resultWriter(error));
+      exit(-1);
     }
-    case ResultCode.ERROR: {
-      console.error(result.value.asString());
-      break;
-    }
-    default: {
-      console.error("unexpected result code", result.code);
-    }
-  }
+  );
 }
 
 function prompt() {
-  const rootScope = new Scope();
-  initCommands(rootScope);
+  const rootScope = init();
   repl.start({
     eval: (cmd, _context, _filename, callback) => run(rootScope, cmd, callback),
-    writer: (output) => printResult(output),
+    writer: (output) => resultWriter(output),
   });
 }
+
 function run(scope: Scope, cmd, callback?: (err?: Error, result?) => void) {
   const tokens = new Tokenizer().tokenize(cmd);
   if (
@@ -77,19 +100,29 @@ function run(scope: Scope, cmd, callback?: (err?: Error, result?) => void) {
   }
 
   const result = scope.executeScript(parseResult.script);
+  processResult(
+    result,
+    (value) => callback(null, value),
+    (error) => callback(error)
+  );
+}
+
+function processResult(result, onSuccess, onError) {
   switch (result.code) {
     case ResultCode.OK: {
-      return callback(null, result.value);
+      onSuccess(result.value);
+      break;
     }
     case ResultCode.ERROR: {
-      return callback(new Error(`error: ${result.value.asString()}`));
+      onError(new Error(result.value.asString()));
+      break;
     }
     default: {
-      return callback(new Error(`unexpected result code ${result.code}`));
+      onError(new Error("unexpected " + RESULT_CODE_NAME(result.code)));
     }
   }
 }
-function printResult(output) {
+function resultWriter(output) {
   if (output instanceof Error) return c.red(output.message);
   const value = display(output, (displayable) => {
     if (displayable instanceof ListValue) return displayListValue(displayable);
