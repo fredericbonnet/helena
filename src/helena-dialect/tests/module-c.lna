@@ -1,0 +1,2 @@
+import module-a.lna (name)
+export name

@@ -1,3 +1,4 @@
+import * as path from "node:path";
 import { expect } from "chai";
 import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
@@ -19,7 +20,7 @@ describe("Helena modules", () => {
 
   beforeEach(() => {
     rootScope = new Scope();
-    initCommands(rootScope);
+    initCommands(rootScope, __dirname);
 
     tokenizer = new Tokenizer();
     parser = new Parser();
@@ -324,6 +325,99 @@ describe("Helena modules", () => {
       specify("invalid export name", () => {
         expect(execute("module {export []}")).to.eql(
           ERROR("invalid export name")
+        );
+      });
+    });
+  });
+  describe("import", () => {
+    const moduleAPathRel = "tests/module-a.lna";
+    const moduleAPathAbs = `"""${path.join(__dirname, moduleAPathRel)}"""`;
+    const moduleBPath = `"tests/module-b.lna"`;
+    const moduleCPath = `"tests/module-c.lna"`;
+    const moduleDPath = `"tests/module-d.lna"`;
+
+    it("should return a module object", () => {
+      const value = evaluate(`set cmd [import ${moduleAPathAbs}]`);
+      expect(value.type).to.eql(commandValueType);
+      expect(evaluate("$cmd exports")).to.eql(LIST([STR("name")]));
+    });
+    specify(
+      "relative paths should resolve relatively to the working directory",
+      () => {
+        evaluate(`import ${moduleAPathRel} (name)`);
+        expect(evaluate("name")).to.eql(STR("module-a"));
+      }
+    );
+    specify(
+      "in-module relative paths should resolve relatively to the module path",
+      () => {
+        evaluate(`import ${moduleCPath} (name)`);
+        expect(evaluate("name")).to.eql(STR("module-a"));
+      }
+    );
+    specify("multiple imports should resolve to the same object", () => {
+      const value = evaluate(`import ${moduleAPathAbs}`);
+      expect(evaluate(`import ${moduleAPathAbs}`)).to.equal(value);
+      expect(evaluate(`import ${moduleAPathRel}`)).to.equal(value);
+    });
+    it("should not support circular imports", () => {
+      expect(execute(`import ${moduleDPath}`)).to.eql(
+        ERROR("circular imports are forbidden")
+      );
+    });
+    describe("name", () => {
+      it("should define a new command", () => {
+        evaluate(`import ${moduleAPathAbs} cmd`);
+        expect(rootScope.context.commands.has("cmd")).to.be.true;
+      });
+      it("should replace existing commands", () => {
+        evaluate("macro cmd {}");
+        evaluate(`import ${moduleAPathAbs} cmd`);
+      });
+      specify("the named command should return its command object", () => {
+        const value = evaluate(`import ${moduleAPathAbs} cmd`);
+        expect(evaluate("cmd")).to.eql(value);
+      });
+    });
+    describe("imports", () => {
+      it("should declare imported commands in the calling scope", () => {
+        evaluate(`import ${moduleAPathAbs} (name)`);
+        expect(evaluate("name")).to.eql(STR("module-a"));
+      });
+      it("should accept tuples", () => {
+        evaluate(`import ${moduleAPathAbs} (name)`);
+        expect(evaluate("name")).to.eql(STR("module-a"));
+      });
+      it("should accept lists", () => {
+        evaluate(`import ${moduleAPathAbs} [list (name)]`);
+        expect(evaluate("name")).to.eql(STR("module-a"));
+      });
+      it("should accept blocks", () => {
+        evaluate(`import ${moduleAPathAbs} {name}`);
+        expect(evaluate("name")).to.eql(STR("module-a"));
+      });
+      describe("exceptions", () => {
+        specify("unknown export", () => {
+          expect(execute(`import ${moduleAPathAbs} (a)`)).to.eql(
+            ERROR('unknown export "a"')
+          );
+        });
+        specify("unresolved export", () => {
+          expect(execute(`import ${moduleBPath} (unresolved)`)).to.eql(
+            ERROR('cannot resolve export "unresolved"')
+          );
+        });
+        specify("invalid import name", () => {
+          expect(execute(`import ${moduleBPath} ([])`)).to.eql(
+            ERROR("invalid import name")
+          );
+        });
+      });
+    });
+    describe("exceptions", () => {
+      specify("wrong arity", () => {
+        expect(execute("import ")).to.eql(
+          ERROR('wrong # args: should be "import path ?name|imports?"')
         );
       });
     });

@@ -19,11 +19,11 @@ import { registerDictCommands } from "./dicts";
 import { registerTupleCommands } from "./tuples";
 import { registerScriptCommands } from "./scripts";
 import { ensembleCmd } from "./ensembles";
-import { moduleCmd } from "./modules";
+import { registerModuleCommands } from "./modules";
 
 export { Scope } from "./core";
 
-export function initCommands(scope: Scope) {
+export function initCommands(scope: Scope, rootDir?: string) {
   registerBasicCommands(scope);
   registerVariableCommands(scope);
 
@@ -42,7 +42,8 @@ export function initCommands(scope: Scope) {
   scope.registerNamedCommand("scope", scopeCmd);
   scope.registerNamedCommand("namespace", namespaceCmd);
   scope.registerNamedCommand("ensemble", ensembleCmd);
-  scope.registerNamedCommand("module", moduleCmd);
+
+  registerModuleCommands(scope, rootDir || process.cwd());
 
   scope.registerNamedCommand("macro", macroCmd);
   scope.registerNamedCommand("closure", closureCmd);

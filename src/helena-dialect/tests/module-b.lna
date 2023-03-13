@@ -1,0 +1,3 @@
+closure name {} {idem "module-b"}
+export name
+export unresolved
