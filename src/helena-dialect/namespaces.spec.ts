@@ -507,13 +507,20 @@ describe("Helena namespaces", () => {
           expect(evaluate("cmd")).to.eql(STR("val1"));
           expect(evaluate("[ns] import cmd; cmd")).to.eql(STR("val2"));
         });
+        it("should accept an optional alias name", () => {
+          evaluate("macro cmd {} {idem original}");
+          evaluate(`namespace ns {macro cmd {} {idem imported}}`);
+          evaluate("[ns] import cmd cmd2");
+          expect(evaluate("cmd")).to.eql(STR("original"));
+          expect(evaluate("cmd2")).to.eql(STR("imported"));
+        });
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[namespace {}] import")).to.eql(
-              ERROR('wrong # args: should be "<namespace> import name"')
+              ERROR('wrong # args: should be "<namespace> import name ?alias?"')
             );
-            expect(execute("[namespace {}] import a b")).to.eql(
-              ERROR('wrong # args: should be "<namespace> import name"')
+            expect(execute("[namespace {}] import a b c")).to.eql(
+              ERROR('wrong # args: should be "<namespace> import name ?alias?"')
             );
           });
           specify("unresolved command", () => {
@@ -524,6 +531,11 @@ describe("Helena namespaces", () => {
           specify("invalid import name", () => {
             expect(execute("[namespace {}] import []")).to.eql(
               ERROR("invalid import name")
+            );
+          });
+          specify("invalid alias name", () => {
+            expect(execute("[namespace {}] import a []")).to.eql(
+              ERROR("invalid alias name")
             );
           });
         });

@@ -70,12 +70,15 @@ class NamespaceValue implements CommandValue, Command {
         return YIELD(new DeferredValue(TUPLE(cmdline), this.scope));
       },
       import: () => {
-        if (args.length != 3) return ARITY_ERROR("<namespace> import name");
+        if (args.length != 3 && args.length != 4)
+          return ARITY_ERROR("<namespace> import name ?alias?");
         const name = args[2].asString?.();
         if (!name) return ERROR("invalid import name");
+        const alias = args.length == 4 ? args[3].asString?.() : name;
+        if (!alias) return ERROR("invalid alias name");
         const command = this.scope.resolveNamedCommand(name);
         if (!command) return ERROR(`cannot resolve imported command "${name}"`);
-        scope.registerNamedCommand(name, command);
+        scope.registerNamedCommand(alias, command);
         return OK(NIL);
       },
     });
