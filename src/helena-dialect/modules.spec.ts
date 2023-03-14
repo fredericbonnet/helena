@@ -229,13 +229,20 @@ describe("Helena modules", () => {
           expect(evaluate("cmd")).to.eql(STR("val1"));
           expect(evaluate("mod import cmd; cmd")).to.eql(STR("val2"));
         });
+        it("should accept an optional alias name", () => {
+          evaluate("macro cmd {} {idem original}");
+          evaluate(`module mod {macro cmd {} {idem imported}; export cmd}`);
+          evaluate("mod import cmd cmd2");
+          expect(evaluate("cmd")).to.eql(STR("original"));
+          expect(evaluate("cmd2")).to.eql(STR("imported"));
+        });
         describe("exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("[module {}] import")).to.eql(
-              ERROR('wrong # args: should be "<module> import name"')
+              ERROR('wrong # args: should be "<module> import name ?alias?"')
             );
-            expect(execute("[module {}] import a b")).to.eql(
-              ERROR('wrong # args: should be "<module> import name"')
+            expect(execute("[module {}] import a b c")).to.eql(
+              ERROR('wrong # args: should be "<module> import name ?alias?"')
             );
           });
           specify("unknown export", () => {
@@ -251,6 +258,11 @@ describe("Helena modules", () => {
           specify("invalid import name", () => {
             expect(execute("[module {}] import []")).to.eql(
               ERROR("invalid import name")
+            );
+          });
+          specify("invalid alias name", () => {
+            expect(execute("[module {}] import a []")).to.eql(
+              ERROR("invalid alias name")
             );
           });
         });
@@ -396,6 +408,12 @@ describe("Helena modules", () => {
         evaluate(`import ${moduleAPathAbs} {name}`);
         expect(evaluate("name")).to.eql(STR("module-a"));
       });
+      it("should accept (name alias) tuples", () => {
+        evaluate("macro name {} {idem original}");
+        evaluate(`import ${moduleAPathAbs} ( (name name2) )`);
+        expect(evaluate("name")).to.eql(STR("original"));
+        expect(evaluate("name2")).to.eql(STR("module-a"));
+      });
       describe("exceptions", () => {
         specify("unknown export", () => {
           expect(execute(`import ${moduleAPathAbs} (a)`)).to.eql(
@@ -410,6 +428,22 @@ describe("Helena modules", () => {
         specify("invalid import name", () => {
           expect(execute(`import ${moduleBPath} ([])`)).to.eql(
             ERROR("invalid import name")
+          );
+          expect(execute(`import ${moduleBPath} ( ([] a) )`)).to.eql(
+            ERROR("invalid import name")
+          );
+        });
+        specify("invalid alias name", () => {
+          expect(execute(`import ${moduleBPath} ( (name []) )`)).to.eql(
+            ERROR("invalid alias name")
+          );
+        });
+        specify("invalid name tuple", () => {
+          expect(execute(`import ${moduleBPath} ( () )`)).to.eql(
+            ERROR("invalid (name alias) tuple")
+          );
+          expect(execute(`import ${moduleBPath} ( (a b c) )`)).to.eql(
+            ERROR("invalid (name alias) tuple")
           );
         });
       });

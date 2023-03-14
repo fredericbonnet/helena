@@ -9,7 +9,15 @@ import {
   RESULT_CODE_NAME,
 } from "../core/results";
 import { Command } from "../core/command";
-import { Value, ScriptValue, ValueType, NIL, LIST, STR } from "../core/values";
+import {
+  Value,
+  ScriptValue,
+  ValueType,
+  NIL,
+  LIST,
+  STR,
+  TupleValue,
+} from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { CommandValue, commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
@@ -62,8 +70,15 @@ export class ModuleValue implements CommandValue, Command {
         return OK(LIST([...this.exports.values()]));
       },
       import: () => {
-        if (args.length != 3) return ARITY_ERROR("<module> import name");
-        return importCommand(args[2], this.exports, this.scope, scope);
+        if (args.length != 3 && args.length != 4)
+          return ARITY_ERROR("<module> import name ?alias?");
+        return importCommand(
+          args[2],
+          args.length == 4 ? args[3] : args[2],
+          this.exports,
+          this.scope,
+          scope
+        );
       },
     });
   }
@@ -71,16 +86,19 @@ export class ModuleValue implements CommandValue, Command {
 
 function importCommand(
   importName: Value,
+  aliasName: Value,
   exports: Exports,
   source: Scope,
   destination: Scope
 ): Result {
   const name = importName.asString?.();
   if (name == null) return ERROR("invalid import name");
+  const alias = aliasName.asString?.();
+  if (alias == null) return ERROR("invalid alias name");
   if (!exports.has(name)) return ERROR(`unknown export "${name}"`);
   const command = source.resolveNamedCommand(name);
   if (!command) return ERROR(`cannot resolve export "${name}"`);
-  destination.registerNamedCommand(name, command);
+  destination.registerNamedCommand(alias, command);
   return OK(NIL);
 }
 
@@ -219,13 +237,28 @@ class ImportCommand implements Command {
           const { data: names, ...result } = valueToArray(args[2]);
           if (result.code != ResultCode.OK) return result;
           for (const name of names) {
-            const result = importCommand(
-              name,
-              value.exports,
-              value.scope,
-              scope
-            );
-            if (result.code != ResultCode.OK) return result;
+            if (name.type == ValueType.TUPLE) {
+              const values = (name as TupleValue).values;
+              if (values.length != 2)
+                return ERROR("invalid (name alias) tuple");
+              const result = importCommand(
+                values[0],
+                values[1],
+                value.exports,
+                value.scope,
+                scope
+              );
+              if (result.code != ResultCode.OK) return result;
+            } else {
+              const result = importCommand(
+                name,
+                name,
+                value.exports,
+                value.scope,
+                scope
+              );
+              if (result.code != ResultCode.OK) return result;
+            }
           }
           break;
         }
