@@ -1,14 +1,26 @@
 {
   "name": "helena",
   "version": "0.0.1",
-  "description": "",
+  "author": "Frédéric Bonnet <fredericbonnet@free.fr>",
+  "description": "Helena programming language",
+  "license": "BSD-3-Clause",
+  "homepage": "https://github.com/fredericbonnet/helena",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fredericbonnet/helena.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fredericbonnet/helena/issues"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
   "scripts": {
     "start": "ts-node index.ts",
     "lint": "eslint src",
     "test": "mocha",
     "test:watch": "mocha -w"
   },
-  "author": "",
   "private": true,
   "devDependencies": {
     "@types/chai": "^4.2.21",
