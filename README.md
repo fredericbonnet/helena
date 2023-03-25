@@ -74,7 +74,7 @@ As a result, the TypeScript code may not appear entirely idiomatic, as the langu
 
 ### Syntax and architecture
 
-The syntax of Helena is complete. It fits in 14 basic rules as described in the `example/syntax.lna` file.
+The syntax of Helena is complete. It fits in 14 basic rules as described in the [docs/syntax.md](docs/syntax.md) file.
 
 The software architecture has proved its viability during the development of the built-in dialects, but is still subject to change until the final version. It is based on a flexible system of providers for maximal decoupling between the core runtime and the dialects.
 
