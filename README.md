@@ -4,6 +4,16 @@
 
 Helena is a minimalist programming language inspired by [Tcl](https://tcl.tk/about/language.html), [Unix shells](https://en.wikipedia.org/wiki/Unix_shell), and the Unix philosophy in general. It is designed to be flexible, composable, readable, and easy to use, with a syntax that is close to natural language.
 
+## Why Helena?
+
+The name of the language, Helena, was inspired by the bee hummingbird, _Mellisuga helenae_, which holds the title of the smallest bird in the world with a mass of 1.8g and a total length of about 5cm. They are unique among birds in their ability to hover in place, making it possible for them to feed on the nectar of plants and flowers while remaining in flight.
+
+[![mellisuga_helenae]][mellisuga_helenae_link]
+
+Just as the Mellisuga helenae is small yet powerful, Helena aims to provide a compact and efficient language that is still capable of handling complex tasks. The name also reflects the project's commitment to simplicity and elegance in design, inspired by the hummingbird's graceful and precise movements.
+
+Overall, the name Helena captures the essence of the language's goals and values, while also paying tribute to one of nature's most fascinating and inspiring creatures.
+
 ## Key Features
 
 - **Minimalist, unambiguous syntax:** : Helena uses a minimalist syntax that consists primarily of words, white spaces and delimiters, with a strong resemblance to natural language. This syntax is designed to be easy to read, write and understand with no ambiguity.
@@ -39,7 +49,7 @@ An alternative way to understand Helena dialects is as domain-specific languages
 
 ### Primitive value types
 
-Helena supports the following built-in value types:
+The Helena runtime supports the following built-in value types:
 
 - **Nil** singleton
 - Boolean **True** and **False** singletons
@@ -134,3 +144,8 @@ Type **Ctrl-C** to exit.
 The **Helena Language** extension for Visual Studio Code provides basic syntax coloring for source files with `.lna` and `.helena` extensions. You can install it from the **Extensions** pane within VS Code or from the marketplace:
 
 https://marketplace.visualstudio.com/items?itemName=fredericbonnet.helena-language-support
+
+<!-- Links -->
+
+[mellisuga_helenae_link]: https://commons.wikimedia.org/wiki/File:Bee_hummingbird_(Mellisuga_helenae)_adult_male_in_flight.jpg ":target=_blank"
+[mellisuga_helenae]: https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Bee_hummingbird_%28Mellisuga_helenae%29_adult_male_in_flight.jpg/1024px-Bee_hummingbird_%28Mellisuga_helenae%29_adult_male_in_flight.jpg "Bee hummingbird (Melisuga helenae) adult male, Cuba"
