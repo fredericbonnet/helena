@@ -154,15 +154,19 @@ class ModuleCommand implements Command {
 
 class ModuleRegistry {
   private readonly modules: Map<string, Module> = new Map();
+  private readonly reservedNames: Set<string> = new Set();
 
   isReserved(name: string) {
-    return this.modules.has(name) && !this.modules.get(name);
+    return this.reservedNames.has(name);
+  }
+  reserve(name: string) {
+    this.reservedNames.add(name);
+  }
+  release(name: string) {
+    this.reservedNames.delete(name);
   }
   isRegistered(name: string) {
     return !!this.modules.get(name);
-  }
-  reserve(name) {
-    this.modules.set(name, null);
   }
   register(name: string, module: Module) {
     this.modules.set(name, module);
@@ -170,21 +174,39 @@ class ModuleRegistry {
   get(name: string): Module {
     return this.modules.get(name);
   }
-  release(name) {
-    this.modules.delete(name);
-  }
 }
 const moduleRegistry = new ModuleRegistry();
 
+export function registerNamedModule(name: string, module: Module) {
+  moduleRegistry.register(name, module);
+}
+
 function resolveModule(nameOrPath: string, rootDir: string): Result<Module> {
-  const modulePath = path.resolve(rootDir, nameOrPath);
-  if (moduleRegistry.isReserved(modulePath)) {
-    return ERROR("circular imports are forbidden");
+  if (moduleRegistry.isRegistered(nameOrPath)) {
+    const module = moduleRegistry.get(nameOrPath);
+    return OK(module.value, module);
   }
+  return resolveFileBasedModule(nameOrPath, rootDir);
+}
+
+function resolveFileBasedModule(filePath: string, rootDir: string) {
+  const modulePath = path.resolve(rootDir, filePath);
   if (moduleRegistry.isRegistered(modulePath)) {
     const module = moduleRegistry.get(modulePath);
     return OK(module.value, module);
   }
+
+  const { data: module, ...result } = loadFileBasedModule(modulePath);
+  if (result.code != ResultCode.OK) return result;
+  moduleRegistry.register(modulePath, module);
+  return OK(module.value, module);
+}
+
+function loadFileBasedModule(modulePath: string): Result<Module> {
+  if (moduleRegistry.isReserved(modulePath)) {
+    return ERROR("circular imports are forbidden");
+  }
+  moduleRegistry.reserve(modulePath);
 
   let data: string;
   try {
@@ -198,24 +220,23 @@ function resolveModule(nameOrPath: string, rootDir: string): Result<Module> {
     return ERROR(message);
   }
 
-  moduleRegistry.reserve(modulePath);
   const rootScope = new Scope();
   initCommands(rootScope, path.dirname(modulePath));
   const exports = new Map();
   rootScope.registerNamedCommand("export", new ExportCommand(exports));
 
   const result = rootScope.executeScript(script);
+
+  moduleRegistry.release(modulePath);
+
   if (result.code == ResultCode.ERROR) {
-    moduleRegistry.release(modulePath);
     return result as Result<Module>;
   }
   if (result.code != ResultCode.OK) {
-    moduleRegistry.release(modulePath);
     return ERROR("unexpected " + RESULT_CODE_NAME(result.code));
   }
 
   const module = new Module(rootScope, exports);
-  moduleRegistry.register(modulePath, module);
   return OK(module.value, module);
 }
 

@@ -5,8 +5,9 @@ import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { LIST, NIL, STR, StringValue } from "../core/values";
-import { commandValueType, Scope } from "./core";
+import { CommandValue, commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
+import { Module, registerNamedModule } from "./modules";
 import { codeBlock, describeCommand } from "./test-helpers";
 
 const asString = (value) => StringValue.toString(value).data;
@@ -613,6 +614,15 @@ describe("Helena modules", () => {
           ERROR('wrong # args: should be "import path ?name|imports?"')
         );
       });
+    });
+    specify("named modules", () => {
+      const foo = evaluate(
+        'module {macro name {} {idem "foo module"}; export name}'
+      );
+      expect(foo).to.be.instanceOf(CommandValue);
+      registerNamedModule("foo", (foo as CommandValue).command as Module);
+      expect(evaluate("import foo")).to.eql(foo);
+      expect(evaluate("import foo (name); name")).to.eql(STR("foo module"));
     });
   });
 });

@@ -15,6 +15,7 @@ The `import` command loads a module from the file system. On first
 load, the file content is evaluated as a script in a new module scope,
 and the module is added to a global registry.
 
+- ✅ named modules
 
 ## <a id="import-specifications"></a>Specifications
 
