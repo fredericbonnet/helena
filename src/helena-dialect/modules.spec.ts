@@ -6,6 +6,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { LIST, NIL, STR } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
+import { ModuleValue, registerNamedModule } from "./modules";
 
 describe("Helena modules", () => {
   let rootScope: Scope;
@@ -454,6 +455,15 @@ describe("Helena modules", () => {
           ERROR('wrong # args: should be "import path ?name|imports?"')
         );
       });
+    });
+    specify("named modules", () => {
+      const foo = evaluate(
+        'module {macro name {} {idem "foo module"}; export name}'
+      );
+      expect(foo).to.be.instanceOf(ModuleValue);
+      registerNamedModule("foo", foo as ModuleValue);
+      expect(evaluate("import foo")).to.eql(foo);
+      expect(evaluate("import foo (name); name")).to.eql(STR("foo module"));
     });
   });
 });
