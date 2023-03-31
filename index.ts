@@ -18,6 +18,7 @@ import {
   isValue,
   ListValue,
   MapValue,
+  STR,
   TupleValue,
   Value,
   ValueType,
@@ -30,6 +31,7 @@ import { regexpCmd } from "./src/native/javascript-regexp";
 import { childProcessCmd } from "./src/native/node-child_process";
 import { consoleCmd } from "./src/native/javascript-console";
 import { CallbackContext, fsCmd } from "./src/native/node-fs";
+import { ModuleValue, registerNamedModule } from "./src/helena-dialect/modules";
 
 function sourceFile(path: string, scope: Scope): Result {
   const data = fs.readFileSync(path, "utf-8");
@@ -72,13 +74,25 @@ function source(path: string) {
   );
 }
 
+function registerNativeModule(
+  moduleName: string,
+  exportName: string,
+  command: Command
+) {
+  const scope = new Scope();
+  const exports = new Map();
+  scope.registerNamedCommand(exportName, command);
+  exports.set(exportName, STR(exportName));
+  registerNamedModule(moduleName, new ModuleValue(scope, exports));
+}
+
 function prompt() {
   const rootScope = init();
   initCommands(rootScope);
-  rootScope.registerNamedCommand("javascript:RegExp", regexpCmd);
-  rootScope.registerNamedCommand("javascript:console", consoleCmd);
-  rootScope.registerNamedCommand("node:child_process", childProcessCmd);
-  rootScope.registerNamedCommand("node:fs", {
+  registerNativeModule("javascript:RegExp", "RegExp", regexpCmd);
+  registerNativeModule("javascript:console", "console", consoleCmd);
+  registerNativeModule("node:child_process", "child_process", childProcessCmd);
+  registerNativeModule("node:fs", "fs", {
     execute: (args: Value[], scope: Scope): Result => {
       const callbackContext: CallbackContext = {
         callback: (args, scope: Scope) => {
