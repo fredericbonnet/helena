@@ -59,8 +59,8 @@ describe("Helena argument handling", () => {
           });
           expect(value.argspec.args).to.be.empty;
         });
-        specify("help", () => {
-          expect(evaluate("[argspec ()] help")).to.eql(STR(""));
+        specify("usage", () => {
+          expect(evaluate("[argspec ()] usage")).to.eql(STR(""));
         });
         specify("set", () => {
           evaluate("[argspec ()] set ()");
@@ -79,8 +79,8 @@ describe("Helena argument handling", () => {
           });
           expect(value.argspec.args).to.eql([{ name: "a", type: "required" }]);
         });
-        specify("help", () => {
-          expect(evaluate("[argspec (a)] help")).to.eql(STR("a"));
+        specify("usage", () => {
+          expect(evaluate("[argspec (a)] usage")).to.eql(STR("a"));
         });
         specify("set", () => {
           evaluate("[argspec (a)] set (val1)");
@@ -104,8 +104,8 @@ describe("Helena argument handling", () => {
             { name: "b", type: "required" },
           ]);
         });
-        specify("help", () => {
-          expect(evaluate("[argspec (a b)] help")).to.eql(STR("a b"));
+        specify("usage", () => {
+          expect(evaluate("[argspec (a b)] usage")).to.eql(STR("a b"));
         });
         specify("set", () => {
           evaluate("[argspec {a b}] set (val1 val2)");
@@ -128,8 +128,8 @@ describe("Helena argument handling", () => {
               { name: "*", type: "remainder" },
             ]);
           });
-          specify("help", () => {
-            expect(evaluate("[argspec (*)] help")).to.eql(STR("?arg ...?"));
+          specify("usage", () => {
+            expect(evaluate("[argspec (*)] usage")).to.eql(STR("?arg ...?"));
           });
           describe("set", () => {
             specify("zero", () => {
@@ -162,8 +162,8 @@ describe("Helena argument handling", () => {
               { name: "args", type: "remainder" },
             ]);
           });
-          specify("help", () => {
-            expect(evaluate("[argspec (*remainder)] help")).to.eql(
+          specify("usage", () => {
+            expect(evaluate("[argspec (*remainder)] usage")).to.eql(
               STR("?remainder ...?")
             );
           });
@@ -269,8 +269,8 @@ describe("Helena argument handling", () => {
               { name: "a", type: "optional" },
             ]);
           });
-          specify("help", () => {
-            expect(evaluate("[argspec (?a)] help")).to.eql(STR("?a?"));
+          specify("usage", () => {
+            expect(evaluate("[argspec (?a)] usage")).to.eql(STR("?a?"));
           });
           describe("set", () => {
             specify("zero", () => {
@@ -299,8 +299,8 @@ describe("Helena argument handling", () => {
               { name: "b", type: "optional" },
             ]);
           });
-          specify("help", () => {
-            expect(evaluate("[argspec (?a ?b)] help")).to.eql(STR("?a? ?b?"));
+          specify("usage", () => {
+            expect(evaluate("[argspec (?a ?b)] usage")).to.eql(STR("?a? ?b?"));
           });
           describe("set", () => {
             specify("zero", () => {
@@ -388,8 +388,8 @@ describe("Helena argument handling", () => {
             { name: "a", type: "optional", default: STR("val") },
           ]);
         });
-        specify("help", () => {
-          expect(evaluate("[argspec ((?a def))] help")).to.eql(STR("?a?"));
+        specify("usage", () => {
+          expect(evaluate("[argspec ((?a def))] usage")).to.eql(STR("?a?"));
         });
         describe("set", () => {
           describe("static", () => {
@@ -454,8 +454,8 @@ describe("Helena argument handling", () => {
             },
           ]);
         });
-        specify("help", () => {
-          expect(evaluate("[argspec ((guard ?a def))] help")).to.eql(
+        specify("usage", () => {
+          expect(evaluate("[argspec ((guard ?a def))] usage")).to.eql(
             STR("?a?")
           );
         });
@@ -531,7 +531,7 @@ describe("Helena argument handling", () => {
       describe("subcommands", () => {
         it("should return list of subcommands", () => {
           expect(evaluate("[argspec {}] subcommands")).to.eql(
-            evaluate("list (subcommands help set)")
+            evaluate("list (subcommands usage set)")
           );
         });
         describe("exceptions", () => {
@@ -542,16 +542,16 @@ describe("Helena argument handling", () => {
           });
         });
       });
-      describe("help", () => {
-        it("should return a help string with argument names", () => {
-          expect(evaluate("[argspec {a b ?c *}] help")).to.eql(
+      describe("usage", () => {
+        it("should return a usage string with argument names", () => {
+          expect(evaluate("[argspec {a b ?c *}] usage")).to.eql(
             STR("a b ?c? ?arg ...?")
           );
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
-            expect(execute("[argspec {}] help a")).to.eql(
-              ERROR('wrong # args: should be "<argspec> help"')
+            expect(execute("[argspec {}] usage a")).to.eql(
+              ERROR('wrong # args: should be "<argspec> usage"')
             );
           });
         });

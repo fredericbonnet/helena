@@ -119,7 +119,7 @@ function buildArgument(value: Value): Result<Argument> {
     }
   }
 }
-export function buildHelp(args: Argument[]) {
+export function buildUsage(args: Argument[]) {
   const parts = [];
   for (const arg of args) {
     switch (arg.type) {

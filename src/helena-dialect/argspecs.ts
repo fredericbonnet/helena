@@ -10,20 +10,20 @@ import {
   STR,
   TUPLE,
 } from "../core/values";
-import { Argument, ARITY_ERROR, buildArguments, buildHelp } from "./arguments";
+import { Argument, ARITY_ERROR, buildArguments, buildUsage } from "./arguments";
 import { CommandValue, commandValueType, Scope } from "./core";
 import { valueToArray } from "./lists";
 import { Subcommands } from "./subcommands";
 
 export class Argspec {
   readonly args: Argument[];
-  readonly help: StringValue;
+  readonly usage: StringValue;
   readonly nbRequired: number = 0;
   readonly nbOptional: number = 0;
   readonly hasRemainder: boolean = false;
   constructor(args: Argument[]) {
     this.args = args;
-    this.help = STR(buildHelp(args));
+    this.usage = STR(buildUsage(args));
     for (const arg of args) {
       switch (arg.type) {
         case "required":
@@ -61,8 +61,8 @@ export class ArgspecValue implements CommandValue, Command {
     return OK(command, command);
   }
 
-  help(): string {
-    return this.argspec.help.asString();
+  usage(): string {
+    return this.argspec.usage.asString();
   }
   checkArity(values: Value[], skip: number) {
     return (
@@ -123,7 +123,11 @@ export class ArgspecValue implements CommandValue, Command {
     return OK(NIL);
   }
 
-  static readonly subcommands = new Subcommands(["subcommands", "help", "set"]);
+  static readonly subcommands = new Subcommands([
+    "subcommands",
+    "usage",
+    "set",
+  ]);
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this);
     return ArgspecValue.subcommands.dispatch(args[1], {
@@ -131,9 +135,9 @@ export class ArgspecValue implements CommandValue, Command {
         if (args.length != 2) return ARITY_ERROR("<argspec> subcommands");
         return OK(ArgspecValue.subcommands.list);
       },
-      help: () => {
-        if (args.length != 2) return ARITY_ERROR("<argspec> help");
-        return OK(this.argspec.help);
+      usage: () => {
+        if (args.length != 2) return ARITY_ERROR("<argspec> usage");
+        return OK(this.argspec.usage);
       },
       set: () => {
         if (args.length != 3) return ARITY_ERROR("<argspec> set values");
@@ -147,7 +151,7 @@ export class ArgspecValue implements CommandValue, Command {
 
   private setArguments(values: Value[], scope: Scope): Result {
     if (!this.checkArity(values, 0))
-      return ERROR(`wrong # values: should be "${this.help()}"`);
+      return ERROR(`wrong # values: should be "${this.usage()}"`);
     return this.applyArguments(scope, values, 0, (name, value) =>
       scope.setNamedVariable(name, value)
     );

@@ -56,7 +56,7 @@ class MacroCommand implements CommandValue, Command {
   execute(args: Value[], scope: Scope): Result {
     if (!this.value.argspec.checkArity(args, 1)) {
       return ARITY_ERROR(
-        `${args[0].asString?.() ?? "<macro>"} ${this.value.argspec.help()}`
+        `${args[0].asString?.() ?? "<macro>"} ${this.value.argspec.usage()}`
       );
     }
     const subscope = new Scope(scope, true);

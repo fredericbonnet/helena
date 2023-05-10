@@ -102,7 +102,7 @@ class EnsembleCommand implements Command {
     if (args.length < minArgs)
       return ENSEMBLE_ARITY_ERROR(
         args[0],
-        this.value.argspec.help(),
+        this.value.argspec.usage(),
         "?cmdname? ?arg ...?"
       );
     if (args.length == minArgs) {
@@ -114,7 +114,7 @@ class EnsembleCommand implements Command {
       if (args.length != minArgs + 1) {
         return ENSEMBLE_ARITY_ERROR(
           args[0],
-          this.value.argspec.help(),
+          this.value.argspec.usage(),
           "subcommands"
         );
       }
