@@ -33,6 +33,10 @@ describe("Helena basic commands", () => {
   });
 
   describe("idem", () => {
+    specify("usage", () => {
+      expect(evaluate("help idem")).to.eql(STR("idem value"));
+      expect(evaluate("help idem val")).to.eql(STR("idem value"));
+    });
     it("should return its argument", () => {
       expect(evaluate("idem val")).to.eql(STR("val"));
       expect(evaluate("idem (a b c)")).to.eql(
@@ -47,11 +51,18 @@ describe("Helena basic commands", () => {
         expect(execute("idem a b")).to.eql(
           ERROR('wrong # args: should be "idem value"')
         );
+        expect(execute("help idem a b")).to.eql(
+          ERROR('wrong # args: should be "idem value"')
+        );
       });
     });
   });
 
   describe("return", () => {
+    specify("usage", () => {
+      expect(evaluate("help return")).to.eql(STR("return ?result?"));
+      expect(evaluate("help return val")).to.eql(STR("return ?result?"));
+    });
     specify("result code should be RETURN", () => {
       expect(execute("return").code).to.eql(ResultCode.RETURN);
     });
@@ -66,11 +77,18 @@ describe("Helena basic commands", () => {
         expect(execute("return a b")).to.eql(
           ERROR('wrong # args: should be "return ?result?"')
         );
+        expect(execute("help return a b")).to.eql(
+          ERROR('wrong # args: should be "return ?result?"')
+        );
       });
     });
   });
 
   describe("tailcall", () => {
+    specify("usage", () => {
+      expect(evaluate("help tailcall")).to.eql(STR("tailcall body"));
+      expect(evaluate("help tailcall {}")).to.eql(STR("tailcall body"));
+    });
     it("should return the result of the script body", () => {
       expect(execute("tailcall {}")).to.eql(RETURN(NIL));
       expect(execute("tailcall {idem val}")).to.eql(RETURN(STR("val")));
@@ -111,6 +129,9 @@ describe("Helena basic commands", () => {
         expect(execute("tailcall a b")).to.eql(
           ERROR('wrong # args: should be "tailcall body"')
         );
+        expect(execute("help tailcall a b")).to.eql(
+          ERROR('wrong # args: should be "tailcall body"')
+        );
       });
       specify("invalid body", () => {
         expect(execute("tailcall 1")).to.eql(
@@ -121,6 +142,10 @@ describe("Helena basic commands", () => {
   });
 
   describe("yield", () => {
+    specify("usage", () => {
+      expect(evaluate("help yield")).to.eql(STR("yield ?result?"));
+      expect(evaluate("help yield val")).to.eql(STR("yield ?result?"));
+    });
     specify("result code should be YIELD", () => {
       expect(execute("yield").code).to.eql(ResultCode.YIELD);
     });
@@ -135,11 +160,18 @@ describe("Helena basic commands", () => {
         expect(execute("yield a b")).to.eql(
           ERROR('wrong # args: should be "yield ?result?"')
         );
+        expect(execute("help yield a b")).to.eql(
+          ERROR('wrong # args: should be "yield ?result?"')
+        );
       });
     });
   });
 
   describe("error", () => {
+    specify("usage", () => {
+      expect(evaluate("help error")).to.eql(STR("error message"));
+      expect(evaluate("help error val")).to.eql(STR("error message"));
+    });
     specify("result code should be ERROR", () => {
       expect(execute("error a").code).to.eql(ResultCode.ERROR);
     });
@@ -154,6 +186,9 @@ describe("Helena basic commands", () => {
         expect(execute("error a b")).to.eql(
           ERROR('wrong # args: should be "error message"')
         );
+        expect(execute("help error a b")).to.eql(
+          ERROR('wrong # args: should be "error message"')
+        );
       });
       specify("non-string message", () => {
         expect(execute("error ()")).to.eql(ERROR("invalid message"));
@@ -162,6 +197,9 @@ describe("Helena basic commands", () => {
   });
 
   describe("break", () => {
+    specify("usage", () => {
+      expect(evaluate("help break")).to.eql(STR("break"));
+    });
     specify("result code should be BREAK", () => {
       expect(execute("break").code).to.eql(ResultCode.BREAK);
     });
@@ -170,11 +208,17 @@ describe("Helena basic commands", () => {
         expect(execute("break a")).to.eql(
           ERROR('wrong # args: should be "break"')
         );
+        expect(execute("help break a")).to.eql(
+          ERROR('wrong # args: should be "break"')
+        );
       });
     });
   });
 
   describe("continue", () => {
+    specify("usage", () => {
+      expect(evaluate("help continue")).to.eql(STR("continue"));
+    });
     specify("result code should be CONTINUE", () => {
       expect(execute("continue").code).to.eql(ResultCode.CONTINUE);
     });
@@ -183,11 +227,18 @@ describe("Helena basic commands", () => {
         expect(execute("continue a")).to.eql(
           ERROR('wrong # args: should be "continue"')
         );
+        expect(execute("help continue a")).to.eql(
+          ERROR('wrong # args: should be "continue"')
+        );
       });
     });
   });
 
   describe("eval", () => {
+    specify("usage", () => {
+      expect(evaluate("help eval")).to.eql(STR("eval body"));
+      expect(evaluate("help eval body")).to.eql(STR("eval body"));
+    });
     it("should return nil for empty body", () => {
       expect(evaluate("eval {}")).to.eql(NIL);
     });
@@ -308,6 +359,40 @@ describe("Helena basic commands", () => {
         expect(execute("eval 1")).to.eql(
           ERROR("body must be a script or tuple")
         );
+      });
+    });
+  });
+
+  describe("help", () => {
+    it("should give usage of itself", () => {
+      expect(evaluate("help help")).to.eql(STR("help command ?arg ...?"));
+    });
+    it("should accept optional arguments", () => {
+      expect(evaluate("help help command")).to.eql(
+        STR("help command ?arg ...?")
+      );
+    });
+    describe("exceptions", () => {
+      specify("wrong arity", () => {
+        expect(execute("help")).to.eql(
+          ERROR('wrong # args: should be "help command ?arg ...?"')
+        );
+      });
+      specify("unknown command", () => {
+        expect(execute("help unknownCommand")).to.eql(
+          ERROR('unknown command "unknownCommand"')
+        );
+      });
+      specify("invalid command name", () => {
+        expect(execute("help []")).to.eql(ERROR("invalid command name"));
+      });
+      specify("command with no help", () => {
+        rootScope.registerNamedCommand("cmd", {
+          execute() {
+            return OK(NIL);
+          },
+        });
+        expect(execute("help cmd")).to.eql(ERROR('no help for command "cmd"'));
       });
     });
   });

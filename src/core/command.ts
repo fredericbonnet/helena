@@ -26,4 +26,16 @@ export interface Command {
    * @returns           Command result
    */
   resume?(result: Result, context?: unknown): Result;
+
+  /**
+   * Return help for the command and a list of arguments
+   *
+   * Provided arguments will be validated
+   *
+   * @param args      - Argument values (can be partial)
+   * @param [context] - Opaque context
+   *
+   * @returns           Validation result
+   */
+  help?(args: Value[], context?: unknown): Result;
 }
