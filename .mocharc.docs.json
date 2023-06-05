@@ -1,0 +1,8 @@
+{
+  "extension": ["ts"],
+  "spec": "src/**/*.spec.ts",
+  "require": "ts-node/register",
+  "reporter": "mocha-multi-reporters",
+  "reporterOption": ["configFile=.mocharc.docs.json"],
+  "reporterEnabled": "mochadoc/reporter.ts, spec"
+}

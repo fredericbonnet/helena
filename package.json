@@ -19,10 +19,13 @@
     "start": "ts-node index.ts",
     "lint": "eslint src",
     "test": "mocha",
-    "test:watch": "mocha -w"
+    "test:watch": "mocha -w",
+    "test:doc": "mocha --config .mocharc.docs.json"
   },
   "private": true,
   "devDependencies": {
+    "@microsoft/tsdoc": "^0.14.2",
+    "@microsoft/tsdoc-config": "^0.16.2",
     "@types/chai": "^4.2.21",
     "@types/mocha": "^9.0.0",
     "@types/node": "^16.4.13",
@@ -34,6 +37,7 @@
     "eslint-plugin-jsdoc": "^39.3.6",
     "eslint-plugin-tsdoc": "^0.2.16",
     "mocha": "^10.0.0",
+    "mocha-multi-reporters": "^1.5.1",
     "prettier": "^2.7.1",
     "ts-node": "^10.2.0",
     "typescript": "^4.3.5"

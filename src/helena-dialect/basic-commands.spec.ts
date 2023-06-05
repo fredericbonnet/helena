@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import * as mochadoc from "../../mochadoc";
 import {
   BREAK,
   CONTINUE,
@@ -23,28 +24,50 @@ describe("Helena basic commands", () => {
     parser.parse(tokenizer.tokenize(script)).script;
   const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
-
-  beforeEach(() => {
+  const init = () => {
     rootScope = new Scope();
     initCommands(rootScope);
 
     tokenizer = new Tokenizer();
     parser = new Parser();
-  });
+  };
+  const usage = (script: string) => {
+    init();
+    return "```lna\n" + evaluate("help " + script).asString() + "\n```";
+  };
 
-  describe("idem", () => {
-    specify("usage", () => {
-      expect(evaluate("help idem")).to.eql(STR("idem value"));
-      expect(evaluate("help idem val")).to.eql(STR("idem value"));
+  beforeEach(init);
+
+  describe("`idem`", () => {
+    mochadoc.summary("Return the value that is passed to it");
+    mochadoc.usage(usage("idem"));
+    mochadoc.description(() => {
+      /**
+       * The `idem` command returns the value that is passed to it. _Idem_ is a
+       * latin term meaning "the same".
+       */
     });
-    it("should return its argument", () => {
-      expect(evaluate("idem val")).to.eql(STR("val"));
-      expect(evaluate("idem (a b c)")).to.eql(
-        TUPLE([STR("a"), STR("b"), STR("c")])
-      );
+
+    describe("Specifications", () => {
+      specify("usage", () => {
+        expect(evaluate("help idem")).to.eql(STR("idem value"));
+        expect(evaluate("help idem val")).to.eql(STR("idem value"));
+      });
+
+      it("should return its `value` argument", () => {
+        expect(evaluate("idem val")).to.eql(STR("val"));
+        expect(evaluate("idem (a b c)")).to.eql(
+          TUPLE([STR("a"), STR("b"), STR("c")])
+        );
+      });
     });
-    describe("exceptions", () => {
+
+    describe("Exceptions", () => {
       specify("wrong arity", () => {
+        /**
+         * The command will return an error message with usage when given the
+         * wrong number of arguments.
+         */
         expect(execute("idem")).to.eql(
           ERROR('wrong # args: should be "idem value"')
         );
@@ -58,22 +81,41 @@ describe("Helena basic commands", () => {
     });
   });
 
-  describe("return", () => {
-    specify("usage", () => {
-      expect(evaluate("help return")).to.eql(STR("return ?result?"));
-      expect(evaluate("help return val")).to.eql(STR("return ?result?"));
+  describe("`return`", () => {
+    mochadoc.summary("Stop execution with `RETURN` code");
+    mochadoc.usage(usage("return"));
+    mochadoc.description(() => {
+      /**
+       * The `return` command is a control flow command that stops the script
+       * with a `RETURN` code and an optional result value.
+       */
     });
-    specify("result code should be RETURN", () => {
-      expect(execute("return").code).to.eql(ResultCode.RETURN);
+
+    describe("Specifications", () => {
+      specify("usage", () => {
+        expect(evaluate("help return")).to.eql(STR("return ?result?"));
+        expect(evaluate("help return val")).to.eql(STR("return ?result?"));
+      });
+
+      specify("result code should be `RETURN`", () => {
+        expect(execute("return").code).to.eql(ResultCode.RETURN);
+      });
+      it("should return nil by default", () => {
+        expect(evaluate("return")).to.eql(NIL);
+      });
+      it("should return its optional `result` argument", () => {
+        expect(evaluate("return val")).to.eql(STR("val"));
+      });
+      it("should interrupt the script", () => {
+        expect(execute("return val; unreachable")).to.eql(RETURN(STR("val")));
+      });
     });
-    it("should return nil by default", () => {
-      expect(evaluate("return")).to.eql(NIL);
-    });
-    it("should return an optional result", () => {
-      expect(evaluate("return val")).to.eql(STR("val"));
-    });
-    describe("exceptions", () => {
+    describe("Exceptions", () => {
       specify("wrong arity", () => {
+        /**
+         * The command will return an error message with usage when given the
+         * wrong number of arguments.
+         */
         expect(execute("return a b")).to.eql(
           ERROR('wrong # args: should be "return ?result?"')
         );
@@ -84,45 +126,76 @@ describe("Helena basic commands", () => {
     });
   });
 
-  describe("tailcall", () => {
-    specify("usage", () => {
-      expect(evaluate("help tailcall")).to.eql(STR("tailcall body"));
-      expect(evaluate("help tailcall {}")).to.eql(STR("tailcall body"));
+  describe("`tailcall`", () => {
+    mochadoc.summary("Transfer execution to another script");
+    mochadoc.usage(usage("tailcall"));
+    mochadoc.description(() => {
+      /**
+       * The `tailcall` command is a control flow command that stops the script
+       * with the evaluated result of another script passed as argument.
+       */
     });
-    it("should return the result of the script body", () => {
-      expect(execute("tailcall {}")).to.eql(RETURN(NIL));
-      expect(execute("tailcall {idem val}")).to.eql(RETURN(STR("val")));
-      expect(execute("tailcall {return val}")).to.eql(RETURN(STR("val")));
-      expect(execute("tailcall {error msg}")).to.eql(ERROR("msg"));
-      expect(execute("tailcall {break}")).to.eql(BREAK());
-      expect(execute("tailcall {continue}")).to.eql(CONTINUE());
+
+    describe("Specifications", () => {
+      specify("usage", () => {
+        expect(evaluate("help tailcall")).to.eql(STR("tailcall body"));
+        expect(evaluate("help tailcall {}")).to.eql(STR("tailcall body"));
+      });
+
+      specify("result code should be `RETURN`", () => {
+        expect(execute("tailcall {}").code).to.eql(ResultCode.RETURN);
+      });
+      it("should accept script values for its `body` argument", () => {
+        expect(execute("tailcall {}")).to.eql(RETURN(NIL));
+      });
+      it("should accept tuple values for its `body` argument", () => {
+        expect(execute("tailcall ()")).to.eql(RETURN(NIL));
+      });
+      it("should return the evaluation result of it `body` argument", () => {
+        expect(execute("tailcall {idem val}")).to.eql(RETURN(STR("val")));
+        expect(execute("tailcall {return val}")).to.eql(RETURN(STR("val")));
+        expect(execute("tailcall (idem val); unreachable")).to.eql(
+          RETURN(STR("val"))
+        );
+        expect(execute("tailcall (return val); unreachable")).to.eql(
+          RETURN(STR("val"))
+        );
+      });
+      it("should propagate `ERROR` code from `body`", () => {
+        expect(execute("tailcall {error msg}")).to.eql(ERROR("msg"));
+        expect(execute("tailcall (error msg); unreachable")).to.eql(
+          ERROR("msg")
+        );
+      });
+      it("should propagate `BREAK` code from `body`", () => {
+        expect(execute("tailcall {break}")).to.eql(BREAK());
+        expect(execute("tailcall (break); unreachable")).to.eql(BREAK());
+      });
+      it("should propagate `CONTINUE` code from `body`", () => {
+        expect(execute("tailcall {continue}")).to.eql(CONTINUE());
+        expect(execute("tailcall (continue); unreachable")).to.eql(CONTINUE());
+      });
+      it("should interrupt the script", () => {
+        expect(execute("tailcall {idem val}; unreachable")).to.eql(
+          RETURN(STR("val"))
+        );
+        expect(execute("tailcall (idem val); unreachable")).to.eql(
+          RETURN(STR("val"))
+        );
+      });
+      it("should work recursively", () => {
+        expect(
+          execute("tailcall {tailcall (idem val); unreachable}; unreachable")
+        ).to.eql(RETURN(STR("val")));
+      });
     });
-    it("should return the result of the tuple body", () => {
-      expect(execute("tailcall (idem val); unreachable")).to.eql(
-        RETURN(STR("val"))
-      );
-      expect(execute("tailcall (return val); unreachable")).to.eql(
-        RETURN(STR("val"))
-      );
-      expect(execute("tailcall (error msg); unreachable")).to.eql(ERROR("msg"));
-      expect(execute("tailcall (break); unreachable")).to.eql(BREAK());
-      expect(execute("tailcall (continue); unreachable")).to.eql(CONTINUE());
-    });
-    it("should interrupt the script", () => {
-      expect(execute("tailcall {idem val}; unreachable")).to.eql(
-        RETURN(STR("val"))
-      );
-      expect(execute("tailcall (idem val); unreachable")).to.eql(
-        RETURN(STR("val"))
-      );
-    });
-    it("should work recursively", () => {
-      expect(
-        execute("tailcall {tailcall (idem val); unreachable}; unreachable")
-      ).to.eql(RETURN(STR("val")));
-    });
-    describe("exceptions", () => {
+
+    describe("Exceptions", () => {
       specify("wrong arity", () => {
+        /**
+         * The command will return an error message with usage when given the
+         * wrong number of arguments.
+         */
         expect(execute("tailcall")).to.eql(
           ERROR('wrong # args: should be "tailcall body"')
         );
@@ -133,7 +206,10 @@ describe("Helena basic commands", () => {
           ERROR('wrong # args: should be "tailcall body"')
         );
       });
-      specify("invalid body", () => {
+      specify("invalid `body`", () => {
+        /**
+         * The `body` argument must be a script or tuple.
+         */
         expect(execute("tailcall 1")).to.eql(
           ERROR("body must be a script or tuple")
         );
@@ -141,22 +217,40 @@ describe("Helena basic commands", () => {
     });
   });
 
-  describe("yield", () => {
-    specify("usage", () => {
-      expect(evaluate("help yield")).to.eql(STR("yield ?result?"));
-      expect(evaluate("help yield val")).to.eql(STR("yield ?result?"));
+  describe("`yield`", () => {
+    mochadoc.summary("Pause execution with `YIELD` code");
+    mochadoc.usage(usage("yield"));
+    mochadoc.description(() => {
+      /**
+       * The `yield` command is a control flow command that pauses the script
+       * with a `RETURN` code and an optional result value. The script state is
+       * saved for later resumability.
+       */
     });
-    specify("result code should be YIELD", () => {
-      expect(execute("yield").code).to.eql(ResultCode.YIELD);
+
+    describe("Specifications", () => {
+      specify("usage", () => {
+        expect(evaluate("help yield")).to.eql(STR("yield ?result?"));
+        expect(evaluate("help yield val")).to.eql(STR("yield ?result?"));
+      });
+
+      specify("result code should be `YIELD`", () => {
+        expect(execute("yield").code).to.eql(ResultCode.YIELD);
+      });
+      it("should yield nil by default", () => {
+        expect(evaluate("yield")).to.eql(NIL);
+      });
+      it("should yield its optional `result` argument", () => {
+        expect(evaluate("yield val")).to.eql(STR("val"));
+      });
     });
-    it("should yield nil by default", () => {
-      expect(evaluate("yield")).to.eql(NIL);
-    });
-    it("should yield an optional result", () => {
-      expect(evaluate("yield val")).to.eql(STR("val"));
-    });
-    describe("exceptions", () => {
+
+    describe("Exceptions", () => {
       specify("wrong arity", () => {
+        /**
+         * The command will return an error message with usage when given the
+         * wrong number of arguments.
+         */
         expect(execute("yield a b")).to.eql(
           ERROR('wrong # args: should be "yield ?result?"')
         );
@@ -167,19 +261,36 @@ describe("Helena basic commands", () => {
     });
   });
 
-  describe("error", () => {
-    specify("usage", () => {
-      expect(evaluate("help error")).to.eql(STR("error message"));
-      expect(evaluate("help error val")).to.eql(STR("error message"));
+  describe("`error`", () => {
+    mochadoc.summary("Stop execution with `ERROR` code");
+    mochadoc.usage(usage("error"));
+    mochadoc.description(() => {
+      /**
+       * The `yield` command is a control flow command that stops the script
+       * with a `ERROR` code and a message value.
+       */
     });
-    specify("result code should be ERROR", () => {
-      expect(execute("error a").code).to.eql(ResultCode.ERROR);
+
+    describe("Specifications", () => {
+      specify("usage", () => {
+        expect(evaluate("help error")).to.eql(STR("error message"));
+        expect(evaluate("help error val")).to.eql(STR("error message"));
+      });
+
+      specify("result code should be `ERROR`", () => {
+        expect(execute("error a").code).to.eql(ResultCode.ERROR);
+      });
+      specify("result value should be its `message` argument", () => {
+        expect(evaluate("error val")).to.eql(STR("val"));
+      });
     });
-    specify("result value should be message", () => {
-      expect(evaluate("error val")).to.eql(STR("val"));
-    });
-    describe("exceptions", () => {
+
+    describe("Exceptions", () => {
       specify("wrong arity", () => {
+        /**
+         * The command will return an error message with usage when given the
+         * wrong number of arguments.
+         */
         expect(execute("error")).to.eql(
           ERROR('wrong # args: should be "error message"')
         );
@@ -190,21 +301,42 @@ describe("Helena basic commands", () => {
           ERROR('wrong # args: should be "error message"')
         );
       });
-      specify("non-string message", () => {
+      specify("non-string `message`", () => {
+        /**
+         * Only values with a string representation are accepted as the
+         * `message` argument
+         */
         expect(execute("error ()")).to.eql(ERROR("invalid message"));
       });
     });
   });
 
-  describe("break", () => {
-    specify("usage", () => {
-      expect(evaluate("help break")).to.eql(STR("break"));
+  describe("`break`", () => {
+    mochadoc.summary("Stop execution with `BREAK` code");
+    mochadoc.usage(usage("break"));
+    mochadoc.description(() => {
+      /**
+       * The `yield` command is a control flow command that stops the script
+       * with a `BREAK` code.
+       */
     });
-    specify("result code should be BREAK", () => {
-      expect(execute("break").code).to.eql(ResultCode.BREAK);
+
+    describe("Specifications", () => {
+      specify("usage", () => {
+        expect(evaluate("help break")).to.eql(STR("break"));
+      });
+
+      specify("result code should be `BREAK`", () => {
+        expect(execute("break").code).to.eql(ResultCode.BREAK);
+      });
     });
-    describe("exceptions", () => {
+
+    describe("Exceptions", () => {
       specify("wrong arity", () => {
+        /**
+         * The command will return an error message with usage when given the
+         * wrong number of arguments.
+         */
         expect(execute("break a")).to.eql(
           ERROR('wrong # args: should be "break"')
         );
@@ -215,15 +347,32 @@ describe("Helena basic commands", () => {
     });
   });
 
-  describe("continue", () => {
-    specify("usage", () => {
-      expect(evaluate("help continue")).to.eql(STR("continue"));
+  describe("`continue`", () => {
+    mochadoc.summary("Stop execution with `CONTINUE` code");
+    mochadoc.usage(usage("continue"));
+    mochadoc.description(() => {
+      /**
+       * The `yield` command is a control flow command that stops the script
+       * with a `CONTINUE` code.
+       */
     });
-    specify("result code should be CONTINUE", () => {
-      expect(execute("continue").code).to.eql(ResultCode.CONTINUE);
+
+    describe("Specifications", () => {
+      specify("usage", () => {
+        expect(evaluate("help continue")).to.eql(STR("continue"));
+      });
+
+      specify("result code should be `CONTINUE`", () => {
+        expect(execute("continue").code).to.eql(ResultCode.CONTINUE);
+      });
     });
-    describe("exceptions", () => {
+
+    describe("Exceptions", () => {
       specify("wrong arity", () => {
+        /**
+         * The command will return an error message with usage when given the
+         * wrong number of arguments.
+         */
         expect(execute("continue a")).to.eql(
           ERROR('wrong # args: should be "continue"')
         );
@@ -234,120 +383,146 @@ describe("Helena basic commands", () => {
     });
   });
 
-  describe("eval", () => {
-    specify("usage", () => {
-      expect(evaluate("help eval")).to.eql(STR("eval body"));
-      expect(evaluate("help eval body")).to.eql(STR("eval body"));
+  describe("`eval`", () => {
+    mochadoc.usage(usage("eval"));
+    mochadoc.description(() => {
+      /**
+       * The command `eval` evaluates and returns the result of a Helena script
+       * in the current scope.
+       */
     });
-    it("should return nil for empty body", () => {
-      expect(evaluate("eval {}")).to.eql(NIL);
-    });
-    it("should return the result of the last command", () => {
-      expect(execute("eval {idem val1; idem val2}")).to.eql(OK(STR("val2")));
-    });
-    it("should evaluate the body", () => {
-      evaluate("eval {let var val}");
-      expect(evaluate("get var")).to.eql(STR("val"));
-    });
-    it("should accept tuple bodies", () => {
-      expect(evaluate("eval (idem val)")).to.eql(STR("val"));
-    });
-    it("should work recursively", () => {
-      const process = rootScope.prepareScript(
-        parse("eval {eval {yield val1}; yield val2; eval {yield val3}}")
-      );
 
-      let result = process.run();
-      expect(result.code).to.eql(ResultCode.YIELD);
-      expect(result.value).to.eql(STR("val1"));
+    describe("Specifications", () => {
+      specify("usage", () => {
+        expect(evaluate("help eval")).to.eql(STR("eval body"));
+        expect(evaluate("help eval body")).to.eql(STR("eval body"));
+      });
 
-      result = process.run();
-      expect(result.code).to.eql(ResultCode.YIELD);
-      expect(result.value).to.eql(STR("val2"));
+      it("should return nil for empty `body`", () => {
+        expect(evaluate("eval {}")).to.eql(NIL);
+      });
+      it("should return the result of the last command evaluated in `body`", () => {
+        expect(execute("eval {idem val1; idem val2}")).to.eql(OK(STR("val2")));
+      });
+      it("should evaluate `body` in the current scope", () => {
+        evaluate("eval {let var val}");
+        expect(evaluate("get var")).to.eql(STR("val"));
+      });
+      it("should accept tuple `body` arguments", () => {
+        expect(evaluate("eval (idem val)")).to.eql(STR("val"));
+      });
+      it("should work recursively", () => {
+        const process = rootScope.prepareScript(
+          parse("eval {eval {yield val1}; yield val2; eval {yield val3}}")
+        );
 
-      result = process.run();
-      expect(result.code).to.eql(ResultCode.YIELD);
-      expect(result.value).to.eql(STR("val3"));
+        let result = process.run();
+        expect(result.code).to.eql(ResultCode.YIELD);
+        expect(result.value).to.eql(STR("val1"));
 
-      process.yieldBack(STR("val4"));
-      result = process.run();
-      expect(result).to.eql(OK(STR("val4")));
-    });
-    describe("control flow", () => {
-      describe("return", () => {
-        it("should interrupt the body with RETURN code", () => {
-          expect(
-            execute("eval {set var val1; return; set var val2}").code
-          ).to.eql(ResultCode.RETURN);
-          expect(evaluate("get var")).to.eql(STR("val1"));
+        result = process.run();
+        expect(result.code).to.eql(ResultCode.YIELD);
+        expect(result.value).to.eql(STR("val2"));
+
+        result = process.run();
+        expect(result.code).to.eql(ResultCode.YIELD);
+        expect(result.value).to.eql(STR("val3"));
+
+        process.yieldBack(STR("val4"));
+        result = process.run();
+        expect(result).to.eql(OK(STR("val4")));
+      });
+
+      describe("Control flow", () => {
+        mochadoc.description(() => {
+          /**
+           * Control flow commands will interrupt the evaluated script.
+           */
         });
-        it("should return passed value", () => {
-          expect(execute("eval {return val}")).to.eql(RETURN(STR("val")));
+
+        describe("`return`", () => {
+          it("should interrupt the body with `RETURN` code", () => {
+            expect(
+              execute("eval {set var val1; return; set var val2}").code
+            ).to.eql(ResultCode.RETURN);
+            expect(evaluate("get var")).to.eql(STR("val1"));
+          });
+          it("should return passed value", () => {
+            expect(execute("eval {return val}")).to.eql(RETURN(STR("val")));
+          });
+        });
+        describe("`tailcall`", () => {
+          it("should interrupt the body with `RETURN` code", () => {
+            expect(
+              execute("eval {set var val1; tailcall {}; set var val2}").code
+            ).to.eql(ResultCode.RETURN);
+            expect(evaluate("get var")).to.eql(STR("val1"));
+          });
+          it("should return tailcall result", () => {
+            expect(execute("eval {tailcall {idem val}}")).to.eql(
+              RETURN(STR("val"))
+            );
+          });
+        });
+        describe("`yield`", () => {
+          it("should interrupt the body with `YIELD` code", () => {
+            expect(
+              execute("eval {set var val1; yield; set var val2}").code
+            ).to.eql(ResultCode.YIELD);
+            expect(evaluate("get var")).to.eql(STR("val1"));
+          });
+          it("should provide a resumable state", () => {
+            /**
+             * Scripts interrupted with `yield` can be resumed later.
+             */
+            const process = rootScope.prepareScript(
+              parse("eval {set var val1; set var _[yield val2]_}")
+            );
+
+            let result = process.run();
+            expect(result.code).to.eql(ResultCode.YIELD);
+            expect(result.value).to.eql(STR("val2"));
+            expect(evaluate("get var")).to.eql(STR("val1"));
+
+            process.yieldBack(STR("val3"));
+            result = process.run();
+            expect(result).to.eql(OK(STR("_val3_")));
+            expect(evaluate("get var")).to.eql(STR("_val3_"));
+          });
+        });
+        describe("`error`", () => {
+          it("should interrupt the body with `ERROR` code", () => {
+            expect(
+              execute("eval {set var val1; error msg; set var val2}")
+            ).to.eql(ERROR("msg"));
+            expect(evaluate("get var")).to.eql(STR("val1"));
+          });
+        });
+        describe("`break`", () => {
+          it("should interrupt the body with `BREAK` code", () => {
+            expect(execute("eval {set var val1; break; set var val2}")).to.eql(
+              BREAK()
+            );
+            expect(evaluate("get var")).to.eql(STR("val1"));
+          });
+        });
+        describe("`continue`", () => {
+          it("should interrupt the body with `CONTINUE` code", () => {
+            expect(
+              execute("eval {set var val1; continue; set var val2}")
+            ).to.eql(CONTINUE());
+            expect(evaluate("get var")).to.eql(STR("val1"));
+          });
         });
       });
-      describe("tailcall", () => {
-        it("should interrupt the body with RETURN code", () => {
-          expect(
-            execute("eval {set var val1; tailcall {}; set var val2}").code
-          ).to.eql(ResultCode.RETURN);
-          expect(evaluate("get var")).to.eql(STR("val1"));
-        });
-        it("should return tailcall result", () => {
-          expect(execute("eval {tailcall {idem val}}")).to.eql(
-            RETURN(STR("val"))
-          );
-        });
-      });
-      describe("yield", () => {
-        it("should interrupt the body with YIELD code", () => {
-          expect(
-            execute("eval {set var val1; yield; set var val2}").code
-          ).to.eql(ResultCode.YIELD);
-          expect(evaluate("get var")).to.eql(STR("val1"));
-        });
-        it("should provide a resumable state", () => {
-          const process = rootScope.prepareScript(
-            parse("eval {set var val1; set var _[yield val2]_}")
-          );
-
-          let result = process.run();
-          expect(result.code).to.eql(ResultCode.YIELD);
-          expect(result.value).to.eql(STR("val2"));
-          expect(evaluate("get var")).to.eql(STR("val1"));
-
-          process.yieldBack(STR("val3"));
-          result = process.run();
-          expect(result).to.eql(OK(STR("_val3_")));
-          expect(evaluate("get var")).to.eql(STR("_val3_"));
-        });
-      });
-      describe("error", () => {
-        it("should interrupt the body with ERROR code", () => {
-          expect(
-            execute("eval {set var val1; error msg; set var val2}")
-          ).to.eql(ERROR("msg"));
-          expect(evaluate("get var")).to.eql(STR("val1"));
-        });
-      });
-      describe("break", () => {
-        it("should interrupt the body with BREAK code", () => {
-          expect(execute("eval {set var val1; break; set var val2}")).to.eql(
-            BREAK()
-          );
-          expect(evaluate("get var")).to.eql(STR("val1"));
-        });
-      });
-      describe("continue", () => {
-        it("should interrupt the body with CONTINUE code", () => {
-          expect(execute("eval {set var val1; continue; set var val2}")).to.eql(
-            CONTINUE()
-          );
-          expect(evaluate("get var")).to.eql(STR("val1"));
-        });
-      });
     });
-    describe("exceptions", () => {
+
+    describe("Exceptions", () => {
       specify("wrong arity", () => {
+        /**
+         * The command will return an error message with usage when given the
+         * wrong number of arguments.
+         */
         expect(execute("eval")).to.eql(
           ERROR('wrong # args: should be "eval body"')
         );
@@ -355,7 +530,10 @@ describe("Helena basic commands", () => {
           ERROR('wrong # args: should be "eval body"')
         );
       });
-      specify("invalid body", () => {
+      specify("invalid `body`", () => {
+        /**
+         * The provided body must be a script or tuple.
+         */
         expect(execute("eval 1")).to.eql(
           ERROR("body must be a script or tuple")
         );
@@ -363,17 +541,33 @@ describe("Helena basic commands", () => {
     });
   });
 
-  describe("help", () => {
-    it("should give usage of itself", () => {
-      expect(evaluate("help help")).to.eql(STR("help command ?arg ...?"));
+  describe("`help`", () => {
+    mochadoc.summary("Give usage of a command");
+    mochadoc.usage(usage("help"));
+    mochadoc.description(() => {
+      /**
+       * The `help` command returns a help string for the given command.
+       */
     });
-    it("should accept optional arguments", () => {
-      expect(evaluate("help help command")).to.eql(
-        STR("help command ?arg ...?")
-      );
+
+    describe("Specifications", () => {
+      it("should give usage of itself", () => {
+        expect(evaluate("help help")).to.eql(STR("help command ?arg ...?"));
+      });
+      it("should accept optional arguments", () => {
+        /** Passing extra arguments will validate the command signature. */
+        expect(evaluate("help help command")).to.eql(
+          STR("help command ?arg ...?")
+        );
+      });
     });
-    describe("exceptions", () => {
+
+    describe("Exceptions", () => {
       specify("wrong arity", () => {
+        /**
+         * The command will return an error message with usage when given the
+         * wrong number of arguments.
+         */
         expect(execute("help")).to.eql(
           ERROR('wrong # args: should be "help command ?arg ...?"')
         );
