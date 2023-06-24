@@ -1,10 +1,11 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
 import { ERROR, OK, ResultCode } from "../core/results";
-import { BOOL, FALSE, ValueType } from "../core/values";
+import { BOOL, FALSE, STR, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { destructureValue, Scope } from "./core";
 
+const LET_SIGNATURE = "let constname value";
 const letCmd: Command = {
   execute: (args, scope: Scope) => {
     switch (args.length) {
@@ -15,10 +16,16 @@ const letCmd: Command = {
           args[2]
         );
       default:
-        return ARITY_ERROR("let constname value");
+        return ARITY_ERROR(LET_SIGNATURE);
     }
   },
+  help: (args) => {
+    if (args.length > 3) return ARITY_ERROR(LET_SIGNATURE);
+    return OK(STR(LET_SIGNATURE));
+  },
 };
+
+const SET_SIGNATURE = "set varname value";
 const setCmd: Command = {
   execute: (args, scope: Scope) => {
     switch (args.length) {
@@ -29,10 +36,16 @@ const setCmd: Command = {
           args[2]
         );
       default:
-        return ARITY_ERROR("set varname value");
+        return ARITY_ERROR(SET_SIGNATURE);
     }
   },
+  help: (args) => {
+    if (args.length > 3) return ARITY_ERROR(SET_SIGNATURE);
+    return OK(STR(SET_SIGNATURE));
+  },
 };
+
+const GET_SIGNATURE = "get varname ?default?";
 const getCmd: Command = {
   execute: (args, scope: Scope) => {
     switch (args.length) {
@@ -57,10 +70,16 @@ const getCmd: Command = {
             return scope.getVariable(args[1], args[2]);
         }
       default:
-        return ARITY_ERROR("get varname ?default?");
+        return ARITY_ERROR(GET_SIGNATURE);
     }
   },
+  help: (args) => {
+    if (args.length > 3) return ARITY_ERROR(GET_SIGNATURE);
+    return OK(STR(GET_SIGNATURE));
+  },
 };
+
+const EXISTS_SIGNATURE = "exists varname";
 const existsCmd: Command = {
   execute: (args, scope: Scope) => {
     switch (args.length) {
@@ -77,18 +96,28 @@ const existsCmd: Command = {
             return OK(BOOL(scope.getVariable(args[1]).code == ResultCode.OK));
         }
       default:
-        return ARITY_ERROR("exists varname");
+        return ARITY_ERROR(EXISTS_SIGNATURE);
     }
   },
+  help: (args) => {
+    if (args.length > 2) return ARITY_ERROR(EXISTS_SIGNATURE);
+    return OK(STR(EXISTS_SIGNATURE));
+  },
 };
+
+const UNSET_SIGNATURE = "unset varname";
 const unsetCmd: Command = {
   execute: (args, scope: Scope) => {
     switch (args.length) {
       case 2:
         return scope.unsetVariable(args[1]);
       default:
-        return ARITY_ERROR("unset varname");
+        return ARITY_ERROR(UNSET_SIGNATURE);
     }
+  },
+  help: (args) => {
+    if (args.length > 2) return ARITY_ERROR(UNSET_SIGNATURE);
+    return OK(STR(UNSET_SIGNATURE));
   },
 };
 

@@ -168,7 +168,8 @@ with a `ERROR` code and a message value.
 
 - ✅ non-string `message`
 
-  Only values with a string representation are accepted as the `message` argument
+  Only values with a string representation are accepted as the
+  `message` argument
 
 ## `break`
 
