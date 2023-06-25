@@ -230,7 +230,7 @@ export class Scope {
     if (name == null) return ERROR("invalid variable name");
     return this.setNamedVariable(name, value, check);
   }
-  unsetVariable(variable: Value): Result {
+  unsetVariable(variable: Value, check = false): Result {
     const name = variable.asString?.();
     if (name == null) return ERROR("invalid variable name");
     if (this.locals.has(name)) {
@@ -242,7 +242,7 @@ export class Scope {
     if (!this.context.variables.has(name)) {
       return ERROR(`cannot unset "${name}": no such variable`);
     }
-
+    if (check) return OK(NIL);
     this.context.variables.delete(name);
     return OK(NIL);
   }

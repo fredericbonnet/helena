@@ -42,7 +42,6 @@ describe("Helena constants and variables", () => {
     });
 
     describe("Specifications", () => {
-      // mochadoc.summary("foo");
       specify("usage", () => {
         expect(evaluate("help let")).to.eql(STR("let constname value"));
         expect(evaluate("help let name")).to.eql(STR("let constname value"));
@@ -437,8 +436,8 @@ describe("Helena constants and variables", () => {
       });
       specify("bad selector", () => {
         /**
-         * The command will return an error when a qualified name selector
-         * fails without passing a default value.
+         * The command will return an error when a qualified name selector fails
+         * and no default value is provided.
          */
         rootScope.setNamedConstant("l", LIST([]));
         rootScope.setNamedConstant("m", MAP({}));
@@ -574,6 +573,68 @@ describe("Helena constants and variables", () => {
         evaluate("set var val");
         expect(evaluate("unset var")).to.eql(NIL);
       });
+
+      describe("Tuples", () => {
+        mochadoc.description(() => {
+          /**
+           * You can unset several variables at once by passing a name tuple.
+           * This also works recursively.
+           */
+        });
+
+        it("should unset several variables at once", () => {
+          evaluate("set var1 val1");
+          evaluate("set var2 val2");
+          evaluate("set var3 val3");
+          expect(rootScope.context.variables.has("var1")).to.be.true;
+          expect(rootScope.context.variables.has("var2")).to.be.true;
+          expect(rootScope.context.variables.has("var3")).to.be.true;
+          expect(evaluate("unset (var1 var2 var3)")).to.eql(NIL);
+          expect(rootScope.context.variables.has("var1")).to.be.false;
+          expect(rootScope.context.variables.has("var2")).to.be.false;
+          expect(rootScope.context.variables.has("var3")).to.be.false;
+        });
+        it("should work recursively", () => {
+          evaluate("set var1 val1");
+          evaluate("set var2 val2");
+          evaluate("set var3 val3");
+          expect(rootScope.context.variables.has("var1")).to.be.true;
+          expect(rootScope.context.variables.has("var2")).to.be.true;
+          expect(rootScope.context.variables.has("var3")).to.be.true;
+          expect(evaluate("unset (var1 (var2 var3))")).to.eql(NIL);
+          expect(rootScope.context.variables.has("var1")).to.be.false;
+          expect(rootScope.context.variables.has("var2")).to.be.false;
+          expect(rootScope.context.variables.has("var3")).to.be.false;
+        });
+        it("should not unset variables in case the name tuple contains unknown variables", () => {
+          evaluate("set var1 val1");
+          evaluate("set var2 val2");
+          expect(rootScope.context.variables.has("var1")).to.be.true;
+          expect(rootScope.context.variables.has("var2")).to.be.true;
+          expect(execute("unset (var1 (var2 var3))").code).to.eql(
+            ResultCode.ERROR
+          );
+          expect(rootScope.context.variables.has("var1")).to.be.true;
+          expect(rootScope.context.variables.has("var2")).to.be.true;
+        });
+        it("should not unset variables in case the name tuple contains qualified names", () => {
+          rootScope.setNamedVariable("var", LIST([STR("val1"), STR("val2")]));
+          expect(rootScope.context.variables.has("var")).to.be.true;
+          expect(execute("unset (var[1])").code).to.eql(ResultCode.ERROR);
+          expect(rootScope.context.variables.has("var")).to.be.true;
+        });
+        it("should not unset variables in case the name tuple contains invalid variables", () => {
+          evaluate("set var1 val1");
+          evaluate("set var2 val2");
+          expect(rootScope.context.variables.has("var1")).to.be.true;
+          expect(rootScope.context.variables.has("var2")).to.be.true;
+          expect(execute("unset (var1 (var2 []))").code).to.eql(
+            ResultCode.ERROR
+          );
+          expect(rootScope.context.variables.has("var1")).to.be.true;
+          expect(rootScope.context.variables.has("var2")).to.be.true;
+        });
+      });
     });
 
     describe("Exceptions", () => {
@@ -611,12 +672,15 @@ describe("Helena constants and variables", () => {
       });
       specify("qualified name", () => {
         /**
-         * The command cannot undefine a selected variable.
+         * The command cannot undefine a value selected from a qualified name.
          */
         rootScope.setNamedVariable("var", LIST([STR("val1"), STR("val2")]));
         rootScope.setNamedVariable("var", MAP({ key: STR("val") }));
         expect(execute("unset var[1]")).to.eql(ERROR("invalid variable name"));
         expect(execute("unset var(key)")).to.eql(
+          ERROR("invalid variable name")
+        );
+        expect(execute("unset (var[1] var(key))")).to.eql(
           ERROR("invalid variable name")
         );
       });

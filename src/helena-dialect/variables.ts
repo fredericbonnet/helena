@@ -1,7 +1,15 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
-import { ERROR, OK, ResultCode } from "../core/results";
-import { BOOL, FALSE, STR, ValueType } from "../core/values";
+import { ERROR, OK, Result, ResultCode } from "../core/results";
+import {
+  BOOL,
+  FALSE,
+  NIL,
+  STR,
+  TupleValue,
+  Value,
+  ValueType,
+} from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { destructureValue, Scope } from "./core";
 
@@ -110,7 +118,7 @@ const unsetCmd: Command = {
   execute: (args, scope: Scope) => {
     switch (args.length) {
       case 2:
-        return scope.unsetVariable(args[1]);
+        return unset(scope, args[1]);
       default:
         return ARITY_ERROR(UNSET_SIGNATURE);
     }
@@ -120,6 +128,22 @@ const unsetCmd: Command = {
     return OK(STR(UNSET_SIGNATURE));
   },
 };
+
+function unset(scope: Scope, name: Value, check = false): Result {
+  if (name.type != ValueType.TUPLE) return scope.unsetVariable(name, check);
+  const variables = name as TupleValue;
+  // First pass for error checking
+  for (let i = 0; i < variables.values.length; i++) {
+    const result = unset(scope, variables.values[i], true);
+    if (result.code != ResultCode.OK) return result;
+  }
+  if (check) return OK(NIL);
+  // Second pass for actual setting
+  for (let i = 0; i < variables.values.length; i++) {
+    unset(scope, variables.values[i]);
+  }
+  return OK(NIL);
+}
 
 export function registerVariableCommands(scope: Scope) {
   scope.registerNamedCommand("let", letCmd);

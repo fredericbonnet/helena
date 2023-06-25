@@ -185,8 +185,8 @@ also works recursively.
 
 - ✅ bad selector
 
-  The command will return an error when a qualified name selector
-  fails without passing a default value.
+  The command will return an error when a qualified name selector fails
+  and no default value is provided.
 
 - ✅ name tuples with default
 
@@ -260,6 +260,21 @@ The `unset` command undefines an existing variable.
 
 - ✅ should return nil
 
+#### Tuples
+
+You can unset several variables at once by passing a name tuple.
+This also works recursively.
+
+- ✅ should unset several variables at once
+
+- ✅ should work recursively
+
+- ✅ should not unset variables in case the name tuple contains unknown variables
+
+- ✅ should not unset variables in case the name tuple contains qualified names
+
+- ✅ should not unset variables in case the name tuple contains invalid variables
+
 ### Exceptions
 
 - ✅ wrong arity
@@ -277,7 +292,7 @@ The `unset` command undefines an existing variable.
 
 - ✅ qualified name
 
-  The command cannot undefine a selected variable.
+  The command cannot undefine a value selected from a qualified name.
 
 - ✅ invalid variable name
 
