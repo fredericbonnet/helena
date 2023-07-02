@@ -1,7 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Result, OK, ResultCode } from "../core/results";
 import { Command } from "../core/command";
-import { Value } from "../core/values";
+import { STR, Value } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, commandValueType, expandPrefixCmd } from "./core";
 import { Subcommands } from "./subcommands";
@@ -54,14 +54,19 @@ class AliasCommand implements CommandValue, Command {
   }
 }
 
+const ALIAS_SIGNATURE = "alias name command";
 export const aliasCmd: Command = {
   execute: (args, scope: Scope) => {
-    if (args.length != 3) return ARITY_ERROR("alias name command");
+    if (args.length != 3) return ARITY_ERROR(ALIAS_SIGNATURE);
     const [, name, cmd] = args;
 
     const value = new AliasValue(cmd);
     const result = scope.registerCommand(name, value.alias);
     if (result.code != ResultCode.OK) return result;
     return OK(value);
+  },
+  help: (args) => {
+    if (args.length > 3) return ARITY_ERROR(ALIAS_SIGNATURE);
+    return OK(STR(ALIAS_SIGNATURE));
   },
 };
