@@ -304,7 +304,7 @@ describe("Helena basic commands", () => {
       specify("non-string `message`", () => {
         /**
          * Only values with a string representation are accepted as the
-         * `message` argument
+         * `message` argument.
          */
         expect(execute("error ()")).to.eql(ERROR("invalid message"));
       });
@@ -432,89 +432,6 @@ describe("Helena basic commands", () => {
         result = process.run();
         expect(result).to.eql(OK(STR("val4")));
       });
-
-      describe("Control flow", () => {
-        mochadoc.description(() => {
-          /**
-           * Control flow commands will interrupt the evaluated script.
-           */
-        });
-
-        describe("`return`", () => {
-          it("should interrupt the body with `RETURN` code", () => {
-            expect(
-              execute("eval {set var val1; return; set var val2}").code
-            ).to.eql(ResultCode.RETURN);
-            expect(evaluate("get var")).to.eql(STR("val1"));
-          });
-          it("should return passed value", () => {
-            expect(execute("eval {return val}")).to.eql(RETURN(STR("val")));
-          });
-        });
-        describe("`tailcall`", () => {
-          it("should interrupt the body with `RETURN` code", () => {
-            expect(
-              execute("eval {set var val1; tailcall {}; set var val2}").code
-            ).to.eql(ResultCode.RETURN);
-            expect(evaluate("get var")).to.eql(STR("val1"));
-          });
-          it("should return tailcall result", () => {
-            expect(execute("eval {tailcall {idem val}}")).to.eql(
-              RETURN(STR("val"))
-            );
-          });
-        });
-        describe("`yield`", () => {
-          it("should interrupt the body with `YIELD` code", () => {
-            expect(
-              execute("eval {set var val1; yield; set var val2}").code
-            ).to.eql(ResultCode.YIELD);
-            expect(evaluate("get var")).to.eql(STR("val1"));
-          });
-          it("should provide a resumable state", () => {
-            /**
-             * Scripts interrupted with `yield` can be resumed later.
-             */
-            const process = rootScope.prepareScript(
-              parse("eval {set var val1; set var _[yield val2]_}")
-            );
-
-            let result = process.run();
-            expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(STR("val2"));
-            expect(evaluate("get var")).to.eql(STR("val1"));
-
-            process.yieldBack(STR("val3"));
-            result = process.run();
-            expect(result).to.eql(OK(STR("_val3_")));
-            expect(evaluate("get var")).to.eql(STR("_val3_"));
-          });
-        });
-        describe("`error`", () => {
-          it("should interrupt the body with `ERROR` code", () => {
-            expect(
-              execute("eval {set var val1; error msg; set var val2}")
-            ).to.eql(ERROR("msg"));
-            expect(evaluate("get var")).to.eql(STR("val1"));
-          });
-        });
-        describe("`break`", () => {
-          it("should interrupt the body with `BREAK` code", () => {
-            expect(execute("eval {set var val1; break; set var val2}")).to.eql(
-              BREAK()
-            );
-            expect(evaluate("get var")).to.eql(STR("val1"));
-          });
-        });
-        describe("`continue`", () => {
-          it("should interrupt the body with `CONTINUE` code", () => {
-            expect(
-              execute("eval {set var val1; continue; set var val2}")
-            ).to.eql(CONTINUE());
-            expect(evaluate("get var")).to.eql(STR("val1"));
-          });
-        });
-      });
     });
 
     describe("Exceptions", () => {
@@ -532,11 +449,94 @@ describe("Helena basic commands", () => {
       });
       specify("invalid `body`", () => {
         /**
-         * The provided body must be a script or tuple.
+         * The `body` argument must be a script or tuple.
          */
         expect(execute("eval 1")).to.eql(
           ERROR("body must be a script or tuple")
         );
+      });
+    });
+
+    describe("Control flow", () => {
+      mochadoc.description(() => {
+        /**
+         * Control flow commands will interrupt the evaluated script.
+         */
+      });
+
+      describe("`return`", () => {
+        it("should interrupt the body with `RETURN` code", () => {
+          expect(
+            execute("eval {set var val1; return; set var val2}").code
+          ).to.eql(ResultCode.RETURN);
+          expect(evaluate("get var")).to.eql(STR("val1"));
+        });
+        it("should return passed value", () => {
+          expect(execute("eval {return val}")).to.eql(RETURN(STR("val")));
+        });
+      });
+      describe("`tailcall`", () => {
+        it("should interrupt the body with `RETURN` code", () => {
+          expect(
+            execute("eval {set var val1; tailcall {}; set var val2}").code
+          ).to.eql(ResultCode.RETURN);
+          expect(evaluate("get var")).to.eql(STR("val1"));
+        });
+        it("should return tailcall result", () => {
+          expect(execute("eval {tailcall {idem val}}")).to.eql(
+            RETURN(STR("val"))
+          );
+        });
+      });
+      describe("`yield`", () => {
+        it("should interrupt the body with `YIELD` code", () => {
+          expect(
+            execute("eval {set var val1; yield; set var val2}").code
+          ).to.eql(ResultCode.YIELD);
+          expect(evaluate("get var")).to.eql(STR("val1"));
+        });
+        it("should provide a resumable state", () => {
+          /**
+           * Scripts interrupted with `yield` can be resumed later.
+           */
+          const process = rootScope.prepareScript(
+            parse("eval {set var val1; set var _[yield val2]_}")
+          );
+
+          let result = process.run();
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("val2"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
+
+          process.yieldBack(STR("val3"));
+          result = process.run();
+          expect(result).to.eql(OK(STR("_val3_")));
+          expect(evaluate("get var")).to.eql(STR("_val3_"));
+        });
+      });
+      describe("`error`", () => {
+        it("should interrupt the body with `ERROR` code", () => {
+          expect(
+            execute("eval {set var val1; error msg; set var val2}")
+          ).to.eql(ERROR("msg"));
+          expect(evaluate("get var")).to.eql(STR("val1"));
+        });
+      });
+      describe("`break`", () => {
+        it("should interrupt the body with `BREAK` code", () => {
+          expect(execute("eval {set var val1; break; set var val2}")).to.eql(
+            BREAK()
+          );
+          expect(evaluate("get var")).to.eql(STR("val1"));
+        });
+      });
+      describe("`continue`", () => {
+        it("should interrupt the body with `CONTINUE` code", () => {
+          expect(execute("eval {set var val1; continue; set var val2}")).to.eql(
+            CONTINUE()
+          );
+          expect(evaluate("get var")).to.eql(STR("val1"));
+        });
       });
     });
   });
@@ -572,15 +572,25 @@ describe("Helena basic commands", () => {
           ERROR('wrong # args: should be "help command ?arg ...?"')
         );
       });
+      specify("invalid `command`", () => {
+        /**
+         * Only named commands are supported, hence the `command` argument must
+         * have a valid string representation.
+         */
+        expect(execute("help []")).to.eql(ERROR("invalid command name"));
+      });
       specify("unknown command", () => {
+        /**
+         * The command cannot get help for a non-existing command.
+         */
         expect(execute("help unknownCommand")).to.eql(
           ERROR('unknown command "unknownCommand"')
         );
       });
-      specify("invalid command name", () => {
-        expect(execute("help []")).to.eql(ERROR("invalid command name"));
-      });
       specify("command with no help", () => {
+        /**
+         * The command cannot get help for a command that has none.
+         */
         rootScope.registerNamedCommand("cmd", {
           execute() {
             return OK(NIL);

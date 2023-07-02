@@ -274,6 +274,7 @@ describe("Helena aliases", () => {
          * the newly created command.
          */
       });
+
       it("should return a metacommand", () => {
         expect(evaluate("alias cmd idem").type).to.eql(commandValueType);
       });
@@ -284,10 +285,10 @@ describe("Helena aliases", () => {
          *
          * ```lna
          * set cmd [alias foo list]
-         * # These commands yield the same results:
-         * list 1 2 3
-         * foo 1 2 3
-         * [$cmd] 1 2 3
+         * # These sentences yield the same results:
+         * list (1 2 3)
+         * foo (1 2 3)
+         * [$cmd] (1 2 3)
          * ```
          */
         const value = evaluate("set cmd [alias cmd set]");
@@ -296,6 +297,7 @@ describe("Helena aliases", () => {
         expect(evaluate("[$cmd] var val")).to.eql(STR("val"));
         expect(evaluate("get var")).to.eql(STR("val"));
       });
+
       describe("Subcommands", () => {
         describe("`subcommands`", () => {
           it("should return list of subcommands", () => {
@@ -307,6 +309,7 @@ describe("Helena aliases", () => {
               evaluate("list (subcommands command)")
             );
           });
+
           describe("Exceptions", () => {
             specify("wrong arity", () => {
               /**
@@ -319,6 +322,7 @@ describe("Helena aliases", () => {
             });
           });
         });
+
         describe("`command`", () => {
           it("should return the aliased command", () => {
             /**
@@ -329,6 +333,7 @@ describe("Helena aliases", () => {
               TUPLE([STR("idem"), STR("val")])
             );
           });
+
           describe("Exceptions", () => {
             specify("wrong arity", () => {
               /**
@@ -341,18 +346,18 @@ describe("Helena aliases", () => {
             });
           });
         });
-      });
 
-      describe("Exceptions", () => {
-        specify("unknown subcommand", () => {
-          expect(execute("[alias cmd idem] unknownSubcommand")).to.eql(
-            ERROR('unknown subcommand "unknownSubcommand"')
-          );
-        });
-        specify("invalid subcommand name", () => {
-          expect(execute("[alias cmd idem] []")).to.eql(
-            ERROR("invalid subcommand name")
-          );
+        describe("Exceptions", () => {
+          specify("unknown subcommand", () => {
+            expect(execute("[alias cmd idem] unknownSubcommand")).to.eql(
+              ERROR('unknown subcommand "unknownSubcommand"')
+            );
+          });
+          specify("invalid subcommand name", () => {
+            expect(execute("[alias cmd idem] []")).to.eql(
+              ERROR("invalid subcommand name")
+            );
+          });
         });
       });
     });

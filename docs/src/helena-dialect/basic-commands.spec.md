@@ -169,7 +169,7 @@ with a `ERROR` code and a message value.
 - ✅ non-string `message`
 
   Only values with a string representation are accepted as the
-  `message` argument
+  `message` argument.
 
 ## `break`
 
@@ -248,42 +248,6 @@ in the current scope.
 
 - ✅ should work recursively
 
-#### Control flow
-
-Control flow commands will interrupt the evaluated script.
-
-##### `return`
-
-- ✅ should interrupt the body with `RETURN` code
-
-- ✅ should return passed value
-
-##### `tailcall`
-
-- ✅ should interrupt the body with `RETURN` code
-
-- ✅ should return tailcall result
-
-##### `yield`
-
-- ✅ should interrupt the body with `YIELD` code
-
-- ✅ should provide a resumable state
-
-  Scripts interrupted with `yield` can be resumed later.
-
-##### `error`
-
-- ✅ should interrupt the body with `ERROR` code
-
-##### `break`
-
-- ✅ should interrupt the body with `BREAK` code
-
-##### `continue`
-
-- ✅ should interrupt the body with `CONTINUE` code
-
 ### Exceptions
 
 - ✅ wrong arity
@@ -293,7 +257,43 @@ Control flow commands will interrupt the evaluated script.
 
 - ✅ invalid `body`
 
-  The provided body must be a script or tuple.
+  The `body` argument must be a script or tuple.
+
+### Control flow
+
+Control flow commands will interrupt the evaluated script.
+
+#### `return`
+
+- ✅ should interrupt the body with `RETURN` code
+
+- ✅ should return passed value
+
+#### `tailcall`
+
+- ✅ should interrupt the body with `RETURN` code
+
+- ✅ should return tailcall result
+
+#### `yield`
+
+- ✅ should interrupt the body with `YIELD` code
+
+- ✅ should provide a resumable state
+
+  Scripts interrupted with `yield` can be resumed later.
+
+#### `error`
+
+- ✅ should interrupt the body with `ERROR` code
+
+#### `break`
+
+- ✅ should interrupt the body with `BREAK` code
+
+#### `continue`
+
+- ✅ should interrupt the body with `CONTINUE` code
 
 ## `help`
 
@@ -322,9 +322,16 @@ The `help` command returns a help string for the given command.
   The command will return an error message with usage when given the
   wrong number of arguments.
 
+- ✅ invalid `command`
+
+  Only named commands are supported, hence the `command` argument must
+  have a valid string representation.
+
 - ✅ unknown command
 
-- ✅ invalid command name
+  The command cannot get help for a non-existing command.
 
 - ✅ command with no help
+
+  The command cannot get help for a command that has none.
 

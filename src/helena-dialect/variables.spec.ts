@@ -133,6 +133,24 @@ describe("Helena constants and variables", () => {
           ERROR('wrong # args: should be "let constname value"')
         );
       });
+      specify("invalid `constname`", () => {
+        /**
+         * Constant names must have a valid string representation.
+         */
+        expect(execute("let [] val")).to.eql(ERROR("invalid constant name"));
+        expect(execute("let ([]) (val)")).to.eql(
+          ERROR("invalid constant name")
+        );
+      });
+      specify("bad `constname` tuple shape", () => {
+        /**
+         * The shape of the name tuple must be a subset of the shape of the
+         * value tuple, missing values are not allowed.
+         */
+        expect(execute("let (a) b")).to.eql(ERROR("bad value shape"));
+        expect(execute("let ((a)) (b)")).to.eql(ERROR("bad value shape"));
+        expect(execute("let (a) ()")).to.eql(ERROR("bad value shape"));
+      });
       specify("existing constant", () => {
         /**
          * The command cannot redefine an existing constant.
@@ -149,24 +167,6 @@ describe("Helena constants and variables", () => {
         rootScope.context.variables.set("var", STR("old"));
         expect(execute("let var val")).to.eql(
           ERROR('cannot define constant "var": variable already exists')
-        );
-      });
-      specify("bad tuple shape", () => {
-        /**
-         * The shape of the name tuple must be a subset of the shape of the
-         * value tuple, missing values are not allowed.
-         */
-        expect(execute("let (a) b")).to.eql(ERROR("bad value shape"));
-        expect(execute("let ((a)) (b)")).to.eql(ERROR("bad value shape"));
-        expect(execute("let (a) ()")).to.eql(ERROR("bad value shape"));
-      });
-      specify("invalid constant name", () => {
-        /**
-         * Constant names must have a valid string representation.
-         */
-        expect(execute("let [] val")).to.eql(ERROR("invalid constant name"));
-        expect(execute("let ([]) (val)")).to.eql(
-          ERROR("invalid constant name")
         );
       });
     });
@@ -277,6 +277,24 @@ describe("Helena constants and variables", () => {
           ERROR('wrong # args: should be "set varname value"')
         );
       });
+      specify("invalid `varname`", () => {
+        /**
+         * Variable names must have a valid string representation.
+         */
+        expect(execute("set [] val")).to.eql(ERROR("invalid variable name"));
+        expect(execute("set ([]) (val)")).to.eql(
+          ERROR("invalid variable name")
+        );
+      });
+      specify("bad `varname` tuple shape", () => {
+        /**
+         * The shape of the `varname` tuple must be a subset of the shape of the
+         * `value` tuple, missing values are not allowed.
+         */
+        expect(execute("set (a) b")).to.eql(ERROR("bad value shape"));
+        expect(execute("set ((a)) (b)")).to.eql(ERROR("bad value shape"));
+        expect(execute("set (a) ()")).to.eql(ERROR("bad value shape"));
+      });
       specify("existing constant", () => {
         rootScope.context.constants.set("cst", STR("old"));
         expect(execute("set cst val")).to.eql(
@@ -285,24 +303,6 @@ describe("Helena constants and variables", () => {
         /**
          * The command cannot redefine an existing constant.
          */
-      });
-      specify("bad tuple shape", () => {
-        /**
-         * The shape of the name tuple must be a subset of the shape of the
-         * value tuple, missing values are not allowed.
-         */
-        expect(execute("set (a) b")).to.eql(ERROR("bad value shape"));
-        expect(execute("set ((a)) (b)")).to.eql(ERROR("bad value shape"));
-        expect(execute("set (a) ()")).to.eql(ERROR("bad value shape"));
-      });
-      specify("invalid variable name", () => {
-        /**
-         * Variable names must have a valid string representation.
-         */
-        expect(execute("set [] val")).to.eql(ERROR("invalid variable name"));
-        expect(execute("set ([]) (val)")).to.eql(
-          ERROR("invalid variable name")
-        );
       });
     });
   });
@@ -425,6 +425,14 @@ describe("Helena constants and variables", () => {
           ERROR('wrong # args: should be "get varname ?default?"')
         );
       });
+      specify("tuple `varname` with default", () => {
+        /**
+         * Default values are not supported with name tuples.
+         */
+        expect(execute("get (var) default")).to.eql(
+          ERROR("cannot use default with name tuples")
+        );
+      });
       specify("unknown variable", () => {
         /**
          * The command will return an error when getting an unknown variable
@@ -445,14 +453,6 @@ describe("Helena constants and variables", () => {
         expect(execute("get l(key)").code).to.eql(ResultCode.ERROR);
         expect(execute("get m[1]").code).to.eql(ResultCode.ERROR);
         expect(execute("get m(key)").code).to.eql(ResultCode.ERROR);
-      });
-      specify("name tuples with default", () => {
-        /**
-         * Default values are not supported with name tuples.
-         */
-        expect(execute("get (var) default")).to.eql(
-          ERROR("cannot use default with name tuples")
-        );
       });
     });
   });
@@ -539,7 +539,7 @@ describe("Helena constants and variables", () => {
           ERROR('wrong # args: should be "exists varname"')
         );
       });
-      specify("name tuples", () => {
+      specify("tuple `varname`", () => {
         /**
          * Name tuples are not supported.
          */
@@ -653,6 +653,26 @@ describe("Helena constants and variables", () => {
           ERROR('wrong # args: should be "unset varname"')
         );
       });
+      specify("invalid `varname`", () => {
+        /**
+         * Variable names must have a valid string representation.
+         */
+        expect(execute("unset []")).to.eql(ERROR("invalid variable name"));
+      });
+      specify("qualified `varname`", () => {
+        /**
+         * The command cannot undefine a value selected from a qualified name.
+         */
+        rootScope.setNamedVariable("var", LIST([STR("val1"), STR("val2")]));
+        rootScope.setNamedVariable("var", MAP({ key: STR("val") }));
+        expect(execute("unset var[1]")).to.eql(ERROR("invalid variable name"));
+        expect(execute("unset var(key)")).to.eql(
+          ERROR("invalid variable name")
+        );
+        expect(execute("unset (var[1] var(key))")).to.eql(
+          ERROR("invalid variable name")
+        );
+      });
       specify("existing constant", () => {
         /**
          * The command cannot undefine a constant.
@@ -669,26 +689,6 @@ describe("Helena constants and variables", () => {
         expect(execute("unset unknownVariable")).to.eql(
           ERROR('cannot unset "unknownVariable": no such variable')
         );
-      });
-      specify("qualified name", () => {
-        /**
-         * The command cannot undefine a value selected from a qualified name.
-         */
-        rootScope.setNamedVariable("var", LIST([STR("val1"), STR("val2")]));
-        rootScope.setNamedVariable("var", MAP({ key: STR("val") }));
-        expect(execute("unset var[1]")).to.eql(ERROR("invalid variable name"));
-        expect(execute("unset var(key)")).to.eql(
-          ERROR("invalid variable name")
-        );
-        expect(execute("unset (var[1] var(key))")).to.eql(
-          ERROR("invalid variable name")
-        );
-      });
-      specify("invalid variable name", () => {
-        /**
-         * Variable names must have a valid string representation.
-         */
-        expect(execute("unset []")).to.eql(ERROR("invalid variable name"));
       });
     });
   });

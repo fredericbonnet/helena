@@ -48,6 +48,15 @@ tuples. This also works recursively.
   The command will return an error message with usage when given the
   wrong number of arguments.
 
+- ✅ invalid `constname`
+
+  Constant names must have a valid string representation.
+
+- ✅ bad `constname` tuple shape
+
+  The shape of the name tuple must be a subset of the shape of the
+  value tuple, missing values are not allowed.
+
 - ✅ existing constant
 
   The command cannot redefine an existing constant.
@@ -55,15 +64,6 @@ tuples. This also works recursively.
 - ✅ existing variable
 
   The command cannot redefine an existing variable.
-
-- ✅ bad tuple shape
-
-  The shape of the name tuple must be a subset of the shape of the
-  value tuple, missing values are not allowed.
-
-- ✅ invalid constant name
-
-  Constant names must have a valid string representation.
 
 ## `set`
 
@@ -112,18 +112,18 @@ tuples. This also works recursively.
   The command will return an error message with usage when given the
   wrong number of arguments.
 
+- ✅ invalid `varname`
+
+  Variable names must have a valid string representation.
+
+- ✅ bad `varname` tuple shape
+
+  The shape of the `varname` tuple must be a subset of the shape of the
+  `value` tuple, missing values are not allowed.
+
 - ✅ existing constant
 
   The command cannot redefine an existing constant.
-
-- ✅ bad tuple shape
-
-  The shape of the name tuple must be a subset of the shape of the
-  value tuple, missing values are not allowed.
-
-- ✅ invalid variable name
-
-  Variable names must have a valid string representation.
 
 ## `get`
 
@@ -178,6 +178,10 @@ also works recursively.
   The command will return an error message with usage when given the
   wrong number of arguments.
 
+- ✅ tuple `varname` with default
+
+  Default values are not supported with name tuples.
+
 - ✅ unknown variable
 
   The command will return an error when getting an unknown variable
@@ -187,10 +191,6 @@ also works recursively.
 
   The command will return an error when a qualified name selector fails
   and no default value is provided.
-
-- ✅ name tuples with default
-
-  Default values are not supported with name tuples.
 
 ## `exists`
 
@@ -236,7 +236,7 @@ value.
   The command will return an error message with usage when given the
   wrong number of arguments.
 
-- ✅ name tuples
+- ✅ tuple `varname`
 
   Name tuples are not supported.
 
@@ -282,6 +282,14 @@ This also works recursively.
   The command will return an error message with usage when given the
   wrong number of arguments.
 
+- ✅ invalid `varname`
+
+  Variable names must have a valid string representation.
+
+- ✅ qualified `varname`
+
+  The command cannot undefine a value selected from a qualified name.
+
 - ✅ existing constant
 
   The command cannot undefine a constant.
@@ -289,12 +297,4 @@ This also works recursively.
 - ✅ unknown variable
 
   The command cannot undefine an unknown variable.
-
-- ✅ qualified name
-
-  The command cannot undefine a value selected from a qualified name.
-
-- ✅ invalid variable name
-
-  Variable names must have a valid string representation.
 

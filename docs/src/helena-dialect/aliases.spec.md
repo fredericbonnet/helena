@@ -131,10 +131,10 @@ the newly created command.
   
   ```lna
   set cmd [alias foo list]
-  # These commands yield the same results:
-  list 1 2 3
-  foo 1 2 3
-  [$cmd] 1 2 3
+  # These sentences yield the same results:
+  list (1 2 3)
+  foo (1 2 3)
+  [$cmd] (1 2 3)
   ```
 
 #### Subcommands
@@ -166,9 +166,9 @@ the newly created command.
       The subcommand will return an error message with usage when
       given the wrong number of arguments.
 
-#### Exceptions
+- Exceptions
 
-- ✅ unknown subcommand
+  - ✅ unknown subcommand
 
-- ✅ invalid subcommand name
+  - ✅ invalid subcommand name
 
