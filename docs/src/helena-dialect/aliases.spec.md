@@ -41,6 +41,13 @@ command.
 
 - ✅ should pass arguments to aliased commands
 
+- Exceptions
+
+  - ✅ wrong arity
+
+    Argument validation is done by the aliased command and
+    propagated properly by the alias.
+
 #### Command tuples
 
 Aliased commands can be any type of command, including tuple
@@ -70,52 +77,45 @@ mylist length
 If the aliased command returns a result code then it should be
 propagated properly by the alias.
 
-##### `return`
+- `return`
 
-- ✅ should interrupt a macro alias with `RETURN` code
+  - ✅ should interrupt a macro alias with `RETURN` code
 
-- ✅ should interrupt a tuple alias with `RETURN` code
+  - ✅ should interrupt a tuple alias with `RETURN` code
 
-##### `tailcall`
+- `tailcall`
 
-- ✅ should interrupt a macro alias with `RETURN` code
+  - ✅ should interrupt a macro alias with `RETURN` code
 
-- ✅ should interrupt a tuple alias with `RETURN` code
+  - ✅ should interrupt a tuple alias with `RETURN` code
 
-##### `yield`
+- `yield`
 
-- ✅ should interrupt a macro alias with `YIELD` code
+  - ✅ should interrupt a macro alias with `YIELD` code
 
-- ✅ should interrupt a tuple alias with `YIELD` code
+  - ✅ should interrupt a tuple alias with `YIELD` code
 
-- ✅ should provide a resumable state for macro alias
+  - ✅ should provide a resumable state for macro alias
 
-- ✅ should provide a resumable state for tuple alias
+  - ✅ should provide a resumable state for tuple alias
 
-##### `error`
+- `error`
 
-- ✅ should interrupt a macro alias with `ERROR` code
+  - ✅ should interrupt a macro alias with `ERROR` code
 
-- ✅ should interrupt a tuple alias with `ERROR` code
+  - ✅ should interrupt a tuple alias with `ERROR` code
 
-##### `break`
+- `break`
 
-- ✅ should interrupt a macro alias with `BREAK` code
+  - ✅ should interrupt a macro alias with `BREAK` code
 
-- ✅ should interrupt a tuple alias with `BREAK` code
+  - ✅ should interrupt a tuple alias with `BREAK` code
 
-##### `continue`
+- `continue`
 
-- ✅ should interrupt a macro alias with `CONTINUE` code
+  - ✅ should interrupt a macro alias with `CONTINUE` code
 
-- ✅ should interrupt a tuple alias with `CONTINUE` code
-
-#### Exceptions
-
-- ✅ wrong arity
-
-  Argument validation is done by the aliased command and
-  propagated properly by the alias.
+  - ✅ should interrupt a tuple alias with `CONTINUE` code
 
 ### Metacommand
 

@@ -41,7 +41,7 @@ describe("Helena constants and variables", () => {
        */
     });
 
-    describe("Specifications", () => {
+    mochadoc.section("Specifications", () => {
       specify("usage", () => {
         expect(evaluate("help let")).to.eql(STR("let constname value"));
         expect(evaluate("help let name")).to.eql(STR("let constname value"));
@@ -114,7 +114,7 @@ describe("Helena constants and variables", () => {
       });
     });
 
-    describe("Exceptions", () => {
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
         /**
          * The command will return an error message with usage when given the
@@ -182,7 +182,7 @@ describe("Helena constants and variables", () => {
        */
     });
 
-    describe("Specifications", () => {
+    mochadoc.section("Specifications", () => {
       specify("usage", () => {
         expect(evaluate("help set")).to.eql(STR("set varname value"));
         expect(evaluate("help set name")).to.eql(STR("set varname value"));
@@ -258,7 +258,7 @@ describe("Helena constants and variables", () => {
       });
     });
 
-    describe("Exceptions", () => {
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
         /**
          * The command will return an error message with usage when given the
@@ -316,7 +316,7 @@ describe("Helena constants and variables", () => {
        */
     });
 
-    describe("Specifications", () => {
+    mochadoc.section("Specifications", () => {
       specify("usage", () => {
         expect(evaluate("help get")).to.eql(STR("get varname ?default?"));
         expect(evaluate("help get name")).to.eql(STR("get varname ?default?"));
@@ -409,7 +409,7 @@ describe("Helena constants and variables", () => {
       });
     });
 
-    describe("Exceptions", () => {
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
         /**
          * The command will return an error message with usage when given the
@@ -466,7 +466,7 @@ describe("Helena constants and variables", () => {
        */
     });
 
-    describe("Specifications", () => {
+    mochadoc.section("Specifications", () => {
       specify("usage", () => {
         expect(evaluate("help exists")).to.eql(STR("exists varname"));
         expect(evaluate("help exists name")).to.eql(STR("exists varname"));
@@ -523,7 +523,7 @@ describe("Helena constants and variables", () => {
       });
     });
 
-    describe("Exceptions", () => {
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
         /**
          * The command will return an error message with usage when given the
@@ -557,7 +557,7 @@ describe("Helena constants and variables", () => {
        */
     });
 
-    describe("Specifications", () => {
+    mochadoc.section("Specifications", () => {
       specify("usage", () => {
         expect(evaluate("help unset")).to.eql(STR("unset varname"));
         expect(evaluate("help unset name")).to.eql(STR("unset varname"));
@@ -637,7 +637,7 @@ describe("Helena constants and variables", () => {
       });
     });
 
-    describe("Exceptions", () => {
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
         /**
          * The command will return an error message with usage when given the

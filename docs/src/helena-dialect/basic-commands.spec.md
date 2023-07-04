@@ -263,37 +263,37 @@ in the current scope.
 
 Control flow commands will interrupt the evaluated script.
 
-#### `return`
+- `return`
 
-- ✅ should interrupt the body with `RETURN` code
+  - ✅ should interrupt the body with `RETURN` code
 
-- ✅ should return passed value
+  - ✅ should return passed value
 
-#### `tailcall`
+- `tailcall`
 
-- ✅ should interrupt the body with `RETURN` code
+  - ✅ should interrupt the body with `RETURN` code
 
-- ✅ should return tailcall result
+  - ✅ should return tailcall result
 
-#### `yield`
+- `yield`
 
-- ✅ should interrupt the body with `YIELD` code
+  - ✅ should interrupt the body with `YIELD` code
 
-- ✅ should provide a resumable state
+  - ✅ should provide a resumable state
 
-  Scripts interrupted with `yield` can be resumed later.
+    Scripts interrupted with `yield` can be resumed later.
 
-#### `error`
+- `error`
 
-- ✅ should interrupt the body with `ERROR` code
+  - ✅ should interrupt the body with `ERROR` code
 
-#### `break`
+- `break`
 
-- ✅ should interrupt the body with `BREAK` code
+  - ✅ should interrupt the body with `BREAK` code
 
-#### `continue`
+- `continue`
 
-- ✅ should interrupt the body with `CONTINUE` code
+  - ✅ should interrupt the body with `CONTINUE` code
 
 ## `help`
 

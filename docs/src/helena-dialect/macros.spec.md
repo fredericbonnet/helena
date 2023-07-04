@@ -49,13 +49,13 @@ the calling context.
 
 - ✅ should access scope commands
 
-#### should evaluate in the caller scope
+- should evaluate in the caller scope
 
-- ✅ global scope
+  - ✅ global scope
 
-- ✅ child scope
+  - ✅ child scope
 
-- ✅ scoped macro
+  - ✅ scoped macro
 
 #### Arguments
 
@@ -63,7 +63,17 @@ the calling context.
 
 - ✅ should be macro-local
 
+- Exceptions
+
+  - ✅ wrong arity
+
+    The macro will return an error message with usage when given the
+    wrong number of arguments.
+
 #### Return guards
+
+Return guards are similar to argspec guards, but apply to the
+return value of the macro.
 
 - ✅ should apply to the return value
 
@@ -86,49 +96,42 @@ the calling context.
 If the body returns a result code then it should be
 propagated properly by the macro.
 
-##### `return`
+- `return`
 
-- ✅ should interrupt a macro with `RETURN` code
+  - ✅ should interrupt a macro with `RETURN` code
 
-##### `tailcall`
+- `tailcall`
 
-- ✅ should interrupt a macro with `RETURN` code
+  - ✅ should interrupt a macro with `RETURN` code
 
-##### `yield`
+- `yield`
 
-- ✅ should interrupt a macro with `YIELD` code
+  - ✅ should interrupt a macro with `YIELD` code
 
-- ✅ should provide a resumable state
+  - ✅ should provide a resumable state
 
-- ✅ should work recursively
+  - ✅ should work recursively
 
-##### `error`
+- `error`
 
-- ✅ should interrupt a macro with `ERROR` code
+  - ✅ should interrupt a macro with `ERROR` code
 
-##### `break`
+- `break`
 
-- ✅ should interrupt a macro with `BREAK` code
+  - ✅ should interrupt a macro with `BREAK` code
 
-##### `continue`
+- `continue`
 
-- ✅ should interrupt a macro with `CONTINUE` code
-
-#### Exceptions
-
-- ✅ wrong arity
-
-  The macro will return an error message with usage when given the
-  wrong number of arguments.
+  - ✅ should interrupt a macro with `CONTINUE` code
 
 ### Metacommand
 
 `macro` returns a metacommand value that can be used to introspect
 the newly created command.
 
-- ✅ should return a command object
+- ✅ should return a metacommand
 
-- ✅ the command object should return the macro
+- ✅ the metacommand should return the macro
 
   The typical application of this property is to call the command by
   wrapping its metacommand within brackets, i.e. `[$metacommand]`:

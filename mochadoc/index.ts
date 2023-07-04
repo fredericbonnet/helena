@@ -3,7 +3,34 @@
  */
 
 import { Documentation } from "./types";
-import { addBlock, setSummary } from "./writer";
+import { addBlock, setSummary, markAsSection } from "./writer";
+
+/**
+ * Define a new Mocha suite as a section
+ *
+ * @param title - Suite title
+ * @param fn    - Suite body
+ *
+ * @returns       Suite function
+ */
+export function section(title: string, fn: (this: Mocha.Suite) => void) {
+  return describe(title, function (this: Mocha.Suite) {
+    markAsSection(this);
+    return fn.call(this);
+  });
+}
+// eslint-disable-next-line jsdoc/require-jsdoc
+section.only = (title: string, fn: (this: Mocha.Suite) => void) => {
+  return describe.only(title, function (this: Mocha.Suite) {
+    return fn.call(this);
+  });
+};
+// eslint-disable-next-line jsdoc/require-jsdoc
+section.skip = (title: string, fn: (this: Mocha.Suite) => void) => {
+  return describe.skip(title, function (this: Mocha.Suite) {
+    return fn.call(this);
+  });
+};
 
 /**
  * Set summary for the current Mocha suite

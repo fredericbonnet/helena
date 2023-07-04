@@ -48,7 +48,7 @@ describe("Helena basic commands", () => {
        */
     });
 
-    describe("Specifications", () => {
+    mochadoc.section("Specifications", () => {
       specify("usage", () => {
         expect(evaluate("help idem")).to.eql(STR("idem value"));
         expect(evaluate("help idem val")).to.eql(STR("idem value"));
@@ -62,7 +62,7 @@ describe("Helena basic commands", () => {
       });
     });
 
-    describe("Exceptions", () => {
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
         /**
          * The command will return an error message with usage when given the
@@ -91,7 +91,7 @@ describe("Helena basic commands", () => {
        */
     });
 
-    describe("Specifications", () => {
+    mochadoc.section("Specifications", () => {
       specify("usage", () => {
         expect(evaluate("help return")).to.eql(STR("return ?result?"));
         expect(evaluate("help return val")).to.eql(STR("return ?result?"));
@@ -110,7 +110,8 @@ describe("Helena basic commands", () => {
         expect(execute("return val; unreachable")).to.eql(RETURN(STR("val")));
       });
     });
-    describe("Exceptions", () => {
+
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
         /**
          * The command will return an error message with usage when given the
@@ -136,7 +137,7 @@ describe("Helena basic commands", () => {
        */
     });
 
-    describe("Specifications", () => {
+    mochadoc.section("Specifications", () => {
       specify("usage", () => {
         expect(evaluate("help tailcall")).to.eql(STR("tailcall body"));
         expect(evaluate("help tailcall {}")).to.eql(STR("tailcall body"));
@@ -190,7 +191,7 @@ describe("Helena basic commands", () => {
       });
     });
 
-    describe("Exceptions", () => {
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
         /**
          * The command will return an error message with usage when given the
@@ -228,7 +229,7 @@ describe("Helena basic commands", () => {
        */
     });
 
-    describe("Specifications", () => {
+    mochadoc.section("Specifications", () => {
       specify("usage", () => {
         expect(evaluate("help yield")).to.eql(STR("yield ?result?"));
         expect(evaluate("help yield val")).to.eql(STR("yield ?result?"));
@@ -245,7 +246,7 @@ describe("Helena basic commands", () => {
       });
     });
 
-    describe("Exceptions", () => {
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
         /**
          * The command will return an error message with usage when given the
@@ -271,7 +272,7 @@ describe("Helena basic commands", () => {
        */
     });
 
-    describe("Specifications", () => {
+    mochadoc.section("Specifications", () => {
       specify("usage", () => {
         expect(evaluate("help error")).to.eql(STR("error message"));
         expect(evaluate("help error val")).to.eql(STR("error message"));
@@ -285,7 +286,7 @@ describe("Helena basic commands", () => {
       });
     });
 
-    describe("Exceptions", () => {
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
         /**
          * The command will return an error message with usage when given the
@@ -321,7 +322,7 @@ describe("Helena basic commands", () => {
        */
     });
 
-    describe("Specifications", () => {
+    mochadoc.section("Specifications", () => {
       specify("usage", () => {
         expect(evaluate("help break")).to.eql(STR("break"));
       });
@@ -331,7 +332,7 @@ describe("Helena basic commands", () => {
       });
     });
 
-    describe("Exceptions", () => {
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
         /**
          * The command will return an error message with usage when given the
@@ -357,7 +358,7 @@ describe("Helena basic commands", () => {
        */
     });
 
-    describe("Specifications", () => {
+    mochadoc.section("Specifications", () => {
       specify("usage", () => {
         expect(evaluate("help continue")).to.eql(STR("continue"));
       });
@@ -367,7 +368,7 @@ describe("Helena basic commands", () => {
       });
     });
 
-    describe("Exceptions", () => {
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
         /**
          * The command will return an error message with usage when given the
@@ -392,7 +393,7 @@ describe("Helena basic commands", () => {
        */
     });
 
-    describe("Specifications", () => {
+    mochadoc.section("Specifications", () => {
       specify("usage", () => {
         expect(evaluate("help eval")).to.eql(STR("eval body"));
         expect(evaluate("help eval body")).to.eql(STR("eval body"));
@@ -434,7 +435,7 @@ describe("Helena basic commands", () => {
       });
     });
 
-    describe("Exceptions", () => {
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
         /**
          * The command will return an error message with usage when given the
@@ -550,7 +551,7 @@ describe("Helena basic commands", () => {
        */
     });
 
-    describe("Specifications", () => {
+    mochadoc.section("Specifications", () => {
       it("should give usage of itself", () => {
         expect(evaluate("help help")).to.eql(STR("help command ?arg ...?"));
       });
@@ -562,7 +563,7 @@ describe("Helena basic commands", () => {
       });
     });
 
-    describe("Exceptions", () => {
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
         /**
          * The command will return an error message with usage when given the

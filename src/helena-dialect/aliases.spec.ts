@@ -32,13 +32,13 @@ describe("Helena aliases", () => {
     tokenizer = new Tokenizer();
     parser = new Parser();
   };
-
-  beforeEach(init);
-
   const usage = (script: string) => {
     init();
     return "```lna\n" + evaluate("help " + script).asString() + "\n```";
   };
+
+  beforeEach(init);
+
   describe("`alias`", () => {
     mochadoc.summary("Define a command alias");
     mochadoc.usage(usage("alias"));
@@ -49,7 +49,7 @@ describe("Helena aliases", () => {
        */
     });
 
-    describe("Specifications", () => {
+    mochadoc.section("Specifications", () => {
       specify("usage", () => {
         expect(evaluate("help alias")).to.eql(STR("alias name command"));
         expect(evaluate("help alias cmd")).to.eql(STR("alias name command"));
@@ -68,7 +68,7 @@ describe("Helena aliases", () => {
       });
     });
 
-    describe("Exceptions", () => {
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
         /**
          * The command will return an error message with usage when given the
@@ -104,6 +104,23 @@ describe("Helena aliases", () => {
         expect(execute("cmd val")).to.eql(OK(STR("val")));
         expect(evaluate("get var")).to.eql(STR("val"));
       });
+
+      describe("Exceptions", () => {
+        specify("wrong arity", () => {
+          /**
+           * Argument validation is done by the aliased command and
+           * propagated properly by the alias.
+           */
+          evaluate("alias cmd (set var)");
+          expect(execute("cmd")).to.eql(
+            ERROR('wrong # args: should be "set varname value"')
+          );
+          expect(execute("cmd 1 2")).to.eql(
+            ERROR('wrong # args: should be "set varname value"')
+          );
+        });
+      });
+
       describe("Command tuples", () => {
         mochadoc.description(() => {
           /**
@@ -249,22 +266,6 @@ describe("Helena aliases", () => {
           });
         });
       });
-
-      describe("Exceptions", () => {
-        specify("wrong arity", () => {
-          /**
-           * Argument validation is done by the aliased command and
-           * propagated properly by the alias.
-           */
-          evaluate("alias cmd (set var)");
-          expect(execute("cmd")).to.eql(
-            ERROR('wrong # args: should be "set varname value"')
-          );
-          expect(execute("cmd 1 2")).to.eql(
-            ERROR('wrong # args: should be "set varname value"')
-          );
-        });
-      });
     });
 
     describe("Metacommand", () => {
@@ -298,7 +299,7 @@ describe("Helena aliases", () => {
         expect(evaluate("get var")).to.eql(STR("val"));
       });
 
-      describe("Subcommands", () => {
+      mochadoc.section("Subcommands", () => {
         describe("`subcommands`", () => {
           it("should return list of subcommands", () => {
             /**

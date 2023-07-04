@@ -10,6 +10,16 @@ const commentRE = /\/\*\*(.|\n|\r)*?\*\//;
 const tsdocParser: TSDocParser = new TSDocParser();
 
 /**
+ * Mark Mocha suite as section
+ *
+ * @param suite - Mocha suite to mark as section
+ */
+export function markAsSection(suite: mocha.Suite) {
+  const info = ensureSuiteInfo(suite);
+  info.isSection = true;
+}
+
+/**
  * Attach summary to Mocha suite
  *
  * @param suite         - Mocha suite to attach documentation to
@@ -118,6 +128,9 @@ interface DocumentationBlock {
 interface SuiteInfo {
   /** Suite level */
   level: number;
+
+  /** Section flag */
+  isSection?: boolean;
 
   /** Section level */
   sectionLevel: number;
@@ -293,14 +306,11 @@ function getSectionLevel(suite: mocha.Suite): number {
   // Suites are not sections by default (stop condition for recursive calls)
   info.sectionLevel = 0;
   if (
+    info.isSection ||
     // Main suites are toplevel sections
     isMainSuite(suite) ||
     // Suites with content in their descendence
-    hasContentOrSubcontent(suite) ||
-    // Immediate children of suites with content
-    hasContent(suite.parent) ||
-    // Siblings of sections
-    suite.parent.suites.some((suite) => getSectionLevel(suite) > 0)
+    hasContentOrSubcontent(suite)
   ) {
     // The whole chain of parent suites must also be sections, this implies that
     // the section level is the suite level
@@ -386,11 +396,14 @@ function writeTestDoc(fd: number, test: mocha.Test) {
   const indentLevel = getIndentLevel(test.parent);
   fs.writeSync(
     fd,
-    listItem(`${passed ? "✅" : "❌"} ${test.title}`, indentLevel)
+    listItem(
+      `${passed ? "✅" : test.pending ? "⏸️" : "❌"} ${test.title}`,
+      indentLevel
+    )
   );
   const s = getTSDocs(test.body);
   if (s) fs.writeSync(fd, paragraph(s, indentLevel + 1));
-  if (!passed)
+  if (!passed && !test.pending && !!test.err)
     fs.writeSync(
       fd,
       paragraph("```\n" + test.err.toString() + "\n```", indentLevel + 1)

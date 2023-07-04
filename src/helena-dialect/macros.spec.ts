@@ -32,14 +32,14 @@ describe("Helena macros", () => {
     tokenizer = new Tokenizer();
     parser = new Parser();
   };
-
-  beforeEach(init);
-
   const usage = (script: string) => {
     init();
     return "```lna\n" + evaluate("help " + script).asString() + "\n```";
   };
-  describe("`macro`", () => {
+
+  beforeEach(init);
+
+  mochadoc.section("`macro`", () => {
     mochadoc.summary("Define a macro");
     mochadoc.usage(usage("macro"));
     mochadoc.description(() => {
@@ -49,7 +49,7 @@ describe("Helena macros", () => {
        */
     });
 
-    describe("Specifications", () => {
+    mochadoc.section("Specifications", () => {
       specify("usage", () => {
         expect(evaluate("help macro")).to.eql(STR("macro ?name? argspec body"));
         expect(evaluate("help macro args")).to.eql(
@@ -76,7 +76,7 @@ describe("Helena macros", () => {
       });
     });
 
-    describe("Exceptions", () => {
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
         /**
          * The command will return an error message with usage when given the
@@ -170,7 +170,7 @@ describe("Helena macros", () => {
         expect(evaluate("get var")).to.eql(STR("val"));
       });
 
-      describe("Arguments", () => {
+      mochadoc.section("Arguments", () => {
         it("should shadow scope variables", () => {
           evaluate("set var val");
           evaluate("macro cmd {var} {idem $var}");
@@ -181,9 +181,38 @@ describe("Helena macros", () => {
           evaluate("macro cmd {var} {[[macro {} {idem $var}]]}");
           expect(evaluate("cmd val2")).to.eql(STR("val"));
         });
+
+        describe("Exceptions", () => {
+          specify("wrong arity", () => {
+            /**
+             * The macro will return an error message with usage when given the
+             * wrong number of arguments.
+             */
+            evaluate("macro cmd {a} {}");
+            expect(execute("cmd")).to.eql(
+              ERROR('wrong # args: should be "cmd a"')
+            );
+            expect(execute("cmd 1 2")).to.eql(
+              ERROR('wrong # args: should be "cmd a"')
+            );
+            expect(execute("[[macro {a} {}]]")).to.eql(
+              ERROR('wrong # args: should be "<macro> a"')
+            );
+            expect(execute("[[macro cmd {a} {}]]")).to.eql(
+              ERROR('wrong # args: should be "<macro> a"')
+            );
+          });
+        });
       });
 
       describe("Return guards", () => {
+        mochadoc.description(() => {
+          /**
+           * Return guards are similar to argspec guards, but apply to the
+           * return value of the macro.
+           */
+        });
+
         it("should apply to the return value", () => {
           evaluate('macro guard {result} {idem "guarded:$result"}');
           evaluate("macro cmd1 {var} {idem $var}");
@@ -321,28 +350,6 @@ describe("Helena macros", () => {
           });
         });
       });
-
-      describe("Exceptions", () => {
-        specify("wrong arity", () => {
-          /**
-           * The macro will return an error message with usage when given the
-           * wrong number of arguments.
-           */
-          evaluate("macro cmd {a} {}");
-          expect(execute("cmd")).to.eql(
-            ERROR('wrong # args: should be "cmd a"')
-          );
-          expect(execute("cmd 1 2")).to.eql(
-            ERROR('wrong # args: should be "cmd a"')
-          );
-          expect(execute("[[macro {a} {}]]")).to.eql(
-            ERROR('wrong # args: should be "<macro> a"')
-          );
-          expect(execute("[[macro cmd {a} {}]]")).to.eql(
-            ERROR('wrong # args: should be "<macro> a"')
-          );
-        });
-      });
     });
 
     describe("Metacommand", () => {
@@ -353,11 +360,11 @@ describe("Helena macros", () => {
          */
       });
 
-      it("should return a command object", () => {
+      it("should return a metacommand", () => {
         expect(evaluate("macro {} {}").type).to.eql(commandValueType);
         expect(evaluate("macro cmd {} {}").type).to.eql(commandValueType);
       });
-      specify("the command object should return the macro", () => {
+      specify("the metacommand should return the macro", () => {
         /**
          * The typical application of this property is to call the command by
          * wrapping its metacommand within brackets, i.e. `[$metacommand]`:
@@ -375,7 +382,7 @@ describe("Helena macros", () => {
         expect(evaluate("[$cmd] arg")).to.eql(STR("_arg_"));
       });
 
-      describe("Subcommands", () => {
+      mochadoc.section("Subcommands", () => {
         describe("`subcommands`", () => {
           it("should return list of subcommands", () => {
             /**
