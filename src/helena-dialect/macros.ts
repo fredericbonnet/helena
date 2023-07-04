@@ -2,6 +2,7 @@
 import { Result, ResultCode, YIELD, OK, ERROR } from "../core/results";
 import { Command } from "../core/command";
 import {
+  STR,
   ScriptValue,
   TUPLE,
   TupleValue,
@@ -80,6 +81,8 @@ class MacroCommand implements CommandValue, Command {
     return OK(result.value);
   }
 }
+
+const MACRO_SIGNATURE = "macro ?name? argspec body";
 export const macroCmd: Command = {
   execute: (args, scope: Scope) => {
     let name, specs, body;
@@ -91,7 +94,7 @@ export const macroCmd: Command = {
         [, name, specs, body] = args;
         break;
       default:
-        return ARITY_ERROR("macro ?name? argspec body");
+        return ARITY_ERROR(MACRO_SIGNATURE);
     }
     let guard;
     switch (body.type) {
@@ -125,5 +128,9 @@ export const macroCmd: Command = {
       if (result.code != ResultCode.OK) return result;
     }
     return OK(value);
+  },
+  help: (args) => {
+    if (args.length > 4) return ARITY_ERROR(MACRO_SIGNATURE);
+    return OK(STR(MACRO_SIGNATURE));
   },
 };
