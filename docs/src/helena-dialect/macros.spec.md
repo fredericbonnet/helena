@@ -33,9 +33,13 @@ the calling context.
 
 - ✅ invalid argument list
 
+  The command expects an argument list in `argspec` format.
+
 - ✅ non-script body
 
-- ✅ invalid command name
+- ✅ invalid `name`
+
+  Command names must have a valid string representation.
 
 ### Command calls
 

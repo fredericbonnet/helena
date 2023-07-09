@@ -31,7 +31,7 @@ command.
   The command will return an error message with usage when given the
   wrong number of arguments.
 
-- ✅ invalid command name
+- ✅ invalid `name`
 
   Command names must have a valid string representation.
 

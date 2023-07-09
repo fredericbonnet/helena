@@ -96,13 +96,22 @@ describe("Helena macros", () => {
         );
       });
       specify("invalid argument list", () => {
+        /**
+         * The command expects an argument list in `argspec` format.
+         */
         expect(execute("macro a {}")).to.eql(ERROR("invalid argument list"));
+        expect(execute("macro cmd a {}")).to.eql(
+          ERROR("invalid argument list")
+        );
       });
       specify("non-script body", () => {
         expect(execute("macro a b")).to.eql(ERROR("body must be a script"));
         expect(execute("macro a b c")).to.eql(ERROR("body must be a script"));
       });
-      specify("invalid command name", () => {
+      specify("invalid `name`", () => {
+        /**
+         * Command names must have a valid string representation.
+         */
         expect(execute("macro [] {} {}")).to.eql(ERROR("invalid command name"));
       });
     });

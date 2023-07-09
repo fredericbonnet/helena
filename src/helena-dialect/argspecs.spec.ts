@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import * as mochadoc from "../../mochadoc";
 import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
@@ -18,36 +19,87 @@ describe("Helena argument handling", () => {
   const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 
-  beforeEach(() => {
+  const init = () => {
     rootScope = new Scope();
     initCommands(rootScope);
 
     tokenizer = new Tokenizer();
     parser = new Parser();
-  });
+  };
+  const usage = (script: string) => {
+    init();
+    return "```lna\n" + evaluate("help " + script).asString() + "\n```";
+  };
 
-  describe("argspec", () => {
-    it("should define a new command", () => {
-      evaluate("argspec cmd {}");
-      expect(rootScope.context.commands.has("cmd")).to.be.true;
+  beforeEach(init);
+
+  mochadoc.section("`argspec`", () => {
+    mochadoc.summary("Define a argument-parsing command");
+    mochadoc.usage(usage("argspec"));
+    mochadoc.description(() => {
+      /**
+       * The `argspec` command defines a new command that will parse a list of
+       * arguments according to a given _argument specification_ (abbreviated
+       * _"argspec"_).
+       */
     });
-    it("should replace existing commands", () => {
-      evaluate("argspec cmd {}");
-      expect(execute("argspec cmd {}").code).to.eql(ResultCode.OK);
+
+    mochadoc.section("Specifications", () => {
+      specify("usage", () => {
+        expect(evaluate("help argspec")).to.eql(STR("argspec ?name? specs"));
+        expect(evaluate("help argspec {}")).to.eql(STR("argspec ?name? specs"));
+        expect(evaluate("help argspec cmd {}")).to.eql(
+          STR("argspec ?name? specs")
+        );
+      });
+
+      it("should define a new command", () => {
+        evaluate("argspec cmd {}");
+        expect(rootScope.context.commands.has("cmd")).to.be.true;
+      });
+      it("should replace existing commands", () => {
+        evaluate("argspec cmd {}");
+        expect(execute("argspec cmd {}").code).to.eql(ResultCode.OK);
+      });
+      it("should return a command object", () => {
+        expect(evaluate("argspec {}").type).to.eql(commandValueType);
+        expect(evaluate("argspec cmd {}").type).to.eql(commandValueType);
+      });
+      specify("the named command should return its command object", () => {
+        const value = evaluate("argspec cmd {}");
+        expect(evaluate("cmd")).to.eql(value);
+      });
+      specify("the command object should return itself", () => {
+        const value = evaluate("set cmd [argspec {}]");
+        expect(evaluate("$cmd")).to.eql(value);
+      });
     });
-    it("should return a command object", () => {
-      expect(evaluate("argspec {}").type).to.eql(commandValueType);
-      expect(evaluate("argspec cmd {}").type).to.eql(commandValueType);
+
+    mochadoc.section("Exceptions", () => {
+      specify("wrong arity", () => {
+        /**
+         * The command will return an error message with usage when given the
+         * wrong number of arguments.
+         */
+        expect(execute("argspec")).to.eql(
+          ERROR('wrong # args: should be "argspec ?name? specs"')
+        );
+        expect(execute("argspec a b c")).to.eql(
+          ERROR('wrong # args: should be "argspec ?name? specs"')
+        );
+        expect(execute("help argspec a b c")).to.eql(
+          ERROR('wrong # args: should be "argspec ?name? specs"')
+        );
+      });
+      specify("invalid `name`", () => {
+        /**
+         * Command names must have a valid string representation.
+         */
+        expect(execute("argspec [] {}")).to.eql(ERROR("invalid command name"));
+      });
     });
-    specify("the named command should return its command object", () => {
-      const value = evaluate("argspec cmd {}");
-      expect(evaluate("cmd")).to.eql(value);
-    });
-    specify("the command object should return itself", () => {
-      const value = evaluate("set cmd [argspec {}]");
-      expect(evaluate("$cmd")).to.eql(value);
-    });
-    describe("specs", () => {
+
+    mochadoc.section("`specs`", () => {
       describe("empty", () => {
         specify("value", () => {
           const value = evaluate("argspec ()") as ArgspecValue;
@@ -526,37 +578,109 @@ describe("Helena argument handling", () => {
           });
         });
       });
+
+      mochadoc.section("Exceptions", () => {
+        specify("empty argument name", () => {
+          expect(execute('argspec ("")')).to.eql(ERROR("empty argument name"));
+          expect(execute("argspec (?)")).to.eql(ERROR("empty argument name"));
+          expect(execute('argspec ((""))')).to.eql(
+            ERROR("empty argument name")
+          );
+          expect(execute("argspec ((?))")).to.eql(ERROR("empty argument name"));
+        });
+        specify("invalid argument name", () => {
+          expect(execute("argspec ([])")).to.eql(
+            ERROR("invalid argument name")
+          );
+          expect(execute("argspec (([]))")).to.eql(
+            ERROR("invalid argument name")
+          );
+        });
+        specify("duplicate arguments", () => {
+          expect(execute("argspec (a a)")).to.eql(
+            ERROR('duplicate argument "a"')
+          );
+          expect(execute("argspec ((?a def) a)")).to.eql(
+            ERROR('duplicate argument "a"')
+          );
+          expect(execute("argspec (a (?a def))")).to.eql(
+            ERROR('duplicate argument "a"')
+          );
+        });
+        specify("empty argument specifier", () => {
+          expect(execute("argspec (())")).to.eql(
+            ERROR("empty argument specifier")
+          );
+          expect(execute("argspec ({})")).to.eql(
+            ERROR("empty argument specifier")
+          );
+        });
+        specify("too many specifiers", () => {
+          expect(execute("argspec ((a b c d))")).to.eql(
+            ERROR('too many specifiers for argument "a"')
+          );
+          expect(execute("argspec ({a b c d})")).to.eql(
+            ERROR('too many specifiers for argument "a"')
+          );
+        });
+        specify("non-optional parameter with guard and default", () => {
+          expect(execute("argspec ((a b c))")).to.eql(
+            ERROR('default argument "b" must be optional')
+          );
+          expect(execute("argspec ({a b c})")).to.eql(
+            ERROR('default argument "b" must be optional')
+          );
+        });
+      });
     });
-    describe("subcommands", () => {
-      describe("subcommands", () => {
+
+    mochadoc.section("Subcommands", () => {
+      describe("`subcommands`", () => {
         it("should return list of subcommands", () => {
+          /**
+           * This subcommand is useful for introspection and interactive calls.
+           */
           expect(evaluate("[argspec {}] subcommands")).to.eql(
             evaluate("list (subcommands usage set)")
           );
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The subcommand will return an error message with usage when given
+             * the wrong number of arguments.
+             */
             expect(execute("[argspec {}] subcommands a")).to.eql(
               ERROR('wrong # args: should be "<argspec> subcommands"')
             );
           });
         });
       });
-      describe("usage", () => {
+      describe("`usage`", () => {
         it("should return a usage string with argument names", () => {
+          /**
+           * This subcommand returns a help string for the argspec command.
+           *
+           */
           expect(evaluate("[argspec {a b ?c *}] usage")).to.eql(
             STR("a b ?c? ?arg ...?")
           );
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The subcommand will return an error message with usage when given
+             * the wrong number of arguments.
+             */
             expect(execute("[argspec {}] usage a")).to.eql(
               ERROR('wrong # args: should be "<argspec> usage"')
             );
           });
         });
       });
-      describe("set", () => {
+      describe("`set`", () => {
         it("should return nil", () => {
           expect(evaluate("[argspec {}] set ()")).to.eql(NIL);
         });
@@ -621,8 +745,13 @@ describe("Helena argument handling", () => {
           expect(evaluate("get b")).to.eql(TUPLE([STR("val2"), STR("val3")]));
           expect(evaluate("get c")).to.eql(STR("val4"));
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The subcommand will return an error message with usage when given
+             * the wrong number of arguments.
+             */
             expect(execute("[argspec {}] set")).to.eql(
               ERROR('wrong # args: should be "<argspec> set values"')
             );
@@ -632,7 +761,8 @@ describe("Helena argument handling", () => {
           });
         });
       });
-      describe("exceptions", () => {
+
+      describe("Exceptions", () => {
         specify("unknown subcommand", () => {
           expect(execute("[argspec {}] unknownSubcommand")).to.eql(
             ERROR('unknown subcommand "unknownSubcommand"')
@@ -643,66 +773,6 @@ describe("Helena argument handling", () => {
             ERROR("invalid subcommand name")
           );
         });
-      });
-    });
-    describe("exceptions", () => {
-      specify("wrong arity", () => {
-        expect(execute("argspec")).to.eql(
-          ERROR('wrong # args: should be "argspec ?name? specs"')
-        );
-        expect(execute("argspec a b c")).to.eql(
-          ERROR('wrong # args: should be "argspec ?name? specs"')
-        );
-      });
-      specify("empty argument name", () => {
-        expect(execute('argspec ("")')).to.eql(ERROR("empty argument name"));
-        expect(execute("argspec (?)")).to.eql(ERROR("empty argument name"));
-        expect(execute('argspec ((""))')).to.eql(ERROR("empty argument name"));
-        expect(execute("argspec ((?))")).to.eql(ERROR("empty argument name"));
-      });
-      specify("invalid argument name", () => {
-        expect(execute("argspec ([])")).to.eql(ERROR("invalid argument name"));
-        expect(execute("argspec (([]))")).to.eql(
-          ERROR("invalid argument name")
-        );
-      });
-      specify("duplicate arguments", () => {
-        expect(execute("argspec (a a)")).to.eql(
-          ERROR('duplicate argument "a"')
-        );
-        expect(execute("argspec ((?a def) a)")).to.eql(
-          ERROR('duplicate argument "a"')
-        );
-        expect(execute("argspec (a (?a def))")).to.eql(
-          ERROR('duplicate argument "a"')
-        );
-      });
-      specify("empty argument specifier", () => {
-        expect(execute("argspec (())")).to.eql(
-          ERROR("empty argument specifier")
-        );
-        expect(execute("argspec ({})")).to.eql(
-          ERROR("empty argument specifier")
-        );
-      });
-      specify("too many specifiers", () => {
-        expect(execute("argspec ((a b c d))")).to.eql(
-          ERROR('too many specifiers for argument "a"')
-        );
-        expect(execute("argspec ({a b c d})")).to.eql(
-          ERROR('too many specifiers for argument "a"')
-        );
-      });
-      specify("non-optional parameter with guard and default", () => {
-        expect(execute("argspec ((a b c))")).to.eql(
-          ERROR('default argument "b" must be optional')
-        );
-        expect(execute("argspec ({a b c})")).to.eql(
-          ERROR('default argument "b" must be optional')
-        );
-      });
-      specify("invalid command name", () => {
-        expect(execute("argspec [] {}")).to.eql(ERROR("invalid command name"));
       });
     });
   });

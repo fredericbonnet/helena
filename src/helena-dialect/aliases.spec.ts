@@ -84,7 +84,7 @@ describe("Helena aliases", () => {
           ERROR('wrong # args: should be "alias name command"')
         );
       });
-      specify("invalid command name", () => {
+      specify("invalid `name`", () => {
         /**
          * Command names must have a valid string representation.
          */

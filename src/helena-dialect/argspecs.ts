@@ -157,6 +157,8 @@ export class ArgspecValue implements CommandValue, Command {
     );
   }
 }
+
+const ARGSPEC_SIGNATURE = "argspec ?name? specs";
 export const argspecCmd: Command = {
   execute: (args, scope: Scope) => {
     let name, specs;
@@ -168,7 +170,7 @@ export const argspecCmd: Command = {
         [, name, specs] = args;
         break;
       default:
-        return ARITY_ERROR("argspec ?name? specs");
+        return ARITY_ERROR(ARGSPEC_SIGNATURE);
     }
 
     const result = ArgspecValue.fromValue(specs);
@@ -179,5 +181,9 @@ export const argspecCmd: Command = {
       if (result.code != ResultCode.OK) return result;
     }
     return OK(argspec);
+  },
+  help: (args) => {
+    if (args.length > 3) return ARITY_ERROR(ARGSPEC_SIGNATURE);
+    return OK(STR(ARGSPEC_SIGNATURE));
   },
 };
