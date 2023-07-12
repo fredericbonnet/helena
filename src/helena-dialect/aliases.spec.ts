@@ -10,9 +10,10 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { NIL, STR, TUPLE } from "../core/values";
+import { INT, LIST, NIL, STR, TUPLE } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
+import { codeBlock, specifyExample } from "./test-helpers";
 
 describe("Helena aliases", () => {
   let rootScope: Scope;
@@ -34,8 +35,11 @@ describe("Helena aliases", () => {
   };
   const usage = (script: string) => {
     init();
-    return "```lna\n" + evaluate("help " + script).asString() + "\n```";
+    return codeBlock(evaluate("help " + script).asString());
   };
+  const example = specifyExample(({ script, result }) =>
+    expect(evaluate(script)).to.eql(result)
+  );
 
   beforeEach(init);
 
@@ -126,17 +130,7 @@ describe("Helena aliases", () => {
           /**
            * Aliased commands can be any type of command, including tuple
            * commands, which are auto-expanded when calling the alias. This can
-           * be used for currying or encapsulation, for example:
-           *
-           * ```lna
-           * alias double (* 2)
-           * double 3
-           * # => 6
-           *
-           * alias mylist (list (1 2 3))
-           * mylist length
-           * # => 3
-           * ```
+           * be used for currying or encapsulation.
            */
         });
 
@@ -158,6 +152,50 @@ describe("Helena aliases", () => {
           evaluate("alias cmd (set var val)");
           expect(execute("cmd")).to.eql(OK(STR("val")));
           expect(evaluate("get var")).to.eql(STR("val"));
+        });
+
+        mochadoc.section("Examples", () => {
+          example("Currying", {
+            doc: () => {
+              /**
+               * Here we create a new command `double` by currying the prefix
+               * multiplication operator `*` with 2:
+               */
+            },
+            script: `
+              alias double (* 2)
+              double 3
+            `,
+            result: INT(6),
+          });
+          example("Encapsulation", [
+            {
+              doc: () => {
+                /**
+                 * Here we create a new command `mylist` by encapsulating a
+                 * list value passed to the `list` command; we then can call
+                 * `list` subcommands without having to provide the value:
+                 */
+              },
+              script: `
+                alias mylist (list (1 2 3))
+                mylist length
+              `,
+              result: INT(3),
+            },
+            {
+              doc: () => {
+                /**
+                 * A nice side effect of how `list` works is that calling the
+                 * alias with no argument will return the encapsulated value:
+                 */
+              },
+              script: `
+                mylist
+              `,
+              result: LIST([STR("1"), STR("2"), STR("3")]),
+            },
+          ]);
         });
       });
 
@@ -282,21 +320,42 @@ describe("Helena aliases", () => {
       specify("the metacommand should return the aliased command", () => {
         /**
          * The typical application of this property is to call the command by
-         * wrapping its metacommand within brackets, i.e. `[$metacommand]`:
-         *
-         * ```lna
-         * set cmd [alias foo list]
-         * # These sentences yield the same results:
-         * list (1 2 3)
-         * foo (1 2 3)
-         * [$cmd] (1 2 3)
-         * ```
+         * wrapping its metacommand within brackets, e.g. `[$metacommand]`.
          */
         const value = evaluate("set cmd [alias cmd set]");
         expect(evaluate("$cmd").type).to.eql(commandValueType);
         expect(evaluate("$cmd")).to.not.eql(value);
         expect(evaluate("[$cmd] var val")).to.eql(STR("val"));
         expect(evaluate("get var")).to.eql(STR("val"));
+      });
+
+      mochadoc.section("Examples", () => {
+        example("Calling alias through its wrapped metacommand", [
+          {
+            doc: () => {
+              /**
+               * Here we alias the command `list` and call it through the
+               * alias metacommand:
+               */
+            },
+            script: `
+              set cmd [alias foo list]
+              [$cmd] (1 2 3)
+            `,
+            result: LIST([STR("1"), STR("2"), STR("3")]),
+          },
+          {
+            doc: () => {
+              /**
+               * This behaves the same as calling the alias directly:
+               */
+            },
+            script: `
+              foo (1 2 3)
+            `,
+            result: LIST([STR("1"), STR("2"), STR("3")]),
+          },
+        ]);
       });
 
       mochadoc.section("Subcommands", () => {
@@ -325,14 +384,18 @@ describe("Helena aliases", () => {
         });
 
         describe("`command`", () => {
-          it("should return the aliased command", () => {
-            /**
-             * This will return the value of the `command` argument.
-             */
-            evaluate("set cmd [alias cmd (idem val)]");
-            expect(evaluate("$cmd command")).to.eql(
-              TUPLE([STR("idem"), STR("val")])
-            );
+          example("should return the aliased command", {
+            doc: () => {
+              /**
+               * This will return the value of the `command` argument at alias
+               * creation time.
+               */
+            },
+            script: `
+              set cmd [alias cmd (idem val)]
+              $cmd command
+            `,
+            result: TUPLE([STR("idem"), STR("val")]),
           });
 
           describe("Exceptions", () => {

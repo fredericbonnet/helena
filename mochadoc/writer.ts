@@ -47,6 +47,17 @@ export function addBlock(
 }
 
 /**
+ * Attach documentation block to Mocha test
+ *
+ * @param test    - Mocha test to attach block to
+ * @param content - Block content
+ */
+export function addTestContent(test: mocha.Test, content: Documentation) {
+  const info = ensureTestInfo(test);
+  info.blocks.push(content);
+}
+
+/**
  * Called by reporter at the beginning of a Mocha suite execution
  *
  * @param suite - Mocha suite
@@ -156,12 +167,12 @@ interface TestInfo {
   /** Success status */
   passed: boolean;
 
-  /** Test content */
-  content?: string;
+  /** Test content blocks (can be empty) */
+  blocks: Documentation[];
 }
 
 /** Key used to attach info to Mocha suite and test objects */
-const infoKey = Symbol("docFile");
+const infoKey = Symbol("mochadoc");
 
 /**
  * Return info attached to Mocha suite info, creating it if needed
@@ -193,6 +204,7 @@ function ensureTestInfo(test: mocha.Test): TestInfo {
     test[infoKey] = {
       level: test.titlePath().length,
       title: test.title,
+      blocks: [],
     };
   }
   return test[infoKey];
@@ -408,4 +420,9 @@ function writeTestDoc(fd: number, test: mocha.Test) {
       fd,
       paragraph("```\n" + test.err.toString() + "\n```", indentLevel + 1)
     );
+  const info = ensureTestInfo(test);
+  for (const block of info.blocks) {
+    const s = getDocString(block);
+    if (s) fs.writeSync(fd, paragraph(s, indentLevel + 1));
+  }
 }

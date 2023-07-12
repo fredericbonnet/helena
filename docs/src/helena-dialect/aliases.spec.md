@@ -52,17 +52,7 @@ command.
 
 Aliased commands can be any type of command, including tuple
 commands, which are auto-expanded when calling the alias. This can
-be used for currying or encapsulation, for example:
-
-```lna
-alias double (* 2)
-double 3
-# => 6
-
-alias mylist (list (1 2 3))
-mylist length
-# => 3
-```
+be used for currying or encapsulation.
 
 - ✅ zero
 
@@ -71,6 +61,39 @@ mylist length
 - ✅ two
 
 - ✅ three
+
+##### Examples
+
+- ✅ Currying
+
+  Here we create a new command `double` by currying the prefix
+  multiplication operator `*` with 2:
+
+  ```lna
+  alias double (* 2)
+  double 3
+  # => 6
+  ```
+
+- ✅ Encapsulation
+
+  Here we create a new command `mylist` by encapsulating a
+  list value passed to the `list` command; we then can call
+  `list` subcommands without having to provide the value:
+
+  ```lna
+  alias mylist (list (1 2 3))
+  mylist length
+  # => 3
+  ```
+
+  A nice side effect of how `list` works is that calling the
+  alias with no argument will return the encapsulated value:
+
+  ```lna
+  mylist
+  # => [list (1 2 3)]
+  ```
 
 #### Control flow
 
@@ -127,14 +150,26 @@ the newly created command.
 - ✅ the metacommand should return the aliased command
 
   The typical application of this property is to call the command by
-  wrapping its metacommand within brackets, i.e. `[$metacommand]`:
-  
+  wrapping its metacommand within brackets, e.g. `[$metacommand]`.
+
+#### Examples
+
+- ✅ Calling alias through its wrapped metacommand
+
+  Here we alias the command `list` and call it through the
+  alias metacommand:
+
   ```lna
   set cmd [alias foo list]
-  # These sentences yield the same results:
-  list (1 2 3)
-  foo (1 2 3)
   [$cmd] (1 2 3)
+  # => [list (1 2 3)]
+  ```
+
+  This behaves the same as calling the alias directly:
+
+  ```lna
+  foo (1 2 3)
+  # => [list (1 2 3)]
   ```
 
 #### Subcommands
@@ -157,7 +192,14 @@ the newly created command.
 
   - ✅ should return the aliased command
 
-    This will return the value of the `command` argument.
+    This will return the value of the `command` argument at alias
+    creation time.
+
+    ```lna
+    set cmd [alias cmd (idem val)]
+    $cmd command
+    # => (idem val)
+    ```
 
   - Exceptions
 

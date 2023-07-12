@@ -3,7 +3,7 @@
  */
 
 import { Documentation } from "./types";
-import { addBlock, setSummary, markAsSection } from "./writer";
+import { addBlock, setSummary, markAsSection, addTestContent } from "./writer";
 
 /**
  * Define a new Mocha suite as a section
@@ -76,4 +76,14 @@ export function usage(content: Documentation) {
  */
 export function description(content: Documentation) {
   block(null, content);
+}
+
+/**
+ * Add a documentation block to the current Mocha test
+ *
+ * @param context - Current test context
+ * @param content - Test content
+ */
+export function testContent(context: Mocha.Context, content: Documentation) {
+  addTestContent(context.test as Mocha.Test, content);
 }

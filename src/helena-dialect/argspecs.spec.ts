@@ -7,6 +7,7 @@ import { NIL, TRUE, FALSE, INT, STR, TUPLE } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
+import { codeBlock } from "./test-helpers";
 
 describe("Helena argument handling", () => {
   let rootScope: Scope;
@@ -28,7 +29,7 @@ describe("Helena argument handling", () => {
   };
   const usage = (script: string) => {
     init();
-    return "```lna\n" + evaluate("help " + script).asString() + "\n```";
+    return codeBlock(evaluate("help " + script).asString());
   };
 
   beforeEach(init);

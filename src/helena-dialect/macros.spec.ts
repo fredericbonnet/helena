@@ -10,9 +10,10 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, NIL, STR } from "../core/values";
+import { FALSE, INT, NIL, STR } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
+import { codeBlock, specifyExample } from "./test-helpers";
 
 describe("Helena macros", () => {
   let rootScope: Scope;
@@ -34,8 +35,11 @@ describe("Helena macros", () => {
   };
   const usage = (script: string) => {
     init();
-    return "```lna\n" + evaluate("help " + script).asString() + "\n```";
+    return codeBlock(evaluate("help " + script).asString());
   };
+  const example = specifyExample(({ script, result }) =>
+    expect(evaluate(script)).to.eql(result)
+  );
 
   beforeEach(init);
 
@@ -376,19 +380,40 @@ describe("Helena macros", () => {
       specify("the metacommand should return the macro", () => {
         /**
          * The typical application of this property is to call the command by
-         * wrapping its metacommand within brackets, i.e. `[$metacommand]`:
-         *
-         * ```lna
-         * set cmd [macro double {val} {* 2 $val}]
-         * # These sentences yield the same results:
-         * double 3
-         * [$cmd] 3
-         * ```
+         * wrapping its metacommand within brackets, e.g. `[$metacommand]`.
          */
         const value = evaluate("set cmd [macro {val} {idem _${val}_}]");
         expect(evaluate("$cmd").type).to.eql(commandValueType);
         expect(evaluate("$cmd")).to.not.eql(value);
         expect(evaluate("[$cmd] arg")).to.eql(STR("_arg_"));
+      });
+
+      mochadoc.section("Examples", () => {
+        example("Calling macro through its wrapped metacommand", [
+          {
+            doc: () => {
+              /**
+               * Here we create a macro and call it through its metacommand:
+               */
+            },
+            script: `
+              set cmd [macro double {val} {* 2 $val}]
+              [$cmd] 3
+            `,
+            result: INT(6),
+          },
+          {
+            doc: () => {
+              /**
+               * This behaves the same as calling the macro directly:
+               */
+            },
+            script: `
+              double 3
+            `,
+            result: INT(6),
+          },
+        ]);
       });
 
       mochadoc.section("Subcommands", () => {
@@ -417,15 +442,31 @@ describe("Helena macros", () => {
         });
 
         describe("`argspec`", () => {
-          it("should return the macro argspec", () => {
-            /**
-             * This will return the argspec command created with the `argspec`
-             * argument.
-             */
-            expect(evaluate("[macro {a b} {}] argspec")).to.eql(
-              evaluate("argspec {a b}")
-            );
-          });
+          example("should return the macro's argspec", [
+            {
+              doc: () => {
+                /**
+                 * Each macro has an argspec command associated to it, created
+                 * with the macro's `argspec` argument. This subcommand will
+                 * return it:
+                 */
+              },
+              script: `
+                [macro {a b} {}] argspec
+              `,
+              result: evaluate("argspec {a b}"),
+            },
+            {
+              doc: () => {
+                /**
+                 * This is identical to:
+                 */
+              },
+              script: `
+                argspec {a b}
+              `,
+            },
+          ]);
 
           describe("Exceptions", () => {
             specify("wrong arity", () => {

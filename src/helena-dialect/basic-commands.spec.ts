@@ -13,6 +13,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { NIL, STR, TUPLE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
+import { codeBlock } from "./test-helpers";
 
 describe("Helena basic commands", () => {
   let rootScope: Scope;
@@ -33,7 +34,7 @@ describe("Helena basic commands", () => {
   };
   const usage = (script: string) => {
     init();
-    return "```lna\n" + evaluate("help " + script).asString() + "\n```";
+    return codeBlock(evaluate("help " + script).asString());
   };
 
   beforeEach(init);

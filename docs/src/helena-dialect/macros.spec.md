@@ -138,13 +138,25 @@ the newly created command.
 - ✅ the metacommand should return the macro
 
   The typical application of this property is to call the command by
-  wrapping its metacommand within brackets, i.e. `[$metacommand]`:
-  
+  wrapping its metacommand within brackets, e.g. `[$metacommand]`.
+
+#### Examples
+
+- ✅ Calling macro through its wrapped metacommand
+
+  Here we create a macro and call it through its metacommand:
+
   ```lna
   set cmd [macro double {val} {* 2 $val}]
-  # These sentences yield the same results:
-  double 3
   [$cmd] 3
+  # => 6
+  ```
+
+  This behaves the same as calling the macro directly:
+
+  ```lna
+  double 3
+  # => 6
   ```
 
 #### Subcommands
@@ -165,10 +177,22 @@ the newly created command.
 
 - `argspec`
 
-  - ✅ should return the macro argspec
+  - ✅ should return the macro's argspec
 
-    This will return the argspec command created with the `argspec`
-    argument.
+    Each macro has an argspec command associated to it, created
+    with the macro's `argspec` argument. This subcommand will
+    return it:
+
+    ```lna
+    [macro {a b} {}] argspec
+    # => {#{argspec: "a b"}#}
+    ```
+
+    This is identical to:
+
+    ```lna
+    argspec {a b}
+    ```
 
   - Exceptions
 

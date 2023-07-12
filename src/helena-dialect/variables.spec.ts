@@ -6,6 +6,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { FALSE, LIST, MAP, NIL, STR, TRUE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
+import { codeBlock } from "./test-helpers";
 
 describe("Helena constants and variables", () => {
   let rootScope: Scope;
@@ -26,7 +27,7 @@ describe("Helena constants and variables", () => {
   };
   const usage = (script: string) => {
     init();
-    return "```lna\n" + evaluate("help " + script).asString() + "\n```";
+    return codeBlock(evaluate("help " + script).asString());
   };
 
   beforeEach(init);
