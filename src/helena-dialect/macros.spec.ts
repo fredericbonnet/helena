@@ -99,7 +99,7 @@ describe("Helena macros", () => {
           ERROR('wrong # args: should be "macro ?name? argspec body"')
         );
       });
-      specify("invalid argument list", () => {
+      specify("invalid `argspec`", () => {
         /**
          * The command expects an argument list in `argspec` format.
          */
@@ -108,19 +108,19 @@ describe("Helena macros", () => {
           ERROR("invalid argument list")
         );
       });
-      specify("non-script body", () => {
-        expect(execute("macro a b")).to.eql(ERROR("body must be a script"));
-        expect(execute("macro a b c")).to.eql(ERROR("body must be a script"));
-      });
       specify("invalid `name`", () => {
         /**
          * Command names must have a valid string representation.
          */
         expect(execute("macro [] {} {}")).to.eql(ERROR("invalid command name"));
       });
+      specify("non-script body", () => {
+        expect(execute("macro a b")).to.eql(ERROR("body must be a script"));
+        expect(execute("macro a b c")).to.eql(ERROR("body must be a script"));
+      });
     });
 
-    describe("Command calls", () => {
+    mochadoc.section("Command calls", () => {
       it("should return nil for empty body", () => {
         evaluate("macro cmd {} {}");
         expect(evaluate("cmd")).to.eql(NIL);
@@ -279,8 +279,8 @@ describe("Helena macros", () => {
       describe("Control flow", () => {
         mochadoc.description(() => {
           /**
-           * If the body returns a result code then it should be
-           * propagated properly by the macro.
+           * If the body returns a result code then it should be propagated
+           * properly by the macro.
            */
         });
 
@@ -379,7 +379,7 @@ describe("Helena macros", () => {
       });
       specify("the metacommand should return the macro", () => {
         /**
-         * The typical application of this property is to call the command by
+         * The typical application of this property is to call the macro by
          * wrapping its metacommand within brackets, e.g. `[$metacommand]`.
          */
         const value = evaluate("set cmd [macro {val} {idem _${val}_}]");

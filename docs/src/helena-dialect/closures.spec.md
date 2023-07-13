@@ -1,26 +1,26 @@
 ---
-source: src\helena-dialect\macros.spec.ts
+source: src\helena-dialect\closures.spec.ts
 ---
-# Helena macros
+# Helena closures
 
-## `macro`
+## `closure`
 
-Define a macro
+Define a closure
 
 ### Usage
 
 ```lna
-macro ?name? argspec body
+closure ?name? argspec body
 ```
 
-The `macro` command defines a new command that will execute a script in
-the calling context.
+The `closure` command defines a new command that will execute a script
+in the context where it is declared.
 
 ### Specifications
 
 - ✅ usage
 
-- ✅ should define a new command 
+- ✅ should define a new command
 
 - ✅ should replace existing commands
 
@@ -47,45 +47,39 @@ the calling context.
 
 - ✅ should return the result of the last command
 
-- ✅ should access scope variables
-
-- ✅ should set scope variables
-
-- ✅ should access scope commands
-
-- should evaluate in the caller scope
+- should evaluate in the closure parent scope
 
   - ✅ global scope
 
   - ✅ child scope
 
-  - ✅ scoped macro
+  - ✅ scoped closure
 
 #### Arguments
 
 - ✅ should shadow scope variables
 
-- ✅ should be macro-local
+- ✅ should be closure-local
 
 - Exceptions
 
   - ✅ wrong arity
 
-    The macro will return an error message with usage when given the
-    wrong number of arguments.
+    The closure will return an error message with usage when given
+    the wrong number of arguments.
 
 #### Return guards
 
 Return guards are similar to argspec guards, but apply to the
-return value of the macro.
+return value of the closure.
 
 - ✅ should apply to the return value
 
 - ✅ should let body errors pass through
 
-- ✅ should not access macro arguments
+- ✅ should not access closure arguments
 
-- ✅ should evaluate in the caller scope
+- ✅ should evaluate in the closure parent scope
 
 - Exceptions
 
@@ -98,19 +92,19 @@ return value of the macro.
 #### Control flow
 
 If the body returns a result code then it should be propagated
-properly by the macro.
+properly by the closure.
 
 - `return`
 
-  - ✅ should interrupt a macro with `RETURN` code
+  - ✅ should interrupt a closure with `RETURN` code
 
 - `tailcall`
 
-  - ✅ should interrupt a macro with `RETURN` code
+  - ✅ should interrupt a closure with `RETURN` code
 
 - `yield`
 
-  - ✅ should interrupt a macro with `YIELD` code
+  - ✅ should interrupt a closure with `YIELD` code
 
   - ✅ should provide a resumable state
 
@@ -118,41 +112,41 @@ properly by the macro.
 
 - `error`
 
-  - ✅ should interrupt a macro with `ERROR` code
+  - ✅ should interrupt a closure with `ERROR` code
 
 - `break`
 
-  - ✅ should interrupt a macro with `BREAK` code
+  - ✅ should interrupt a closure with `BREAK` code
 
 - `continue`
 
-  - ✅ should interrupt a macro with `CONTINUE` code
+  - ✅ should interrupt a closure with `CONTINUE` code
 
 ### Metacommand
 
-`macro` returns a metacommand value that can be used to introspect
+`closure` returns a metacommand value that can be used to introspect
 the newly created command.
 
 - ✅ should return a metacommand
 
-- ✅ the metacommand should return the macro
+- ✅ the metacommand should return the closure
 
-  The typical application of this property is to call the macro by
+  The typical application of this property is to call the closure by
   wrapping its metacommand within brackets, e.g. `[$metacommand]`.
 
 #### Examples
 
-- ✅ Calling macro through its wrapped metacommand
+- ✅ Calling closure through its wrapped metacommand
 
-  Here we create a macro and call it through its metacommand:
+  Here we create a closure and call it through its metacommand:
 
   ```lna
-  set cmd [macro double {val} {* 2 $val}]
+  set cmd [closure double {val} {* 2 $val}]
   [$cmd] 3
   # => 6
   ```
 
-  This behaves the same as calling the macro directly:
+  This behaves the same as calling the closure directly:
 
   ```lna
   double 3
@@ -177,14 +171,14 @@ the newly created command.
 
 - `argspec`
 
-  - ✅ should return the macro's argspec
+  - ✅ should return the closure's argspec
 
-    Each macro has an argspec command associated to it, created
-    with the macro's `argspec` argument. This subcommand will
+    Each closure has an argspec command associated to it, created
+    with the closure's `argspec` argument. This subcommand will
     return it:
 
     ```lna
-    [macro {a b} {}] argspec
+    [closure {a b} {}] argspec
     # => {#{argspec: "a b"}#}
     ```
 

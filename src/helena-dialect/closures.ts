@@ -2,6 +2,7 @@
 import { Result, ResultCode, YIELD, OK, ERROR } from "../core/results";
 import { Command } from "../core/command";
 import {
+  STR,
   ScriptValue,
   TUPLE,
   TupleValue,
@@ -91,6 +92,8 @@ class ClosureCommand implements CommandValue, Command {
     return OK(result.value);
   }
 }
+
+const CLOSURE_SIGNATURE = "closure ?name? argspec body";
 export const closureCmd: Command = {
   execute: (args, scope: Scope) => {
     let name, specs, body;
@@ -102,7 +105,7 @@ export const closureCmd: Command = {
         [, name, specs, body] = args;
         break;
       default:
-        return ARITY_ERROR("closure ?name? argspec body");
+        return ARITY_ERROR(CLOSURE_SIGNATURE);
     }
     let guard;
     switch (body.type) {
@@ -137,5 +140,9 @@ export const closureCmd: Command = {
       if (result.code != ResultCode.OK) return result;
     }
     return OK(value);
+  },
+  help: (args) => {
+    if (args.length > 4) return ARITY_ERROR(CLOSURE_SIGNATURE);
+    return OK(STR(CLOSURE_SIGNATURE));
   },
 };
