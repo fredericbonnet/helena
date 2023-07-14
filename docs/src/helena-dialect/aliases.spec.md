@@ -66,8 +66,10 @@ be used for currying or encapsulation.
 
 - ✅ Currying
 
-  Here we create a new command `double` by currying the prefix
-  multiplication operator `*` with 2:
+  Thanks to leading tuple auto-expansion, it is very simple to
+  create curried commands by bundling a command name and its
+  arguments into a tuple. Here we create a new command `double`
+  by currying the prefix multiplication operator `*` with 2:
 
   ```lna
   alias double (* 2)

@@ -6,7 +6,7 @@ import {
   display,
   undisplayableValue,
 } from "../core/display";
-import { ListValue, MapValue, Value } from "../core/values";
+import { ListValue, MapValue } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { displayMapValue } from "./dicts";
 import { displayListValue } from "./lists";
@@ -32,7 +32,7 @@ const reindent = (s: string) => {
 export type ExampleSpec = {
   doc?: Documentation;
   script: string;
-  result?: Value;
+  result?: unknown;
 };
 
 export const specifyExample =
@@ -51,7 +51,7 @@ export const specifyExample =
               : script
           )
         );
-        if (spec.result) evaluator(spec);
+        evaluator(spec);
       });
     });
   };

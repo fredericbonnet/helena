@@ -37,6 +37,10 @@ class ListCommand implements Command {
     if (args.length == 2) return valueToList(args[1]);
     return this.ensemble.ensemble.execute(args, scope);
   }
+  help(args) {
+    // TODO handle args to ensemble subcommands
+    return OK(STR("list ?value? ?subcommand? ?arg ...?"));
+  }
 }
 
 const listLengthCmd: Command = {

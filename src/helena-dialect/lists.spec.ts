@@ -1,11 +1,14 @@
 import { expect } from "chai";
+import * as mochadoc from "../../mochadoc";
 import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { INT, LIST, NIL, STR } from "../core/values";
-import { Scope } from "./core";
+import { FALSE, INT, LIST, NIL, STR, TRUE } from "../core/values";
+import { Scope, commandValueType } from "./core";
 import { initCommands } from "./helena-dialect";
 import { displayListValue } from "./lists";
+import { codeBlock, specifyExample } from "./test-helpers";
+import { EnsembleValue } from "./ensembles";
 
 describe("Helena lists", () => {
   let rootScope: Scope;
@@ -18,195 +21,325 @@ describe("Helena lists", () => {
   const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 
-  beforeEach(() => {
+  const init = () => {
     rootScope = new Scope();
     initCommands(rootScope);
 
     tokenizer = new Tokenizer();
     parser = new Parser();
+  };
+  const usage = (script: string) => {
+    init();
+    return codeBlock(evaluate("help " + script).asString());
+  };
+  const example = specifyExample(({ script, result }) => {
+    const value = evaluate(script);
+    if (result) expect(value).to.eql(result);
   });
 
-  describe("list", () => {
-    it("should return list value", () => {
-      expect(evaluate("list ()")).to.eql(LIST([]));
+  beforeEach(init);
+
+  mochadoc.section("`list`", () => {
+    mochadoc.summary("List handling");
+    mochadoc.usage(usage("list"));
+    mochadoc.description(() => {
+      /**
+       * The `list` command is a type command dedicated to list values. It
+       * provides an ensemble of subcommands for list creation, conversion,
+       * access, and operations.
+       *
+       * List values are Helena values whose internal type is `LIST`.
+       */
     });
-    it("should convert tuples to lists", () => {
-      expect(evaluate("list (a b c)")).to.eql(
-        LIST([STR("a"), STR("b"), STR("c")])
-      );
-    });
-    it("should convert blocks to lists", () => {
-      expect(evaluate("list {a b c}")).to.eql(evaluate("list (a b c)"));
-    });
-    describe("subcommands", () => {
-      describe("subcommands", () => {
-        it("should return list of subcommands", () => {
-          expect(evaluate("list {} subcommands")).to.eql(
-            evaluate(
-              "list (subcommands length at range append remove insert replace foreach)"
-            )
-          );
+
+    mochadoc.section("List creation and conversion", () => {
+      mochadoc.description(() => {
+        /**
+         * Like with most type commands, passing a single argument to `list`
+         * will ensure a list value in return. This property means that `list`
+         * can be used for creation and conversion, but also as a type guard in
+         * argspecs.
+         */
+      });
+
+      it("should return list value", () => {
+        expect(evaluate("list ()")).to.eql(LIST([]));
+      });
+      example("should convert tuples to lists", {
+        doc: () => {
+          /**
+           * The most common syntax for list creation is to simply pass a tuple
+           * of elements.
+           */
+        },
+        script: "list (a b c)",
+        result: LIST([STR("a"), STR("b"), STR("c")]),
+      });
+      example("should convert blocks to lists", {
+        doc: () => {
+          /**
+           * Blocks are also accepted; the block is evaluated in an empty scope
+           * and each resulting word is added to the list in order.
+           */
+        },
+        script: "list {a b c}",
+        result: LIST([STR("a"), STR("b"), STR("c")]),
+      });
+
+      describe("Exceptions", () => {
+        specify("invalid values", () => {
+          /**
+           * Only lists, tuples, and blocks are acceptable values.
+           */
+          expect(execute("list []")).to.eql(ERROR("invalid list"));
+          expect(execute("list [1]")).to.eql(ERROR("invalid list"));
+          expect(execute("list a")).to.eql(ERROR("invalid list"));
         });
-        describe("exceptions", () => {
+        specify("blocks with side effects", () => {
+          /**
+           * Providing a block with side effects like substitutions or
+           * expressions will result in an error.
+           */
+          expect(execute("list { $a }")).to.eql(ERROR("invalid list"));
+          expect(execute("list { [b] }")).to.eql(ERROR("invalid list"));
+          expect(execute("list { $[][a] }")).to.eql(ERROR("invalid list"));
+          expect(execute("list { $[](a) }")).to.eql(ERROR("invalid list"));
+        });
+      });
+    });
+
+    mochadoc.section("Subcommands", () => {
+      mochadoc.description(() => {
+        /**
+         * The `list` ensemble comes with a number of predefined subcommands
+         * listed here.
+         */
+      });
+
+      mochadoc.section("Introspection", () => {
+        describe("`subcommands`", () => {
+          it("should return list of subcommands", () => {
+            /**
+             * This subcommand is useful for introspection and interactive
+             * calls.
+             */
+            expect(evaluate("list {} subcommands")).to.eql(
+              evaluate(
+                "list (subcommands length at range append remove insert replace foreach)"
+              )
+            );
+          });
+        });
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The subcommand will return an error message with usage when
+             * given the wrong number of arguments.
+             */
             expect(execute("list {} subcommands a")).to.eql(
               ERROR('wrong # args: should be "list value subcommands"')
             );
           });
         });
       });
-      describe("length", () => {
-        it("should return the list length", () => {
-          expect(evaluate("list () length")).to.eql(INT(0));
-          expect(evaluate("list (a b c) length")).to.eql(INT(3));
+
+      mochadoc.section("Accessors", () => {
+        describe("`length`", () => {
+          it("should return the list length", () => {
+            expect(evaluate("list () length")).to.eql(INT(0));
+            expect(evaluate("list (a b c) length")).to.eql(INT(3));
+          });
+          describe("Exceptions", () => {
+            specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
+              expect(execute("list () length a")).to.eql(
+                ERROR('wrong # args: should be "list value length"')
+              );
+            });
+          });
         });
-        describe("exceptions", () => {
-          specify("wrong arity", () => {
-            expect(execute("list () length a")).to.eql(
-              ERROR('wrong # args: should be "list value length"')
+
+        describe("`at`", () => {
+          it("should return the element at the given index", () => {
+            expect(evaluate("list (a b c) at 1")).to.eql(STR("b"));
+          });
+          it("should return the default value for an out-of-range index", () => {
+            expect(evaluate("list (a b c) at 10 default")).to.eql(
+              STR("default")
             );
+          });
+          specify("`at` <-> indexed selector equivalence", () => {
+            rootScope.setNamedVariable(
+              "v",
+              LIST([STR("a"), STR("b"), STR("c")])
+            );
+            evaluate("set l (list $v)");
+
+            expect(execute("list $v at 2")).to.eql(execute("idem $v[2]"));
+            expect(execute("$l at 2")).to.eql(execute("idem $v[2]"));
+            expect(execute("idem $[$l][2]")).to.eql(execute("idem $v[2]"));
+
+            expect(execute("list $l at -1")).to.eql(execute("idem $v[-1]"));
+            expect(execute("$l at -1")).to.eql(execute("idem $v[-1]"));
+            expect(execute("idem $[$l][-1]")).to.eql(execute("idem $v[-1]"));
+          });
+
+          describe("Exceptions", () => {
+            specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
+              expect(execute("list (a b c) at")).to.eql(
+                ERROR('wrong # args: should be "list value at index ?default?"')
+              );
+              expect(execute("list (a b c) at a b c")).to.eql(
+                ERROR('wrong # args: should be "list value at index ?default?"')
+              );
+            });
+            specify("invalid index", () => {
+              expect(execute("list (a b c) at a")).to.eql(
+                ERROR('invalid integer "a"')
+              );
+            });
+            specify("index out of range", () => {
+              expect(execute("list (a b c) at -1")).to.eql(
+                ERROR('index out of range "-1"')
+              );
+              expect(execute("list (a b c) at 10")).to.eql(
+                ERROR('index out of range "10"')
+              );
+            });
           });
         });
       });
-      describe("at", () => {
-        it("should return the element at the given index", () => {
-          expect(evaluate("list (a b c) at 1")).to.eql(STR("b"));
-        });
-        it("should return the default value for an out-of-range index", () => {
-          expect(evaluate("list (a b c) at 10 default")).to.eql(STR("default"));
-        });
-        describe("exceptions", () => {
-          specify("wrong arity", () => {
-            expect(execute("list (a b c) at")).to.eql(
-              ERROR('wrong # args: should be "list value at index ?default?"')
-            );
-            expect(execute("list (a b c) at a b c")).to.eql(
-              ERROR('wrong # args: should be "list value at index ?default?"')
+
+      mochadoc.section("List operations", () => {
+        describe("`range`", () => {
+          it("should return the list included within [first, last]", () => {
+            expect(evaluate("list (a b c d e f) range 1 3")).to.eql(
+              evaluate("list (b c d)")
             );
           });
-          specify("invalid index", () => {
-            expect(execute("list (a b c) at a")).to.eql(
-              ERROR('invalid integer "a"')
+          it("should return the remainder of the list when given first only", () => {
+            expect(evaluate("list (a b c) range 2")).to.eql(
+              evaluate("list (c)")
             );
           });
-          specify("index out of range", () => {
-            expect(execute("list (a b c) at -1")).to.eql(
-              ERROR('index out of range "-1"')
+          it("should truncate out of range boundaries", () => {
+            expect(evaluate("list (a b c) range -1")).to.eql(
+              evaluate("list (a b c)")
             );
-            expect(execute("list (a b c) at 10")).to.eql(
-              ERROR('index out of range "10"')
+            expect(evaluate("list (a b c) range -10 1")).to.eql(
+              evaluate("list (a b)")
             );
-          });
-        });
-      });
-      describe("range", () => {
-        it("should return the list included within [first, last]", () => {
-          expect(evaluate("list (a b c d e f) range 1 3")).to.eql(
-            evaluate("list (b c d)")
-          );
-        });
-        it("should return the remainder of the list when given first only", () => {
-          expect(evaluate("list (a b c) range 2")).to.eql(evaluate("list (c)"));
-        });
-        it("should truncate out of range boundaries", () => {
-          expect(evaluate("list (a b c) range -1")).to.eql(
-            evaluate("list (a b c)")
-          );
-          expect(evaluate("list (a b c) range -10 1")).to.eql(
-            evaluate("list (a b)")
-          );
-          expect(evaluate("list (a b c) range 2 10")).to.eql(
-            evaluate("list (c)")
-          );
-          expect(evaluate("list (a b c) range -2 10")).to.eql(
-            evaluate("list (a b c)")
-          );
-        });
-        it("should return an empty list when last is before first", () => {
-          expect(evaluate("list (a b c) range 2 0")).to.eql(LIST([]));
-        });
-        it("should return an empty list when first is past the list length", () => {
-          expect(evaluate("list (a b c) range 10 12")).to.eql(
-            evaluate("list ()")
-          );
-        });
-        it("should return an empty list when last is negative", () => {
-          expect(evaluate("list (a b c) range -3 -1")).to.eql(
-            evaluate("list ()")
-          );
-        });
-        describe("exceptions", () => {
-          specify("wrong arity", () => {
-            expect(execute("list (a b c) range")).to.eql(
-              ERROR('wrong # args: should be "list value range first ?last?"')
+            expect(evaluate("list (a b c) range 2 10")).to.eql(
+              evaluate("list (c)")
             );
-            expect(execute("list (a b c) range a b c")).to.eql(
-              ERROR('wrong # args: should be "list value range first ?last?"')
+            expect(evaluate("list (a b c) range -2 10")).to.eql(
+              evaluate("list (a b c)")
             );
           });
-          specify("invalid index", () => {
-            expect(execute("list (a b c) range a")).to.eql(
-              ERROR('invalid integer "a"')
-            );
-            expect(execute("list (a b c) range 1 b")).to.eql(
-              ERROR('invalid integer "b"')
+          it("should return an empty list when last is before first", () => {
+            expect(evaluate("list (a b c) range 2 0")).to.eql(LIST([]));
+          });
+          it("should return an empty list when first is past the list length", () => {
+            expect(evaluate("list (a b c) range 10 12")).to.eql(
+              evaluate("list ()")
             );
           });
-        });
-      });
-      describe("remove", () => {
-        it("should remove the range included within [first, last]", () => {
-          expect(evaluate("list (a b c d e f) remove 1 3")).to.eql(
-            evaluate("list (a e f)")
-          );
-        });
-        it("should truncate out of range boundaries", () => {
-          expect(evaluate("list (a b c) remove -10 1")).to.eql(
-            evaluate("list (c)")
-          );
-          expect(evaluate("list (a b c) remove 2 10")).to.eql(
-            evaluate("list (a b)")
-          );
-          expect(evaluate("list (a b c) remove -2 10")).to.eql(
-            evaluate("list ()")
-          );
-        });
-        it("should do nothing when last is before first", () => {
-          expect(evaluate("list (a b c) remove 2 0")).to.eql(
-            evaluate("list (a b c)")
-          );
-        });
-        it("should do nothing when last is negative", () => {
-          expect(evaluate("list (a b c) remove -3 -1")).to.eql(
-            evaluate("list (a b c)")
-          );
-        });
-        it("should do nothing when first is past the list length", () => {
-          expect(evaluate("list (a b c) remove 10 12")).to.eql(
-            evaluate("list (a b c)")
-          );
-        });
-        describe("exceptions", () => {
-          specify("wrong arity", () => {
-            expect(execute("list (a b c) remove a")).to.eql(
-              ERROR('wrong # args: should be "list value remove first last"')
-            );
-            expect(execute("list (a b c) remove a b c d")).to.eql(
-              ERROR('wrong # args: should be "list value remove first last"')
+          it("should return an empty list when last is negative", () => {
+            expect(evaluate("list (a b c) range -3 -1")).to.eql(
+              evaluate("list ()")
             );
           });
-          specify("invalid index", () => {
-            expect(execute("list (a b c) remove a b")).to.eql(
-              ERROR('invalid integer "a"')
-            );
-            expect(execute("list (a b c) remove 1 b")).to.eql(
-              ERROR('invalid integer "b"')
-            );
+
+          describe("Exceptions", () => {
+            specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
+              expect(execute("list (a b c) range")).to.eql(
+                ERROR('wrong # args: should be "list value range first ?last?"')
+              );
+              expect(execute("list (a b c) range a b c")).to.eql(
+                ERROR('wrong # args: should be "list value range first ?last?"')
+              );
+            });
+            specify("invalid index", () => {
+              expect(execute("list (a b c) range a")).to.eql(
+                ERROR('invalid integer "a"')
+              );
+              expect(execute("list (a b c) range 1 b")).to.eql(
+                ERROR('invalid integer "b"')
+              );
+            });
           });
         });
-      });
-      describe("composition", () => {
-        describe("append", () => {
+
+        describe("`remove`", () => {
+          it("should remove the range included within [first, last]", () => {
+            expect(evaluate("list (a b c d e f) remove 1 3")).to.eql(
+              evaluate("list (a e f)")
+            );
+          });
+          it("should truncate out of range boundaries", () => {
+            expect(evaluate("list (a b c) remove -10 1")).to.eql(
+              evaluate("list (c)")
+            );
+            expect(evaluate("list (a b c) remove 2 10")).to.eql(
+              evaluate("list (a b)")
+            );
+            expect(evaluate("list (a b c) remove -2 10")).to.eql(
+              evaluate("list ()")
+            );
+          });
+          it("should do nothing when last is before first", () => {
+            expect(evaluate("list (a b c) remove 2 0")).to.eql(
+              evaluate("list (a b c)")
+            );
+          });
+          it("should do nothing when last is negative", () => {
+            expect(evaluate("list (a b c) remove -3 -1")).to.eql(
+              evaluate("list (a b c)")
+            );
+          });
+          it("should do nothing when first is past the list length", () => {
+            expect(evaluate("list (a b c) remove 10 12")).to.eql(
+              evaluate("list (a b c)")
+            );
+          });
+
+          describe("Exceptions", () => {
+            specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
+              expect(execute("list (a b c) remove a")).to.eql(
+                ERROR('wrong # args: should be "list value remove first last"')
+              );
+              expect(execute("list (a b c) remove a b c d")).to.eql(
+                ERROR('wrong # args: should be "list value remove first last"')
+              );
+            });
+            specify("invalid index", () => {
+              expect(execute("list (a b c) remove a b")).to.eql(
+                ERROR('invalid integer "a"')
+              );
+              expect(execute("list (a b c) remove 1 b")).to.eql(
+                ERROR('invalid integer "b"')
+              );
+            });
+          });
+        });
+
+        describe("`append`", () => {
           it("should append two lists", () => {
             expect(evaluate("list (a b c) append (foo bar)")).to.eql(
               evaluate("list (a b c foo bar)")
@@ -222,7 +355,8 @@ describe("Helena lists", () => {
               evaluate("list (a b c)")
             );
           });
-          describe("exceptions", () => {
+
+          describe("Exceptions", () => {
             specify("invalid values", () => {
               expect(execute("list (a b c) append []")).to.eql(
                 ERROR("invalid list")
@@ -236,7 +370,8 @@ describe("Helena lists", () => {
             });
           });
         });
-        describe("insert", () => {
+
+        describe("`insert`", () => {
           it("should insert the list at the given index", () => {
             expect(evaluate("list (a b c) insert 1 (foo bar)")).to.eql(
               evaluate("list (a foo bar b c)")
@@ -252,8 +387,13 @@ describe("Helena lists", () => {
               evaluate("list (a b c foo bar)")
             );
           });
-          describe("exceptions", () => {
+
+          describe("Exceptions", () => {
             specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
               expect(execute("list (a b c) insert a")).to.eql(
                 ERROR('wrong # args: should be "list value insert index new"')
               );
@@ -279,7 +419,8 @@ describe("Helena lists", () => {
             });
           });
         });
-        describe("replace", () => {
+
+        describe("`replace`", () => {
           it("should replace the range included within [first, last] with the given list", () => {
             expect(evaluate("list (a b c d e) replace 1 3 (foo bar)")).to.eql(
               evaluate("list (a foo bar e)")
@@ -311,8 +452,13 @@ describe("Helena lists", () => {
               evaluate("list (a b c foo bar)")
             );
           });
-          describe("exceptions", () => {
+
+          describe("Exceptions", () => {
             specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
               expect(execute("list (a b c) replace a b")).to.eql(
                 ERROR(
                   'wrong # args: should be "list value replace first last new"'
@@ -346,127 +492,143 @@ describe("Helena lists", () => {
           });
         });
       });
-      describe("foreach", () => {
-        it("should iterate over elements", () => {
-          evaluate(`
+
+      mochadoc.section("Iteration", () => {
+        describe("`foreach`", () => {
+          it("should iterate over elements", () => {
+            evaluate(`
             set elements [list ()]
             set l [list (a b c)]
             list $l foreach element {
               set elements [list $elements append ($element)]
             }
             `);
-          expect(evaluate("get elements")).to.eql(evaluate("get l"));
-        });
-        it("should return the result of the last command", () => {
-          expect(execute("list () foreach element {}")).to.eql(OK(NIL));
-          expect(execute("list (a b c) foreach element {}")).to.eql(OK(NIL));
-          expect(
-            evaluate("set i 0; list (a b c) foreach element {set i [+ $i 1]}")
-          ).to.eql(INT(3));
-        });
-        describe("control flow", () => {
-          describe("return", () => {
-            it("should interrupt the loop with RETURN code", () => {
-              expect(
-                execute(
-                  "set i 0; list (a b c) foreach element {set i [+ $i 1]; return $element; unreachable}"
-                )
-              ).to.eql(execute("return a"));
-              expect(evaluate("get i")).to.eql(INT(1));
+            expect(evaluate("get elements")).to.eql(evaluate("get l"));
+          });
+          it("should return the result of the last command", () => {
+            expect(execute("list () foreach element {}")).to.eql(OK(NIL));
+            expect(execute("list (a b c) foreach element {}")).to.eql(OK(NIL));
+            expect(
+              evaluate("set i 0; list (a b c) foreach element {set i [+ $i 1]}")
+            ).to.eql(INT(3));
+          });
+
+          describe("Control flow", () => {
+            describe("`return`", () => {
+              it("should interrupt the loop with `RETURN` code", () => {
+                expect(
+                  execute(
+                    "set i 0; list (a b c) foreach element {set i [+ $i 1]; return $element; unreachable}"
+                  )
+                ).to.eql(execute("return a"));
+                expect(evaluate("get i")).to.eql(INT(1));
+              });
+            });
+            describe("`tailcall`", () => {
+              it("should interrupt the loop with `RETURN` code", () => {
+                expect(
+                  execute(
+                    "set i 0; list (a b c) foreach element {set i [+ $i 1]; tailcall {idem $element}; unreachable}"
+                  )
+                ).to.eql(execute("return a"));
+                expect(evaluate("get i")).to.eql(INT(1));
+              });
+            });
+            describe("`yield`", () => {
+              it("should interrupt the body with `YIELD` code", () => {
+                expect(
+                  execute("list (a b c) foreach element {yield; unreachable}")
+                    .code
+                ).to.eql(ResultCode.YIELD);
+              });
+              it("should provide a resumable state", () => {
+                const process = rootScope.prepareScript(
+                  parse(
+                    "list (a b c) foreach element {idem _$[yield $element]_}"
+                  )
+                );
+
+                let result = process.run();
+                expect(result.code).to.eql(ResultCode.YIELD);
+                expect(result.value).to.eql(STR("a"));
+                expect(result.data).to.exist;
+
+                process.yieldBack(STR("step 1"));
+                result = process.run();
+                expect(result.code).to.eql(ResultCode.YIELD);
+                expect(result.value).to.eql(STR("b"));
+                expect(result.data).to.exist;
+
+                process.yieldBack(STR("step 2"));
+                result = process.run();
+                expect(result.code).to.eql(ResultCode.YIELD);
+                expect(result.value).to.eql(STR("c"));
+                expect(result.data).to.exist;
+
+                process.yieldBack(STR("step 3"));
+                result = process.run();
+                expect(result).to.eql(OK(STR("_step 3_")));
+              });
+            });
+            describe("`error`", () => {
+              it("should interrupt the loop with `ERROR` code", () => {
+                expect(
+                  execute(
+                    "set i 0; list (a b c) foreach element {set i [+ $i 1]; error msg; unreachable}"
+                  )
+                ).to.eql(ERROR("msg"));
+                expect(evaluate("get i")).to.eql(INT(1));
+              });
+            });
+            describe("`break`", () => {
+              it("should interrupt the body with nil result", () => {
+                expect(
+                  execute(
+                    "set i 0; list (a b c) foreach element {set i [+ $i 1]; break; unreachable}"
+                  )
+                ).to.eql(OK(NIL));
+                expect(evaluate("get i")).to.eql(INT(1));
+              });
+            });
+            describe("`continue`", () => {
+              it("should interrupt the body iteration", () => {
+                expect(
+                  execute(
+                    "set i 0; list (a b c) foreach element {set i [+ $i 1]; continue; unreachable}"
+                  )
+                ).to.eql(OK(NIL));
+                expect(evaluate("get i")).to.eql(INT(3));
+              });
             });
           });
-          describe("tailcall", () => {
-            it("should interrupt the loop with RETURN code", () => {
-              expect(
-                execute(
-                  "set i 0; list (a b c) foreach element {set i [+ $i 1]; tailcall {idem $element}; unreachable}"
+
+          describe("Exceptions", () => {
+            specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
+              expect(execute("list (a b c) foreach a")).to.eql(
+                ERROR(
+                  'wrong # args: should be "list value foreach element body"'
                 )
-              ).to.eql(execute("return a"));
-              expect(evaluate("get i")).to.eql(INT(1));
-            });
-          });
-          describe("yield", () => {
-            it("should interrupt the body with YIELD code", () => {
-              expect(
-                execute("list (a b c) foreach element {yield; unreachable}")
-                  .code
-              ).to.eql(ResultCode.YIELD);
-            });
-            it("should provide a resumable state", () => {
-              const process = rootScope.prepareScript(
-                parse("list (a b c) foreach element {idem _$[yield $element]_}")
               );
-
-              let result = process.run();
-              expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(STR("a"));
-              expect(result.data).to.exist;
-
-              process.yieldBack(STR("step 1"));
-              result = process.run();
-              expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(STR("b"));
-              expect(result.data).to.exist;
-
-              process.yieldBack(STR("step 2"));
-              result = process.run();
-              expect(result.code).to.eql(ResultCode.YIELD);
-              expect(result.value).to.eql(STR("c"));
-              expect(result.data).to.exist;
-
-              process.yieldBack(STR("step 3"));
-              result = process.run();
-              expect(result).to.eql(OK(STR("_step 3_")));
-            });
-          });
-          describe("error", () => {
-            it("should interrupt the loop with ERROR code", () => {
-              expect(
-                execute(
-                  "set i 0; list (a b c) foreach element {set i [+ $i 1]; error msg; unreachable}"
+              expect(execute("list (a b c) foreach a b c")).to.eql(
+                ERROR(
+                  'wrong # args: should be "list value foreach element body"'
                 )
-              ).to.eql(ERROR("msg"));
-              expect(evaluate("get i")).to.eql(INT(1));
+              );
             });
-          });
-          describe("break", () => {
-            it("should interrupt the body with nil result", () => {
-              expect(
-                execute(
-                  "set i 0; list (a b c) foreach element {set i [+ $i 1]; break; unreachable}"
-                )
-              ).to.eql(OK(NIL));
-              expect(evaluate("get i")).to.eql(INT(1));
+            specify("non-script body", () => {
+              expect(execute("list (a b c) foreach a b")).to.eql(
+                ERROR("body must be a script")
+              );
             });
-          });
-          describe("continue", () => {
-            it("should interrupt the body iteration", () => {
-              expect(
-                execute(
-                  "set i 0; list (a b c) foreach element {set i [+ $i 1]; continue; unreachable}"
-                )
-              ).to.eql(OK(NIL));
-              expect(evaluate("get i")).to.eql(INT(3));
-            });
-          });
-        });
-        describe("exceptions", () => {
-          specify("wrong arity", () => {
-            expect(execute("list (a b c) foreach a")).to.eql(
-              ERROR('wrong # args: should be "list value foreach element body"')
-            );
-            expect(execute("list (a b c) foreach a b c")).to.eql(
-              ERROR('wrong # args: should be "list value foreach element body"')
-            );
-          });
-          specify("non-script body", () => {
-            expect(execute("list (a b c) foreach a b")).to.eql(
-              ERROR("body must be a script")
-            );
           });
         });
       });
-      describe("exceptions", () => {
+
+      mochadoc.section("Exceptions", () => {
         specify("unknown subcommand", () => {
           expect(execute("list () unknownSubcommand")).to.eql(
             ERROR('unknown subcommand "unknownSubcommand"')
@@ -478,70 +640,163 @@ describe("Helena lists", () => {
           );
         });
       });
+    });
+
+    mochadoc.section("Examples", () => {
+      example("Currying and encapsulation", [
+        {
+          doc: () => {
+            /**
+             * Thanks to leading tuple auto-expansion, it is very simple to
+             * bundle the `list` command and a value into a tuple to create a
+             * pseudo-object value. For example:
+             */
+          },
+          script: "set l (list (a b c d e f g))",
+        },
+        {
+          doc: () => {
+            /**
+             * We can then use this variable like a regular command. Calling it
+             * without argument will return the wrapped value:
+             */
+          },
+          script: "$l",
+          result: evaluate("list (a b c d e f g)"),
+        },
+        {
+          doc: () => {
+            /**
+             * Subcommands then behave like object methods:
+             */
+          },
+          script: "$l length",
+          result: INT(7),
+        },
+        {
+          script: "$l at 2",
+          result: STR("c"),
+        },
+        {
+          script: "$l range 3 5",
+          result: evaluate("list (d e f)"),
+        },
+      ]);
+    });
+
+    mochadoc.section("Ensemble command", () => {
+      mochadoc.description(() => {
+        /**
+         * `list` is an ensemble command, which means that it is a collection of
+         * subcommands defined in an ensemble scope.
+         */
+      });
+
+      it("should return its ensemble metacommand", () => {
+        /**
+         * The typical application of this property is to access the ensemble
+         * metacommand by wrapping the command within brackets, i.e. `[list]`.
+         */
+        expect(evaluate("list").type).to.eql(commandValueType);
+        expect(evaluate("list")).to.be.instanceOf(EnsembleValue);
+      });
       it("should be extensible", () => {
-        evaluate(
-          `[list] eval {
-            macro last {value} {
-              list $value at [- [list $value length] 1]
-            }
-          }`
-        );
-        expect(evaluate("list (a b c) last")).to.eql(STR("c"));
+        /**
+         * Creating a command in the `list` ensemble scope will add it to its
+         * subcommands.
+         */
+        evaluate(`
+          [list] eval {
+            macro foo {value} {idem bar}
+          }
+        `);
+        expect(evaluate("list (a b c) foo")).to.eql(STR("bar"));
       });
-    });
-    describe("exceptions", () => {
-      specify("invalid values", () => {
-        expect(execute("list []")).to.eql(ERROR("invalid list"));
-        expect(execute("list [1]")).to.eql(ERROR("invalid list"));
-        expect(execute("list a")).to.eql(ERROR("invalid list"));
-      });
-      specify("blocks with side effects", () => {
-        expect(execute("list { $a }")).to.eql(ERROR("invalid list"));
-        expect(execute("list { [b] }")).to.eql(ERROR("invalid list"));
-        expect(execute("list { $[][a] }")).to.eql(ERROR("invalid list"));
-        expect(execute("list { $[](a) }")).to.eql(ERROR("invalid list"));
+
+      mochadoc.section("Examples", () => {
+        example("Adding a `last` subcommand", [
+          {
+            doc: () => {
+              /**
+               * Here we create a `last` macro within the `list` ensemble scope,
+               * returning the last element of the provided list value:
+               */
+            },
+            script: `
+              [list] eval {
+                macro last {value} {
+                  list $value at [- [list $value length] 1]
+                }
+              }
+            `,
+          },
+          {
+            doc: () => {
+              /**
+               * We can then use `last` just like the predefined `list`
+               * subcommands:
+               */
+            },
+            script: "list (a b c) last",
+            result: STR("c"),
+          },
+        ]);
+        example("Using `foreach` to implement a `includes` subcommand", [
+          {
+            doc: () => {
+              /**
+               * Faithful to its minimalist philosophy, Helena only provides
+               * basic subcommands that can serve as building blocks to
+               * implement other subcommands. Here we add a `includes` predicate
+               * that tests whether a given value is present in a list,
+               * leveraging the built-in `foreach` subcommand to iterate over
+               * the list elements:
+               */
+            },
+            script: `
+              [list] eval {
+                proc includes {haystack needle} {
+                  list $haystack foreach element {
+                    if [string $needle == $element] {return [true]}
+                  }
+                  return [false]
+                }
+              }
+            `,
+          },
+          {
+            doc: () => {
+              /**
+               * (Note how we are free to name subcommand arguments however we
+               * want)
+               *
+               * We can then use `includes` just like the predefined `list`
+               * subcommands:
+               */
+            },
+            script: "list (a b c) includes b",
+            result: TRUE,
+          },
+          {
+            script: "list (a b c) includes d",
+            result: FALSE,
+          },
+        ]);
       });
     });
   });
 
-  describe("currying", () => {
-    specify("identity", () => {
-      evaluate("set l (list (a b c))");
-      expect(evaluate("$l")).to.eql(evaluate("list (a b c)"));
-    });
-    specify("length", () => {
-      evaluate("set l (list (a b c))");
-      expect(evaluate("$l length")).to.eql(INT(3));
-    });
-    specify("at", () => {
-      evaluate("set l (list (a b c))");
-      expect(evaluate("$l at 2")).to.eql(STR("c"));
-    });
-    specify("range", () => {
-      evaluate("set l (list (a b c d e f g))");
-      expect(evaluate("$l range 3 5")).to.eql(evaluate("list (d e f)"));
-    });
-  });
+  mochadoc.section("`displayListValue`", () => {
+    mochadoc.summary("Display function for lists");
 
-  specify("at <-> indexed selector equivalence", () => {
-    rootScope.setNamedVariable("v", LIST([STR("a"), STR("b"), STR("c")]));
-    evaluate("set l (list $v)");
-
-    expect(execute("list $v at 2")).to.eql(execute("idem $v[2]"));
-    expect(execute("$l at 2")).to.eql(execute("idem $v[2]"));
-    expect(execute("idem $[$l][2]")).to.eql(execute("idem $v[2]"));
-
-    expect(execute("list $l at -1")).to.eql(execute("idem $v[-1]"));
-    expect(execute("$l at -1")).to.eql(execute("idem $v[-1]"));
-    expect(execute("idem $[$l][-1]")).to.eql(execute("idem $v[-1]"));
-  });
-
-  describe("displayListValue", () => {
-    it("should display lists as list command + tuple values", () => {
+    it("should display lists as `list` command + tuple values", () => {
       const list = LIST([STR("a"), STR("b"), STR("c")]);
       expect(displayListValue(list)).to.eql("[list (a b c)]");
     });
     it("should produce an isomorphic string", () => {
+      /**
+       * Evaluating the string will produce an identical list value.
+       */
       const list = LIST([STR("a"), STR("b"), STR("c")]);
       expect(evaluate(`idem ${displayListValue(list)}`)).to.eql(list);
     });
