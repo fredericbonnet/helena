@@ -1,10 +1,13 @@
 import { expect } from "chai";
+import * as mochadoc from "../../mochadoc";
 import { ERROR } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { FALSE, INT, STR, TRUE } from "../core/values";
-import { Scope } from "./core";
+import { Scope, commandValueType } from "./core";
 import { initCommands } from "./helena-dialect";
+import { codeBlock, specifyExample } from "./test-helpers";
+import { EnsembleValue } from "./ensembles";
 
 describe("Helena strings", () => {
   let rootScope: Scope;
@@ -17,168 +20,291 @@ describe("Helena strings", () => {
   const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 
-  beforeEach(() => {
+  const init = () => {
     rootScope = new Scope();
     initCommands(rootScope);
 
     tokenizer = new Tokenizer();
     parser = new Parser();
+  };
+  const usage = (script: string) => {
+    init();
+    return codeBlock(evaluate("help " + script).asString());
+  };
+  const example = specifyExample(({ script, result }) => {
+    const value = evaluate(script);
+    if (result) expect(value).to.eql(result);
   });
 
-  describe("string", () => {
-    it("should return string value", () => {
-      expect(evaluate("string example")).to.eql(STR("example"));
+  beforeEach(init);
+
+  describe("`string`", () => {
+    mochadoc.summary("String handling");
+    mochadoc.usage(usage("string"));
+    mochadoc.description(() => {
+      /**
+       * The `string` command is a type command dedicated to string values. It
+       * provides an ensemble of subcommands for string creation, conversion,
+       * access, and operations.
+       *
+       * String values are Helena values whose internal type is `STRING`.
+       */
     });
-    it("should convert non-string values to strings", () => {
-      expect(evaluate("string [+ 1 3]")).to.eql(STR("4"));
+
+    mochadoc.section("String creation and conversion", () => {
+      mochadoc.description(() => {
+        /**
+         * Like with most type commands, passing a single argument to `string`
+         * will ensure a string value in return. This property means that
+         * `string` can be used for creation and conversion, but also as a type
+         * guard in argspecs.
+         */
+      });
+
+      it("should return string value", () => {
+        expect(evaluate("string example")).to.eql(STR("example"));
+      });
+      it("should convert non-string values to strings", () => {
+        /**
+         * Any value having a valid string representation can be used.
+         */
+        expect(evaluate("string [+ 1 3]")).to.eql(STR("4"));
+      });
+
+      describe("Exceptions", () => {
+        specify("values with no string representation", () => {
+          expect(execute("string []")).to.eql(
+            ERROR("value has no string representation")
+          );
+          expect(execute("string ()")).to.eql(
+            ERROR("value has no string representation")
+          );
+        });
+      });
     });
-    describe("subcommands", () => {
-      describe("subcommands", () => {
-        it("should return list of subcommands", () => {
-          expect(evaluate('string "" subcommands')).to.eql(
-            evaluate(
-              "list (subcommands length at range append remove insert replace == != > >= < <=)"
-            )
-          );
-        });
-        describe("exceptions", () => {
-          specify("wrong arity", () => {
-            expect(execute('string "" subcommands a')).to.eql(
-              ERROR('wrong # args: should be "string value subcommands"')
+
+    mochadoc.section("Subcommands", () => {
+      mochadoc.description(() => {
+        /**
+         * The `string` ensemble comes with a number of predefined subcommands
+         * listed here.
+         */
+      });
+
+      mochadoc.section("Introspection", () => {
+        describe("`subcommands`", () => {
+          it("should return list of subcommands", () => {
+            /**
+             * This subcommand is useful for introspection and interactive
+             * calls.
+             */
+            expect(evaluate('string "" subcommands')).to.eql(
+              evaluate(
+                "list (subcommands length at range append remove insert replace == != > >= < <=)"
+              )
             );
+          });
+
+          describe("Exceptions", () => {
+            specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
+              expect(execute('string "" subcommands a')).to.eql(
+                ERROR('wrong # args: should be "string value subcommands"')
+              );
+            });
           });
         });
       });
-      describe("length", () => {
-        it("should return the string length", () => {
-          expect(evaluate('string "" length')).to.eql(INT(0));
-          expect(evaluate("string example length")).to.eql(INT(7));
+
+      mochadoc.section("Accessors", () => {
+        describe("`length`", () => {
+          it("should return the string length", () => {
+            expect(evaluate('string "" length')).to.eql(INT(0));
+            expect(evaluate("string example length")).to.eql(INT(7));
+          });
+
+          describe("Exceptions", () => {
+            specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
+              expect(execute("string example length a")).to.eql(
+                ERROR('wrong # args: should be "string value length"')
+              );
+            });
+          });
         });
-        describe("exceptions", () => {
-          specify("wrong arity", () => {
-            expect(execute("string example length a")).to.eql(
-              ERROR('wrong # args: should be "string value length"')
+
+        describe("`at`", () => {
+          it("should return the character at the given index", () => {
+            expect(evaluate("string example at 1")).to.eql(STR("x"));
+          });
+          it("should return the default value for an out-of-range index", () => {
+            expect(evaluate("string example at 10 default")).to.eql(
+              STR("default")
             );
+          });
+          specify("at <-> indexed selector equivalence", () => {
+            rootScope.setNamedVariable("v", STR("example"));
+            evaluate("set s (string $v)");
+
+            expect(execute("string $v at 2")).to.eql(execute("idem $v[2]"));
+            expect(execute("$s at 2")).to.eql(execute("idem $v[2]"));
+            expect(execute("idem $[$s][2]")).to.eql(execute("idem $v[2]"));
+
+            expect(execute("string $v at -1")).to.eql(execute("idem $v[-1]"));
+            expect(execute("$s at -1")).to.eql(execute("idem $v[-1]"));
+            expect(execute("idem $[$s][-1]")).to.eql(execute("idem $v[-1]"));
+          });
+
+          describe("Exceptions", () => {
+            specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
+              expect(execute("string example at")).to.eql(
+                ERROR(
+                  'wrong # args: should be "string value at index ?default?"'
+                )
+              );
+              expect(execute("string example at a b c")).to.eql(
+                ERROR(
+                  'wrong # args: should be "string value at index ?default?"'
+                )
+              );
+            });
+            specify("invalid index", () => {
+              expect(execute("string example at a")).to.eql(
+                ERROR('invalid integer "a"')
+              );
+            });
+            specify("index out of range", () => {
+              expect(execute("string example at -1")).to.eql(
+                ERROR('index out of range "-1"')
+              );
+              expect(execute("string example at 10")).to.eql(
+                ERROR('index out of range "10"')
+              );
+            });
           });
         });
       });
-      describe("at", () => {
-        it("should return the character at the given index", () => {
-          expect(evaluate("string example at 1")).to.eql(STR("x"));
-        });
-        it("should return the default value for an out-of-range index", () => {
-          expect(evaluate("string example at 10 default")).to.eql(
-            STR("default")
-          );
-        });
-        describe("exceptions", () => {
-          specify("wrong arity", () => {
-            expect(execute("string example at")).to.eql(
-              ERROR('wrong # args: should be "string value at index ?default?"')
-            );
-            expect(execute("string example at a b c")).to.eql(
-              ERROR('wrong # args: should be "string value at index ?default?"')
+
+      mochadoc.section("String operations", () => {
+        describe("`range`", () => {
+          it("should return the string included within [first, last]", () => {
+            expect(evaluate("string example range 1 3")).to.eql(STR("xam"));
+          });
+          it("should return the remainder of the string when given first only", () => {
+            expect(evaluate("string example range 2")).to.eql(STR("ample"));
+          });
+          it("should truncate out of range boundaries", () => {
+            expect(evaluate("string example range -1")).to.eql(STR("example"));
+            expect(evaluate("string example range -10 1")).to.eql(STR("ex"));
+            expect(evaluate("string example range 2 10")).to.eql(STR("ample"));
+            expect(evaluate("string example range -2 10")).to.eql(
+              STR("example")
             );
           });
-          specify("invalid index", () => {
-            expect(execute("string example at a")).to.eql(
-              ERROR('invalid integer "a"')
-            );
+          it("should return an empty string when last is before first", () => {
+            expect(evaluate("string example range 2 0")).to.eql(STR(""));
           });
-          specify("index out of range", () => {
-            expect(execute("string example at -1")).to.eql(
-              ERROR('index out of range "-1"')
-            );
-            expect(execute("string example at 10")).to.eql(
-              ERROR('index out of range "10"')
-            );
+          it("should return an empty string when first is past the string length", () => {
+            expect(evaluate("string example range 10 12")).to.eql(STR(""));
           });
-        });
-      });
-      describe("range", () => {
-        it("should return the string included within [first, last]", () => {
-          expect(evaluate("string example range 1 3")).to.eql(STR("xam"));
-        });
-        it("should return the remainder of the string when given first only", () => {
-          expect(evaluate("string example range 2")).to.eql(STR("ample"));
-        });
-        it("should truncate out of range boundaries", () => {
-          expect(evaluate("string example range -1")).to.eql(STR("example"));
-          expect(evaluate("string example range -10 1")).to.eql(STR("ex"));
-          expect(evaluate("string example range 2 10")).to.eql(STR("ample"));
-          expect(evaluate("string example range -2 10")).to.eql(STR("example"));
-        });
-        it("should return an empty string when last is before first", () => {
-          expect(evaluate("string example range 2 0")).to.eql(STR(""));
-        });
-        it("should return an empty string when first is past the string length", () => {
-          expect(evaluate("string example range 10 12")).to.eql(STR(""));
-        });
-        it("should return an empty string when last is negative", () => {
-          expect(evaluate("string example range -3 -1")).to.eql(STR(""));
-        });
-        describe("exceptions", () => {
-          specify("wrong arity", () => {
-            expect(execute("string example range")).to.eql(
-              ERROR('wrong # args: should be "string value range first ?last?"')
-            );
-            expect(execute("string example range a b c")).to.eql(
-              ERROR('wrong # args: should be "string value range first ?last?"')
-            );
+          it("should return an empty string when last is negative", () => {
+            expect(evaluate("string example range -3 -1")).to.eql(STR(""));
           });
-          specify("invalid index", () => {
-            expect(execute("string example range a")).to.eql(
-              ERROR('invalid integer "a"')
-            );
-            expect(execute("string example range 1 b")).to.eql(
-              ERROR('invalid integer "b"')
-            );
+
+          describe("Exceptions", () => {
+            specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
+              expect(execute("string example range")).to.eql(
+                ERROR(
+                  'wrong # args: should be "string value range first ?last?"'
+                )
+              );
+              expect(execute("string example range a b c")).to.eql(
+                ERROR(
+                  'wrong # args: should be "string value range first ?last?"'
+                )
+              );
+            });
+            specify("invalid index", () => {
+              expect(execute("string example range a")).to.eql(
+                ERROR('invalid integer "a"')
+              );
+              expect(execute("string example range 1 b")).to.eql(
+                ERROR('invalid integer "b"')
+              );
+            });
           });
         });
-      });
-      describe("remove", () => {
-        it("should remove the range included within [first, last]", () => {
-          expect(evaluate("string example remove 1 3")).to.eql(STR("eple"));
-        });
-        it("should truncate out of range boundaries", () => {
-          expect(evaluate("string example remove -10 1")).to.eql(STR("ample"));
-          expect(evaluate("string example remove 2 10")).to.eql(STR("ex"));
-          expect(evaluate("string example remove -2 10")).to.eql(STR(""));
-        });
-        it("should do nothing when last is before first", () => {
-          expect(evaluate("string example remove 2 0")).to.eql(STR("example"));
-        });
-        it("should do nothing when last is negative", () => {
-          expect(evaluate("string example remove -3 -1")).to.eql(
-            STR("example")
-          );
-        });
-        it("should do nothing when first is past the string length", () => {
-          expect(evaluate("string example remove 10 12")).to.eql(
-            STR("example")
-          );
-        });
-        describe("exceptions", () => {
-          specify("wrong arity", () => {
-            expect(execute("string example remove a")).to.eql(
-              ERROR('wrong # args: should be "string value remove first last"')
+
+        describe("`remove`", () => {
+          it("should remove the range included within [first, last]", () => {
+            expect(evaluate("string example remove 1 3")).to.eql(STR("eple"));
+          });
+          it("should truncate out of range boundaries", () => {
+            expect(evaluate("string example remove -10 1")).to.eql(
+              STR("ample")
             );
-            expect(execute("string example remove a b c d")).to.eql(
-              ERROR('wrong # args: should be "string value remove first last"')
+            expect(evaluate("string example remove 2 10")).to.eql(STR("ex"));
+            expect(evaluate("string example remove -2 10")).to.eql(STR(""));
+          });
+          it("should do nothing when last is before first", () => {
+            expect(evaluate("string example remove 2 0")).to.eql(
+              STR("example")
             );
           });
-          specify("invalid index", () => {
-            expect(execute("string example remove a b")).to.eql(
-              ERROR('invalid integer "a"')
-            );
-            expect(execute("string example remove 1 b")).to.eql(
-              ERROR('invalid integer "b"')
+          it("should do nothing when last is negative", () => {
+            expect(evaluate("string example remove -3 -1")).to.eql(
+              STR("example")
             );
           });
+          it("should do nothing when first is past the string length", () => {
+            expect(evaluate("string example remove 10 12")).to.eql(
+              STR("example")
+            );
+          });
+
+          describe("Exceptions", () => {
+            specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
+              expect(execute("string example remove a")).to.eql(
+                ERROR(
+                  'wrong # args: should be "string value remove first last"'
+                )
+              );
+              expect(execute("string example remove a b c d")).to.eql(
+                ERROR(
+                  'wrong # args: should be "string value remove first last"'
+                )
+              );
+            });
+            specify("invalid index", () => {
+              expect(execute("string example remove a b")).to.eql(
+                ERROR('invalid integer "a"')
+              );
+              expect(execute("string example remove 1 b")).to.eql(
+                ERROR('invalid integer "b"')
+              );
+            });
+          });
         });
-      });
-      describe("composition", () => {
-        describe("append", () => {
+
+        describe("`append`", () => {
           it("should append two strings", () => {
             expect(evaluate("string example append foo")).to.eql(
               STR("examplefoo")
@@ -192,7 +318,8 @@ describe("Helena strings", () => {
           it("should accept zero string", () => {
             expect(evaluate("string example append")).to.eql(STR("example"));
           });
-          describe("exceptions", () => {
+
+          describe("Exceptions", () => {
             specify("values with no string representation", () => {
               expect(execute("string example append []")).to.eql(
                 ERROR("value has no string representation")
@@ -203,7 +330,7 @@ describe("Helena strings", () => {
             });
           });
         });
-        describe("insert", () => {
+        describe("`insert`", () => {
           it("should insert the string at the given index", () => {
             expect(evaluate("string example insert 1 foo")).to.eql(
               STR("efooxample")
@@ -219,8 +346,13 @@ describe("Helena strings", () => {
               STR("examplefoo")
             );
           });
-          describe("exceptions", () => {
+
+          describe("Exceptions", () => {
             specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
               expect(execute("string example insert a")).to.eql(
                 ERROR('wrong # args: should be "string value insert index new"')
               );
@@ -243,7 +375,8 @@ describe("Helena strings", () => {
             });
           });
         });
-        describe("replace", () => {
+
+        describe("`replace`", () => {
           it("should replace the range included within [first, last] with the given string", () => {
             expect(evaluate("string example replace 1 3 foo")).to.eql(
               STR("efoople")
@@ -275,8 +408,13 @@ describe("Helena strings", () => {
               STR("examplefoo")
             );
           });
-          describe("exceptions", () => {
+
+          describe("Exceptions", () => {
             specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
               expect(execute("string example replace a b")).to.eql(
                 ERROR(
                   'wrong # args: should be "string value replace first last new"'
@@ -307,8 +445,9 @@ describe("Helena strings", () => {
           });
         });
       });
-      describe("comparisons", () => {
-        describe("==", () => {
+
+      mochadoc.section("String comparisons", () => {
+        describe("`==`", () => {
           it("should compare two strings", () => {
             expect(evaluate("string example == foo")).to.equal(FALSE);
             expect(evaluate("string example == example")).to.equal(TRUE);
@@ -316,8 +455,13 @@ describe("Helena strings", () => {
               TRUE
             );
           });
-          describe("exceptions", () => {
+
+          describe("Exceptions", () => {
             specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
               expect(execute("string a ==")).to.eql(
                 ERROR('wrong # operands: should be "string value1 == value2"')
               );
@@ -335,7 +479,8 @@ describe("Helena strings", () => {
             });
           });
         });
-        describe("!=", () => {
+
+        describe("`!=`", () => {
           it("should compare two strings", () => {
             expect(evaluate("string example != foo")).to.equal(TRUE);
             expect(evaluate("string example != example")).to.equal(FALSE);
@@ -343,8 +488,13 @@ describe("Helena strings", () => {
               FALSE
             );
           });
-          describe("exceptions", () => {
+
+          describe("Exceptions", () => {
             specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
               expect(execute("string a !=")).to.eql(
                 ERROR('wrong # operands: should be "string value1 != value2"')
               );
@@ -362,7 +512,8 @@ describe("Helena strings", () => {
             });
           });
         });
-        describe(">", () => {
+
+        describe("`>`", () => {
           it("should compare two strings", () => {
             expect(evaluate("string example > foo")).to.equal(FALSE);
             expect(evaluate("string example > example")).to.equal(FALSE);
@@ -370,8 +521,13 @@ describe("Helena strings", () => {
               FALSE
             );
           });
-          describe("exceptions", () => {
+
+          describe("Exceptions", () => {
             specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
               expect(execute("string a >")).to.eql(
                 ERROR('wrong # operands: should be "string value1 > value2"')
               );
@@ -389,7 +545,8 @@ describe("Helena strings", () => {
             });
           });
         });
-        describe(">=", () => {
+
+        describe("`>=`", () => {
           it("should compare two strings", () => {
             expect(evaluate("string example >= foo")).to.equal(FALSE);
             expect(evaluate("string example >= example")).to.equal(TRUE);
@@ -397,8 +554,13 @@ describe("Helena strings", () => {
               TRUE
             );
           });
-          describe("exceptions", () => {
+
+          describe("Exceptions", () => {
             specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
               expect(execute("string a >=")).to.eql(
                 ERROR('wrong # operands: should be "string value1 >= value2"')
               );
@@ -416,7 +578,8 @@ describe("Helena strings", () => {
             });
           });
         });
-        describe("<", () => {
+
+        describe("`<`", () => {
           it("should compare two strings", () => {
             expect(evaluate("string example < foo")).to.equal(TRUE);
             expect(evaluate("string example < example")).to.equal(FALSE);
@@ -424,8 +587,13 @@ describe("Helena strings", () => {
               FALSE
             );
           });
-          describe("exceptions", () => {
+
+          describe("Exceptions", () => {
             specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
               expect(execute("string a <")).to.eql(
                 ERROR('wrong # operands: should be "string value1 < value2"')
               );
@@ -443,7 +611,8 @@ describe("Helena strings", () => {
             });
           });
         });
-        describe("<=", () => {
+
+        describe("`<=`", () => {
           it("should compare two strings", () => {
             expect(evaluate("string example <= foo")).to.equal(TRUE);
             expect(evaluate("string example <= example")).to.equal(TRUE);
@@ -451,8 +620,13 @@ describe("Helena strings", () => {
               TRUE
             );
           });
-          describe("exceptions", () => {
+
+          describe("Exceptions", () => {
             specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
               expect(execute("string a <=")).to.eql(
                 ERROR('wrong # operands: should be "string value1 <= value2"')
               );
@@ -471,17 +645,8 @@ describe("Helena strings", () => {
           });
         });
       });
-      it("should be extensible", () => {
-        evaluate(
-          `[string] eval {
-            macro last {value} {
-              string $value at [- [string $value length] 1]
-            }
-          }`
-        );
-        expect(evaluate("string example last")).to.eql(STR("e"));
-      });
-      describe("exceptions", () => {
+
+      mochadoc.section("Exceptions", () => {
         specify("unknown subcommand", () => {
           expect(execute('string "" unknownSubcommand')).to.eql(
             ERROR('unknown subcommand "unknownSubcommand"')
@@ -494,52 +659,143 @@ describe("Helena strings", () => {
         });
       });
     });
-    describe("exceptions", () => {
-      specify("values with no string representation", () => {
-        expect(execute("string []")).to.eql(
-          ERROR("value has no string representation")
-        );
-        expect(execute("string ()")).to.eql(
-          ERROR("value has no string representation")
-        );
+
+    mochadoc.section("Examples", () => {
+      example("Currying and encapsulation", [
+        {
+          doc: () => {
+            /**
+             * Thanks to leading tuple auto-expansion, it is very simple to
+             * bundle the `string` command and a value into a tuple to create a
+             * pseudo-object value. For example:
+             */
+          },
+          script: "set s (string example)",
+        },
+        {
+          doc: () => {
+            /**
+             * We can then use this variable like a regular command. Calling it
+             * without argument will return the wrapped value:
+             */
+          },
+          script: "$s",
+          result: STR("example"),
+        },
+        {
+          doc: () => {
+            /**
+             * Subcommands then behave like object methods:
+             */
+          },
+          script: "$s length",
+          result: INT(7),
+        },
+        {
+          script: "$s at 2",
+          result: STR("a"),
+        },
+        {
+          script: "$s range 3 5",
+          result: STR("mpl"),
+        },
+        {
+          script: "$s == example",
+          result: TRUE,
+        },
+        {
+          script: "$s > exercise",
+          result: FALSE,
+        },
+      ]);
+    });
+
+    mochadoc.section("Ensemble command", () => {
+      mochadoc.description(() => {
+        /**
+         * `string` is an ensemble command, which means that it is a collection
+         * of subcommands defined in an ensemble scope.
+         */
+      });
+
+      it("should return its ensemble metacommand", () => {
+        /**
+         * The typical application of this property is to access the ensemble
+         * metacommand by wrapping the command within brackets, i.e. `[string]`.
+         */
+        expect(evaluate("string").type).to.eql(commandValueType);
+        expect(evaluate("string")).to.be.instanceOf(EnsembleValue);
+      });
+      it("should be extensible", () => {
+        /**
+         * Creating a command in the `string` ensemble scope will add it to its
+         * subcommands.
+         */
+        evaluate(`
+          [string] eval {
+            macro foo {value} {idem bar}
+          }
+        `);
+        expect(evaluate("string example foo")).to.eql(STR("bar"));
+      });
+
+      mochadoc.section("Examples", () => {
+        example("Adding a `last` subcommand", [
+          {
+            doc: () => {
+              /**
+               * Here we create a `last` macro within the `string` ensemble
+               * scope, returning the last character of the provided string
+               * value:
+               */
+            },
+            script: `
+              [string] eval {
+                macro last {value} {
+                  string $value at [- [string $value length] 1]
+                }
+              }
+            `,
+          },
+          {
+            doc: () => {
+              /**
+               * We can then use `last` just like the predefined `string`
+               * subcommands:
+               */
+            },
+            script: "string example last",
+            result: STR("e"),
+          },
+        ]);
+        example("Adding a `+` operator", [
+          {
+            doc: () => {
+              /**
+               * Here we create a `+` binary macro that concatenates two strings
+               * together:
+               */
+            },
+            script: `
+              [string] eval {
+                macro + {str1 str2} {idem $str1$str2}
+              }
+            `,
+          },
+          {
+            doc: () => {
+              /**
+               * (Note how we are free to name subcommand arguments however we
+               * want)
+               *
+               * We can then use `+` as an infix concatenate operator:
+               */
+            },
+            script: "string s1 + s2",
+            result: STR("s1s2"),
+          },
+        ]);
       });
     });
-  });
-
-  describe("currying", () => {
-    specify("identity", () => {
-      evaluate("set s (string example)");
-      expect(evaluate("$s")).to.eql(STR("example"));
-    });
-    specify("length", () => {
-      evaluate("set s (string example)");
-      expect(evaluate("$s length")).to.eql(INT(7));
-    });
-    specify("at", () => {
-      evaluate("set s (string example)");
-      expect(evaluate("$s at 2")).to.eql(STR("a"));
-    });
-    specify("range", () => {
-      evaluate("set s (string example)");
-      expect(evaluate("$s range 3 5")).to.eql(STR("mpl"));
-    });
-    specify("==", () => {
-      evaluate("set s (string example)");
-      expect(evaluate("$s == value")).to.eql(FALSE);
-      expect(evaluate("$s == example")).to.eql(TRUE);
-    });
-  });
-
-  specify("at <-> indexed selector equivalence", () => {
-    rootScope.setNamedVariable("v", STR("example"));
-    evaluate("set s (string $v)");
-
-    expect(execute("string $v at 2")).to.eql(execute("idem $v[2]"));
-    expect(execute("$s at 2")).to.eql(execute("idem $v[2]"));
-    expect(execute("idem $[$s][2]")).to.eql(execute("idem $v[2]"));
-
-    expect(execute("string $v at -1")).to.eql(execute("idem $v[-1]"));
-    expect(execute("$s at -1")).to.eql(execute("idem $v[-1]"));
-    expect(execute("idem $[$s][-1]")).to.eql(execute("idem $v[-1]"));
   });
 });

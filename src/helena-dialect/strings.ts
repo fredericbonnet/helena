@@ -31,6 +31,10 @@ class StringCommand implements Command {
     if (args.length == 2) return StringValue.fromValue(args[1]);
     return this.ensemble.ensemble.execute(args, scope);
   }
+  help(args) {
+    // TODO handle args to ensemble subcommands
+    return OK(STR("string ?value? ?subcommand? ?arg ...?"));
+  }
 }
 
 const stringLengthCmd: Command = {
