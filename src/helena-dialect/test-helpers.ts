@@ -1,4 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
+import { expect } from "chai";
 import * as mochadoc from "../../mochadoc";
 import { Documentation } from "../../mochadoc/types";
 import {
@@ -6,7 +7,7 @@ import {
   display,
   undisplayableValue,
 } from "../core/display";
-import { Result, ResultCode } from "../core/results";
+import { OK, Result, ResultCode } from "../core/results";
 import { ListValue, MapValue, Value } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { displayMapValue } from "./dicts";
@@ -30,12 +31,14 @@ const reindent = (s: string) => {
   return reindented.join("\n");
 };
 
+type ExampleResult = Value | Result;
 export type ExampleSpec = {
   doc?: Documentation;
   script: string;
-  result?: Value | Result;
+  result?: ExampleResult;
 };
 
+type ExampleExecutor = (spec: ExampleSpec) => Result;
 const exampleCode = (spec: ExampleSpec) => {
   const script = reindent(spec.script);
   if (!spec.result) return script;
@@ -47,18 +50,29 @@ const exampleCode = (spec: ExampleSpec) => {
       default:
         return script + "\n# => " + display(spec.result.value, displayer);
     }
+  } else {
+    return script + "\n# => " + display(spec.result, displayer);
   }
-  return script + "\n# => " + display(spec.result, displayer);
+};
+const executeExample = (executor: ExampleExecutor, spec: ExampleSpec) => {
+  const result = executor(spec);
+  if (!spec.result) return;
+
+  if ("code" in spec.result) {
+    expect(result).to.eql(spec.result);
+  } else {
+    expect(result).to.eql(OK(spec.result));
+  }
 };
 export const specifyExample =
-  (evaluator: (spec: ExampleSpec) => void) =>
+  (executor: ExampleExecutor) =>
   (title: string, specs: ExampleSpec | ExampleSpec[]) => {
     specify(title, function () {
-      mochadoc.testContent(this, evaluator);
+      mochadoc.testContent(this, executor);
       (specs instanceof Array ? specs : [specs]).forEach((spec) => {
         if (spec.doc) mochadoc.testContent(this, spec.doc);
         mochadoc.testContent(this, codeBlock(exampleCode(spec)));
-        evaluator(spec);
+        executeExample(executor, spec);
       });
     });
   };

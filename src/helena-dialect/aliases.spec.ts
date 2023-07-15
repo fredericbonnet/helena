@@ -37,9 +37,7 @@ describe("Helena aliases", () => {
     init();
     return codeBlock(evaluate("help " + script).asString());
   };
-  const example = specifyExample(({ script, result }) =>
-    expect(evaluate(script)).to.eql(result)
-  );
+  const example = specifyExample(({ script }) => execute(script));
 
   beforeEach(init);
 

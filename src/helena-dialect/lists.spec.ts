@@ -32,15 +32,7 @@ describe("Helena lists", () => {
     init();
     return codeBlock(evaluate("help " + script).asString());
   };
-  const example = specifyExample(({ script, result }) => {
-    if (!result) {
-      evaluate(script);
-    } else if ("code" in result) {
-      expect(execute(script)).to.eql(result);
-    } else {
-      expect(evaluate(script)).to.eql(result);
-    }
-  });
+  const example = specifyExample(({ script }) => execute(script));
 
   beforeEach(init);
 

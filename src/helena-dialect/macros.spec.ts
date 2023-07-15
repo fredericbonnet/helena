@@ -37,10 +37,7 @@ describe("Helena macros", () => {
     init();
     return codeBlock(evaluate("help " + script).asString());
   };
-  const example = specifyExample(({ script, result }) => {
-    const value = evaluate(script);
-    if (result) expect(value).to.eql(result);
-  });
+  const example = specifyExample(({ script }) => execute(script));
 
   beforeEach(init);
 
