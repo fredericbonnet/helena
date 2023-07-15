@@ -6,7 +6,8 @@ import {
   display,
   undisplayableValue,
 } from "../core/display";
-import { ListValue, MapValue } from "../core/values";
+import { Result, ResultCode } from "../core/results";
+import { ListValue, MapValue, Value } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { displayMapValue } from "./dicts";
 import { displayListValue } from "./lists";
@@ -32,9 +33,23 @@ const reindent = (s: string) => {
 export type ExampleSpec = {
   doc?: Documentation;
   script: string;
-  result?: unknown;
+  result?: Value | Result;
 };
 
+const exampleCode = (spec: ExampleSpec) => {
+  const script = reindent(spec.script);
+  if (!spec.result) return script;
+
+  if ("code" in spec.result) {
+    switch (spec.result.code) {
+      case ResultCode.ERROR:
+        return script + "\n# => [error " + display(spec.result.value) + "]";
+      default:
+        return script + "\n# => " + display(spec.result.value, displayer);
+    }
+  }
+  return script + "\n# => " + display(spec.result, displayer);
+};
 export const specifyExample =
   (evaluator: (spec: ExampleSpec) => void) =>
   (title: string, specs: ExampleSpec | ExampleSpec[]) => {
@@ -42,15 +57,7 @@ export const specifyExample =
       mochadoc.testContent(this, evaluator);
       (specs instanceof Array ? specs : [specs]).forEach((spec) => {
         if (spec.doc) mochadoc.testContent(this, spec.doc);
-        const script = reindent(spec.script);
-        mochadoc.testContent(
-          this,
-          codeBlock(
-            spec.result
-              ? script + "\n# => " + display(spec.result, displayer)
-              : script
-          )
-        );
+        mochadoc.testContent(this, codeBlock(exampleCode(spec)));
         evaluator(spec);
       });
     });

@@ -322,6 +322,40 @@ listed here.
   # => false
   ```
 
+- ✅ Argument type guard
+
+  Calling `string` with a single argument returns its value as a
+  list. This property allows `string` to be used as a type guard
+  for argspecs.
+  
+  Here we create a macro `len` that returns the length of the
+  provided string. Using `string` as guard has three effects:
+  
+  - it validates the argument on the caller side
+  - it converts the value at most once
+  - it ensures type safety within the body
+  
+  Note how using `string` as a guard for argument `s` makes it look
+  like a static type declaration:
+
+  ```lna
+  macro len ( (string s) ) {string $s length}
+  ```
+
+  Passing a valid value will give the expected result:
+
+  ```lna
+  len example
+  # => 7
+  ```
+
+  Passing an invalid value will produce an error:
+
+  ```lna
+  len (invalid value)
+  # => [error "value has no string representation"]
+  ```
+
 ### Ensemble command
 
 `string` is an ensemble command, which means that it is a collection

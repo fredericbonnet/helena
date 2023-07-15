@@ -32,8 +32,13 @@ describe("Helena strings", () => {
     return codeBlock(evaluate("help " + script).asString());
   };
   const example = specifyExample(({ script, result }) => {
-    const value = evaluate(script);
-    if (result) expect(value).to.eql(result);
+    if (!result) {
+      evaluate(script);
+    } else if ("code" in result) {
+      expect(execute(script)).to.eql(result);
+    } else {
+      expect(evaluate(script)).to.eql(result);
+    }
   });
 
   beforeEach(init);
@@ -706,6 +711,46 @@ describe("Helena strings", () => {
         {
           script: "$s > exercise",
           result: FALSE,
+        },
+      ]);
+      example("Argument type guard", [
+        {
+          doc: () => {
+            /**
+             * Calling `string` with a single argument returns its value as a
+             * list. This property allows `string` to be used as a type guard
+             * for argspecs.
+             *
+             * Here we create a macro `len` that returns the length of the
+             * provided string. Using `string` as guard has three effects:
+             *
+             * - it validates the argument on the caller side
+             * - it converts the value at most once
+             * - it ensures type safety within the body
+             *
+             * Note how using `string` as a guard for argument `s` makes it look
+             * like a static type declaration:
+             */
+          },
+          script: "macro len ( (string s) ) {string $s length}",
+        },
+        {
+          doc: () => {
+            /**
+             * Passing a valid value will give the expected result:
+             */
+          },
+          script: "len example",
+          result: INT(7),
+        },
+        {
+          doc: () => {
+            /**
+             * Passing an invalid value will produce an error:
+             */
+          },
+          script: "len (invalid value)",
+          result: ERROR("value has no string representation"),
         },
       ]);
     });

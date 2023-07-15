@@ -300,6 +300,40 @@ listed here.
   # => [list (d e f)]
   ```
 
+- ✅ Argument type guard
+
+  Calling `list` with a single argument returns its value as a
+  list. This property allows `list` to be used as a type guard for
+  argspecs.
+  
+  Here we create a macro `len` that returns the length of the
+  provided list. Using `list` as guard has three effects:
+  
+  - it validates the argument on the caller side
+  - it converts the value at most once
+  - it ensures type safety within the body
+  
+  Note how using `list` as a guard for argument `l` makes it look
+  like a static type declaration:
+
+  ```lna
+  macro len ( (list l) ) {list $l length}
+  ```
+
+  Passing a valid value will give the expected result:
+
+  ```lna
+  len (1 2 3 4)
+  # => 4
+  ```
+
+  Passing an invalid value will produce an error:
+
+  ```lna
+  len invalidValue
+  # => [error "invalid list"]
+  ```
+
 ### Ensemble command
 
 `list` is an ensemble command, which means that it is a collection of

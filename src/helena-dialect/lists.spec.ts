@@ -33,8 +33,13 @@ describe("Helena lists", () => {
     return codeBlock(evaluate("help " + script).asString());
   };
   const example = specifyExample(({ script, result }) => {
-    const value = evaluate(script);
-    if (result) expect(value).to.eql(result);
+    if (!result) {
+      evaluate(script);
+    } else if ("code" in result) {
+      expect(execute(script)).to.eql(result);
+    } else {
+      expect(evaluate(script)).to.eql(result);
+    }
   });
 
   beforeEach(init);
@@ -680,6 +685,46 @@ describe("Helena lists", () => {
         {
           script: "$l range 3 5",
           result: evaluate("list (d e f)"),
+        },
+      ]);
+      example("Argument type guard", [
+        {
+          doc: () => {
+            /**
+             * Calling `list` with a single argument returns its value as a
+             * list. This property allows `list` to be used as a type guard for
+             * argspecs.
+             *
+             * Here we create a macro `len` that returns the length of the
+             * provided list. Using `list` as guard has three effects:
+             *
+             * - it validates the argument on the caller side
+             * - it converts the value at most once
+             * - it ensures type safety within the body
+             *
+             * Note how using `list` as a guard for argument `l` makes it look
+             * like a static type declaration:
+             */
+          },
+          script: "macro len ( (list l) ) {list $l length}",
+        },
+        {
+          doc: () => {
+            /**
+             * Passing a valid value will give the expected result:
+             */
+          },
+          script: "len (1 2 3 4)",
+          result: INT(4),
+        },
+        {
+          doc: () => {
+            /**
+             * Passing an invalid value will produce an error:
+             */
+          },
+          script: "len invalidValue",
+          result: ERROR("invalid list"),
         },
       ]);
     });
