@@ -1,10 +1,12 @@
 import { expect } from "chai";
+import * as mochadoc from "../../mochadoc";
 import { ERROR } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { INT, NUM } from "../core/values";
+import { INT, NUM, STR } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
+import { codeBlock } from "./test-helpers";
 
 describe("Helena math operations", () => {
   let rootScope: Scope;
@@ -17,17 +19,35 @@ describe("Helena math operations", () => {
   const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 
-  beforeEach(() => {
+  const init = () => {
     rootScope = new Scope();
     initCommands(rootScope);
 
     tokenizer = new Tokenizer();
     parser = new Parser();
-  });
+  };
+  const usage = (script: string) => {
+    init();
+    return codeBlock(evaluate("help " + script).asString());
+  };
 
-  describe("prefix operators", () => {
-    describe("arithmetic", () => {
-      describe("+", () => {
+  beforeEach(init);
+
+  mochadoc.section("Prefix operators", () => {
+    describe("Arithmetic", () => {
+      mochadoc.description(() => {
+        /**
+         * Helena supports the standard arithmetic operators in prefix notation.
+         */
+      });
+
+      mochadoc.section("`+`", () => {
+        mochadoc.description(usage("+"));
+
+        specify("usage", () => {
+          expect(evaluate("help +")).to.eql(STR("+ number ?number ...?"));
+        });
+
         it("should accept one number", () => {
           expect(evaluate("+ 3")).to.eql(INT(3));
           expect(evaluate("+ -1.2e-3")).to.eql(NUM(-1.2e-3));
@@ -46,10 +66,15 @@ describe("Helena math operations", () => {
           }
           expect(evaluate("+ " + numbers.join(" "))).to.eql(NUM(total));
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The command will return an error message with usage when given
+             * the wrong number of arguments.
+             */
             expect(execute("+")).to.eql(
-              ERROR('wrong # args: should be "+ arg ?arg ...?"')
+              ERROR('wrong # args: should be "+ number ?number ...?"')
             );
           });
           specify("invalid value", () => {
@@ -57,7 +82,14 @@ describe("Helena math operations", () => {
           });
         });
       });
-      describe("-", () => {
+
+      mochadoc.section("`-`", () => {
+        mochadoc.description(usage("-"));
+
+        specify("usage", () => {
+          expect(evaluate("help -")).to.eql(STR("- number ?number ...?"));
+        });
+
         it("should negate one number", () => {
           expect(evaluate("- 6")).to.eql(INT(-6));
           expect(evaluate("- -3.4e-5")).to.eql(NUM(3.4e-5));
@@ -77,10 +109,15 @@ describe("Helena math operations", () => {
           }
           expect(evaluate("- " + numbers.join(" "))).to.eql(NUM(total));
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The command will return an error message with usage when given
+             * the wrong number of arguments.
+             */
             expect(execute("-")).to.eql(
-              ERROR('wrong # args: should be "- arg ?arg ...?"')
+              ERROR('wrong # args: should be "- number ?number ...?"')
             );
           });
           specify("invalid value", () => {
@@ -88,7 +125,14 @@ describe("Helena math operations", () => {
           });
         });
       });
-      describe("*", () => {
+
+      mochadoc.section("`*`", () => {
+        mochadoc.description(usage("*"));
+
+        specify("usage", () => {
+          expect(evaluate("help *")).to.eql(STR("* number ?number ...?"));
+        });
+
         it("should accept one number", () => {
           expect(evaluate("* 12")).to.eql(INT(12));
           expect(evaluate("* -67.89")).to.eql(NUM(-67.89));
@@ -107,10 +151,15 @@ describe("Helena math operations", () => {
           }
           expect(evaluate("* " + numbers.join(" "))).to.eql(NUM(total));
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The command will return an error message with usage when given
+             * the wrong number of arguments.
+             */
             expect(execute("*")).to.eql(
-              ERROR('wrong # args: should be "* arg ?arg ...?"')
+              ERROR('wrong # args: should be "* number ?number ...?"')
             );
           });
           specify("invalid value", () => {
@@ -118,7 +167,16 @@ describe("Helena math operations", () => {
           });
         });
       });
-      describe("/", () => {
+
+      mochadoc.section("`/`", () => {
+        mochadoc.description(usage("/"));
+
+        specify("usage", () => {
+          expect(evaluate("help /")).to.eql(
+            STR("/ number number ?number ...?")
+          );
+        });
+
         it("should divide two numbers", () => {
           expect(evaluate("/ 12 -34")).to.eql(NUM(12 / -34));
           expect(evaluate("/ 45.67e8 -123")).to.eql(NUM(45.67e8 / -123));
@@ -134,13 +192,18 @@ describe("Helena math operations", () => {
           }
           expect(evaluate("/ " + numbers.join(" "))).to.eql(NUM(total));
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The command will return an error message with usage when given
+             * the wrong number of arguments.
+             */
             expect(execute("/")).to.eql(
-              ERROR('wrong # args: should be "/ arg arg ?arg ...?"')
+              ERROR('wrong # args: should be "/ number number ?number ...?"')
             );
             expect(execute("/ 1")).to.eql(
-              ERROR('wrong # args: should be "/ arg arg ?arg ...?"')
+              ERROR('wrong # args: should be "/ number number ?number ...?"')
             );
           });
           specify("invalid value", () => {
