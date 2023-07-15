@@ -40,6 +40,10 @@ class DictCommand implements Command {
     if (args.length == 2) return valueToMapValue(args[1]);
     return this.ensemble.ensemble.execute(args, scope);
   }
+  help(args) {
+    // TODO handle args to ensemble subcommands
+    return OK(STR("dict ?value? ?subcommand? ?arg ...?"));
+  }
 }
 
 const dictSizeCmd: Command = {
