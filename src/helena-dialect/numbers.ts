@@ -1,6 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { ERROR, Result, ResultCode, OK } from "../core/results";
-import { Value, NumberValue, INT, NUM, BOOL } from "../core/values";
+import { Value, RealValue, INT, REAL, BOOL } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Subcommands } from "./subcommands";
 
@@ -23,7 +23,7 @@ const numberSubcommands = new Subcommands([
 
 export const numberCmd = {
   execute(args: Value[]): Result {
-    const { data: operand1, ...result } = NumberValue.toNumber(args[0]);
+    const { data: operand1, ...result } = RealValue.toNumber(args[0]);
     if (result.code != ResultCode.OK) return result;
     if (args.length == 1) return OK(numberToValue(operand1));
     return numberSubcommands.dispatch(args[1], {
@@ -59,35 +59,27 @@ const arithmetics = (args: Value[], operand1: number): Result => {
     if (operator == null) return ERROR(`invalid operator`);
     switch (operator) {
       case "+": {
-        const { data: operator2, ...result } = NumberValue.toNumber(
-          args[i + 1]
-        );
+        const { data: operator2, ...result } = RealValue.toNumber(args[i + 1]);
         if (result.code != ResultCode.OK) return result;
         total += last;
         last = operator2;
         break;
       }
       case "-": {
-        const { data: operator2, ...result } = NumberValue.toNumber(
-          args[i + 1]
-        );
+        const { data: operator2, ...result } = RealValue.toNumber(args[i + 1]);
         if (result.code != ResultCode.OK) return result;
         total += last;
         last = -operator2;
         break;
       }
       case "*": {
-        const { data: operator2, ...result } = NumberValue.toNumber(
-          args[i + 1]
-        );
+        const { data: operator2, ...result } = RealValue.toNumber(args[i + 1]);
         if (result.code != ResultCode.OK) return result;
         last *= operator2;
         break;
       }
       case "/": {
-        const { data: operator2, ...result } = NumberValue.toNumber(
-          args[i + 1]
-        );
+        const { data: operator2, ...result } = RealValue.toNumber(args[i + 1]);
         if (result.code != ResultCode.OK) return result;
         last /= operator2;
         break;
@@ -109,7 +101,7 @@ const binaryOp =
   (args: Value[], operand1: number): Result => {
     if (args.length != 3) return OPERATOR_ARITY_ERROR(operator);
     if (args[0] == args[2]) return OK(BOOL(whenEqual));
-    const { data: operand2, ...result } = NumberValue.toNumber(args[2]);
+    const { data: operand2, ...result } = RealValue.toNumber(args[2]);
     if (result.code != ResultCode.OK) return result;
     return OK(BOOL(fn(operand1, operand2)));
   };
@@ -121,5 +113,5 @@ const ltOp = binaryOp("<", false, (op1, op2) => op1 < op2);
 const leOp = binaryOp("<=", true, (op1, op2) => op1 <= op2);
 
 export function numberToValue(num: number) {
-  return Number.isSafeInteger(num) ? INT(num) : NUM(num);
+  return Number.isSafeInteger(num) ? INT(num) : REAL(num);
 }

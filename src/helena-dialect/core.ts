@@ -23,7 +23,7 @@ import {
   ValueType,
   CustomValueType,
   ScriptValue,
-  NumberValue,
+  RealValue,
   TupleValue,
   NIL,
 } from "../core/values";
@@ -179,7 +179,7 @@ export class Scope {
   resolveCommand(value: Value): Command {
     if (value.type == ValueType.TUPLE) return expandPrefixCmd;
     if (value.type == commandValueType) return (value as CommandValue).command;
-    if (NumberValue.isNumber(value)) return numberCmd;
+    if (RealValue.isNumber(value)) return numberCmd;
     return this.resolveNamedCommand(value.asString?.());
   }
   resolveNamedCommand(name: string): Command {

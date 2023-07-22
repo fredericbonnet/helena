@@ -3,15 +3,17 @@ source: src\helena-dialect\numbers.spec.ts
 ---
 # Helena numbers
 
-## Integers
+## Number commands
+
+### Integer numbers
 
 Integer number values (or integers) are Helena values whose internal
 type is `INTEGER`.
 
 - ✅ are valid commands
 
-  Integers are implicit commands. Any command name that can be parsed as
-  an integer is resolved as such.
+  Integers are implicit commands. Any command name that can be parsed
+  as an integer is resolved as such.
 
 - ✅ are idempotent
 
@@ -25,10 +27,10 @@ type is `INTEGER`.
 
   - ✅ invalid subcommand name
 
-## Real numbers
+### Real numbers
 
-Real number values (or reals) are Helena values whose internal type is
-`NUMBER`.
+Real number values (or reals) are Helena values whose internal type
+is `REAL`.
 
 - ✅ are valid commands
 
@@ -47,14 +49,12 @@ Real number values (or reals) are Helena values whose internal type is
 
   - ✅ invalid subcommand name
 
-## Infix operators
+### Infix operators
 
 A number followed by an operator can be used to express an infix
 expression.
 
-Numbers support the standard comparison operators.
-
-### Arithmetic
+#### Arithmetic
 
 Numbers support the standard arithmetic operators.
 
@@ -96,7 +96,9 @@ Numbers support the standard arithmetic operators.
 
   - ✅ invalid operator
 
-### Comparisons
+#### Comparisons
+
+Numbers support the standard comparison operators.
 
 - `==`
 
@@ -176,12 +178,12 @@ Numbers support the standard arithmetic operators.
 
     - ✅ invalid value
 
-## Subcommands
+### Subcommands
 
 Apart from operators, number commands accept the subcommands listed
 here.
 
-### Introspection
+#### Introspection
 
 - `subcommands`
 

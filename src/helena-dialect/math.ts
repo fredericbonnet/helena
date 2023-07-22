@@ -1,7 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { OK, ResultCode } from "../core/results";
 import { Command } from "../core/command";
-import { NumberValue, STR } from "../core/values";
+import { RealValue, STR } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Scope } from "./core";
 import { numberToValue } from "./numbers";
@@ -12,7 +12,7 @@ export const addCmd: Command = {
     if (args.length < 2) return ARITY_ERROR(ADD_SIGNATURE);
     let total = 0;
     for (let i = 1; i < args.length; i++) {
-      const result = NumberValue.toNumber(args[i]);
+      const result = RealValue.toNumber(args[i]);
       if (result.code != ResultCode.OK) return result;
       const operand = result.data;
       total += operand;
@@ -28,7 +28,7 @@ const SUBTRACT_SIGNATURE = "- number ?number ...?";
 export const subtractCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR(SUBTRACT_SIGNATURE);
-    const result = NumberValue.toNumber(args[1]);
+    const result = RealValue.toNumber(args[1]);
     if (result.code != ResultCode.OK) return result;
     const first = result.data;
     if (args.length == 2) {
@@ -36,7 +36,7 @@ export const subtractCmd: Command = {
     }
     let total = first;
     for (let i = 2; i < args.length; i++) {
-      const result = NumberValue.toNumber(args[i]);
+      const result = RealValue.toNumber(args[i]);
       if (result.code != ResultCode.OK) return result;
       total -= result.data;
     }
@@ -51,7 +51,7 @@ const MULTIPLY_SIGNATURE = "* number ?number ...?";
 export const multiplyCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR(MULTIPLY_SIGNATURE);
-    const result = NumberValue.toNumber(args[1]);
+    const result = RealValue.toNumber(args[1]);
     if (result.code != ResultCode.OK) return result;
     const first = result.data;
     if (args.length == 2) {
@@ -59,7 +59,7 @@ export const multiplyCmd: Command = {
     }
     let total = first;
     for (let i = 2; i < args.length; i++) {
-      const result = NumberValue.toNumber(args[i]);
+      const result = RealValue.toNumber(args[i]);
       if (result.code != ResultCode.OK) return result;
       total *= result.data;
     }
@@ -74,12 +74,12 @@ const DIVIDE_SIGNATURE = "/ number number ?number ...?";
 export const divideCmd: Command = {
   execute: (args) => {
     if (args.length < 3) return ARITY_ERROR(DIVIDE_SIGNATURE);
-    const result = NumberValue.toNumber(args[1]);
+    const result = RealValue.toNumber(args[1]);
     if (result.code != ResultCode.OK) return result;
     const first = result.data;
     let total = first;
     for (let i = 2; i < args.length; i++) {
-      const result = NumberValue.toNumber(args[i]);
+      const result = RealValue.toNumber(args[i]);
       if (result.code != ResultCode.OK) return result;
       total /= result.data;
     }

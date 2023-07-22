@@ -8,7 +8,7 @@ import {
 import { Parser } from "../core/parser";
 import { PicolScope, initPicolCommands } from "./picol-dialect";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, TRUE, NUM, STR, TUPLE } from "../core/values";
+import { FALSE, TRUE, REAL, STR, TUPLE } from "../core/values";
 
 describe("Picol dialect", () => {
   for (const klass of [InlineEvaluator, CompilingEvaluator]) {
@@ -42,12 +42,12 @@ describe("Picol dialect", () => {
       describe("math", () => {
         describe("+", () => {
           it("should accept one number", () => {
-            expect(evaluate("+ 3")).to.eql(NUM(3));
-            expect(evaluate("+ -1.2e3")).to.eql(NUM(-1.2e3));
+            expect(evaluate("+ 3")).to.eql(REAL(3));
+            expect(evaluate("+ -1.2e3")).to.eql(REAL(-1.2e3));
           });
           it("should add two numbers", () => {
-            expect(evaluate("+ 6 23")).to.eql(NUM(6 + 23));
-            expect(evaluate("+ 4.5e-3 -6")).to.eql(NUM(4.5e-3 - 6));
+            expect(evaluate("+ 6 23")).to.eql(REAL(6 + 23));
+            expect(evaluate("+ 4.5e-3 -6")).to.eql(REAL(4.5e-3 - 6));
           });
           it("should add several numbers", () => {
             const numbers = [];
@@ -57,7 +57,7 @@ describe("Picol dialect", () => {
               numbers.push(v);
               total += v;
             }
-            expect(evaluate("+ " + numbers.join(" "))).to.eql(NUM(total));
+            expect(evaluate("+ " + numbers.join(" "))).to.eql(REAL(total));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -72,12 +72,12 @@ describe("Picol dialect", () => {
         });
         describe("-", () => {
           it("should negate one number", () => {
-            expect(evaluate("- 6")).to.eql(NUM(-6));
-            expect(evaluate("- -3.4e5")).to.eql(NUM(3.4e5));
+            expect(evaluate("- 6")).to.eql(REAL(-6));
+            expect(evaluate("- -3.4e5")).to.eql(REAL(3.4e5));
           });
           it("should subtract two numbers", () => {
-            expect(evaluate("- 4 12")).to.eql(NUM(4 - 12));
-            expect(evaluate("- 12.3e4 -56")).to.eql(NUM(12.3e4 + 56));
+            expect(evaluate("- 4 12")).to.eql(REAL(4 - 12));
+            expect(evaluate("- 12.3e4 -56")).to.eql(REAL(12.3e4 + 56));
           });
           it("should subtract several numbers", () => {
             const numbers = [];
@@ -88,7 +88,7 @@ describe("Picol dialect", () => {
               if (i == 0) total = v;
               else total -= v;
             }
-            expect(evaluate("- " + numbers.join(" "))).to.eql(NUM(total));
+            expect(evaluate("- " + numbers.join(" "))).to.eql(REAL(total));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -103,12 +103,12 @@ describe("Picol dialect", () => {
         });
         describe("*", () => {
           it("should accept one number", () => {
-            expect(evaluate("* 12")).to.eql(NUM(12));
-            expect(evaluate("* -67.89")).to.eql(NUM(-67.89));
+            expect(evaluate("* 12")).to.eql(REAL(12));
+            expect(evaluate("* -67.89")).to.eql(REAL(-67.89));
           });
           it("should multiply two numbers", () => {
-            expect(evaluate("* 45 67")).to.eql(NUM(45 * 67));
-            expect(evaluate("* 1.23e-4 -56")).to.eql(NUM(1.23e-4 * -56));
+            expect(evaluate("* 45 67")).to.eql(REAL(45 * 67));
+            expect(evaluate("* 1.23e-4 -56")).to.eql(REAL(1.23e-4 * -56));
           });
           it("should add several numbers", () => {
             const numbers = [];
@@ -118,7 +118,7 @@ describe("Picol dialect", () => {
               numbers.push(v);
               total *= v;
             }
-            expect(evaluate("* " + numbers.join(" "))).to.eql(NUM(total));
+            expect(evaluate("* " + numbers.join(" "))).to.eql(REAL(total));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -133,8 +133,8 @@ describe("Picol dialect", () => {
         });
         describe("/", () => {
           it("should divide two numbers", () => {
-            expect(evaluate("/ 12 -34")).to.eql(NUM(12 / -34));
-            expect(evaluate("/ 45.67e8 -123")).to.eql(NUM(45.67e8 / -123));
+            expect(evaluate("/ 12 -34")).to.eql(REAL(12 / -34));
+            expect(evaluate("/ 45.67e8 -123")).to.eql(REAL(45.67e8 / -123));
           });
           it("should divide several numbers", () => {
             const numbers = [];
@@ -145,7 +145,7 @@ describe("Picol dialect", () => {
               if (i == 0) total = v;
               else total /= v;
             }
-            expect(evaluate("/ " + numbers.join(" "))).to.eql(NUM(total));
+            expect(evaluate("/ " + numbers.join(" "))).to.eql(REAL(total));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -479,7 +479,7 @@ describe("Picol dialect", () => {
           it("should loop over the body while test is true", () => {
             expect(
               evaluate("for {set i 0} {< $i 10} {incr i} {set var $i}; set var")
-            ).to.eql(NUM(9));
+            ).to.eql(REAL(9));
           });
           it("should return empty", () => {
             expect(
@@ -528,7 +528,7 @@ describe("Picol dialect", () => {
           });
           it("should loop over the body while test is true", () => {
             expect(evaluate("set i 0; while {< $i 10} {incr i}; set i")).to.eql(
-              NUM(10)
+              REAL(10)
             );
           });
           it("should return empty", () => {
@@ -640,7 +640,7 @@ describe("Picol dialect", () => {
               evaluate(
                 "proc cmd {} {for {set i 0} {< $i 10} {incr i} {continue}; set i}; cmd"
               )
-            ).to.eql(NUM(10));
+            ).to.eql(REAL(10));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -716,20 +716,20 @@ describe("Picol dialect", () => {
       describe("incr", () => {
         it("should set new variables to the increment", () => {
           evaluate("incr var 5");
-          expect(rootScope.variables.get("var")).to.eql(NUM(5));
+          expect(rootScope.variables.get("var")).to.eql(REAL(5));
         });
         it("should increment existing variables by the increment", () => {
-          rootScope.variables.set("var", NUM(2));
+          rootScope.variables.set("var", REAL(2));
           evaluate("incr var 4");
-          expect(rootScope.variables.get("var")).to.eql(NUM(6));
+          expect(rootScope.variables.get("var")).to.eql(REAL(6));
         });
         specify("increment should default to 1", () => {
-          rootScope.variables.set("var", NUM(1));
+          rootScope.variables.set("var", REAL(1));
           evaluate("incr var");
-          expect(rootScope.variables.get("var")).to.eql(NUM(2));
+          expect(rootScope.variables.get("var")).to.eql(REAL(2));
         });
         it("should return the new value", () => {
-          expect(evaluate("set var 1; incr var")).to.eql(NUM(2));
+          expect(evaluate("set var 1; incr var")).to.eql(REAL(2));
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {

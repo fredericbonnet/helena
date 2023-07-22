@@ -17,7 +17,7 @@ import {
   TupleValue,
   ScriptValue,
   QualifiedValue,
-  NumberValue,
+  RealValue,
   BooleanValue,
   FALSE,
   TRUE,
@@ -170,8 +170,14 @@ describe("values", () => {
         expect(IntegerValue.fromValue(NIL)).to.eql(
           ERROR("value has no string representation")
         );
+        expect(IntegerValue.fromValue(new RealValue(1.1))).to.eql(
+          ERROR('invalid integer "1.1"')
+        );
         expect(IntegerValue.fromValue(new StringValue("a"))).to.eql(
           ERROR('invalid integer "a"')
+        );
+        expect(IntegerValue.fromValue(new StringValue("1.2"))).to.eql(
+          ERROR('invalid integer "1.2"')
         );
       });
     });
@@ -199,62 +205,62 @@ describe("values", () => {
     });
   });
 
-  describe("NumberValue", () => {
-    specify("type should be NUMBER", () => {
-      const value = new NumberValue(12.3);
-      expect(value.type).to.eql(ValueType.NUMBER);
+  describe("RealValue", () => {
+    specify("type should be REAL", () => {
+      const value = new RealValue(12.3);
+      expect(value.type).to.eql(ValueType.REAL);
     });
     it("should be displayed as a literal decimal value", () => {
       const integer = 123.4;
-      const value = new NumberValue(integer);
+      const value = new RealValue(integer);
       expect(value.display()).to.eql("123.4");
     });
     specify(
       "string representation should be the decimal representation of its value",
       () => {
         const integer = 123.4;
-        const value = new NumberValue(integer);
+        const value = new RealValue(integer);
         expect(value.asString()).to.eql("123.4");
       }
     );
     describe("fromValue()", () => {
-      it("should return the passed NumberValue", () => {
-        const value = new NumberValue(12.34);
-        expect(NumberValue.fromValue(value).value).to.equal(value);
+      it("should return the passed RealValue", () => {
+        const value = new RealValue(12.34);
+        expect(RealValue.fromValue(value).value).to.equal(value);
       });
       it("should accept integer values", () => {
         const value = new IntegerValue(4567);
-        expect(NumberValue.fromValue(value).data.value).to.eql(4567);
+        expect(RealValue.fromValue(value).data.value).to.eql(4567);
       });
       it("should accept float strings", () => {
         const value = new StringValue("12.34");
-        expect(NumberValue.fromValue(value).data.value).to.eql(12.34);
+        expect(RealValue.fromValue(value).data.value).to.eql(12.34);
       });
       it("should reject non-number strings", () => {
-        expect(NumberValue.fromValue(NIL)).to.eql(
+        expect(RealValue.fromValue(NIL)).to.eql(
           ERROR("value has no string representation")
         );
-        expect(NumberValue.fromValue(new StringValue("a"))).to.eql(
+        expect(RealValue.fromValue(new StringValue("a"))).to.eql(
           ERROR('invalid number "a"')
         );
       });
     });
     it("should not be index-selectable", () => {
-      const value = new NumberValue(0);
+      const value = new RealValue(0);
       expect(value).to.not.have.property("selectIndex");
       expect(new IndexedSelector(new IntegerValue(1)).apply(value)).to.eql(
         ERROR("value is not index-selectable")
       );
     });
     it("should not be key-selectable", () => {
-      const value = new NumberValue(0);
+      const value = new RealValue(0);
       expect(value).to.not.have.property("selectKey");
       expect(new KeyedSelector([new StringValue("key")]).apply(value)).to.eql(
         ERROR("value is not key-selectable")
       );
     });
     it("should not be selectable", () => {
-      const value = new NumberValue(0);
+      const value = new RealValue(0);
       expect(value).to.not.have.property("select");
       expect(value).to.not.have.property("selectRules");
       expect(
@@ -380,7 +386,7 @@ describe("values", () => {
         expect(ListValue.fromValue(new IntegerValue(10))).to.eql(
           ERROR("invalid list")
         );
-        expect(ListValue.fromValue(new NumberValue(10))).to.eql(
+        expect(ListValue.fromValue(new RealValue(10))).to.eql(
           ERROR("invalid list")
         );
         expect(ListValue.fromValue(new ScriptValue(new Script(), ""))).to.eql(

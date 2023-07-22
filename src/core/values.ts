@@ -26,7 +26,7 @@ export enum ValueType {
   NIL,
   BOOLEAN,
   INTEGER,
-  NUMBER,
+  REAL,
   STRING,
   LIST,
   MAP,
@@ -193,8 +193,32 @@ export class IntegerValue implements Value {
   }
 
   /**
+   * Test if value is convertible to number
+   * - Reals
+   * - Integers
+   * - Strings: any Number()-accepted string
+   *
+   * @param value - Value to convert
+   *
+   * @returns       True if value is convertible
+   */
+  static isInteger(value: Value): boolean {
+    switch (value.type) {
+      case ValueType.INTEGER:
+        return true;
+      case ValueType.REAL:
+        return Number.isSafeInteger((value as RealValue).value);
+      default: {
+        const n = Number(value.asString?.());
+        return !isNaN(n) && Number.isSafeInteger(n);
+      }
+    }
+  }
+
+  /**
    * Convert value to integer:
    * - Integers: use integer value
+   * - Reals: any safe integer number
    * - Strings: any integer Number()-accepted string
    *
    * @param value - Value to convert
@@ -204,10 +228,16 @@ export class IntegerValue implements Value {
   static toInteger(value: Value): Result<number> {
     if (value.type == ValueType.INTEGER)
       return OK(NIL, (value as IntegerValue).value);
+    if (value.type == ValueType.REAL) {
+      if (!Number.isSafeInteger((value as RealValue).value))
+        return ERROR(`invalid integer "${value.asString()}"`);
+      return OK(NIL, (value as RealValue).value);
+    }
     const { data: s, ...result } = StringValue.toString(value);
     if (result.code != ResultCode.OK) return result;
     const n = Number(s);
-    if (isNaN(n)) return ERROR(`invalid integer "${s}"`);
+    if (isNaN(n) || !Number.isSafeInteger(n))
+      return ERROR(`invalid integer "${s}"`);
     return OK(NIL, n);
   }
 
@@ -223,11 +253,11 @@ export class IntegerValue implements Value {
 }
 
 /**
- * Number value
+ * Real value
  */
-export class NumberValue implements Value {
+export class RealValue implements Value {
   /** @override */
-  readonly type = ValueType.NUMBER;
+  readonly type = ValueType.REAL;
 
   /** @override */
   readonly value: number;
@@ -240,7 +270,7 @@ export class NumberValue implements Value {
   }
 
   /**
-   * Convert Value to NumberValue
+   * Convert Value to RealValue
    *
    * @param value - Value to convert
    *
@@ -248,21 +278,21 @@ export class NumberValue implements Value {
    *
    * @see {@link isNumber}
    */
-  static fromValue(value: Value): Result<NumberValue> {
-    if (value.type == ValueType.NUMBER) return OK(value, value as NumberValue);
+  static fromValue(value: Value): Result<RealValue> {
+    if (value.type == ValueType.REAL) return OK(value, value as RealValue);
     if (value.type == ValueType.INTEGER) {
-      const v = new NumberValue((value as IntegerValue).value);
+      const v = new RealValue((value as IntegerValue).value);
       return OK(v, v);
     }
     const { data, ...result } = this.toNumber(value);
     if (result.code != ResultCode.OK) return result;
-    const v = new NumberValue(data);
+    const v = new RealValue(data);
     return OK(v, v);
   }
 
   /**
    * Test if value is convertible to number
-   * - Numbers
+   * - Reals
    * - Integers
    * - Strings: any Number()-accepted string
    *
@@ -273,7 +303,7 @@ export class NumberValue implements Value {
   static isNumber(value: Value): boolean {
     switch (value.type) {
       case ValueType.INTEGER:
-      case ValueType.NUMBER:
+      case ValueType.REAL:
         return true;
       default: {
         return !isNaN(Number(value.asString?.()));
@@ -283,8 +313,7 @@ export class NumberValue implements Value {
 
   /**
    * Convert value to number:
-   * - Numbers: use number value
-   * - Integers: use integer value
+   * - Reals and integers: use number value
    * - Strings: any Number()-accepted string
    *
    * @param value - Value to convert
@@ -292,8 +321,8 @@ export class NumberValue implements Value {
    * @returns       Conversion result
    */
   static toNumber(value: Value): Result<number> {
-    if (value.type == ValueType.NUMBER)
-      return OK(NIL, (value as NumberValue).value);
+    if (value.type == ValueType.REAL)
+      return OK(NIL, (value as RealValue).value);
     if (value.type == ValueType.INTEGER)
       return OK(NIL, (value as IntegerValue).value);
     const { data: s, ...result } = StringValue.toString(value);
@@ -704,7 +733,7 @@ export function isCustomValueType(
 /* eslint-disable jsdoc/require-jsdoc */
 export const BOOL = (v) => (v ? TRUE : FALSE);
 export const INT = (v) => new IntegerValue(v);
-export const NUM = (v) => new NumberValue(v);
+export const REAL = (v) => new RealValue(v);
 export const STR = (v) => new StringValue(v);
 export const LIST = (v) => new ListValue(v);
 export const MAP = (v) => new MapValue(v);

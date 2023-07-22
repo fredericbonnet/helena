@@ -53,8 +53,8 @@ The Helena runtime supports the following built-in value types:
 
 - **Nil** singleton
 - Boolean **True** and **False** singletons
-- **Integer**
-- **Number**
+- **Integer**: an integer number
+- **Real**: a real number
 - **String**: a sequence of characters
 - **List**: a sequence of values
 - **Map**: an associative array with string keys and arbitrary values

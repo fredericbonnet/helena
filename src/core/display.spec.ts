@@ -6,7 +6,7 @@ import {
   undisplayableValue,
 } from "./display";
 import { Script } from "./syntax";
-import { FALSE, INT, NUM, ScriptValue, STR, TRUE } from "./values";
+import { FALSE, INT, REAL, ScriptValue, STR, TRUE } from "./values";
 
 describe("display", () => {
   describe("undisplayableValue", () => {
@@ -55,7 +55,7 @@ describe("display", () => {
   });
   describe("displayList", () => {
     it("should generate a whitespace-separated list of values", () => {
-      const values = [STR("literal"), STR("some string"), INT(123), NUM(1.23)];
+      const values = [STR("literal"), STR("some string"), INT(123), REAL(1.23)];
       expect(displayList(values)).to.eql('literal "some string" 123 1.23');
     });
     it("should replace non-displayable values with placeholder", () => {

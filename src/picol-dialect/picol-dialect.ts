@@ -22,12 +22,12 @@ import {
   NIL,
   ValueType,
   TupleValue,
-  NumberValue,
+  RealValue,
   FALSE,
   TRUE,
   BooleanValue,
   IntegerValue,
-  NUM,
+  REAL,
   STR,
   TUPLE,
   BOOL,
@@ -82,71 +82,71 @@ const ARITY_ERROR = (signature: string) =>
 const addCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("+ arg ?arg ...?");
-    const result = NumberValue.toNumber(args[1]);
+    const result = RealValue.toNumber(args[1]);
     if (result.code != ResultCode.OK) return result;
     const first = result.data;
     if (args.length == 2) {
-      return OK(NUM(first));
+      return OK(REAL(first));
     }
     let total = first;
     for (let i = 2; i < args.length; i++) {
-      const result = NumberValue.toNumber(args[i]);
+      const result = RealValue.toNumber(args[i]);
       if (result.code != ResultCode.OK) return result;
       total += result.data;
     }
-    return OK(NUM(total));
+    return OK(REAL(total));
   },
 };
 const subtractCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("- arg ?arg ...?");
-    const result = NumberValue.toNumber(args[1]);
+    const result = RealValue.toNumber(args[1]);
     if (result.code != ResultCode.OK) return result;
     const first = result.data;
     if (args.length == 2) {
-      return OK(NUM(-first));
+      return OK(REAL(-first));
     }
     let total = first;
     for (let i = 2; i < args.length; i++) {
-      const result = NumberValue.toNumber(args[i]);
+      const result = RealValue.toNumber(args[i]);
       if (result.code != ResultCode.OK) return result;
       total -= result.data;
     }
-    return OK(NUM(total));
+    return OK(REAL(total));
   },
 };
 
 const multiplyCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("* arg ?arg ...?");
-    const result = NumberValue.toNumber(args[1]);
+    const result = RealValue.toNumber(args[1]);
     if (result.code != ResultCode.OK) return result;
     const first = result.data;
     if (args.length == 2) {
-      return OK(NUM(first));
+      return OK(REAL(first));
     }
     let total = first;
     for (let i = 2; i < args.length; i++) {
-      const result = NumberValue.toNumber(args[i]);
+      const result = RealValue.toNumber(args[i]);
       if (result.code != ResultCode.OK) return result;
       total *= result.data;
     }
-    return OK(NUM(total));
+    return OK(REAL(total));
   },
 };
 const divideCmd: Command = {
   execute: (args) => {
     if (args.length < 3) return ARITY_ERROR("/ arg arg ?arg ...?");
-    const result = NumberValue.toNumber(args[1]);
+    const result = RealValue.toNumber(args[1]);
     if (result.code != ResultCode.OK) return result;
     const first = result.data;
     let total = first;
     for (let i = 2; i < args.length; i++) {
-      const result = NumberValue.toNumber(args[i]);
+      const result = RealValue.toNumber(args[i]);
       if (result.code != ResultCode.OK) return result;
       total /= result.data;
     }
-    return OK(NUM(total));
+    return OK(REAL(total));
   },
 };
 
@@ -174,10 +174,10 @@ const compareNumbersCmd = (
 ): Command => ({
   execute: (args) => {
     if (args.length != 3) return ARITY_ERROR(`${name} arg arg`);
-    const result1 = NumberValue.toNumber(args[1]);
+    const result1 = RealValue.toNumber(args[1]);
     if (result1.code != ResultCode.OK) return result1;
     const op1 = result1.data;
-    const result2 = NumberValue.toNumber(args[2]);
+    const result2 = RealValue.toNumber(args[2]);
     if (result2.code != ResultCode.OK) return result2;
     const op2 = result2.data;
     return fn(op1, op2) ? OK(TRUE) : OK(FALSE);
@@ -345,7 +345,7 @@ const incrCmd: Command = {
         break;
       case 3:
         {
-          const result = NumberValue.toNumber(args[2]);
+          const result = RealValue.toNumber(args[2]);
           if (result.code != ResultCode.OK) return result;
           increment = result.data;
         }
@@ -357,11 +357,11 @@ const incrCmd: Command = {
     const value = scope.variables.get(varName);
     let incremented;
     if (value) {
-      const result = NumberValue.toNumber(value);
+      const result = RealValue.toNumber(value);
       if (result.code != ResultCode.OK) return result;
-      incremented = NUM(result.data + increment);
+      incremented = REAL(result.data + increment);
     } else {
-      incremented = NUM(increment);
+      incremented = REAL(increment);
     }
     scope.variables.set(varName, incremented);
     return OK(incremented);
