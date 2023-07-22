@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import * as mochadoc from "../../mochadoc";
 import {
   BREAK,
   CONTINUE,
@@ -12,6 +13,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { STR } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
+import { codeBlock } from "./test-helpers";
 
 describe("Helena scopes", () => {
   let rootScope: Scope;
@@ -24,36 +26,88 @@ describe("Helena scopes", () => {
   const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 
-  beforeEach(() => {
+  const init = () => {
     rootScope = new Scope();
     initCommands(rootScope);
 
     tokenizer = new Tokenizer();
     parser = new Parser();
-  });
+  };
+  const usage = (script: string) => {
+    init();
+    return codeBlock(evaluate("help " + script).asString());
+  };
 
-  describe("scope", () => {
-    it("should define a new command", () => {
-      evaluate("scope cmd {}");
-      expect(rootScope.context.commands.has("cmd")).to.be.true;
+  beforeEach(init);
+
+  mochadoc.section("`scope`", () => {
+    mochadoc.summary("Define a scope");
+    mochadoc.usage(usage("scope"));
+    mochadoc.description(() => {
+      /**
+       * The `scope` command defines a new command that will execute a script in
+       * a new child context.
+       */
     });
-    it("should replace existing commands", () => {
-      evaluate("scope cmd {}");
-      expect(execute("scope cmd {}").code).to.eql(ResultCode.OK);
+
+    mochadoc.section("Specifications", () => {
+      specify("usage", () => {
+        expect(evaluate("help scope")).to.eql(STR("scope ?name? body"));
+        expect(evaluate("help scope {}")).to.eql(STR("scope ?name? body"));
+        expect(evaluate("help scope cmd {}")).to.eql(STR("scope ?name? body"));
+      });
+
+      it("should define a new command", () => {
+        evaluate("scope cmd {}");
+        expect(rootScope.context.commands.has("cmd")).to.be.true;
+      });
+      it("should replace existing commands", () => {
+        evaluate("scope cmd {}");
+        expect(execute("scope cmd {}").code).to.eql(ResultCode.OK);
+      });
+      it("should return a command object", () => {
+        expect(evaluate("scope {}").type).to.eql(commandValueType);
+        expect(evaluate("scope cmd  {}").type).to.eql(commandValueType);
+      });
+      specify("the named command should return its command object", () => {
+        const value = evaluate("scope cmd {}");
+        expect(evaluate("cmd")).to.eql(value);
+      });
+      specify("the command object should return itself", () => {
+        const value = evaluate("set cmd [scope {}]");
+        expect(evaluate("$cmd")).to.eql(value);
+      });
     });
-    it("should return a command object", () => {
-      expect(evaluate("scope {}").type).to.eql(commandValueType);
-      expect(evaluate("scope cmd  {}").type).to.eql(commandValueType);
+
+    mochadoc.section("Exceptions", () => {
+      specify("wrong arity", () => {
+        /**
+         * The command will return an error message with usage when given the
+         * wrong number of arguments.
+         */
+        expect(execute("scope")).to.eql(
+          ERROR('wrong # args: should be "scope ?name? body"')
+        );
+        expect(execute("scope a b c")).to.eql(
+          ERROR('wrong # args: should be "scope ?name? body"')
+        );
+        expect(execute("help scope a b c")).to.eql(
+          ERROR('wrong # args: should be "scope ?name? body"')
+        );
+      });
+      specify("invalid `name`", () => {
+        /**
+         * Command names must have a valid string representation.
+         */
+        expect(execute("scope [] {}")).to.eql(ERROR("invalid command name"));
+      });
+      specify("non-script body", () => {
+        expect(execute("scope a")).to.eql(ERROR("body must be a script"));
+        expect(execute("scope a b")).to.eql(ERROR("body must be a script"));
+      });
     });
-    specify("the named command should return its command object", () => {
-      const value = evaluate("scope cmd {}");
-      expect(evaluate("cmd")).to.eql(value);
-    });
-    specify("the command object should return itself", () => {
-      const value = evaluate("set cmd [scope {}]");
-      expect(evaluate("$cmd")).to.eql(value);
-    });
-    describe("body", () => {
+
+    mochadoc.section("`body`", () => {
       it("should be executed", () => {
         evaluate("closure cmd {} {let var val}");
         expect(rootScope.context.constants.has("var")).to.be.false;
@@ -81,9 +135,17 @@ describe("Helena scopes", () => {
         expect(evaluate("cmd eval {get var}")).to.eql(STR("val2"));
         expect(evaluate("cmd eval {get cst}")).to.eql(STR("val3"));
       });
-      describe("control flow", () => {
-        describe("return", () => {
-          it("should interrupt the body with OK code", () => {
+
+      describe("Control flow", () => {
+        mochadoc.description(() => {
+          /**
+           * If the body returns a result code then it should be propagated
+           * properly by the command.
+           */
+        });
+
+        describe("`return`", () => {
+          it("should interrupt the body with `OK` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             expect(execute("scope {cmd1; return; cmd2}").code).to.eql(
@@ -99,8 +161,8 @@ describe("Helena scopes", () => {
             expect(execute("scope {return val}")).to.eql(OK(STR("val")));
           });
         });
-        describe("tailcall", () => {
-          it("should interrupt the body with OK code", () => {
+        describe("`tailcall`", () => {
+          it("should interrupt the body with `OK` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             expect(execute("scope {cmd1; tailcall {}; cmd2}").code).to.eql(
@@ -118,8 +180,8 @@ describe("Helena scopes", () => {
             );
           });
         });
-        describe("yield", () => {
-          it("should interrupt the body with YIELD code", () => {
+        describe("`yield`", () => {
+          it("should interrupt the body with `YIELD` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             expect(execute("scope cmd {cmd1; yield; cmd2}").code).to.eql(
@@ -157,8 +219,8 @@ describe("Helena scopes", () => {
             expect(rootScope.context.commands.has("cmd")).to.be.true;
           });
         });
-        describe("error", () => {
-          it("should interrupt the body with ERROR code", () => {
+        describe("`error`", () => {
+          it("should interrupt the body with `ERROR` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             expect(execute("scope {cmd1; error msg; cmd2}")).to.eql(
@@ -171,8 +233,8 @@ describe("Helena scopes", () => {
             expect(rootScope.context.commands.has("cmd")).to.be.false;
           });
         });
-        describe("break", () => {
-          it("should interrupt the body with ERROR code", () => {
+        describe("`break`", () => {
+          it("should interrupt the body with `ERROR` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             expect(execute("scope {cmd1; break; cmd2}")).to.eql(
@@ -185,8 +247,8 @@ describe("Helena scopes", () => {
             expect(rootScope.context.commands.has("cmd")).to.be.false;
           });
         });
-        describe("continue", () => {
-          it("should interrupt the body with ERROR code", () => {
+        describe("`continue`", () => {
+          it("should interrupt the body with `ERROR` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             expect(execute("scope {cmd1; continue; cmd2}")).to.eql(
@@ -201,22 +263,33 @@ describe("Helena scopes", () => {
         });
       });
     });
-    describe("subcommands", () => {
-      describe("subcommands", () => {
+
+    mochadoc.section("Subcommands", () => {
+      describe("`subcommands`", () => {
         it("should return list of subcommands", () => {
+          /**
+           * This subcommand is useful for introspection and interactive
+           * calls.
+           */
           expect(evaluate("[scope {}] subcommands")).to.eql(
             evaluate("list (subcommands eval call)")
           );
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The subcommand will return an error message with usage when
+             * given the wrong number of arguments.
+             */
             expect(execute("[scope {}] subcommands a")).to.eql(
               ERROR('wrong # args: should be "<scope> subcommands"')
             );
           });
         });
       });
-      describe("eval", () => {
+
+      describe("`eval`", () => {
         it("should evaluate body", () => {
           evaluate("scope cmd {let cst val}");
           expect(evaluate("cmd eval {get cst}")).to.eql(STR("val"));
@@ -238,9 +311,10 @@ describe("Helena scopes", () => {
           expect(rootScope.context.constants.get("cst")).to.eql(STR("val"));
           expect(execute("cmd eval {get cst}").code).to.eql(ResultCode.ERROR);
         });
-        describe("control flow", () => {
-          describe("return", () => {
-            it("should interrupt the body with RETURN code", () => {
+
+        describe("Control flow", () => {
+          describe("`return`", () => {
+            it("should interrupt the body with `RETURN` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("scope cmd {}");
@@ -250,8 +324,8 @@ describe("Helena scopes", () => {
               expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
-          describe("tailcall", () => {
-            it("should interrupt the body with RETURN code", () => {
+          describe("`tailcall`", () => {
+            it("should interrupt the body with `RETURN` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("scope cmd {}");
@@ -261,8 +335,8 @@ describe("Helena scopes", () => {
               expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
-          describe("yield", () => {
-            it("should interrupt the body with YIELD code", () => {
+          describe("`yield`", () => {
+            it("should interrupt the body with `YIELD` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("scope cmd {}");
@@ -289,8 +363,8 @@ describe("Helena scopes", () => {
               expect(evaluate("get var")).to.eql(STR("_val3_"));
             });
           });
-          describe("error", () => {
-            it("should interrupt the body with ERROR code", () => {
+          describe("`error`", () => {
+            it("should interrupt the body with `ERROR` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("scope cmd {}");
@@ -300,8 +374,8 @@ describe("Helena scopes", () => {
               expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
-          describe("break", () => {
-            it("should interrupt the body with BREAK code", () => {
+          describe("`break`", () => {
+            it("should interrupt the body with `BREAK` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("scope cmd {}");
@@ -309,8 +383,8 @@ describe("Helena scopes", () => {
               expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
-          describe("continue", () => {
-            it("should interrupt the body with CONTINUE code", () => {
+          describe("`continue`", () => {
+            it("should interrupt the body with `CONTINUE` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("scope cmd {}");
@@ -321,8 +395,13 @@ describe("Helena scopes", () => {
             });
           });
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The subcommand will return an error message with usage when
+             * given the wrong number of arguments.
+             */
             expect(execute("[scope {}] eval")).to.eql(
               ERROR('wrong # args: should be "<scope> eval body"')
             );
@@ -337,7 +416,8 @@ describe("Helena scopes", () => {
           });
         });
       });
-      describe("call", () => {
+
+      describe("`call`", () => {
         it("should call scope commands", () => {
           evaluate("scope cmd {macro mac {} {idem val}}");
           expect(evaluate("cmd call mac")).to.eql(STR("val"));
@@ -354,9 +434,10 @@ describe("Helena scopes", () => {
           expect(rootScope.context.constants.has("cst")).to.be.false;
           expect(evaluate("cmd eval {get cst}")).to.eql(STR("val"));
         });
-        describe("control flow", () => {
-          describe("return", () => {
-            it("should interrupt the body with RETURN code", () => {
+
+        describe("Control flow", () => {
+          describe("`return`", () => {
+            it("should interrupt the body with `RETURN` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("scope cmd {macro mac {} {cmd1; return val3; cmd2}}");
@@ -364,8 +445,8 @@ describe("Helena scopes", () => {
               expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
-          describe("tailcall", () => {
-            it("should interrupt the body with RETURN code", () => {
+          describe("`tailcall`", () => {
+            it("should interrupt the body with `RETURN` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate(
@@ -375,8 +456,8 @@ describe("Helena scopes", () => {
               expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
-          describe("yield", () => {
-            it("should interrupt the body with YIELD code", () => {
+          describe("`yield`", () => {
+            it("should interrupt the body with `YIELD` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("scope cmd {macro mac {} {cmd1; yield; cmd2}}");
@@ -399,8 +480,8 @@ describe("Helena scopes", () => {
               expect(evaluate("get var")).to.eql(STR("_val3_"));
             });
           });
-          describe("error", () => {
-            it("should interrupt the body with ERROR code", () => {
+          describe("`error`", () => {
+            it("should interrupt the body with `ERROR` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("scope cmd {macro mac {} {cmd1; error msg; cmd2}}");
@@ -408,8 +489,8 @@ describe("Helena scopes", () => {
               expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
-          describe("break", () => {
-            it("should interrupt the body with BREAK code", () => {
+          describe("`break`", () => {
+            it("should interrupt the body with `BREAK` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("scope cmd {macro mac {} {cmd1; break; cmd2}}");
@@ -417,8 +498,8 @@ describe("Helena scopes", () => {
               expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
-          describe("continue", () => {
-            it("should interrupt the body with CONTINUE code", () => {
+          describe("`continue`", () => {
+            it("should interrupt the body with `CONTINUE` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("scope cmd {macro mac {} {cmd1; continue; cmd2}}");
@@ -427,8 +508,13 @@ describe("Helena scopes", () => {
             });
           });
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The subcommand will return an error message with usage when
+             * given the wrong number of arguments.
+             */
             expect(execute("[scope {}] call")).to.eql(
               ERROR('wrong # args: should be "<scope> call cmdname ?arg ...?"')
             );
@@ -450,7 +536,8 @@ describe("Helena scopes", () => {
           });
         });
       });
-      describe("exceptions", () => {
+
+      describe("Exceptions", () => {
         specify("unknown subcommand", () => {
           expect(execute("[scope {}] unknownSubcommand")).to.eql(
             ERROR('unknown subcommand "unknownSubcommand"')
@@ -461,23 +548,6 @@ describe("Helena scopes", () => {
             ERROR("invalid subcommand name")
           );
         });
-      });
-    });
-    describe("exceptions", () => {
-      specify("wrong arity", () => {
-        expect(execute("scope")).to.eql(
-          ERROR('wrong # args: should be "scope ?name? body"')
-        );
-        expect(execute("scope a b c")).to.eql(
-          ERROR('wrong # args: should be "scope ?name? body"')
-        );
-      });
-      specify("non-script body", () => {
-        expect(execute("scope a")).to.eql(ERROR("body must be a script"));
-        expect(execute("scope a b")).to.eql(ERROR("body must be a script"));
-      });
-      specify("invalid command name", () => {
-        expect(execute("scope [] {}")).to.eql(ERROR("invalid command name"));
       });
     });
   });

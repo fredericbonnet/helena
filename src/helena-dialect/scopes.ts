@@ -8,7 +8,7 @@ import {
   RESULT_CODE_NAME,
 } from "../core/results";
 import { Command } from "../core/command";
-import { Value, ScriptValue, ValueType, TUPLE } from "../core/values";
+import { Value, ScriptValue, ValueType, TUPLE, STR } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import {
   CommandValue,
@@ -19,6 +19,7 @@ import {
 } from "./core";
 import { Subcommands } from "./subcommands";
 
+const SCOPE_SIGNATURE = "scope ?name? body";
 class ScopeValue implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
@@ -74,7 +75,7 @@ export const scopeCmd: Command = {
         [, name, body] = args;
         break;
       default:
-        return ARITY_ERROR("scope ?name? body");
+        return ARITY_ERROR(SCOPE_SIGNATURE);
     }
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
@@ -86,6 +87,10 @@ export const scopeCmd: Command = {
     const state = result.data as ScopeBodyState;
     state.process.yieldBack(result.value);
     return executeScopeBody(state);
+  },
+  help: (args) => {
+    if (args.length > 3) return ARITY_ERROR(SCOPE_SIGNATURE);
+    return OK(STR(SCOPE_SIGNATURE));
   },
 };
 const executeScopeBody = (state: ScopeBodyState): Result => {
