@@ -1,7 +1,20 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
+import { Command } from "../core/command";
 import { ERROR, Result, ResultCode, OK } from "../core/results";
-import { Value, RealValue, INT, REAL, BOOL } from "../core/values";
+import {
+  Value,
+  RealValue,
+  INT,
+  REAL,
+  BOOL,
+  LIST,
+  STR,
+  IntegerValue,
+} from "../core/values";
+import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
+import { Scope } from "./core";
+import { EnsembleValue } from "./ensembles";
 import { Subcommands } from "./subcommands";
 
 const OPERATOR_ARITY_ERROR = (operator: string) =>
@@ -114,4 +127,49 @@ const leOp = binaryOp("<=", true, (op1, op2) => op1 <= op2);
 
 export function numberToValue(num: number) {
   return Number.isSafeInteger(num) ? INT(num) : REAL(num);
+}
+
+class IntCommand implements Command {
+  scope: Scope;
+  ensemble: EnsembleValue;
+  constructor(scope: Scope) {
+    this.scope = new Scope(scope);
+    const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
+    this.ensemble = new EnsembleValue(this.scope, argspec);
+  }
+  execute(args: Value[], scope: Scope): Result {
+    if (args.length == 1) return OK(this.ensemble);
+    if (args.length == 2) return IntegerValue.fromValue(args[1]);
+    return this.ensemble.ensemble.execute(args, scope);
+  }
+  help(args) {
+    // TODO handle args to ensemble subcommands
+    return OK(STR("integer ?value? ?subcommand? ?arg ...?"));
+  }
+}
+
+class RealCommand implements Command {
+  scope: Scope;
+  ensemble: EnsembleValue;
+  constructor(scope: Scope) {
+    this.scope = new Scope(scope);
+    const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
+    this.ensemble = new EnsembleValue(this.scope, argspec);
+  }
+  execute(args: Value[], scope: Scope): Result {
+    if (args.length == 1) return OK(this.ensemble);
+    if (args.length == 2) return RealValue.fromValue(args[1]);
+    return this.ensemble.ensemble.execute(args, scope);
+  }
+  help(args) {
+    // TODO handle args to ensemble subcommands
+    return OK(STR("real ?value? ?subcommand? ?arg ...?"));
+  }
+}
+
+export function registerNumberCommands(scope: Scope) {
+  const intCommand = new IntCommand(scope);
+  scope.registerNamedCommand("int", intCommand);
+  const realCommand = new RealCommand(scope);
+  scope.registerNamedCommand("real", realCommand);
 }

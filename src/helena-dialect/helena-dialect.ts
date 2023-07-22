@@ -20,6 +20,7 @@ import { registerTupleCommands } from "./tuples";
 import { registerScriptCommands } from "./scripts";
 import { ensembleCmd } from "./ensembles";
 import { registerModuleCommands } from "./modules";
+import { registerNumberCommands } from "./numbers";
 
 export { Scope } from "./core";
 
@@ -31,6 +32,7 @@ export function initCommands(scope: Scope, rootDir?: string) {
   registerLogicCommands(scope);
   registerControlCommands(scope);
 
+  registerNumberCommands(scope);
   registerStringCommands(scope);
   registerListCommands(scope);
   registerDictCommands(scope);

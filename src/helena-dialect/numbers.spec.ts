@@ -3,9 +3,11 @@ import * as mochadoc from "../../mochadoc";
 import { ERROR } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, INT, REAL, TRUE } from "../core/values";
-import { Scope } from "./core";
+import { FALSE, INT, REAL, STR, TRUE } from "../core/values";
+import { Scope, commandValueType } from "./core";
 import { initCommands } from "./helena-dialect";
+import { codeBlock, specifyExample } from "./test-helpers";
+import { EnsembleValue } from "./ensembles";
 
 describe("Helena numbers", () => {
   let rootScope: Scope;
@@ -18,13 +20,20 @@ describe("Helena numbers", () => {
   const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 
-  beforeEach(() => {
+  const init = () => {
     rootScope = new Scope();
     initCommands(rootScope);
 
     tokenizer = new Tokenizer();
     parser = new Parser();
-  });
+  };
+  const usage = (script: string) => {
+    init();
+    return codeBlock(evaluate("help " + script).asString());
+  };
+  const example = specifyExample(({ script }) => execute(script));
+
+  beforeEach(init);
 
   mochadoc.section("Number commands", () => {
     mochadoc.section("Integer numbers", () => {
@@ -393,6 +402,329 @@ describe("Helena numbers", () => {
             });
           });
         });
+      });
+    });
+  });
+
+  mochadoc.section("`int`", () => {
+    mochadoc.summary("Integer number handling");
+    mochadoc.usage(usage("int"));
+    mochadoc.description(() => {
+      /**
+       * The `int` command is a type command dedicated to integer values.
+       *
+       * Integer values are Helena values whose internal type is `INTEGER`. The
+       * name `int` was preferred over `integer` because it is shorter and is
+       * already used in many other languages like Python and C.
+       */
+    });
+
+    mochadoc.section("Integer conversion", () => {
+      mochadoc.description(() => {
+        /**
+         * Like with most type commands, passing a single argument to `int` will
+         * ensure an integer value in return. This property means that `int` can
+         * be used for creation and conversion, but also as a type guard in
+         * argspecs.
+         */
+      });
+
+      it("should return integer value", () => {
+        expect(evaluate("int 0")).to.eql(INT(0));
+      });
+
+      describe("Exceptions", () => {
+        specify("values with no string representation", () => {
+          expect(execute("int []")).to.eql(
+            ERROR("value has no string representation")
+          );
+          expect(execute("int ()")).to.eql(
+            ERROR("value has no string representation")
+          );
+        });
+        specify("invalid values", () => {
+          expect(execute("int a")).to.eql(ERROR('invalid integer "a"'));
+        });
+        specify("real values", () => {
+          /**
+           * Non-integer real values are not accepted.
+           */
+          expect(execute("int 1.1")).to.eql(ERROR('invalid integer "1.1"'));
+        });
+      });
+
+      mochadoc.section("Subcommands", () => {
+        mochadoc.description(() => {
+          /**
+           * The `int` ensemble comes with a number of predefined subcommands
+           * listed here.
+           */
+        });
+
+        mochadoc.section("Introspection", () => {
+          describe("`subcommands`", () => {
+            it("should return list of subcommands", () => {
+              /**
+               * This subcommand is useful for introspection and interactive
+               * calls.
+               */
+              expect(evaluate('int "" subcommands')).to.eql(
+                evaluate("list (subcommands)")
+              );
+            });
+
+            describe("Exceptions", () => {
+              specify("wrong arity", () => {
+                /**
+                 * The subcommand will return an error message with usage when
+                 * given the wrong number of arguments.
+                 */
+                expect(execute('int "" subcommands a')).to.eql(
+                  ERROR('wrong # args: should be "int value subcommands"')
+                );
+              });
+            });
+          });
+        });
+
+        mochadoc.section("Exceptions", () => {
+          specify("unknown subcommand", () => {
+            expect(execute('int "" unknownSubcommand')).to.eql(
+              ERROR('unknown subcommand "unknownSubcommand"')
+            );
+          });
+          specify("invalid subcommand name", () => {
+            expect(execute('int "" []')).to.eql(
+              ERROR("invalid subcommand name")
+            );
+          });
+        });
+      });
+    });
+
+    mochadoc.section("Ensemble command", () => {
+      mochadoc.description(() => {
+        /**
+         * `int` is an ensemble command, which means that it is a collection
+         * of subcommands defined in an ensemble scope.
+         */
+      });
+
+      it("should return its ensemble metacommand", () => {
+        /**
+         * The typical application of this property is to access the ensemble
+         * metacommand by wrapping the command within brackets, i.e. `[int]`.
+         */
+        expect(evaluate("int").type).to.eql(commandValueType);
+        expect(evaluate("int")).to.be.instanceOf(EnsembleValue);
+      });
+      it("should be extensible", () => {
+        /**
+         * Creating a command in the `int` ensemble scope will add it to its
+         * subcommands.
+         */
+        evaluate(`
+          [int] eval {
+            macro foo {value} {idem bar}
+          }
+        `);
+        expect(evaluate("int example foo")).to.eql(STR("bar"));
+      });
+
+      mochadoc.section("Examples", () => {
+        example("Adding a `positive` subcommand", [
+          {
+            doc: () => {
+              /**
+               * Here we create a `positive` macro within the `int` ensemble
+               * scope, returning whether the value is strictly positive:
+               */
+            },
+            script: `
+              [int] eval {
+                macro positive {value} {
+                  $value > 0
+                }
+              }
+            `,
+          },
+          {
+            doc: () => {
+              /**
+               * We can then use `positive` just like the predefined `int`
+               * subcommands:
+               */
+            },
+            script: "int 1 positive",
+            result: TRUE,
+          },
+          {
+            script: "int 0 positive",
+            result: FALSE,
+          },
+          {
+            script: "int -1 positive",
+            result: FALSE,
+          },
+        ]);
+      });
+    });
+  });
+
+  mochadoc.section("`real`", () => {
+    mochadoc.summary("Real number handling");
+    mochadoc.usage(usage("real"));
+    mochadoc.description(() => {
+      /**
+       * The `real` command is a type command dedicated to real values.
+       *
+       * Real values are Helena values whose internal type is `REAL`.
+       */
+    });
+
+    mochadoc.section("Real conversion", () => {
+      mochadoc.description(() => {
+        /**
+         * Like with most type commands, passing a single argument to `real`
+         * will ensure a real value in return. This property means that `real`
+         * can be used for creation and conversion, but also as a type guard in
+         * argspecs.
+         */
+      });
+
+      it("should return real value", () => {
+        expect(evaluate("real 0")).to.eql(REAL(0));
+      });
+
+      describe("Exceptions", () => {
+        specify("values with no string representation", () => {
+          expect(execute("real []")).to.eql(
+            ERROR("value has no string representation")
+          );
+          expect(execute("real ()")).to.eql(
+            ERROR("value has no string representation")
+          );
+        });
+        specify("invalid values", () => {
+          expect(execute("real a")).to.eql(ERROR('invalid number "a"'));
+        });
+      });
+
+      mochadoc.section("Subcommands", () => {
+        mochadoc.description(() => {
+          /**
+           * The `real` ensemble comes with a number of predefined subcommands
+           * listed here.
+           */
+        });
+
+        mochadoc.section("Introspection", () => {
+          describe("`subcommands`", () => {
+            it("should return list of subcommands", () => {
+              /**
+               * This subcommand is useful for introspection and interactive
+               * calls.
+               */
+              expect(evaluate('real "" subcommands')).to.eql(
+                evaluate("list (subcommands)")
+              );
+            });
+
+            describe("Exceptions", () => {
+              specify("wrong arity", () => {
+                /**
+                 * The subcommand will return an error message with usage when
+                 * given the wrong number of arguments.
+                 */
+                expect(execute('real "" subcommands a')).to.eql(
+                  ERROR('wrong # args: should be "real value subcommands"')
+                );
+              });
+            });
+          });
+        });
+
+        mochadoc.section("Exceptions", () => {
+          specify("unknown subcommand", () => {
+            expect(execute('real "" unknownSubcommand')).to.eql(
+              ERROR('unknown subcommand "unknownSubcommand"')
+            );
+          });
+          specify("invalid subcommand name", () => {
+            expect(execute('real "" []')).to.eql(
+              ERROR("invalid subcommand name")
+            );
+          });
+        });
+      });
+    });
+
+    mochadoc.section("Ensemble command", () => {
+      mochadoc.description(() => {
+        /**
+         * `real` is an ensemble command, which means that it is a collection of
+         * subcommands defined in an ensemble scope.
+         */
+      });
+
+      it("should return its ensemble metacommand", () => {
+        /**
+         * The typical application of this property is to access the ensemble
+         * metacommand by wrapping the command within brackets, i.e.
+         * `[real]`.
+         */
+        expect(evaluate("real").type).to.eql(commandValueType);
+        expect(evaluate("real")).to.be.instanceOf(EnsembleValue);
+      });
+      it("should be extensible", () => {
+        /**
+         * Creating a command in the `real` ensemble scope will add it to its
+         * subcommands.
+         */
+        evaluate(`
+          [real] eval {
+            macro foo {value} {idem bar}
+          }
+        `);
+        expect(evaluate("real example foo")).to.eql(STR("bar"));
+      });
+
+      mochadoc.section("Examples", () => {
+        example("Adding a `positive` subcommand", [
+          {
+            doc: () => {
+              /**
+               * Here we create a `positive` macro within the `real` ensemble
+               * scope, returning whether the value is strictly positive:
+               */
+            },
+            script: `
+              [real] eval {
+                macro positive {value} {
+                  $value > 0
+                }
+              }
+            `,
+          },
+          {
+            doc: () => {
+              /**
+               * We can then use `positive` just like the predefined `real`
+               * subcommands:
+               */
+            },
+            script: "real 0.1 positive",
+            result: TRUE,
+          },
+          {
+            script: "real 0 positive",
+            result: FALSE,
+          },
+          {
+            script: "real -1 positive",
+            result: FALSE,
+          },
+        ]);
       });
     });
   });
