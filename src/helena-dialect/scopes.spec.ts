@@ -41,12 +41,12 @@ describe("Helena scopes", () => {
   beforeEach(init);
 
   mochadoc.section("`scope`", () => {
-    mochadoc.summary("Define a scope");
+    mochadoc.summary("Create a scope command");
     mochadoc.usage(usage("scope"));
     mochadoc.description(() => {
       /**
-       * The `scope` command defines a new command that will execute a script in
-       * a new child context.
+       * The `scope` command creates a new command that will execute a script in
+       * its own child context.
        */
     });
 

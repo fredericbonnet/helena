@@ -42,11 +42,11 @@ describe("Helena macros", () => {
   beforeEach(init);
 
   mochadoc.section("`macro`", () => {
-    mochadoc.summary("Define a macro");
+    mochadoc.summary("Create a macro command");
     mochadoc.usage(usage("macro"));
     mochadoc.description(() => {
       /**
-       * The `macro` command defines a new command that will execute a script in
+       * The `macro` command creates a new command that will execute a script in
        * the calling context.
        */
     });

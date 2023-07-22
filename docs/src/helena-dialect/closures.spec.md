@@ -5,7 +5,7 @@ source: src\helena-dialect\closures.spec.ts
 
 ## `closure`
 
-Define a closure
+Create a closure command
 
 ### Usage
 
@@ -13,7 +13,7 @@ Define a closure
 closure ?name? argspec body
 ```
 
-The `closure` command defines a new command that will execute a script
+The `closure` command creates a new command that will execute a script
 in the context where it is declared.
 
 ### Specifications

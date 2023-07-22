@@ -5,7 +5,7 @@ source: src\helena-dialect\macros.spec.ts
 
 ## `macro`
 
-Define a macro
+Create a macro command
 
 ### Usage
 
@@ -13,7 +13,7 @@ Define a macro
 macro ?name? argspec body
 ```
 
-The `macro` command defines a new command that will execute a script in
+The `macro` command creates a new command that will execute a script in
 the calling context.
 
 ### Specifications

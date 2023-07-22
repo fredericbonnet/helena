@@ -5,7 +5,7 @@ source: src\helena-dialect\argspecs.spec.ts
 
 ## `argspec`
 
-Define a argument-parsing command
+Create an argument-parsing command
 
 ### Usage
 
@@ -13,7 +13,7 @@ Define a argument-parsing command
 argspec ?name? specs
 ```
 
-The `argspec` command defines a new command that will parse a list of
+The `argspec` command creates a new command that will parse a list of
 arguments according to a given _argument specification_ (abbreviated
 _"argspec"_).
 

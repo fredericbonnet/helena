@@ -5,7 +5,7 @@ source: src\helena-dialect\scopes.spec.ts
 
 ## `scope`
 
-Define a scope
+Create a scope command
 
 ### Usage
 
@@ -13,8 +13,8 @@ Define a scope
 scope ?name? body
 ```
 
-The `scope` command defines a new command that will execute a script in
-a new child context.
+The `scope` command creates a new command that will execute a script in
+its own child context.
 
 ### Specifications
 

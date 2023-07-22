@@ -42,11 +42,11 @@ describe("Helena closures", () => {
   beforeEach(init);
 
   mochadoc.section("`closure`", () => {
-    mochadoc.summary("Define a closure");
+    mochadoc.summary("Create a closure command");
     mochadoc.usage(usage("closure"));
     mochadoc.description(() => {
       /**
-       * The `closure` command defines a new command that will execute a script
+       * The `closure` command creates a new command that will execute a script
        * in the context where it is declared.
        */
     });

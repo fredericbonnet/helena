@@ -35,11 +35,11 @@ describe("Helena argument handling", () => {
   beforeEach(init);
 
   mochadoc.section("`argspec`", () => {
-    mochadoc.summary("Define a argument-parsing command");
+    mochadoc.summary("Create an argument-parsing command");
     mochadoc.usage(usage("argspec"));
     mochadoc.description(() => {
       /**
-       * The `argspec` command defines a new command that will parse a list of
+       * The `argspec` command creates a new command that will parse a list of
        * arguments according to a given _argument specification_ (abbreviated
        * _"argspec"_).
        */
