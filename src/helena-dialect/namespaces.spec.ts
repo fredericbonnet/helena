@@ -676,7 +676,7 @@ describe("Helena namespaces", () => {
           evaluate("macro mac {} {}; namespace cmd {}");
           expect(execute("cmd mac")).to.eql(ERROR('unknown subcommand "mac"'));
         });
-        specify("invalid subcommand", () => {
+        specify("invalid subcommand name", () => {
           evaluate("namespace cmd {}");
           expect(execute("cmd []")).to.eql(ERROR("invalid subcommand name"));
         });

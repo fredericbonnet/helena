@@ -14,7 +14,7 @@ closure ?name? argspec body
 ```
 
 The `closure` command creates a new command that will execute a script
-in the context where it is declared.
+in the scope where it is declared.
 
 ### Specifications
 

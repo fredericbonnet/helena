@@ -14,7 +14,7 @@ scope ?name? body
 ```
 
 The `scope` command creates a new command that will execute a script in
-its own child context.
+its own child scope.
 
 ### Specifications
 

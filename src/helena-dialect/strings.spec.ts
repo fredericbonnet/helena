@@ -755,7 +755,7 @@ describe("Helena strings", () => {
          */
       });
 
-      it("should return its ensemble metacommand", () => {
+      it("should return its ensemble metacommand when called with no argument", () => {
         /**
          * The typical application of this property is to access the ensemble
          * metacommand by wrapping the command within brackets, i.e. `[string]`.

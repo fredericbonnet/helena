@@ -47,7 +47,7 @@ describe("Helena macros", () => {
     mochadoc.description(() => {
       /**
        * The `macro` command creates a new command that will execute a script in
-       * the calling context.
+       * the calling scope.
        */
     });
 

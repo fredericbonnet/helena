@@ -188,7 +188,7 @@ listed here.
 `tuple` is an ensemble command, which means that it is a collection
 of subcommands defined in an ensemble scope.
 
-- ✅ should return its ensemble metacommand
+- ✅ should return its ensemble metacommand when called with no argument
 
   The typical application of this property is to access the ensemble
   metacommand by wrapping the command within brackets, i.e. `[tuple]`.
