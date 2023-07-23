@@ -17,12 +17,12 @@ import {
   isCustomValueType,
   isValue,
   ListValue,
-  MapValue,
+  DictionaryValue,
   Value,
   ValueType,
 } from "./src/core/values";
 import { displayListValue } from "./src/helena-dialect/lists";
-import { displayMapValue } from "./src/helena-dialect/dicts";
+import { displayDictionaryValue } from "./src/helena-dialect/dicts";
 import { Command } from "./src/core/command";
 import { ARITY_ERROR } from "./src/helena-dialect/arguments";
 
@@ -126,7 +126,8 @@ function resultWriter(output) {
   if (output instanceof Error) return c.red(output.message);
   const value = display(output, (displayable) => {
     if (displayable instanceof ListValue) return displayListValue(displayable);
-    if (displayable instanceof MapValue) return displayMapValue(displayable);
+    if (displayable instanceof DictionaryValue)
+      return displayDictionaryValue(displayable);
     return defaultDisplayFunction(displayable);
   });
   let type;

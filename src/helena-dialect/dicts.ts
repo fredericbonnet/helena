@@ -10,13 +10,13 @@ import { Result, OK, ERROR, ResultCode, YIELD } from "../core/results";
 import {
   Value,
   TupleValue,
-  MapValue,
+  DictionaryValue,
   ValueType,
   NIL,
   ScriptValue,
   INT,
   LIST,
-  MAP,
+  DICT,
   STR,
   TUPLE,
   BOOL,
@@ -37,7 +37,7 @@ class DictCommand implements Command {
   }
   execute(args: Value[], scope): Result {
     if (args.length == 1) return OK(this.ensemble);
-    if (args.length == 2) return valueToMapValue(args[1]);
+    if (args.length == 2) return valueToDictionaryValue(args[1]);
     return this.ensemble.ensemble.execute(args, scope);
   }
   help(args) {
@@ -102,12 +102,12 @@ const dictAddCmd: Command = {
     const key = args[2].asString?.();
     if (key == null) return ERROR("invalid key");
     const clone = new Map(map);
-    return OK(MAP(clone.set(key, args[3])));
+    return OK(DICT(clone.set(key, args[3])));
   },
 };
 const dictRemoveCmd: Command = {
   execute(args) {
-    if (args.length == 2) return valueToMapValue(args[1]);
+    if (args.length == 2) return valueToDictionaryValue(args[1]);
     const { data: map, ...result } = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     const clone = new Map(map);
@@ -116,12 +116,12 @@ const dictRemoveCmd: Command = {
       if (key == null) return ERROR("invalid key");
       clone.delete(key);
     }
-    return OK(MAP(clone));
+    return OK(DICT(clone));
   },
 };
 const dictMergeCmd: Command = {
   execute(args) {
-    if (args.length == 2) return valueToMapValue(args[1]);
+    if (args.length == 2) return valueToDictionaryValue(args[1]);
     const { data: map, ...result } = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     const clone = new Map(map);
@@ -132,7 +132,7 @@ const dictMergeCmd: Command = {
         clone.set(key, value);
       });
     }
-    return OK(MAP(clone));
+    return OK(DICT(clone));
   },
 };
 const dictKeysCmd: Command = {
@@ -237,24 +237,24 @@ class DictForeachCommand implements Command {
 }
 const dictForeachCmd = new DictForeachCommand();
 
-function valueToMapValue(value: Value): Result {
+function valueToDictionaryValue(value: Value): Result {
   switch (value.type) {
-    case ValueType.MAP:
+    case ValueType.DICTIONARY:
       return OK(value);
     case ValueType.SCRIPT:
     case ValueType.LIST:
     case ValueType.TUPLE: {
       const { data, ...result } = valueToMap(value);
       if (result.code != ResultCode.OK) return result;
-      return OK(MAP(data));
+      return OK(DICT(data));
     }
     default:
-      return ERROR("invalid map");
+      return ERROR("invalid dictionary");
   }
 }
 function valueToMap(value: Value): Result<Map<string, Value>> {
-  if (value.type == ValueType.MAP) {
-    return OK(NIL, (value as MapValue).map);
+  if (value.type == ValueType.DICTIONARY) {
+    return OK(NIL, (value as DictionaryValue).map);
   }
   const { data: values, ...result } = valueToArray(value);
   if (result.code != ResultCode.OK) return result;
@@ -269,12 +269,12 @@ function valueToMap(value: Value): Result<Map<string, Value>> {
   return OK(NIL, map);
 }
 
-export function displayMapValue(
-  map: MapValue,
+export function displayDictionaryValue(
+  dictionary: DictionaryValue,
   fn: DisplayFunction = defaultDisplayFunction
 ) {
   const values = [];
-  for (const [key, value] of map.map.entries()) {
+  for (const [key, value] of dictionary.map.entries()) {
     values.push(STR(key), value);
   }
   return `[dict (${displayList(values, fn)})]`;

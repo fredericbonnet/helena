@@ -14,7 +14,7 @@ import {
   Value,
   StringValue,
   ListValue,
-  MapValue,
+  DictionaryValue,
   TupleValue,
   ScriptValue,
   NIL,
@@ -23,7 +23,7 @@ import {
   ValueType,
   INT,
   LIST,
-  MAP,
+  DICT,
   STR,
   TUPLE,
 } from "./values";
@@ -49,7 +49,7 @@ const mapValue = (value: Value) => {
   if (value instanceof ListValue) {
     return value.values.map(mapValue);
   }
-  if (value instanceof MapValue) {
+  if (value instanceof DictionaryValue) {
     const result = {};
     value.map.forEach((v, k) => {
       result[k] = mapValue(v);
@@ -450,13 +450,13 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
 
             describe("keyed selectors", () => {
               specify("simple substitution", () => {
-                variableResolver.register("var", MAP({ key: STR("value") }));
+                variableResolver.register("var", DICT({ key: STR("value") }));
                 const morpheme = firstMorpheme(parse('"$var(key)"'));
                 const value = evaluator.evaluateMorpheme(morpheme);
                 expect(mapValue(value)).to.eql("value");
               });
               specify("double substitution", () => {
-                variableResolver.register("var1", MAP({ key: STR("var2") }));
+                variableResolver.register("var1", DICT({ key: STR("var2") }));
                 variableResolver.register("var2", STR("value"));
                 const morpheme = firstMorpheme(parse('"$$var1(key)"'));
                 const value = evaluator.evaluateMorpheme(morpheme);
@@ -465,8 +465,8 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               specify("recursive keys", () => {
                 variableResolver.register(
                   "var",
-                  MAP({
-                    key1: MAP({ key2: STR("value") }),
+                  DICT({
+                    key1: DICT({ key2: STR("value") }),
                   })
                 );
                 const morpheme = firstMorpheme(parse('"$var(key1 key2)"'));
@@ -476,8 +476,8 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               specify("successive keys", () => {
                 variableResolver.register(
                   "var",
-                  MAP({
-                    key1: MAP({ key2: STR("value") }),
+                  DICT({
+                    key1: DICT({ key2: STR("value") }),
                   })
                 );
                 const morpheme = firstMorpheme(parse('"$var(key1)(key2)"'));
@@ -487,7 +487,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               specify("indirect key", () => {
                 variableResolver.register(
                   "var1",
-                  MAP({
+                  DICT({
                     key: STR("value"),
                   })
                 );
@@ -499,7 +499,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               specify("string key", () => {
                 variableResolver.register(
                   "var",
-                  MAP({
+                  DICT({
                     "arbitrary key": STR("value"),
                   })
                 );
@@ -512,7 +512,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               specify("expression", () => {
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(() => MAP({ key: STR("value") }))
+                  new FunctionCommand(() => DICT({ key: STR("value") }))
                 );
                 const morpheme = firstMorpheme(parse('"$[cmd](key)"'));
                 const value = evaluator.evaluateMorpheme(morpheme);
@@ -591,13 +591,13 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
 
             describe("compound", () => {
               specify("beginning", () => {
-                variableResolver.register("var", MAP({ key: STR("value") }));
+                variableResolver.register("var", DICT({ key: STR("value") }));
                 const morpheme = firstMorpheme(parse('"$var(key)foo"'));
                 const value = evaluator.evaluateMorpheme(morpheme);
                 expect(mapValue(value)).to.eql("valuefoo");
               });
               specify("middle", () => {
-                variableResolver.register("var", MAP({ key: STR("value") }));
+                variableResolver.register("var", DICT({ key: STR("value") }));
                 const morpheme = firstMorpheme(parse('"foo$var(key)bar"'));
                 const value = evaluator.evaluateMorpheme(morpheme);
                 expect(mapValue(value)).to.eql("foovaluebar");
@@ -609,8 +609,14 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
                 expect(mapValue(value)).to.eql("foovalue");
               });
               specify("multiple", () => {
-                variableResolver.register("var1", MAP({ key1: STR("value1") }));
-                variableResolver.register("var2", MAP({ key2: STR("value2") }));
+                variableResolver.register(
+                  "var1",
+                  DICT({ key1: STR("value1") })
+                );
+                variableResolver.register(
+                  "var2",
+                  DICT({ key2: STR("value2") })
+                );
                 const morpheme = firstMorpheme(
                   parse('"foo$var1(key1)bar$var2(key2)baz"')
                 );
@@ -1006,7 +1012,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               "var1",
               LIST([STR("value1"), STR("value2")])
             );
-            variableResolver.register("var2", MAP({ key: STR("value3") }));
+            variableResolver.register("var2", DICT({ key: STR("value3") }));
             const word = firstWord(parse("$(var1[0] var2(key))"));
             const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value1", "value3"]);
@@ -1175,13 +1181,13 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
 
         describe("keyed selectors", () => {
           specify("simple substitution", () => {
-            variableResolver.register("var", MAP({ key: STR("value") }));
+            variableResolver.register("var", DICT({ key: STR("value") }));
             const word = firstWord(parse("$var(key)"));
             const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql("value");
           });
           specify("double substitution", () => {
-            variableResolver.register("var1", MAP({ key: STR("var2") }));
+            variableResolver.register("var1", DICT({ key: STR("var2") }));
             variableResolver.register("var2", STR("value"));
             const word = firstWord(parse("$$var1(key)"));
             const { value } = evaluator.evaluateWord(word);
@@ -1190,8 +1196,8 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           specify("recursive keys", () => {
             variableResolver.register(
               "var",
-              MAP({
-                key1: MAP({ key2: STR("value") }),
+              DICT({
+                key1: DICT({ key2: STR("value") }),
               })
             );
             const word = firstWord(parse("$var(key1 key2)"));
@@ -1201,8 +1207,8 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           specify("successive keys", () => {
             variableResolver.register(
               "var",
-              MAP({
-                key1: MAP({ key2: STR("value") }),
+              DICT({
+                key1: DICT({ key2: STR("value") }),
               })
             );
             const word = firstWord(parse("$var(key1)(key2)"));
@@ -1212,7 +1218,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           specify("indirect key", () => {
             variableResolver.register(
               "var1",
-              MAP({
+              DICT({
                 key: STR("value"),
               })
             );
@@ -1224,7 +1230,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           specify("string key", () => {
             variableResolver.register(
               "var",
-              MAP({
+              DICT({
                 "arbitrary key": STR("value"),
               })
             );
@@ -1235,7 +1241,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           specify("block key", () => {
             variableResolver.register(
               "var",
-              MAP({
+              DICT({
                 "arbitrary key": STR("value"),
               })
             );
@@ -1244,22 +1250,22 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             expect(mapValue(value)).to.eql("value");
           });
           specify("tuple", () => {
-            variableResolver.register("var1", MAP({ key: STR("value1") }));
-            variableResolver.register("var2", MAP({ key: STR("value2") }));
+            variableResolver.register("var1", DICT({ key: STR("value1") }));
+            variableResolver.register("var2", DICT({ key: STR("value2") }));
             const word = firstWord(parse("$(var1 var2)(key)"));
             const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value1", "value2"]);
           });
           specify("recursive tuple", () => {
-            variableResolver.register("var1", MAP({ key: STR("value1") }));
-            variableResolver.register("var2", MAP({ key: STR("value2") }));
+            variableResolver.register("var1", DICT({ key: STR("value1") }));
+            variableResolver.register("var2", DICT({ key: STR("value2") }));
             const word = firstWord(parse("$(var1 (var2))(key)"));
             const { value } = evaluator.evaluateWord(word);
             expect(mapValue(value)).to.eql(["value1", ["value2"]]);
           });
           specify("tuple with double substitution", () => {
-            variableResolver.register("var1", MAP({ key: STR("var3") }));
-            variableResolver.register("var2", MAP({ key: STR("var4") }));
+            variableResolver.register("var1", DICT({ key: STR("var3") }));
+            variableResolver.register("var2", DICT({ key: STR("var4") }));
             variableResolver.register("var3", STR("value3"));
             variableResolver.register("var4", STR("value4"));
             const word = firstWord(parse("$$(var1 var2)(key)"));
@@ -1269,7 +1275,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           specify("scalar expression", () => {
             commandResolver.register(
               "cmd",
-              new FunctionCommand(() => MAP({ key: STR("value") }))
+              new FunctionCommand(() => DICT({ key: STR("value") }))
             );
             const word = firstWord(parse("$[cmd](key)"));
             const { value } = evaluator.evaluateWord(word);
@@ -1280,8 +1286,8 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               "cmd",
               new FunctionCommand(() =>
                 TUPLE([
-                  MAP({ key: STR("value1") }),
-                  MAP({ key: STR("value2") }),
+                  DICT({ key: STR("value1") }),
+                  DICT({ key: STR("value2") }),
                 ])
               )
             );
@@ -1291,7 +1297,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           });
           describe("exceptions", () => {
             specify("empty selector", () => {
-              variableResolver.register("var", MAP({ key: STR("value") }));
+              variableResolver.register("var", DICT({ key: STR("value") }));
               const word = firstWord(parse("$var()"));
               expect(() => evaluator.evaluateWord(word)).to.throws(
                 "empty selector"
@@ -1420,7 +1426,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
       });
 
       specify("complex case", () => {
-        variableResolver.register("var", MAP({ key: STR("value") }));
+        variableResolver.register("var", DICT({ key: STR("value") }));
         commandResolver.register(
           "cmd",
           new FunctionCommand((args) =>
@@ -1730,7 +1736,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           commandResolver.register("return", {
             execute: (args) => RETURN(args[1]),
           });
-          variableResolver.register("var", MAP({ key: STR("value") }));
+          variableResolver.register("var", DICT({ key: STR("value") }));
           const script = parse("cmd $var([return a [return b]])");
           const { code, value } = evaluator.evaluateScript(script);
           expect(code).to.eql(ResultCode.RETURN);

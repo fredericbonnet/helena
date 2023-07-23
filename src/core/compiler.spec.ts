@@ -21,7 +21,7 @@ import {
   IntegerValue,
   LIST,
   ListValue,
-  MAP,
+  DICT,
   NIL,
   QualifiedValue,
   ScriptValue,
@@ -208,7 +208,7 @@ describe("Compilation and execution", () => {
                   new FunctionCommand(() => STR("is"))
                 );
                 variableResolver.register("var1", STR("a"));
-                variableResolver.register("var2", MAP({ key: STR("tuple") }));
+                variableResolver.register("var2", DICT({ key: STR("tuple") }));
                 expect(evaluate(program)).to.eql(
                   TUPLE([
                     STR("this"),
@@ -330,7 +330,7 @@ describe("Compilation and execution", () => {
                 variableResolver.register("var1", STR("a"));
                 variableResolver.register(
                   "var2",
-                  MAP({ key: STR("expression") })
+                  DICT({ key: STR("expression") })
                 );
                 commandResolver.register(
                   "this",
@@ -584,7 +584,7 @@ describe("Compilation and execution", () => {
                 STR("_compound"),
               ]);
 
-              variableResolver.register("var", MAP({ key: STR("is") }));
+              variableResolver.register("var", DICT({ key: STR("is") }));
               commandResolver.register(
                 "cmd",
                 new FunctionCommand(() => STR("literal-prefixed"))
@@ -632,7 +632,7 @@ describe("Compilation and execution", () => {
               );
               variableResolver.register(
                 "var",
-                MAP({ key: STR("expression-prefixed") })
+                DICT({ key: STR("expression-prefixed") })
               );
               expect(evaluate(program)).to.eql(
                 STR("this_is_an_expression-prefixed_compound")
@@ -671,7 +671,7 @@ describe("Compilation and execution", () => {
                 STR("_compound"),
               ]);
 
-              variableResolver.register("var", MAP({ key: STR("this") }));
+              variableResolver.register("var", DICT({ key: STR("this") }));
               commandResolver.register(
                 "cmd",
                 new FunctionCommand(() => STR("substitution-prefixed"))
@@ -1175,7 +1175,7 @@ describe("Compilation and execution", () => {
 
                 variableResolver.register(
                   "varname",
-                  MAP({
+                  DICT({
                     key: STR("value"),
                   })
                 );
@@ -1195,7 +1195,7 @@ describe("Compilation and execution", () => {
                 ]);
                 expect(program.constants).to.eql([STR("var1"), STR("key")]);
 
-                variableResolver.register("var1", MAP({ key: STR("var2") }));
+                variableResolver.register("var1", DICT({ key: STR("var2") }));
                 variableResolver.register("var2", STR("value"));
                 expect(evaluate(program)).to.eql(STR("value"));
               });
@@ -1219,8 +1219,8 @@ describe("Compilation and execution", () => {
 
                 variableResolver.register(
                   "varname",
-                  MAP({
-                    key1: MAP({ key2: STR("value") }),
+                  DICT({
+                    key1: DICT({ key2: STR("value") }),
                   })
                 );
                 expect(evaluate(program)).to.eql(STR("value"));
@@ -1248,8 +1248,8 @@ describe("Compilation and execution", () => {
 
                 variableResolver.register(
                   "varname",
-                  MAP({
-                    key1: MAP({ key2: STR("value") }),
+                  DICT({
+                    key1: DICT({ key2: STR("value") }),
                   })
                 );
                 expect(evaluate(program)).to.eql(STR("value"));
@@ -1270,7 +1270,7 @@ describe("Compilation and execution", () => {
 
                 variableResolver.register(
                   "var1",
-                  MAP({
+                  DICT({
                     key: STR("value"),
                   })
                 );
@@ -1298,7 +1298,7 @@ describe("Compilation and execution", () => {
 
                 variableResolver.register(
                   "varname",
-                  MAP({
+                  DICT({
                     "arbitrary key": STR("value"),
                   })
                 );
@@ -1322,7 +1322,7 @@ describe("Compilation and execution", () => {
 
                 variableResolver.register(
                   "varname",
-                  MAP({
+                  DICT({
                     "arbitrary key": STR("value"),
                   })
                 );
@@ -1348,8 +1348,8 @@ describe("Compilation and execution", () => {
                   STR("key"),
                 ]);
 
-                variableResolver.register("var1", MAP({ key: STR("value1") }));
-                variableResolver.register("var2", MAP({ key: STR("value2") }));
+                variableResolver.register("var1", DICT({ key: STR("value1") }));
+                variableResolver.register("var2", DICT({ key: STR("value2") }));
                 expect(evaluate(program)).to.eql(
                   TUPLE([STR("value1"), STR("value2")])
                 );
@@ -1376,8 +1376,8 @@ describe("Compilation and execution", () => {
                   STR("key"),
                 ]);
 
-                variableResolver.register("var1", MAP({ key: STR("value1") }));
-                variableResolver.register("var2", MAP({ key: STR("value2") }));
+                variableResolver.register("var1", DICT({ key: STR("value1") }));
+                variableResolver.register("var2", DICT({ key: STR("value2") }));
                 expect(evaluate(program)).to.eql(
                   TUPLE([STR("value1"), TUPLE([STR("value2")])])
                 );
@@ -1403,8 +1403,8 @@ describe("Compilation and execution", () => {
                   STR("key"),
                 ]);
 
-                variableResolver.register("var1", MAP({ key: STR("var3") }));
-                variableResolver.register("var2", MAP({ key: STR("var4") }));
+                variableResolver.register("var1", DICT({ key: STR("var3") }));
+                variableResolver.register("var2", DICT({ key: STR("var4") }));
                 variableResolver.register("var3", STR("value3"));
                 variableResolver.register("var4", STR("value4"));
                 expect(evaluate(program)).to.eql(
@@ -1429,7 +1429,7 @@ describe("Compilation and execution", () => {
 
                 commandResolver.register(
                   "cmd",
-                  new FunctionCommand(() => MAP({ key: STR("value") }))
+                  new FunctionCommand(() => DICT({ key: STR("value") }))
                 );
                 expect(evaluate(program)).to.eql(STR("value"));
               });
@@ -1453,8 +1453,8 @@ describe("Compilation and execution", () => {
                   "cmd",
                   new FunctionCommand(() =>
                     TUPLE([
-                      MAP({ key: STR("value1") }),
-                      MAP({ key: STR("value2") }),
+                      DICT({ key: STR("value1") }),
+                      DICT({ key: STR("value2") }),
                     ])
                   )
                 );

@@ -13,7 +13,7 @@ import {
   IntegerValue,
   StringValue,
   ListValue,
-  MapValue,
+  DictionaryValue,
   TupleValue,
   ScriptValue,
   QualifiedValue,
@@ -392,7 +392,7 @@ describe("values", () => {
         expect(ListValue.fromValue(new ScriptValue(new Script(), ""))).to.eql(
           ERROR("invalid list")
         );
-        expect(ListValue.fromValue(new MapValue({}))).to.eql(
+        expect(ListValue.fromValue(new DictionaryValue({}))).to.eql(
           ERROR("invalid list")
         );
       });
@@ -453,17 +453,17 @@ describe("values", () => {
     });
   });
 
-  describe("MapValue", () => {
-    specify("type should be MAP", () => {
-      const value = new MapValue({});
-      expect(value.type).to.eql(ValueType.MAP);
+  describe("DictionaryValue", () => {
+    specify("type should be DICTIONARY", () => {
+      const value = new DictionaryValue({});
+      expect(value.type).to.eql(ValueType.DICTIONARY);
     });
     it("should have no string representation", () => {
-      const value = new MapValue({});
+      const value = new DictionaryValue({});
       expect(value).to.not.have.property("asString");
     });
     it("should not be index-selectable", () => {
-      const value = new MapValue({});
+      const value = new DictionaryValue({});
       expect(value).to.not.have.property("selectIndex");
       expect(new IndexedSelector(new IntegerValue(1)).apply(value)).to.eql(
         ERROR("value is not index-selectable")
@@ -475,24 +475,24 @@ describe("values", () => {
           key1: new StringValue("value1"),
           key2: new StringValue("value2"),
         };
-        const value = new MapValue(values);
+        const value = new DictionaryValue(values);
         const key = new StringValue("key1");
         expect(value.selectKey(key)).to.eql(OK(values["key1"]));
       });
       describe("exceptions", () => {
         specify("invalid key type", () => {
-          const value = new MapValue({});
+          const value = new DictionaryValue({});
           expect(value.selectKey(NIL)).to.eql(ERROR("invalid key"));
         });
         specify("unknown key value", () => {
-          const value = new MapValue({});
+          const value = new DictionaryValue({});
           const index = new StringValue("foo");
           expect(value.selectKey(index)).to.eql(ERROR("unknown key"));
         });
       });
     });
     it("should not be selectable", () => {
-      const value = new MapValue({});
+      const value = new DictionaryValue({});
       expect(value).to.not.have.property("select");
       expect(value).to.not.have.property("selectRules");
       expect(
@@ -520,16 +520,22 @@ describe("values", () => {
         expect(value.display()).to.eql(`("some string" [] 1)`);
       });
       specify("undisplayable elements", () => {
-        const value = new TupleValue([new ListValue([]), new MapValue({})]);
+        const value = new TupleValue([
+          new ListValue([]),
+          new DictionaryValue({}),
+        ]);
         expect(value.display()).to.eql(
           `({#{undisplayable value}#} {#{undisplayable value}#})`
         );
       });
       specify("custom function", () => {
-        const value = new TupleValue([new ListValue([]), new MapValue({})]);
+        const value = new TupleValue([
+          new ListValue([]),
+          new DictionaryValue({}),
+        ]);
         expect(
           value.display((v) => undisplayableValue(v.constructor.name))
-        ).to.eql(`({#{ListValue}#} {#{MapValue}#})`);
+        ).to.eql(`({#{ListValue}#} {#{DictionaryValue}#})`);
       });
       specify("recursive tuple", () => {
         const value = new TupleValue([new TupleValue([new TupleValue([])])]);
@@ -582,11 +588,11 @@ describe("values", () => {
     describe("keyed selectors", () => {
       it("should apply to elements", () => {
         const values = [
-          new MapValue({
+          new DictionaryValue({
             key1: new StringValue("value1"),
             key2: new StringValue("value2"),
           }),
-          new MapValue({
+          new DictionaryValue({
             key2: new StringValue("value3"),
             key3: new StringValue("value4"),
           }),
@@ -604,16 +610,16 @@ describe("values", () => {
       });
       it("should recurse into tuples", () => {
         const values = [
-          new MapValue({
+          new DictionaryValue({
             key1: new StringValue("value1"),
             key2: new StringValue("value2"),
           }),
           new TupleValue([
-            new MapValue({
+            new DictionaryValue({
               key2: new StringValue("value3"),
               key3: new StringValue("value4"),
             }),
-            new MapValue({
+            new DictionaryValue({
               key2: new StringValue("value5"),
               key4: new StringValue("value6"),
             }),
@@ -658,16 +664,16 @@ describe("values", () => {
       });
       it("should recurse into tuples", () => {
         const values = [
-          new MapValue({
+          new DictionaryValue({
             key1: new StringValue("value1"),
             key2: new StringValue("value2"),
           }),
           new TupleValue([
-            new MapValue({
+            new DictionaryValue({
               key2: new StringValue("value3"),
               key3: new StringValue("value4"),
             }),
-            new MapValue({
+            new DictionaryValue({
               key2: new StringValue("value5"),
               key4: new StringValue("value6"),
             }),

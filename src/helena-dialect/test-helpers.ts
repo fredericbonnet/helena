@@ -8,9 +8,9 @@ import {
   undisplayableValue,
 } from "../core/display";
 import { OK, Result, ResultCode } from "../core/results";
-import { ListValue, MapValue, Value } from "../core/values";
+import { ListValue, DictionaryValue, Value } from "../core/values";
 import { ArgspecValue } from "./argspecs";
-import { displayMapValue } from "./dicts";
+import { displayDictionaryValue } from "./dicts";
 import { displayListValue } from "./lists";
 
 export const codeBlock = (source: string): string =>
@@ -18,7 +18,8 @@ export const codeBlock = (source: string): string =>
 
 const displayer = (displayable) => {
   if (displayable instanceof ListValue) return displayListValue(displayable);
-  if (displayable instanceof MapValue) return displayMapValue(displayable);
+  if (displayable instanceof DictionaryValue)
+    return displayDictionaryValue(displayable);
   if (displayable instanceof ArgspecValue)
     return undisplayableValue(`argspec: "${displayable.usage()}"`);
   return defaultDisplayFunction(displayable);

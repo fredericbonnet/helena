@@ -17,13 +17,10 @@ The `dict` command is a type command dedicated to dictionary values. It
 provides an ensemble of subcommands for dictionary creation,
 conversion, access, and operations.
 
-Dictionary values are Helena values whose internal type is `MAP`. The
-name `dict` was preferred over `map` and alternatives for several
-reasons:
-- `map` is the name of a list transform function in other languages
-(e.g. JavaScript) and this could bring confusion
-- `dict` is the name used in Tcl
-- `dictionary` is too verbose
+Dictionary values are Helena values whose internal type is
+`DICTIONARY`. The name `dict` was preferred over `dictionary` because
+it is shorter and is already used in other languages like Tcl and
+Python.
 
 ### Dictionary creation and conversion
 
@@ -32,9 +29,9 @@ will ensure a dictionary value in return. This property means that
 `dict` can be used for creation and conversion, but also as a type
 guard in argspecs.
 
-- ✅ should return map value
+- ✅ should return dictionary value
 
-- ✅ should convert key-value tuples to maps
+- ✅ should convert key-value tuples to dictionaries
 
   The most common syntax for dictionary creation is to simply pass a
   tuple of key-value elements.
@@ -44,7 +41,7 @@ guard in argspecs.
   # => [dict (a b c d)]
   ```
 
-- ✅ should convert key-value blocks to maps
+- ✅ should convert key-value blocks to dictionaries
 
   Blocks are also accepted; the block is evaluated in an empty scope
   and the resulting key-value tuple is used for creation.
@@ -54,7 +51,7 @@ guard in argspecs.
   # => [dict (a b c d)]
   ```
 
-- ✅ should convert key-value lists to maps
+- ✅ should convert key-value lists to dictionaries
 
   Key-value lists are also accepted.
 
@@ -116,7 +113,7 @@ listed here.
 
 - `size`
 
-  - ✅ should return the map size
+  - ✅ should return the dictionary size
 
   - Exceptions
 
@@ -227,11 +224,11 @@ listed here.
 
 - `merge`
 
-  - ✅ should merge two maps
+  - ✅ should merge two dictionaries
 
-  - ✅ should accept several maps
+  - ✅ should accept several dictionaries
 
-  - ✅ should accept zero map
+  - ✅ should accept zero dictionary
 
   - Exceptions
 
@@ -337,9 +334,9 @@ listed here.
 
 - ✅ Argument type guard
 
-  Calling `dict` with a single argument returns its value as a map.
-  This property allows `dict` to be used as a type guard for
-  argspecs.
+  Calling `dict` with a single argument returns its value as a
+  dictionary. This property allows `dict` to be used as a type
+  guard for argspecs.
   
   Here we create a macro `len` that returns twice the size of the
   provided dictionary (accounting for key + value pairs). Using
@@ -367,7 +364,7 @@ listed here.
 
   ```lna
   len invalidValue
-  # => [error "invalid map"]
+  # => [error "invalid dictionary"]
   ```
 
 ### Ensemble command
@@ -408,13 +405,13 @@ subcommands defined in an ensemble scope.
   # => [dict (a e c d f g)]
   ```
 
-## `displayMapValue`
+## `displayDictionaryValue`
 
-Display function for maps
+Display function for dictionaries
 
-- ✅ should display maps as `dict` command + key-value tuple
+- ✅ should display dictionaries as `dict` command + key-value tuple
 
 - ✅ should produce an isomorphic string
 
-  Evaluating the string will produce an identical map value.
+  Evaluating the string will produce an identical dictionary value.
 

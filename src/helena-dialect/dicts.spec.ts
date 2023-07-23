@@ -3,10 +3,10 @@ import * as mochadoc from "../../mochadoc";
 import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, INT, MAP, NIL, STR, TRUE, TUPLE } from "../core/values";
+import { FALSE, INT, DICT, NIL, STR, TRUE, TUPLE } from "../core/values";
 import { Scope, commandValueType } from "./core";
 import { initCommands } from "./helena-dialect";
-import { displayMapValue } from "./dicts";
+import { displayDictionaryValue } from "./dicts";
 import { codeBlock, specifyExample } from "./test-helpers";
 import { EnsembleValue } from "./ensembles";
 
@@ -45,13 +45,10 @@ describe("Helena dictionaries", () => {
        * provides an ensemble of subcommands for dictionary creation,
        * conversion, access, and operations.
        *
-       * Dictionary values are Helena values whose internal type is `MAP`. The
-       * name `dict` was preferred over `map` and alternatives for several
-       * reasons:
-       * - `map` is the name of a list transform function in other languages
-       * (e.g. JavaScript) and this could bring confusion
-       * - `dict` is the name used in Tcl
-       * - `dictionary` is too verbose
+       * Dictionary values are Helena values whose internal type is
+       * `DICTIONARY`. The name `dict` was preferred over `dictionary` because
+       * it is shorter and is already used in other languages like Tcl and
+       * Python.
        */
     });
 
@@ -65,10 +62,10 @@ describe("Helena dictionaries", () => {
          */
       });
 
-      it("should return map value", () => {
-        expect(evaluate("dict ()")).to.eql(MAP({}));
+      it("should return dictionary value", () => {
+        expect(evaluate("dict ()")).to.eql(DICT({}));
       });
-      example("should convert key-value tuples to maps", {
+      example("should convert key-value tuples to dictionaries", {
         doc: () => {
           /**
            * The most common syntax for dictionary creation is to simply pass a
@@ -76,12 +73,12 @@ describe("Helena dictionaries", () => {
            */
         },
         script: "dict (a b c d)",
-        result: MAP({
+        result: DICT({
           a: STR("b"),
           c: STR("d"),
         }),
       });
-      example("should convert key-value blocks to maps", {
+      example("should convert key-value blocks to dictionaries", {
         doc: () => {
           /**
            * Blocks are also accepted; the block is evaluated in an empty scope
@@ -89,19 +86,19 @@ describe("Helena dictionaries", () => {
            */
         },
         script: "dict {a b c d}",
-        result: MAP({
+        result: DICT({
           a: STR("b"),
           c: STR("d"),
         }),
       });
-      example("should convert key-value lists to maps", {
+      example("should convert key-value lists to dictionaries", {
         doc: () => {
           /**
            * Key-value lists are also accepted.
            */
         },
         script: "dict [list (a b c d)]",
-        result: MAP({
+        result: DICT({
           a: STR("b"),
           c: STR("d"),
         }),
@@ -112,7 +109,7 @@ describe("Helena dictionaries", () => {
          * valid string representation can be used as key.
          */
         expect(evaluate("dict ([1] a [2.5] b [true] c {block} d)")).to.eql(
-          MAP({
+          DICT({
             "1": STR("a"),
             "2.5": STR("b"),
             true: STR("c"),
@@ -125,7 +122,7 @@ describe("Helena dictionaries", () => {
          * Contrary to keys, values are preserved with no conversion.
          */
         expect(evaluate("dict (a [1] b () c [])")).to.eql(
-          MAP({
+          DICT({
             a: INT(1),
             b: TUPLE([]),
             c: NIL,
@@ -138,9 +135,9 @@ describe("Helena dictionaries", () => {
           /**
            * Only lists, tuples, and blocks are acceptable values.
            */
-          expect(execute("dict []")).to.eql(ERROR("invalid map"));
-          expect(execute("dict [1]")).to.eql(ERROR("invalid map"));
-          expect(execute("dict a")).to.eql(ERROR("invalid map"));
+          expect(execute("dict []")).to.eql(ERROR("invalid dictionary"));
+          expect(execute("dict [1]")).to.eql(ERROR("invalid dictionary"));
+          expect(execute("dict a")).to.eql(ERROR("invalid dictionary"));
         });
         specify("invalid keys", () => {
           /**
@@ -209,7 +206,7 @@ describe("Helena dictionaries", () => {
 
       mochadoc.section("Accessors", () => {
         describe("`size`", () => {
-          it("should return the map size", () => {
+          it("should return the dictionary size", () => {
             expect(evaluate("dict () size")).to.eql(INT(0));
             expect(evaluate("dict (a b c d) size")).to.eql(INT(2));
           });
@@ -274,7 +271,7 @@ describe("Helena dictionaries", () => {
           specify("`get` <-> keyed selector equivalence", () => {
             rootScope.setNamedVariable(
               "v",
-              MAP({
+              DICT({
                 a: STR("b"),
                 c: STR("d"),
               })
@@ -463,17 +460,17 @@ describe("Helena dictionaries", () => {
         });
 
         describe("`merge`", () => {
-          it("should merge two maps", () => {
+          it("should merge two dictionaries", () => {
             expect(evaluate("dict (a b c d) merge (foo bar)")).to.eql(
               evaluate("dict (a b c d foo bar)")
             );
           });
-          it("should accept several maps", () => {
+          it("should accept several dictionaries", () => {
             expect(
               evaluate("dict (a b c d) merge (foo bar) (baz sprong)")
             ).to.eql(evaluate("dict (a b c d foo bar baz sprong)"));
           });
-          it("should accept zero map", () => {
+          it("should accept zero dictionary", () => {
             expect(evaluate("dict (a b c d) merge")).to.eql(
               evaluate("dict (a b c d)")
             );
@@ -733,9 +730,9 @@ describe("Helena dictionaries", () => {
         {
           doc: () => {
             /**
-             * Calling `dict` with a single argument returns its value as a map.
-             * This property allows `dict` to be used as a type guard for
-             * argspecs.
+             * Calling `dict` with a single argument returns its value as a
+             * dictionary. This property allows `dict` to be used as a type
+             * guard for argspecs.
              *
              * Here we create a macro `len` that returns twice the size of the
              * provided dictionary (accounting for key + value pairs). Using
@@ -767,7 +764,7 @@ describe("Helena dictionaries", () => {
              */
           },
           script: "len invalidValue",
-          result: ERROR("invalid map"),
+          result: ERROR("invalid dictionary"),
         },
       ]);
     });
@@ -833,26 +830,26 @@ describe("Helena dictionaries", () => {
     });
   });
 
-  mochadoc.section("`displayMapValue`", () => {
-    mochadoc.summary("Display function for maps");
+  mochadoc.section("`displayDictionaryValue`", () => {
+    mochadoc.summary("Display function for dictionaries");
 
-    it("should display maps as `dict` command + key-value tuple", () => {
-      const map = MAP({
+    it("should display dictionaries as `dict` command + key-value tuple", () => {
+      const dict = DICT({
         a: STR("b"),
         c: STR("d"),
       });
 
-      expect(displayMapValue(map)).to.eql("[dict (a b c d)]");
+      expect(displayDictionaryValue(dict)).to.eql("[dict (a b c d)]");
     });
     it("should produce an isomorphic string", () => {
       /**
-       * Evaluating the string will produce an identical map value.
+       * Evaluating the string will produce an identical dictionary value.
        */
-      const map = MAP({
+      const dict = DICT({
         a: STR("b"),
         c: STR("d"),
       });
-      expect(evaluate(`idem ${displayMapValue(map)}`)).to.eql(map);
+      expect(evaluate(`idem ${displayDictionaryValue(dict)}`)).to.eql(dict);
     });
   });
 });

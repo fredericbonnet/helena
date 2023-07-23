@@ -29,7 +29,7 @@ export enum ValueType {
   REAL,
   STRING,
   LIST,
-  MAP,
+  DICTIONARY,
   TUPLE,
   SCRIPT,
   QUALIFIED,
@@ -501,13 +501,13 @@ export class ListValue implements Value {
 }
 
 /**
- * Map value
+ * Dictionary value
  *
- * Map are key-value collections
+ * Dictionaries are key-value collections with string keys
  */
-export class MapValue implements Value {
+export class DictionaryValue implements Value {
   /** @override */
-  readonly type = ValueType.MAP;
+  readonly type = ValueType.DICTIONARY;
 
   /** Encapsulated key-value map */
   readonly map: Map<string, Value>;
@@ -736,6 +736,6 @@ export const INT = (v) => new IntegerValue(v);
 export const REAL = (v) => new RealValue(v);
 export const STR = (v) => new StringValue(v);
 export const LIST = (v) => new ListValue(v);
-export const MAP = (v) => new MapValue(v);
+export const DICT = (v) => new DictionaryValue(v);
 export const TUPLE = (v) => new TupleValue(v);
 /* eslint-enable jsdoc/require-jsdoc */

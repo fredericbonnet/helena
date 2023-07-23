@@ -3,7 +3,7 @@ import * as mochadoc from "../../mochadoc";
 import { ERROR, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, LIST, MAP, NIL, STR, TRUE } from "../core/values";
+import { FALSE, LIST, DICT, NIL, STR, TRUE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock } from "./test-helpers";
@@ -353,19 +353,19 @@ describe("Helena constants and variables", () => {
           expect(evaluate("get var[1]")).to.eql(STR("val2"));
         });
         specify("keyed selector", () => {
-          rootScope.setNamedVariable("var", MAP({ key: STR("val") }));
+          rootScope.setNamedVariable("var", DICT({ key: STR("val") }));
           expect(evaluate("get var(key)")).to.eql(STR("val"));
         });
         specify("should work recursively", () => {
           rootScope.setNamedVariable(
             "var",
-            MAP({ key: LIST([STR("val1"), STR("val2")]) })
+            DICT({ key: LIST([STR("val1"), STR("val2")]) })
           );
           expect(evaluate("get var(key)[1]")).to.eql(STR("val2"));
         });
         it("should return the default value when a selector fails", () => {
           rootScope.setNamedConstant("l", LIST([]));
-          rootScope.setNamedConstant("m", MAP({}));
+          rootScope.setNamedConstant("m", DICT({}));
           expect(evaluate("get l[1] default")).to.eql(STR("default"));
           expect(evaluate("get l(key) default")).to.eql(STR("default"));
           expect(evaluate("get l[0](key) default")).to.eql(STR("default"));
@@ -449,7 +449,7 @@ describe("Helena constants and variables", () => {
          * and no default value is provided.
          */
         rootScope.setNamedConstant("l", LIST([]));
-        rootScope.setNamedConstant("m", MAP({}));
+        rootScope.setNamedConstant("m", DICT({}));
         expect(execute("get l[1]").code).to.eql(ResultCode.ERROR);
         expect(execute("get l(key)").code).to.eql(ResultCode.ERROR);
         expect(execute("get m[1]").code).to.eql(ResultCode.ERROR);
@@ -499,13 +499,13 @@ describe("Helena constants and variables", () => {
           expect(evaluate("exists var[1]")).to.eql(TRUE);
         });
         specify("keyed selector", () => {
-          rootScope.setNamedVariable("var", MAP({ key: STR("val") }));
+          rootScope.setNamedVariable("var", DICT({ key: STR("val") }));
           expect(evaluate("exists var(key)")).to.eql(TRUE);
         });
         specify("recursive selectors", () => {
           rootScope.setNamedVariable(
             "var",
-            MAP({ key: LIST([STR("val1"), STR("val2")]) })
+            DICT({ key: LIST([STR("val1"), STR("val2")]) })
           );
           expect(evaluate("exists var(key)[1]")).to.eql(TRUE);
         });
@@ -515,7 +515,7 @@ describe("Helena constants and variables", () => {
         });
         it("should return `false` when a selector fails", () => {
           rootScope.setNamedConstant("l", LIST([]));
-          rootScope.setNamedConstant("m", MAP({}));
+          rootScope.setNamedConstant("m", DICT({}));
           expect(evaluate("exists l[1]")).to.eql(FALSE);
           expect(evaluate("exists l(key)")).to.eql(FALSE);
           expect(evaluate("exists m[1]")).to.eql(FALSE);
@@ -665,7 +665,7 @@ describe("Helena constants and variables", () => {
          * The command cannot undefine a value selected from a qualified name.
          */
         rootScope.setNamedVariable("var", LIST([STR("val1"), STR("val2")]));
-        rootScope.setNamedVariable("var", MAP({ key: STR("val") }));
+        rootScope.setNamedVariable("var", DICT({ key: STR("val") }));
         expect(execute("unset var[1]")).to.eql(ERROR("invalid variable name"));
         expect(execute("unset var(key)")).to.eql(
           ERROR("invalid variable name")
