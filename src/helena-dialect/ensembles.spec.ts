@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import * as mochadoc from "../../mochadoc";
 import {
   BREAK,
   CONTINUE,
@@ -12,6 +13,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { STR, TUPLE } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
+import { codeBlock } from "./test-helpers";
 
 describe("Helena ensembles", () => {
   let rootScope: Scope;
@@ -24,36 +26,109 @@ describe("Helena ensembles", () => {
   const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 
-  beforeEach(() => {
+  const init = () => {
     rootScope = new Scope();
     initCommands(rootScope);
 
     tokenizer = new Tokenizer();
     parser = new Parser();
-  });
+  };
+  const usage = (script: string) => {
+    init();
+    return codeBlock(evaluate("help " + script).asString());
+  };
 
-  describe("ensemble", () => {
-    it("should define a new command", () => {
-      evaluate("ensemble cmd {} {}");
-      expect(rootScope.context.commands.has("cmd")).to.be.true;
+  beforeEach(init);
+
+  describe("`ensemble`", () => {
+    mochadoc.summary("Create an ensemble command");
+    mochadoc.usage(usage("ensemble"));
+    mochadoc.description(() => {
+      /**
+       * The `ensemble` command creates a new command that can be used to
+       * gather subcommands under itself.
+       */
     });
-    it("should replace existing commands", () => {
-      evaluate("ensemble cmd {} {}");
-      expect(execute("ensemble cmd {} {}").code).to.eql(ResultCode.OK);
+
+    mochadoc.section("Specifications", () => {
+      specify("usage", () => {
+        expect(evaluate("help ensemble")).to.eql(
+          STR("ensemble ?name? argspec body")
+        );
+        expect(evaluate("help ensemble {}")).to.eql(
+          STR("ensemble ?name? argspec body")
+        );
+        expect(evaluate("help ensemble cmd {}")).to.eql(
+          STR("ensemble ?name? argspec body")
+        );
+      });
+
+      it("should define a new command", () => {
+        evaluate("ensemble cmd {} {}");
+        expect(rootScope.context.commands.has("cmd")).to.be.true;
+      });
+      it("should replace existing commands", () => {
+        evaluate("ensemble cmd {} {}");
+        expect(execute("ensemble cmd {} {}").code).to.eql(ResultCode.OK);
+      });
+      it("should return a command object", () => {
+        expect(evaluate("ensemble {} {}").type).to.eql(commandValueType);
+        expect(evaluate("ensemble cmd {} {}").type).to.eql(commandValueType);
+      });
+      specify("the named command should return its command object", () => {
+        const value = evaluate("ensemble cmd {} {}");
+        expect(evaluate("cmd")).to.eql(value);
+      });
+      specify("the command object should return itself", () => {
+        const value = evaluate("set cmd [ensemble {} {}]");
+        expect(evaluate("$cmd")).to.eql(value);
+      });
     });
-    it("should return a command object", () => {
-      expect(evaluate("ensemble {} {}").type).to.eql(commandValueType);
-      expect(evaluate("ensemble cmd {} {}").type).to.eql(commandValueType);
+
+    mochadoc.section("Exceptions", () => {
+      specify("wrong arity", () => {
+        /**
+         * The command will return an error message with usage when given the
+         * wrong number of arguments.
+         */
+        expect(execute("ensemble a")).to.eql(
+          ERROR('wrong # args: should be "ensemble ?name? argspec body"')
+        );
+        expect(execute("ensemble a b c d")).to.eql(
+          ERROR('wrong # args: should be "ensemble ?name? argspec body"')
+        );
+        expect(execute("help ensemble a b c d")).to.eql(
+          ERROR('wrong # args: should be "ensemble ?name? argspec body"')
+        );
+      });
+      specify("invalid argument list", () => {
+        expect(execute("ensemble a {}")).to.eql(ERROR("invalid argument list"));
+      });
+      specify("variadic arguments", () => {
+        expect(execute("ensemble {?a} {}")).to.eql(
+          ERROR("ensemble arguments cannot be variadic")
+        );
+        expect(execute("ensemble {*a} {}")).to.eql(
+          ERROR("ensemble arguments cannot be variadic")
+        );
+      });
+      specify("invalid `name`", () => {
+        /**
+         * Command names must have a valid string representation.
+         */
+        expect(execute("ensemble [] {} {}")).to.eql(
+          ERROR("invalid command name")
+        );
+      });
+      specify("non-script body", () => {
+        expect(execute("ensemble {} a")).to.eql(ERROR("body must be a script"));
+        expect(execute("ensemble a {} b")).to.eql(
+          ERROR("body must be a script")
+        );
+      });
     });
-    specify("the named command should return its command object", () => {
-      const value = evaluate("ensemble cmd {} {}");
-      expect(evaluate("cmd")).to.eql(value);
-    });
-    specify("the command object should return itself", () => {
-      const value = evaluate("set cmd [ensemble {} {}]");
-      expect(evaluate("$cmd")).to.eql(value);
-    });
-    describe("body", () => {
+
+    mochadoc.section("`body`", () => {
       it("should be executed", () => {
         evaluate("closure cmd {} {let var val}");
         expect(rootScope.context.constants.has("var")).to.be.false;
@@ -81,19 +156,17 @@ describe("Helena ensembles", () => {
         expect(evaluate("[cmd] eval {get var}")).to.eql(STR("val2"));
         expect(evaluate("[cmd] eval {get cst}")).to.eql(STR("val3"));
       });
-      describe("exceptions", () => {
-        specify("non-script body", () => {
-          expect(execute("ensemble {} a")).to.eql(
-            ERROR("body must be a script")
-          );
-          expect(execute("ensemble a {} b")).to.eql(
-            ERROR("body must be a script")
-          );
-        });
-      });
     });
-    describe("control flow", () => {
-      describe("return", () => {
+
+    describe("Control flow", () => {
+      mochadoc.description(() => {
+        /**
+         * If the body returns a result code then it should be propagated
+         * properly by the command.
+         */
+      });
+
+      describe("`return`", () => {
         it("should interrupt the body with OK code", () => {
           evaluate("closure cmd1 {} {set var val1}");
           evaluate("closure cmd2 {} {set var val2}");
@@ -110,7 +183,7 @@ describe("Helena ensembles", () => {
           expect(execute("ensemble {} {return val}")).to.eql(OK(STR("val")));
         });
       });
-      describe("tailcall", () => {
+      describe("`tailcall`", () => {
         it("should interrupt the body with OK code", () => {
           evaluate("closure cmd1 {} {set var val1}");
           evaluate("closure cmd2 {} {set var val2}");
@@ -129,8 +202,8 @@ describe("Helena ensembles", () => {
           );
         });
       });
-      describe("yield", () => {
-        it("should interrupt the body with YIELD code", () => {
+      describe("`yield`", () => {
+        it("should interrupt the body with `YIELD` code", () => {
           evaluate("closure cmd1 {} {set var val1}");
           evaluate("closure cmd2 {} {set var val2}");
           expect(execute("ensemble cmd {} {cmd1; yield; cmd2}").code).to.eql(
@@ -170,8 +243,8 @@ describe("Helena ensembles", () => {
           expect(rootScope.context.commands.has("cmd")).to.be.true;
         });
       });
-      describe("error", () => {
-        it("should interrupt the body with ERROR code", () => {
+      describe("`error`", () => {
+        it("should interrupt the body with `ERROR` code", () => {
           evaluate("closure cmd1 {} {set var val1}");
           evaluate("closure cmd2 {} {set var val2}");
           expect(execute("ensemble {} {cmd1; error msg; cmd2}")).to.eql(
@@ -184,8 +257,8 @@ describe("Helena ensembles", () => {
           expect(rootScope.context.commands.has("cmd")).to.be.false;
         });
       });
-      describe("break", () => {
-        it("should interrupt the body with ERROR code", () => {
+      describe("`break`", () => {
+        it("should interrupt the body with `ERROR` code", () => {
           evaluate("closure cmd1 {} {set var val1}");
           evaluate("closure cmd2 {} {set var val2}");
           expect(execute("ensemble {} {cmd1; break; cmd2}")).to.eql(
@@ -198,8 +271,8 @@ describe("Helena ensembles", () => {
           expect(rootScope.context.commands.has("cmd")).to.be.false;
         });
       });
-      describe("continue", () => {
-        it("should interrupt the body with ERROR code", () => {
+      describe("`continue`", () => {
+        it("should interrupt the body with `ERROR` code", () => {
           evaluate("closure cmd1 {} {set var val1}");
           evaluate("closure cmd2 {} {set var val2}");
           expect(execute("ensemble {} {cmd1; continue; cmd2}")).to.eql(
@@ -213,22 +286,32 @@ describe("Helena ensembles", () => {
         });
       });
     });
-    describe("subcommands", () => {
-      describe("subcommands", () => {
+
+    mochadoc.section("Subcommands", () => {
+      describe("`subcommands`", () => {
         it("should return list of subcommands", () => {
+          /**
+           * This subcommand is useful for introspection and interactive
+           * calls.
+           */
           expect(evaluate("[ensemble {} {}] subcommands")).to.eql(
             evaluate("list (subcommands eval call argspec)")
           );
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The subcommand will return an error message with usage when
+             * given the wrong number of arguments.
+             */
             expect(execute("[ensemble {} {}] subcommands a")).to.eql(
               ERROR('wrong # args: should be "<ensemble> subcommands"')
             );
           });
         });
       });
-      describe("eval", () => {
+      describe("`eval`", () => {
         it("should evaluate body in ensemble scope", () => {
           evaluate("ensemble cmd {} {let cst val}");
           expect(evaluate("[cmd] eval {get cst}")).to.eql(STR("val"));
@@ -250,9 +333,10 @@ describe("Helena ensembles", () => {
           expect(rootScope.context.constants.get("cst")).to.eql(STR("val"));
           expect(execute("[cmd] eval {get cst}").code).to.eql(ResultCode.ERROR);
         });
-        describe("control flow", () => {
-          describe("return", () => {
-            it("should interrupt the body with RETURN code", () => {
+
+        describe("Control flow", () => {
+          describe("`return`", () => {
+            it("should interrupt the body with `RETURN` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("ensemble cmd {} {}");
@@ -262,8 +346,8 @@ describe("Helena ensembles", () => {
               expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
-          describe("tailcall", () => {
-            it("should interrupt the body with RETURN code", () => {
+          describe("`tailcall`", () => {
+            it("should interrupt the body with `RETURN` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("ensemble cmd {} {}");
@@ -273,8 +357,8 @@ describe("Helena ensembles", () => {
               expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
-          describe("yield", () => {
-            it("should interrupt the body with YIELD code", () => {
+          describe("`yield`", () => {
+            it("should interrupt the body with `YIELD` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("ensemble cmd {} {}");
@@ -301,8 +385,8 @@ describe("Helena ensembles", () => {
               expect(evaluate("get var")).to.eql(STR("_val3_"));
             });
           });
-          describe("error", () => {
-            it("should interrupt the body with ERROR code", () => {
+          describe("`error`", () => {
+            it("should interrupt the body with `ERROR` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("ensemble cmd {} {}");
@@ -312,8 +396,8 @@ describe("Helena ensembles", () => {
               expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
-          describe("break", () => {
-            it("should interrupt the body with BREAK code", () => {
+          describe("`break`", () => {
+            it("should interrupt the body with `BREAK` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("ensemble cmd {} {}");
@@ -321,8 +405,8 @@ describe("Helena ensembles", () => {
               expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
-          describe("continue", () => {
-            it("should interrupt the body with CONTINUE code", () => {
+          describe("`continue`", () => {
+            it("should interrupt the body with `CONTINUE` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("ensemble cmd {} {}");
@@ -333,8 +417,13 @@ describe("Helena ensembles", () => {
             });
           });
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The subcommand will return an error message with usage when
+             * given the wrong number of arguments.
+             */
             expect(execute("[ensemble {} {}] eval")).to.eql(
               ERROR('wrong # args: should be "<ensemble> eval body"')
             );
@@ -349,7 +438,8 @@ describe("Helena ensembles", () => {
           });
         });
       });
-      describe("call", () => {
+
+      describe("`call`", () => {
         it("should call ensemble commands", () => {
           evaluate("ensemble cmd {} {macro mac {} {idem val}}");
           expect(evaluate("[cmd] call mac")).to.eql(STR("val"));
@@ -367,9 +457,10 @@ describe("Helena ensembles", () => {
           expect(rootScope.context.constants.has("cst")).to.be.false;
           expect(evaluate("[cmd] eval {get cst}")).to.eql(STR("val"));
         });
-        describe("control flow", () => {
-          describe("return", () => {
-            it("should interrupt the body with RETURN code", () => {
+
+        describe("Control flow", () => {
+          describe("`return`", () => {
+            it("should interrupt the body with `RETURN` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate(
@@ -379,8 +470,8 @@ describe("Helena ensembles", () => {
               expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
-          describe("tailcall", () => {
-            it("should interrupt the body with RETURN code", () => {
+          describe("`tailcall`", () => {
+            it("should interrupt the body with `RETURN` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate(
@@ -390,8 +481,8 @@ describe("Helena ensembles", () => {
               expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
-          describe("yield", () => {
-            it("should interrupt the call with YIELD code", () => {
+          describe("`yield`", () => {
+            it("should interrupt the call with `YIELD` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("ensemble cmd {} {macro mac {} {cmd1; yield; cmd2}}");
@@ -416,8 +507,8 @@ describe("Helena ensembles", () => {
               expect(evaluate("get var")).to.eql(STR("_val3_"));
             });
           });
-          describe("error", () => {
-            it("should interrupt the body with ERROR code", () => {
+          describe("`error`", () => {
+            it("should interrupt the body with `ERROR` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate(
@@ -427,8 +518,8 @@ describe("Helena ensembles", () => {
               expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
-          describe("break", () => {
-            it("should interrupt the body with BREAK code", () => {
+          describe("`break`", () => {
+            it("should interrupt the body with `BREAK` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("ensemble cmd {} {macro mac {} {cmd1; break; cmd2}}");
@@ -436,8 +527,8 @@ describe("Helena ensembles", () => {
               expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
-          describe("continue", () => {
-            it("should interrupt the body with CONTINUE code", () => {
+          describe("`continue`", () => {
+            it("should interrupt the body with `CONTINUE` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("ensemble cmd {} {macro mac {} {cmd1; continue; cmd2}}");
@@ -446,8 +537,13 @@ describe("Helena ensembles", () => {
             });
           });
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The subcommand will return an error message with usage when
+             * given the wrong number of arguments.
+             */
             expect(execute("[ensemble {} {}] call")).to.eql(
               ERROR(
                 'wrong # args: should be "<ensemble> call cmdname ?arg ...?"'
@@ -471,21 +567,28 @@ describe("Helena ensembles", () => {
           });
         });
       });
-      describe("argspec", () => {
+
+      describe("`argspec`", () => {
         it("should return the ensemble argspec", () => {
           expect(evaluate("[ensemble {a b} {}] argspec")).to.eql(
             evaluate("argspec {a b}")
           );
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The subcommand will return an error message with usage when
+             * given the wrong number of arguments.
+             */
             expect(execute("[ensemble {} {}] argspec a")).to.eql(
               ERROR('wrong # args: should be "<ensemble> argspec"')
             );
           });
         });
       });
-      describe("exceptions", () => {
+
+      describe("Exceptions", () => {
         specify("unknown subcommand", () => {
           expect(execute("[ensemble {} {}] unknownSubcommand")).to.eql(
             ERROR('unknown subcommand "unknownSubcommand"')
@@ -493,7 +596,14 @@ describe("Helena ensembles", () => {
         });
       });
     });
-    describe("ensemble subcommands", () => {
+
+    mochadoc.section("Ensemble subcommands", () => {
+      mochadoc.description(() => {
+        /**
+         * Commands defined in the ensemble scope will be exposed as
+         * subcommands.
+         */
+      });
       specify("when missing should return ensemble arguments tuple", () => {
         evaluate("ensemble cmd {a b} {macro opt {a b} {idem val}}");
         expect(evaluate("cmd foo bar")).to.eql(TUPLE([STR("foo"), STR("bar")]));
@@ -530,7 +640,8 @@ describe("Helena ensembles", () => {
           STR("foobarbazsprongval1val2")
         );
       });
-      describe("subcommands", () => {
+
+      describe("`subcommands`", () => {
         beforeEach(() => {
           evaluate("ensemble cmd1 {} {}");
           evaluate("ensemble cmd2 {a b} {}");
@@ -552,8 +663,13 @@ describe("Helena ensembles", () => {
             evaluate("list (subcommands mac2)")
           );
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The subcommand will return an error message with usage when
+             * given the wrong number of arguments.
+             */
             expect(execute("cmd1 subcommands a")).to.eql(
               ERROR('wrong # args: should be "cmd1 subcommands"')
             );
@@ -563,9 +679,10 @@ describe("Helena ensembles", () => {
           });
         });
       });
-      describe("control flow", () => {
-        describe("return", () => {
-          it("should interrupt the body with RETURN code", () => {
+
+      describe("Control flow", () => {
+        describe("`return`", () => {
+          it("should interrupt the body with `RETURN` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             evaluate(
@@ -575,8 +692,8 @@ describe("Helena ensembles", () => {
             expect(evaluate("get var")).to.eql(STR("val1"));
           });
         });
-        describe("tailcall", () => {
-          it("should interrupt the body with RETURN code", () => {
+        describe("`tailcall`", () => {
+          it("should interrupt the body with `RETURN` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             evaluate(
@@ -586,8 +703,8 @@ describe("Helena ensembles", () => {
             expect(evaluate("get var")).to.eql(STR("val1"));
           });
         });
-        describe("yield", () => {
-          it("should interrupt the call with YIELD code", () => {
+        describe("`yield`", () => {
+          it("should interrupt the call with `YIELD` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             evaluate("ensemble cmd {} {macro mac {} {cmd1; yield; cmd2}}");
@@ -610,8 +727,8 @@ describe("Helena ensembles", () => {
             expect(evaluate("get var")).to.eql(STR("_val3_"));
           });
         });
-        describe("error", () => {
-          it("should interrupt the body with ERROR code", () => {
+        describe("`error`", () => {
+          it("should interrupt the body with `ERROR` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             evaluate("ensemble cmd {} {macro mac {} {cmd1; error msg; cmd2}}");
@@ -619,8 +736,8 @@ describe("Helena ensembles", () => {
             expect(evaluate("get var")).to.eql(STR("val1"));
           });
         });
-        describe("break", () => {
-          it("should interrupt the body with BREAK code", () => {
+        describe("`break`", () => {
+          it("should interrupt the body with `BREAK` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             evaluate("ensemble cmd {} {macro mac {} {cmd1; break; cmd2}}");
@@ -628,8 +745,8 @@ describe("Helena ensembles", () => {
             expect(evaluate("get var")).to.eql(STR("val1"));
           });
         });
-        describe("continue", () => {
-          it("should interrupt the body with CONTINUE code", () => {
+        describe("`continue`", () => {
+          it("should interrupt the body with `CONTINUE` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             evaluate("ensemble cmd {} {macro mac {} {cmd1; continue; cmd2}}");
@@ -638,7 +755,8 @@ describe("Helena ensembles", () => {
           });
         });
       });
-      describe("exceptions", () => {
+
+      describe("Exceptions", () => {
         specify("wrong arity", () => {
           evaluate("ensemble cmd {a b} {}");
           expect(execute("cmd a")).to.eql(
@@ -659,32 +777,6 @@ describe("Helena ensembles", () => {
           evaluate("ensemble cmd {} {}");
           expect(execute("cmd []")).to.eql(ERROR("invalid subcommand name"));
         });
-      });
-    });
-    describe("exceptions", () => {
-      specify("wrong arity", () => {
-        expect(execute("ensemble a")).to.eql(
-          ERROR('wrong # args: should be "ensemble ?name? argspec body"')
-        );
-        expect(execute("ensemble a b c d")).to.eql(
-          ERROR('wrong # args: should be "ensemble ?name? argspec body"')
-        );
-      });
-      specify("invalid argument list", () => {
-        expect(execute("ensemble a {}")).to.eql(ERROR("invalid argument list"));
-      });
-      specify("variadic arguments", () => {
-        expect(execute("ensemble {?a} {}")).to.eql(
-          ERROR("ensemble arguments cannot be variadic")
-        );
-        expect(execute("ensemble {*a} {}")).to.eql(
-          ERROR("ensemble arguments cannot be variadic")
-        );
-      });
-      specify("invalid command name", () => {
-        expect(execute("ensemble [] {} {}")).to.eql(
-          ERROR("invalid command name")
-        );
       });
     });
   });

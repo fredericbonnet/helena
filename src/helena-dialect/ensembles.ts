@@ -137,6 +137,7 @@ class EnsembleCommand implements Command {
   }
 }
 
+const ENSEMBLE_SIGNATURE = "ensemble ?name? argspec body";
 type EnsembleBodyState = {
   scope: Scope;
   subscope: Scope;
@@ -155,7 +156,7 @@ export const ensembleCmd: Command = {
         [, name, spec, body] = args;
         break;
       default:
-        return ARITY_ERROR("ensemble ?name? argspec body");
+        return ARITY_ERROR(ENSEMBLE_SIGNATURE);
     }
 
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
@@ -173,6 +174,10 @@ export const ensembleCmd: Command = {
     const state = result.data as EnsembleBodyState;
     state.process.yieldBack(result.value);
     return executeEnsembleBody(state);
+  },
+  help(args) {
+    if (args.length > 4) return ARITY_ERROR(ENSEMBLE_SIGNATURE);
+    return OK(STR(ENSEMBLE_SIGNATURE));
   },
 };
 const executeEnsembleBody = (state: EnsembleBodyState): Result => {
