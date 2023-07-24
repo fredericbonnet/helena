@@ -7,7 +7,7 @@ import { INT, STR, TUPLE } from "../core/values";
 import { Scope, commandValueType } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, specifyExample } from "./test-helpers";
-import { EnsembleValue } from "./ensembles";
+import { EnsembleMetacommand } from "./ensembles";
 
 describe("Helena tuples", () => {
   let rootScope: Scope;
@@ -322,7 +322,7 @@ describe("Helena tuples", () => {
          * metacommand by wrapping the command within brackets, i.e. `[tuple]`.
          */
         expect(evaluate("tuple").type).to.eql(commandValueType);
-        expect(evaluate("tuple")).to.be.instanceOf(EnsembleValue);
+        expect(evaluate("tuple")).to.be.instanceOf(EnsembleMetacommand);
       });
       it("should be extensible", () => {
         /**

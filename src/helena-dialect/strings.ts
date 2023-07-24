@@ -13,18 +13,18 @@ import {
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { Scope } from "./core";
-import { EnsembleValue } from "./ensembles";
+import { EnsembleMetacommand } from "./ensembles";
 
 const OPERATOR_ARITY_ERROR = (operator: string) =>
   ERROR(`wrong # operands: should be "string value1 ${operator} value2"`);
 
 class StringCommand implements Command {
   scope: Scope;
-  ensemble: EnsembleValue;
+  ensemble: EnsembleMetacommand;
   constructor(scope: Scope) {
     this.scope = new Scope(scope);
     const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
-    this.ensemble = new EnsembleValue(this.scope, argspec);
+    this.ensemble = new EnsembleMetacommand(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this.ensemble);

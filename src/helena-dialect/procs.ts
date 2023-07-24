@@ -21,7 +21,7 @@ import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, commandValueType, Process } from "./core";
 import { Subcommands } from "./subcommands";
 
-class ProcValue implements CommandValue, Command {
+class ProcMetacommand implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
   readonly scope: Scope;
@@ -49,10 +49,10 @@ class ProcValue implements CommandValue, Command {
   static readonly subcommands = new Subcommands(["subcommands", "argspec"]);
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.proc);
-    return ProcValue.subcommands.dispatch(args[1], {
+    return ProcMetacommand.subcommands.dispatch(args[1], {
       subcommands: () => {
         if (args.length != 2) return ARITY_ERROR("<proc> subcommands");
-        return OK(ProcValue.subcommands.list);
+        return OK(ProcMetacommand.subcommands.list);
       },
       argspec: () => {
         if (args.length != 2) return ARITY_ERROR("<proc> argspec");
@@ -72,31 +72,33 @@ type ProcState = {
 class ProcCommand implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
-  readonly value: ProcValue;
-  constructor(value: ProcValue) {
+  readonly metacommand: ProcMetacommand;
+  constructor(metacommand: ProcMetacommand) {
     this.command = this;
-    this.value = value;
+    this.metacommand = metacommand;
   }
 
   execute(args: Value[]): Result {
-    if (!this.value.argspec.checkArity(args, 1)) {
+    if (!this.metacommand.argspec.checkArity(args, 1)) {
       return ARITY_ERROR(
-        `${args[0].asString?.() ?? "<proc>"} ${this.value.argspec.usage()}`
+        `${
+          args[0].asString?.() ?? "<proc>"
+        } ${this.metacommand.argspec.usage()}`
       );
     }
-    const subscope = new Scope(this.value.scope);
+    const subscope = new Scope(this.metacommand.scope);
     const setarg = (name, value) => {
       subscope.setNamedVariable(name, value);
       return OK(value);
     };
-    const result = this.value.argspec.applyArguments(
-      this.value.scope,
+    const result = this.metacommand.argspec.applyArguments(
+      this.metacommand.scope,
       args,
       1,
       setarg
     );
     if (result.code != ResultCode.OK) return result;
-    const process = subscope.prepareProcess(this.value.program);
+    const process = subscope.prepareProcess(this.metacommand.program);
     return this.run({ scope: subscope, process });
   }
   resume(result: Result): Result {
@@ -110,15 +112,14 @@ class ProcCommand implements CommandValue, Command {
     switch (result.code) {
       case ResultCode.OK:
       case ResultCode.RETURN:
-        if (this.value.guard) {
-          const process = this.value.scope.prepareTupleValue(
-            TUPLE([this.value.guard, result.value])
+        if (this.metacommand.guard) {
+          const process = this.metacommand.scope.prepareTupleValue(
+            TUPLE([this.metacommand.guard, result.value])
           );
           // TODO handle YIELD?
           return process.run();
         }
         return OK(result.value);
-      case ResultCode.YIELD:
       case ResultCode.ERROR:
         return result;
       default:
@@ -167,7 +168,7 @@ export const procCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
     const program = scope.compile((body as ScriptValue).script);
-    const value = new ProcValue(
+    const metacommand = new ProcMetacommand(
       scope,
       argspec,
       body as ScriptValue,
@@ -175,9 +176,9 @@ export const procCmd: Command = {
       program
     );
     if (name) {
-      const result = scope.registerCommand(name, value.proc);
+      const result = scope.registerCommand(name, metacommand.proc);
       if (result.code != ResultCode.OK) return result;
     }
-    return OK(value);
+    return OK(metacommand);
   },
 };

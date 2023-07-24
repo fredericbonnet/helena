@@ -27,7 +27,7 @@ import {
 } from "./core";
 import { Subcommands } from "./subcommands";
 
-class NamespaceValue implements CommandValue, Command {
+class NamespaceMetacommand implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
   readonly scope: Scope;
@@ -50,10 +50,10 @@ class NamespaceValue implements CommandValue, Command {
   ]);
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this);
-    return NamespaceValue.subcommands.dispatch(args[1], {
+    return NamespaceMetacommand.subcommands.dispatch(args[1], {
       subcommands: () => {
         if (args.length != 2) return ARITY_ERROR("<namespace> subcommands");
-        return OK(NamespaceValue.subcommands.list);
+        return OK(NamespaceMetacommand.subcommands.list);
       },
       eval: () => {
         if (args.length != 3) return ARITY_ERROR("<namespace> eval body");
@@ -86,13 +86,13 @@ class NamespaceValue implements CommandValue, Command {
 }
 
 class NamespaceCommand implements Command {
-  readonly value: NamespaceValue;
-  constructor(value: NamespaceValue) {
-    this.value = value;
+  readonly metacommand: NamespaceMetacommand;
+  constructor(metacommand: NamespaceMetacommand) {
+    this.metacommand = metacommand;
   }
 
   execute(args: Value[]): Result {
-    if (args.length == 1) return OK(this.value);
+    if (args.length == 1) return OK(this.metacommand);
     const subcommand = args[1].asString?.();
     if (subcommand == null) return ERROR("invalid subcommand name");
     if (subcommand == "subcommands") {
@@ -104,14 +104,14 @@ class NamespaceCommand implements Command {
       return OK(
         LIST([
           args[1],
-          ...this.value.scope.getLocalCommands().map((name) => STR(name)),
+          ...this.metacommand.scope.getLocalCommands().map((name) => STR(name)),
         ])
       );
     }
-    if (!this.value.scope.hasLocalCommand(subcommand))
+    if (!this.metacommand.scope.hasLocalCommand(subcommand))
       return ERROR(`unknown subcommand "${subcommand}"`);
     const cmdline = args.slice(1);
-    return YIELD(new DeferredValue(TUPLE(cmdline), this.value.scope));
+    return YIELD(new DeferredValue(TUPLE(cmdline), this.metacommand.scope));
   }
 }
 
@@ -151,12 +151,15 @@ const executeNamespaceBody = (state: NamespaceBodyState): Result => {
   switch (result.code) {
     case ResultCode.OK:
     case ResultCode.RETURN: {
-      const value = new NamespaceValue(state.subscope);
+      const metacommand = new NamespaceMetacommand(state.subscope);
       if (state.name) {
-        const result = state.scope.registerCommand(state.name, value.namespace);
+        const result = state.scope.registerCommand(
+          state.name,
+          metacommand.namespace
+        );
         if (result.code != ResultCode.OK) return result;
       }
-      return OK(result.code == ResultCode.RETURN ? result.value : value);
+      return OK(result.code == ResultCode.RETURN ? result.value : metacommand);
     }
     case ResultCode.YIELD:
       return YIELD(result.value, state);

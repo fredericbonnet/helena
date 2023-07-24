@@ -14,7 +14,7 @@ import {
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { Scope } from "./core";
-import { EnsembleValue } from "./ensembles";
+import { EnsembleMetacommand } from "./ensembles";
 import { Subcommands } from "./subcommands";
 
 const OPERATOR_ARITY_ERROR = (operator: string) =>
@@ -131,11 +131,11 @@ export function numberToValue(num: number) {
 
 class IntCommand implements Command {
   scope: Scope;
-  ensemble: EnsembleValue;
+  ensemble: EnsembleMetacommand;
   constructor(scope: Scope) {
     this.scope = new Scope(scope);
     const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
-    this.ensemble = new EnsembleValue(this.scope, argspec);
+    this.ensemble = new EnsembleMetacommand(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this.ensemble);
@@ -150,11 +150,11 @@ class IntCommand implements Command {
 
 class RealCommand implements Command {
   scope: Scope;
-  ensemble: EnsembleValue;
+  ensemble: EnsembleMetacommand;
   constructor(scope: Scope) {
     this.scope = new Scope(scope);
     const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
-    this.ensemble = new EnsembleValue(this.scope, argspec);
+    this.ensemble = new EnsembleMetacommand(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this.ensemble);

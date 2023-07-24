@@ -24,16 +24,16 @@ import {
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { destructureValue, Process, Scope } from "./core";
-import { EnsembleValue } from "./ensembles";
+import { EnsembleMetacommand } from "./ensembles";
 import { valueToArray } from "./lists";
 
 class DictCommand implements Command {
   scope: Scope;
-  ensemble: EnsembleValue;
+  ensemble: EnsembleMetacommand;
   constructor(scope: Scope) {
     this.scope = new Scope(scope);
     const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
-    this.ensemble = new EnsembleValue(this.scope, argspec);
+    this.ensemble = new EnsembleMetacommand(this.scope, argspec);
   }
   execute(args: Value[], scope): Result {
     if (args.length == 1) return OK(this.ensemble);

@@ -14,7 +14,7 @@ import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, DeferredValue, commandValueType } from "./core";
 import { Subcommands } from "./subcommands";
 
-class MacroValue implements CommandValue, Command {
+class MacroMetacommand implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
   readonly argspec: ArgspecValue;
@@ -32,10 +32,10 @@ class MacroValue implements CommandValue, Command {
   static readonly subcommands = new Subcommands(["subcommands", "argspec"]);
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.macro);
-    return MacroValue.subcommands.dispatch(args[1], {
+    return MacroMetacommand.subcommands.dispatch(args[1], {
       subcommands: () => {
         if (args.length != 2) return ARITY_ERROR("<macro> subcommands");
-        return OK(MacroValue.subcommands.list);
+        return OK(MacroMetacommand.subcommands.list);
       },
       argspec: () => {
         if (args.length != 2) return ARITY_ERROR("<macro> argspec");
@@ -48,16 +48,18 @@ class MacroValue implements CommandValue, Command {
 class MacroCommand implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
-  readonly value: MacroValue;
-  constructor(value: MacroValue) {
+  readonly metacommand: MacroMetacommand;
+  constructor(metacommand: MacroMetacommand) {
     this.command = this;
-    this.value = value;
+    this.metacommand = metacommand;
   }
 
   execute(args: Value[], scope: Scope): Result {
-    if (!this.value.argspec.checkArity(args, 1)) {
+    if (!this.metacommand.argspec.checkArity(args, 1)) {
       return ARITY_ERROR(
-        `${args[0].asString?.() ?? "<macro>"} ${this.value.argspec.usage()}`
+        `${
+          args[0].asString?.() ?? "<macro>"
+        } ${this.metacommand.argspec.usage()}`
       );
     }
     const subscope = new Scope(scope, true);
@@ -66,14 +68,19 @@ class MacroCommand implements CommandValue, Command {
       return OK(value);
     };
     // TODO handle YIELD?
-    const result = this.value.argspec.applyArguments(scope, args, 1, setarg);
+    const result = this.metacommand.argspec.applyArguments(
+      scope,
+      args,
+      1,
+      setarg
+    );
     if (result.code != ResultCode.OK) return result;
-    return YIELD(new DeferredValue(this.value.body, subscope));
+    return YIELD(new DeferredValue(this.metacommand.body, subscope));
   }
   resume(result: Result, scope: Scope): Result {
-    if (this.value.guard) {
+    if (this.metacommand.guard) {
       const process = scope.prepareTupleValue(
-        TUPLE([this.value.guard, result.value])
+        TUPLE([this.metacommand.guard, result.value])
       );
       // TODO handle YIELD?
       return process.run();
@@ -122,12 +129,16 @@ export const macroCmd: Command = {
     const result = ArgspecValue.fromValue(specs);
     if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
-    const value = new MacroValue(argspec, body as ScriptValue, guard);
+    const metacommand = new MacroMetacommand(
+      argspec,
+      body as ScriptValue,
+      guard
+    );
     if (name) {
-      const result = scope.registerCommand(name, value.macro);
+      const result = scope.registerCommand(name, metacommand.macro);
       if (result.code != ResultCode.OK) return result;
     }
-    return OK(value);
+    return OK(metacommand);
   },
   help: (args) => {
     if (args.length > 4) return ARITY_ERROR(MACRO_SIGNATURE);

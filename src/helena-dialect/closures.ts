@@ -14,7 +14,7 @@ import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, DeferredValue, commandValueType } from "./core";
 import { Subcommands } from "./subcommands";
 
-class ClosureValue implements CommandValue, Command {
+class ClosureMetacommand implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
   readonly scope: Scope;
@@ -39,10 +39,10 @@ class ClosureValue implements CommandValue, Command {
   static readonly subcommands = new Subcommands(["subcommands", "argspec"]);
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.closure);
-    return ClosureValue.subcommands.dispatch(args[1], {
+    return ClosureMetacommand.subcommands.dispatch(args[1], {
       subcommands: () => {
         if (args.length != 2) return ARITY_ERROR("<closure> subcommands");
-        return OK(ClosureValue.subcommands.list);
+        return OK(ClosureMetacommand.subcommands.list);
       },
       argspec: () => {
         if (args.length != 2) return ARITY_ERROR("<closure> argspec");
@@ -54,37 +54,39 @@ class ClosureValue implements CommandValue, Command {
 class ClosureCommand implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
-  readonly value: ClosureValue;
-  constructor(value: ClosureValue) {
+  readonly metacommand: ClosureMetacommand;
+  constructor(metacommand: ClosureMetacommand) {
     this.command = this;
-    this.value = value;
+    this.metacommand = metacommand;
   }
 
   execute(args: Value[]): Result {
-    if (!this.value.argspec.checkArity(args, 1)) {
+    if (!this.metacommand.argspec.checkArity(args, 1)) {
       return ARITY_ERROR(
-        `${args[0].asString?.() ?? "<closure>"} ${this.value.argspec.usage()}`
+        `${
+          args[0].asString?.() ?? "<closure>"
+        } ${this.metacommand.argspec.usage()}`
       );
     }
-    const subscope = new Scope(this.value.scope, true);
+    const subscope = new Scope(this.metacommand.scope, true);
     const setarg = (name, value) => {
       subscope.setLocal(name, value);
       return OK(value);
     };
     // TODO handle YIELD?
-    const result = this.value.argspec.applyArguments(
-      this.value.scope,
+    const result = this.metacommand.argspec.applyArguments(
+      this.metacommand.scope,
       args,
       1,
       setarg
     );
     if (result.code != ResultCode.OK) return result;
-    return YIELD(new DeferredValue(this.value.body, subscope));
+    return YIELD(new DeferredValue(this.metacommand.body, subscope));
   }
   resume(result: Result): Result {
-    if (this.value.guard) {
-      const process = this.value.scope.prepareTupleValue(
-        TUPLE([this.value.guard, result.value])
+    if (this.metacommand.guard) {
+      const process = this.metacommand.scope.prepareTupleValue(
+        TUPLE([this.metacommand.guard, result.value])
       );
       // TODO handle YIELD?
       return process.run();
@@ -134,12 +136,17 @@ export const closureCmd: Command = {
     const result = ArgspecValue.fromValue(specs);
     if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
-    const value = new ClosureValue(scope, argspec, body as ScriptValue, guard);
+    const metacommand = new ClosureMetacommand(
+      scope,
+      argspec,
+      body as ScriptValue,
+      guard
+    );
     if (name) {
-      const result = scope.registerCommand(name, value.closure);
+      const result = scope.registerCommand(name, metacommand.closure);
       if (result.code != ResultCode.OK) return result;
     }
-    return OK(value);
+    return OK(metacommand);
   },
   help: (args) => {
     if (args.length > 4) return ARITY_ERROR(CLOSURE_SIGNATURE);

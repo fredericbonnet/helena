@@ -8,7 +8,7 @@ import { Scope, commandValueType } from "./core";
 import { initCommands } from "./helena-dialect";
 import { displayListValue } from "./lists";
 import { codeBlock, specifyExample } from "./test-helpers";
-import { EnsembleValue } from "./ensembles";
+import { EnsembleMetacommand } from "./ensembles";
 
 describe("Helena lists", () => {
   let rootScope: Scope;
@@ -735,7 +735,7 @@ describe("Helena lists", () => {
          * metacommand by wrapping the command within brackets, i.e. `[list]`.
          */
         expect(evaluate("list").type).to.eql(commandValueType);
-        expect(evaluate("list")).to.be.instanceOf(EnsembleValue);
+        expect(evaluate("list")).to.be.instanceOf(EnsembleMetacommand);
       });
       it("should be extensible", () => {
         /**

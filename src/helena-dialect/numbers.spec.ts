@@ -7,7 +7,7 @@ import { FALSE, INT, REAL, STR, TRUE } from "../core/values";
 import { Scope, commandValueType } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, specifyExample } from "./test-helpers";
-import { EnsembleValue } from "./ensembles";
+import { EnsembleMetacommand } from "./ensembles";
 
 describe("Helena numbers", () => {
   let rootScope: Scope;
@@ -516,7 +516,7 @@ describe("Helena numbers", () => {
          * metacommand by wrapping the command within brackets, i.e. `[int]`.
          */
         expect(evaluate("int").type).to.eql(commandValueType);
-        expect(evaluate("int")).to.be.instanceOf(EnsembleValue);
+        expect(evaluate("int")).to.be.instanceOf(EnsembleMetacommand);
       });
       it("should be extensible", () => {
         /**
@@ -674,7 +674,7 @@ describe("Helena numbers", () => {
          * `[real]`.
          */
         expect(evaluate("real").type).to.eql(commandValueType);
-        expect(evaluate("real")).to.be.instanceOf(EnsembleValue);
+        expect(evaluate("real")).to.be.instanceOf(EnsembleMetacommand);
       });
       it("should be extensible", () => {
         /**

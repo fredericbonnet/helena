@@ -36,12 +36,13 @@ export class EnsembleCommandValue implements CommandValue {
   }
 }
 
-export class EnsembleValue implements CommandValue, Command {
+export class EnsembleMetacommand implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
   readonly scope: Scope;
   readonly argspec: ArgspecValue;
   readonly ensemble: Command;
+  EnsembleCommandValue;
   constructor(scope: Scope, argspec: ArgspecValue) {
     this.command = this;
     this.scope = scope;
@@ -57,10 +58,10 @@ export class EnsembleValue implements CommandValue, Command {
   ]);
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 1) return OK(this);
-    return EnsembleValue.subcommands.dispatch(args[1], {
+    return EnsembleMetacommand.subcommands.dispatch(args[1], {
       subcommands: () => {
         if (args.length != 2) return ARITY_ERROR("<ensemble> subcommands");
-        return OK(EnsembleValue.subcommands.list);
+        return OK(EnsembleMetacommand.subcommands.list);
       },
       eval: () => {
         if (args.length != 3) return ARITY_ERROR("<ensemble> eval body");
@@ -89,19 +90,19 @@ const ENSEMBLE_COMMAND_SIGNATURE = (name, help, signature) =>
   `${name.asString?.() ?? "<ensemble>"} ${help ? help + " " : ""}${signature}`;
 
 class EnsembleCommand implements Command {
-  readonly value: EnsembleValue;
-  constructor(value: EnsembleValue) {
-    this.value = value;
+  readonly metacommand: EnsembleMetacommand;
+  constructor(metacommand: EnsembleMetacommand) {
+    this.metacommand = metacommand;
   }
 
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this.value);
-    const minArgs = this.value.argspec.argspec.nbRequired + 1;
+    if (args.length == 1) return OK(this.metacommand);
+    const minArgs = this.metacommand.argspec.argspec.nbRequired + 1;
     if (args.length < minArgs)
       return ARITY_ERROR(
         ENSEMBLE_COMMAND_SIGNATURE(
           args[0],
-          this.value.argspec.usage(),
+          this.metacommand.argspec.usage(),
           "?cmdname? ?arg ...?"
         )
       );
@@ -110,7 +111,7 @@ class EnsembleCommand implements Command {
       ensembleArgs.push(value);
       return OK(value);
     };
-    const result = this.value.argspec.applyArguments(
+    const result = this.metacommand.argspec.applyArguments(
       scope,
       args.slice(1, minArgs),
       0,
@@ -127,7 +128,7 @@ class EnsembleCommand implements Command {
         return ARITY_ERROR(
           ENSEMBLE_COMMAND_SIGNATURE(
             args[0],
-            this.value.argspec.usage(),
+            this.metacommand.argspec.usage(),
             "subcommands"
           )
         );
@@ -135,13 +136,13 @@ class EnsembleCommand implements Command {
       return OK(
         LIST([
           args[minArgs],
-          ...this.value.scope.getLocalCommands().map((name) => STR(name)),
+          ...this.metacommand.scope.getLocalCommands().map((name) => STR(name)),
         ])
       );
     }
-    if (!this.value.scope.hasLocalCommand(subcommand))
+    if (!this.metacommand.scope.hasLocalCommand(subcommand))
       return ERROR(`unknown subcommand "${subcommand}"`);
-    const command = this.value.scope.resolveNamedCommand(subcommand);
+    const command = this.metacommand.scope.resolveNamedCommand(subcommand);
     const cmdline = [
       new EnsembleCommandValue(command),
       ...ensembleArgs,
@@ -199,12 +200,18 @@ const executeEnsembleBody = (state: EnsembleBodyState): Result => {
   switch (result.code) {
     case ResultCode.OK:
     case ResultCode.RETURN: {
-      const value = new EnsembleValue(state.subscope, state.argspec);
+      const metacommand = new EnsembleMetacommand(
+        state.subscope,
+        state.argspec
+      );
       if (state.name) {
-        const result = state.scope.registerCommand(state.name, value.ensemble);
+        const result = state.scope.registerCommand(
+          state.name,
+          metacommand.ensemble
+        );
         if (result.code != ResultCode.OK) return result;
       }
-      return OK(result.code == ResultCode.RETURN ? result.value : value);
+      return OK(result.code == ResultCode.RETURN ? result.value : metacommand);
     }
     case ResultCode.YIELD:
       return YIELD(result.value, state);

@@ -6,7 +6,7 @@ import { ARITY_ERROR } from "./arguments";
 import { Scope, CommandValue, commandValueType, expandPrefixCmd } from "./core";
 import { Subcommands } from "./subcommands";
 
-class AliasValue implements CommandValue, Command {
+class AliasMetacommand implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
   readonly cmd: Value;
@@ -20,10 +20,10 @@ class AliasValue implements CommandValue, Command {
   static readonly subcommands = new Subcommands(["subcommands", "command"]);
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.alias);
-    return AliasValue.subcommands.dispatch(args[1], {
+    return AliasMetacommand.subcommands.dispatch(args[1], {
       subcommands: () => {
         if (args.length != 2) return ARITY_ERROR("<alias> subcommands");
-        return OK(AliasValue.subcommands.list);
+        return OK(AliasMetacommand.subcommands.list);
       },
       command: () => {
         if (args.length != 2) return ARITY_ERROR("<alias> command");
@@ -39,14 +39,14 @@ class AliasValue implements CommandValue, Command {
 class AliasCommand implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
-  readonly value: AliasValue;
-  constructor(value: AliasValue) {
+  readonly metacommand: AliasMetacommand;
+  constructor(metacommand: AliasMetacommand) {
     this.command = this;
-    this.value = value;
+    this.metacommand = metacommand;
   }
 
   execute(args: Value[], scope: Scope): Result {
-    const cmdline = [this.value.cmd, ...args.slice(1)];
+    const cmdline = [this.metacommand.cmd, ...args.slice(1)];
     return expandPrefixCmd.execute(cmdline, scope);
   }
   resume(result: Result, scope: Scope): Result {
@@ -60,10 +60,10 @@ export const aliasCmd: Command = {
     if (args.length != 3) return ARITY_ERROR(ALIAS_SIGNATURE);
     const [, name, cmd] = args;
 
-    const value = new AliasValue(cmd);
-    const result = scope.registerCommand(name, value.alias);
+    const metacommand = new AliasMetacommand(cmd);
+    const result = scope.registerCommand(name, metacommand.alias);
     if (result.code != ResultCode.OK) return result;
-    return OK(value);
+    return OK(metacommand);
   },
   help: (args) => {
     if (args.length > 3) return ARITY_ERROR(ALIAS_SIGNATURE);
