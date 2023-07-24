@@ -13,8 +13,7 @@ Create a closure command
 closure ?name? argspec body
 ```
 
-The `closure` command creates a new command that will execute a script
-in the scope where it is declared.
+The `closure` command creates a new closure command.
 
 ### Specifications
 
@@ -40,87 +39,6 @@ in the scope where it is declared.
   Command names must have a valid string representation.
 
 - ✅ non-script body
-
-### Command calls
-
-- ✅ should return nil for empty body
-
-- ✅ should return the result of the last command
-
-- should evaluate in the closure parent scope
-
-  - ✅ global scope
-
-  - ✅ child scope
-
-  - ✅ scoped closure
-
-#### Arguments
-
-- ✅ should shadow scope variables
-
-- ✅ should be closure-local
-
-- Exceptions
-
-  - ✅ wrong arity
-
-    The closure will return an error message with usage when given
-    the wrong number of arguments.
-
-#### Return guards
-
-Return guards are similar to argspec guards, but apply to the
-return value of the closure.
-
-- ✅ should apply to the return value
-
-- ✅ should let body errors pass through
-
-- ✅ should not access closure arguments
-
-- ✅ should evaluate in the closure parent scope
-
-- Exceptions
-
-  - ✅ empty body specifier
-
-  - ✅ invalid body specifier
-
-  - ✅ non-script body
-
-#### Control flow
-
-If the body returns a result code then it should be propagated
-properly by the closure.
-
-- `return`
-
-  - ✅ should interrupt a closure with `RETURN` code
-
-- `tailcall`
-
-  - ✅ should interrupt a closure with `RETURN` code
-
-- `yield`
-
-  - ✅ should interrupt a closure with `YIELD` code
-
-  - ✅ should provide a resumable state
-
-  - ✅ should work recursively
-
-- `error`
-
-  - ✅ should interrupt a closure with `ERROR` code
-
-- `break`
-
-  - ✅ should interrupt a closure with `BREAK` code
-
-- `continue`
-
-  - ✅ should interrupt a closure with `CONTINUE` code
 
 ### Metacommand
 
@@ -200,4 +118,90 @@ the newly created command.
   - ✅ unknown subcommand
 
   - ✅ invalid subcommand name
+
+## Closure commands
+
+Closure commands are commands that execute a body script in the scope
+where they are created.
+
+### Arguments
+
+- ✅ should shadow scope variables
+
+- ✅ should be closure-local
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The closure will return an error message with usage when given the
+    wrong number of arguments.
+
+### Command calls
+
+- ✅ should return nil for empty body
+
+- ✅ should return the result of the last command
+
+- should evaluate in the closure parent scope
+
+  - ✅ global scope
+
+  - ✅ child scope
+
+  - ✅ scoped closure
+
+### Return guards
+
+Return guards are similar to argspec guards, but apply to the return
+value of the closure.
+
+- ✅ should apply to the return value
+
+- ✅ should let body errors pass through
+
+- ✅ should not access closure arguments
+
+- ✅ should evaluate in the closure parent scope
+
+- Exceptions
+
+  - ✅ empty body specifier
+
+  - ✅ invalid body specifier
+
+  - ✅ non-script body
+
+### Control flow
+
+If the body returns a result code othen than `OK` then it should be
+propagated properly by the closure to the caller.
+
+- `return`
+
+  - ✅ should interrupt a closure with `RETURN` code
+
+- `tailcall`
+
+  - ✅ should interrupt a closure with `RETURN` code
+
+- `yield`
+
+  - ✅ should interrupt a closure with `YIELD` code
+
+  - ✅ should provide a resumable state
+
+  - ✅ should work recursively
+
+- `error`
+
+  - ✅ should interrupt a closure with `ERROR` code
+
+- `break`
+
+  - ✅ should interrupt a closure with `BREAK` code
+
+- `continue`
+
+  - ✅ should interrupt a closure with `CONTINUE` code
 

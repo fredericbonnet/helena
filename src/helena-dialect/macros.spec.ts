@@ -46,8 +46,7 @@ describe("Helena macros", () => {
     mochadoc.usage(usage("macro"));
     mochadoc.description(() => {
       /**
-       * The `macro` command creates a new command that will execute a script in
-       * the calling scope.
+       * The `macro` command creates a new macro command.
        */
     });
 
@@ -118,252 +117,7 @@ describe("Helena macros", () => {
       });
     });
 
-    mochadoc.section("Command calls", () => {
-      it("should return nil for empty body", () => {
-        evaluate("macro cmd {} {}");
-        expect(evaluate("cmd")).to.eql(NIL);
-      });
-      it("should return the result of the last command", () => {
-        evaluate("macro cmd {} {idem val1; idem val2}");
-        expect(execute("cmd")).to.eql(OK(STR("val2")));
-      });
-      describe("should evaluate in the caller scope", () => {
-        specify("global scope", () => {
-          evaluate(
-            "macro cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}"
-          );
-          evaluate("cmd");
-          expect(rootScope.context.constants.get("cst")).to.eql(STR("val1"));
-          expect(rootScope.context.variables.get("var")).to.eql(STR("val2"));
-          expect(rootScope.context.commands.has("cmd2")).to.be.true;
-        });
-        specify("child scope", () => {
-          evaluate(
-            "macro cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}"
-          );
-          evaluate("scope scp {cmd}");
-          expect(rootScope.context.constants.has("cst")).to.be.false;
-          expect(rootScope.context.variables.has("var")).to.be.false;
-          expect(rootScope.context.commands.has("cmd2")).to.be.false;
-          expect(evaluate("scp eval {get cst}")).to.eql(STR("val1"));
-          expect(evaluate("scp eval {get var}")).to.eql(STR("val2"));
-          expect(evaluate("scp eval {cmd2}")).to.eql(STR("val3"));
-        });
-        specify("scoped macro", () => {
-          evaluate(
-            "scope scp1 {set cmd [macro {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}]}"
-          );
-          evaluate("scope scp2 {[[scp1 eval {get cmd}]]}");
-          expect(execute("scp1 eval {get cst}").code).to.eql(ResultCode.ERROR);
-          expect(execute("scp1 eval {get var}").code).to.eql(ResultCode.ERROR);
-          expect(execute("scp1 eval {cmd2}").code).to.eql(ResultCode.ERROR);
-          expect(evaluate("scp2 eval {get cst}")).to.eql(STR("val1"));
-          expect(evaluate("scp2 eval {get var}")).to.eql(STR("val2"));
-          expect(evaluate("scp2 eval {cmd2}")).to.eql(STR("val3"));
-        });
-      });
-      it("should access scope variables", () => {
-        evaluate("set var val");
-        evaluate("macro cmd {} {get var}");
-        expect(evaluate("cmd")).to.eql(STR("val"));
-      });
-      it("should set scope variables", () => {
-        evaluate("set var old");
-        evaluate("macro cmd {} {set var val; set var2 val2}");
-        evaluate("cmd");
-        expect(evaluate("get var")).to.eql(STR("val"));
-        expect(evaluate("get var2")).to.eql(STR("val2"));
-      });
-      it("should access scope commands", () => {
-        evaluate("macro cmd2 {} {set var val}");
-        evaluate("macro cmd {} {cmd2}");
-        evaluate("cmd");
-        expect(evaluate("get var")).to.eql(STR("val"));
-      });
-
-      mochadoc.section("Arguments", () => {
-        it("should shadow scope variables", () => {
-          evaluate("set var val");
-          evaluate("macro cmd {var} {idem $var}");
-          expect(evaluate("cmd val2")).to.eql(STR("val2"));
-        });
-        it("should be macro-local", () => {
-          evaluate("set var val");
-          evaluate("macro cmd {var} {[[macro {} {idem $var}]]}");
-          expect(evaluate("cmd val2")).to.eql(STR("val"));
-        });
-
-        describe("Exceptions", () => {
-          specify("wrong arity", () => {
-            /**
-             * The macro will return an error message with usage when given the
-             * wrong number of arguments.
-             */
-            evaluate("macro cmd {a} {}");
-            expect(execute("cmd")).to.eql(
-              ERROR('wrong # args: should be "cmd a"')
-            );
-            expect(execute("cmd 1 2")).to.eql(
-              ERROR('wrong # args: should be "cmd a"')
-            );
-            expect(execute("[[macro {a} {}]]")).to.eql(
-              ERROR('wrong # args: should be "<macro> a"')
-            );
-            expect(execute("[[macro cmd {a} {}]]")).to.eql(
-              ERROR('wrong # args: should be "<macro> a"')
-            );
-          });
-        });
-      });
-
-      describe("Return guards", () => {
-        mochadoc.description(() => {
-          /**
-           * Return guards are similar to argspec guards, but apply to the
-           * return value of the macro.
-           */
-        });
-
-        it("should apply to the return value", () => {
-          evaluate('macro guard {result} {idem "guarded:$result"}');
-          evaluate("macro cmd1 {var} {idem $var}");
-          evaluate("macro cmd2 {var} (guard {idem $var})");
-          expect(evaluate("cmd1 value")).to.eql(STR("value"));
-          expect(evaluate("cmd2 value")).to.eql(STR("guarded:value"));
-        });
-        it("should let body errors pass through", () => {
-          evaluate("macro guard {result} {unreachable}");
-          evaluate("macro cmd {var} (guard {error msg})");
-          expect(execute("cmd value")).to.eql(ERROR("msg"));
-        });
-        it("should not access macro arguments", () => {
-          evaluate("macro guard {result} {exists var}");
-          evaluate("macro cmd {var} (guard {idem $var})");
-          expect(evaluate("cmd value")).to.eql(FALSE);
-        });
-        it("should evaluate in the caller scope", () => {
-          evaluate("macro guard {result} {idem root}");
-          evaluate("macro cmd {} (guard {true})");
-          evaluate("scope scp {macro guard {result} {idem scp}}");
-          expect(evaluate("scp eval {cmd}")).to.eql(STR("scp"));
-        });
-
-        describe("Exceptions", () => {
-          specify("empty body specifier", () => {
-            expect(execute("macro a ()")).to.eql(ERROR("empty body specifier"));
-            expect(execute("macro a b ()")).to.eql(
-              ERROR("empty body specifier")
-            );
-          });
-          specify("invalid body specifier", () => {
-            expect(execute("macro a (b c d)")).to.eql(
-              ERROR("invalid body specifier")
-            );
-            expect(execute("macro a b (c d e)")).to.eql(
-              ERROR("invalid body specifier")
-            );
-          });
-          specify("non-script body", () => {
-            expect(execute("macro a (b c)")).to.eql(
-              ERROR("body must be a script")
-            );
-            expect(execute("macro a b (c d)")).to.eql(
-              ERROR("body must be a script")
-            );
-          });
-        });
-      });
-
-      describe("Control flow", () => {
-        mochadoc.description(() => {
-          /**
-           * If the body returns a result code then it should be propagated
-           * properly by the macro.
-           */
-        });
-
-        describe("`return`", () => {
-          it("should interrupt a macro with `RETURN` code", () => {
-            evaluate("macro cmd {} {return val1; idem val2}");
-            expect(execute("cmd")).to.eql(RETURN(STR("val1")));
-          });
-        });
-        describe("`tailcall`", () => {
-          it("should interrupt a macro with `RETURN` code", () => {
-            evaluate("macro cmd {} {tailcall {idem val1}; idem val2}");
-            expect(execute("cmd")).to.eql(RETURN(STR("val1")));
-          });
-        });
-        describe("`yield`", () => {
-          it("should interrupt a macro with `YIELD` code", () => {
-            evaluate("macro cmd {} {yield val1; idem val2}");
-            const result = execute("cmd");
-            expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(STR("val1"));
-          });
-          it("should provide a resumable state", () => {
-            evaluate("macro cmd {} {idem _[yield val1]_}");
-            const process = rootScope.prepareScript(parse("cmd"));
-
-            let result = process.run();
-            expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(STR("val1"));
-
-            process.yieldBack(STR("val2"));
-            result = process.run();
-            expect(result).to.eql(OK(STR("_val2_")));
-          });
-          it("should work recursively", () => {
-            evaluate("macro cmd1 {} {yield [cmd2]; idem val5}");
-            evaluate("macro cmd2 {} {yield [cmd3]; idem [cmd4]}");
-            evaluate("macro cmd3 {} {yield val1}");
-            evaluate("macro cmd4 {} {yield val3}");
-            const process = rootScope.prepareScript(parse("cmd1"));
-
-            let result = process.run();
-            expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(STR("val1"));
-
-            process.yieldBack(STR("val2"));
-            result = process.run();
-            expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(STR("val2"));
-
-            result = process.run();
-            expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(STR("val3"));
-
-            process.yieldBack(STR("val4"));
-            result = process.run();
-            expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(STR("val4"));
-
-            result = process.run();
-            expect(result).to.eql(OK(STR("val5")));
-          });
-        });
-        describe("`error`", () => {
-          it("should interrupt a macro with `ERROR` code", () => {
-            evaluate("macro cmd {} {error msg; idem val}");
-            expect(execute("cmd")).to.eql(ERROR("msg"));
-          });
-        });
-        describe("`break`", () => {
-          it("should interrupt a macro with `BREAK` code", () => {
-            evaluate("macro cmd {} {break; unreachable}");
-            expect(execute("cmd")).to.eql(BREAK());
-          });
-        });
-        describe("`continue`", () => {
-          it("should interrupt a macro with `CONTINUE` code", () => {
-            evaluate("macro cmd {} {continue; unreachable}");
-            expect(execute("cmd")).to.eql(CONTINUE());
-          });
-        });
-      });
-    });
-
-    describe("Metacommand", () => {
+    mochadoc.section("Metacommand", () => {
       mochadoc.description(() => {
         /**
          * `macro` returns a metacommand value that can be used to introspect
@@ -490,6 +244,258 @@ describe("Helena macros", () => {
               ERROR("invalid subcommand name")
             );
           });
+        });
+      });
+    });
+  });
+
+  mochadoc.section("Macro commands", () => {
+    mochadoc.description(() => {
+      /**
+       * Macro commands are commands that execute a body script in the calling
+       * scope.
+       */
+    });
+
+    mochadoc.section("Arguments", () => {
+      it("should shadow scope variables", () => {
+        evaluate("set var val");
+        evaluate("macro cmd {var} {idem $var}");
+        expect(evaluate("cmd val2")).to.eql(STR("val2"));
+      });
+      it("should be macro-local", () => {
+        evaluate("set var val");
+        evaluate("macro cmd {var} {[[macro {} {idem $var}]]}");
+        expect(evaluate("cmd val2")).to.eql(STR("val"));
+      });
+
+      describe("Exceptions", () => {
+        specify("wrong arity", () => {
+          /**
+           * The macro will return an error message with usage when given the
+           * wrong number of arguments.
+           */
+          evaluate("macro cmd {a} {}");
+          expect(execute("cmd")).to.eql(
+            ERROR('wrong # args: should be "cmd a"')
+          );
+          expect(execute("cmd 1 2")).to.eql(
+            ERROR('wrong # args: should be "cmd a"')
+          );
+          expect(execute("[[macro {a} {}]]")).to.eql(
+            ERROR('wrong # args: should be "<macro> a"')
+          );
+          expect(execute("[[macro cmd {a} {}]]")).to.eql(
+            ERROR('wrong # args: should be "<macro> a"')
+          );
+        });
+      });
+    });
+
+    mochadoc.section("Command calls", () => {
+      it("should return nil for empty body", () => {
+        evaluate("macro cmd {} {}");
+        expect(evaluate("cmd")).to.eql(NIL);
+      });
+      it("should return the result of the last command", () => {
+        evaluate("macro cmd {} {idem val1; idem val2}");
+        expect(execute("cmd")).to.eql(OK(STR("val2")));
+      });
+      describe("should evaluate in the caller scope", () => {
+        specify("global scope", () => {
+          evaluate(
+            "macro cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}"
+          );
+          evaluate("cmd");
+          expect(rootScope.context.constants.get("cst")).to.eql(STR("val1"));
+          expect(rootScope.context.variables.get("var")).to.eql(STR("val2"));
+          expect(rootScope.context.commands.has("cmd2")).to.be.true;
+        });
+        specify("child scope", () => {
+          evaluate(
+            "macro cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}"
+          );
+          evaluate("scope scp {cmd}");
+          expect(rootScope.context.constants.has("cst")).to.be.false;
+          expect(rootScope.context.variables.has("var")).to.be.false;
+          expect(rootScope.context.commands.has("cmd2")).to.be.false;
+          expect(evaluate("scp eval {get cst}")).to.eql(STR("val1"));
+          expect(evaluate("scp eval {get var}")).to.eql(STR("val2"));
+          expect(evaluate("scp eval {cmd2}")).to.eql(STR("val3"));
+        });
+        specify("scoped macro", () => {
+          evaluate(
+            "scope scp1 {set cmd [macro {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}]}"
+          );
+          evaluate("scope scp2 {[[scp1 eval {get cmd}]]}");
+          expect(execute("scp1 eval {get cst}").code).to.eql(ResultCode.ERROR);
+          expect(execute("scp1 eval {get var}").code).to.eql(ResultCode.ERROR);
+          expect(execute("scp1 eval {cmd2}").code).to.eql(ResultCode.ERROR);
+          expect(evaluate("scp2 eval {get cst}")).to.eql(STR("val1"));
+          expect(evaluate("scp2 eval {get var}")).to.eql(STR("val2"));
+          expect(evaluate("scp2 eval {cmd2}")).to.eql(STR("val3"));
+        });
+      });
+      it("should access scope variables", () => {
+        evaluate("set var val");
+        evaluate("macro cmd {} {get var}");
+        expect(evaluate("cmd")).to.eql(STR("val"));
+      });
+      it("should set scope variables", () => {
+        evaluate("set var old");
+        evaluate("macro cmd {} {set var val; set var2 val2}");
+        evaluate("cmd");
+        expect(evaluate("get var")).to.eql(STR("val"));
+        expect(evaluate("get var2")).to.eql(STR("val2"));
+      });
+      it("should access scope commands", () => {
+        evaluate("macro cmd2 {} {set var val}");
+        evaluate("macro cmd {} {cmd2}");
+        evaluate("cmd");
+        expect(evaluate("get var")).to.eql(STR("val"));
+      });
+    });
+
+    mochadoc.section("Return guards", () => {
+      mochadoc.description(() => {
+        /**
+         * Return guards are similar to argspec guards, but apply to the
+         * return value of the macro.
+         */
+      });
+
+      it("should apply to the return value", () => {
+        evaluate('macro guard {result} {idem "guarded:$result"}');
+        evaluate("macro cmd1 {var} {idem $var}");
+        evaluate("macro cmd2 {var} (guard {idem $var})");
+        expect(evaluate("cmd1 value")).to.eql(STR("value"));
+        expect(evaluate("cmd2 value")).to.eql(STR("guarded:value"));
+      });
+      it("should let body errors pass through", () => {
+        evaluate("macro guard {result} {unreachable}");
+        evaluate("macro cmd {var} (guard {error msg})");
+        expect(execute("cmd value")).to.eql(ERROR("msg"));
+      });
+      it("should not access macro arguments", () => {
+        evaluate("macro guard {result} {exists var}");
+        evaluate("macro cmd {var} (guard {idem $var})");
+        expect(evaluate("cmd value")).to.eql(FALSE);
+      });
+      it("should evaluate in the caller scope", () => {
+        evaluate("macro guard {result} {idem root}");
+        evaluate("macro cmd {} (guard {true})");
+        evaluate("scope scp {macro guard {result} {idem scp}}");
+        expect(evaluate("scp eval {cmd}")).to.eql(STR("scp"));
+      });
+
+      describe("Exceptions", () => {
+        specify("empty body specifier", () => {
+          expect(execute("macro a ()")).to.eql(ERROR("empty body specifier"));
+          expect(execute("macro a b ()")).to.eql(ERROR("empty body specifier"));
+        });
+        specify("invalid body specifier", () => {
+          expect(execute("macro a (b c d)")).to.eql(
+            ERROR("invalid body specifier")
+          );
+          expect(execute("macro a b (c d e)")).to.eql(
+            ERROR("invalid body specifier")
+          );
+        });
+        specify("non-script body", () => {
+          expect(execute("macro a (b c)")).to.eql(
+            ERROR("body must be a script")
+          );
+          expect(execute("macro a b (c d)")).to.eql(
+            ERROR("body must be a script")
+          );
+        });
+      });
+    });
+
+    mochadoc.section("Control flow", () => {
+      mochadoc.description(() => {
+        /**
+         * If the body returns a result code othen than `OK` then it should be
+         * propagated properly by the macro to the caller.
+         */
+      });
+
+      describe("`return`", () => {
+        it("should interrupt a macro with `RETURN` code", () => {
+          evaluate("macro cmd {} {return val1; idem val2}");
+          expect(execute("cmd")).to.eql(RETURN(STR("val1")));
+        });
+      });
+      describe("`tailcall`", () => {
+        it("should interrupt a macro with `RETURN` code", () => {
+          evaluate("macro cmd {} {tailcall {idem val1}; idem val2}");
+          expect(execute("cmd")).to.eql(RETURN(STR("val1")));
+        });
+      });
+      describe("`yield`", () => {
+        it("should interrupt a macro with `YIELD` code", () => {
+          evaluate("macro cmd {} {yield val1; idem val2}");
+          const result = execute("cmd");
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("val1"));
+        });
+        it("should provide a resumable state", () => {
+          evaluate("macro cmd {} {idem _[yield val1]_}");
+          const process = rootScope.prepareScript(parse("cmd"));
+
+          let result = process.run();
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("val1"));
+
+          process.yieldBack(STR("val2"));
+          result = process.run();
+          expect(result).to.eql(OK(STR("_val2_")));
+        });
+        it("should work recursively", () => {
+          evaluate("macro cmd1 {} {yield [cmd2]; idem val5}");
+          evaluate("macro cmd2 {} {yield [cmd3]; idem [cmd4]}");
+          evaluate("macro cmd3 {} {yield val1}");
+          evaluate("macro cmd4 {} {yield val3}");
+          const process = rootScope.prepareScript(parse("cmd1"));
+
+          let result = process.run();
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("val1"));
+
+          process.yieldBack(STR("val2"));
+          result = process.run();
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("val2"));
+
+          result = process.run();
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("val3"));
+
+          process.yieldBack(STR("val4"));
+          result = process.run();
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("val4"));
+
+          result = process.run();
+          expect(result).to.eql(OK(STR("val5")));
+        });
+      });
+      describe("`error`", () => {
+        it("should interrupt a macro with `ERROR` code", () => {
+          evaluate("macro cmd {} {error msg; idem val}");
+          expect(execute("cmd")).to.eql(ERROR("msg"));
+        });
+      });
+      describe("`break`", () => {
+        it("should interrupt a macro with `BREAK` code", () => {
+          evaluate("macro cmd {} {break; unreachable}");
+          expect(execute("cmd")).to.eql(BREAK());
+        });
+      });
+      describe("`continue`", () => {
+        it("should interrupt a macro with `CONTINUE` code", () => {
+          evaluate("macro cmd {} {continue; unreachable}");
+          expect(execute("cmd")).to.eql(CONTINUE());
         });
       });
     });

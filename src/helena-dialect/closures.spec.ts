@@ -46,17 +46,13 @@ describe("Helena closures", () => {
     mochadoc.usage(usage("closure"));
     mochadoc.description(() => {
       /**
-       * The `closure` command creates a new command that will execute a script
-       * in the scope where it is declared.
+       * The `closure` command creates a new closure command.
        */
     });
 
     mochadoc.section("Specifications", () => {
       specify("usage", () => {
         expect(evaluate("help closure")).to.eql(
-          STR("closure ?name? argspec body")
-        );
-        expect(evaluate("help closure args")).to.eql(
           STR("closure ?name? argspec body")
         );
         expect(evaluate("help closure args")).to.eql(
@@ -122,233 +118,7 @@ describe("Helena closures", () => {
       });
     });
 
-    mochadoc.section("Command calls", () => {
-      it("should return nil for empty body", () => {
-        evaluate("closure cmd {} {}");
-        expect(evaluate("cmd")).to.eql(NIL);
-      });
-      it("should return the result of the last command", () => {
-        evaluate("closure cmd {} {idem val1; idem val2}");
-        expect(execute("cmd")).to.eql(OK(STR("val2")));
-      });
-      describe("should evaluate in the closure parent scope", () => {
-        specify("global scope", () => {
-          evaluate(
-            "closure cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}"
-          );
-          evaluate("cmd");
-          expect(rootScope.context.constants.get("cst")).to.eql(STR("val1"));
-          expect(rootScope.context.variables.get("var")).to.eql(STR("val2"));
-          expect(rootScope.context.commands.has("cmd2")).to.be.true;
-        });
-        specify("child scope", () => {
-          evaluate(
-            "closure cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}"
-          );
-          evaluate("scope scp {cmd}");
-          expect(rootScope.context.constants.get("cst")).to.eql(STR("val1"));
-          expect(rootScope.context.variables.get("var")).to.eql(STR("val2"));
-          expect(rootScope.context.commands.has("cmd2")).to.be.true;
-        });
-        specify("scoped closure", () => {
-          evaluate(
-            "scope scp1 {set cmd [closure {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}]}"
-          );
-          evaluate("scope scp2 {[[scp1 eval {get cmd}]]}");
-          expect(evaluate("scp1 eval {get cst}")).to.eql(STR("val1"));
-          expect(evaluate("scp1 eval {get var}")).to.eql(STR("val2"));
-          expect(evaluate("scp1 eval {cmd2}")).to.eql(STR("val3"));
-          expect(execute("scp2 eval {get cst}").code).to.eql(ResultCode.ERROR);
-          expect(execute("scp2 eval {get var}").code).to.eql(ResultCode.ERROR);
-          expect(execute("scp2 eval {cmd2}").code).to.eql(ResultCode.ERROR);
-        });
-      });
-
-      mochadoc.section("Arguments", () => {
-        it("should shadow scope variables", () => {
-          evaluate("set var val");
-          evaluate("closure cmd {var} {idem $var}");
-          expect(evaluate("cmd val2")).to.eql(STR("val2"));
-        });
-        it("should be closure-local", () => {
-          evaluate("set var val");
-          evaluate("closure cmd {var} {[[closure {} {idem $var}]]}");
-          expect(evaluate("cmd val2")).to.eql(STR("val"));
-        });
-
-        describe("Exceptions", () => {
-          specify("wrong arity", () => {
-            /**
-             * The closure will return an error message with usage when given
-             * the wrong number of arguments.
-             */
-            evaluate("closure cmd {a} {}");
-            expect(execute("cmd")).to.eql(
-              ERROR('wrong # args: should be "cmd a"')
-            );
-            expect(execute("cmd 1 2")).to.eql(
-              ERROR('wrong # args: should be "cmd a"')
-            );
-            expect(execute("[[closure {a} {}]]")).to.eql(
-              ERROR('wrong # args: should be "<closure> a"')
-            );
-            expect(execute("[[closure cmd {a} {}]]")).to.eql(
-              ERROR('wrong # args: should be "<closure> a"')
-            );
-          });
-        });
-      });
-
-      describe("Return guards", () => {
-        mochadoc.description(() => {
-          /**
-           * Return guards are similar to argspec guards, but apply to the
-           * return value of the closure.
-           */
-        });
-
-        it("should apply to the return value", () => {
-          evaluate('macro guard {result} {idem "guarded:$result"}');
-          evaluate("closure cmd1 {var} {idem $var}");
-          evaluate("closure cmd2 {var} (guard {idem $var})");
-          expect(evaluate("cmd1 value")).to.eql(STR("value"));
-          expect(evaluate("cmd2 value")).to.eql(STR("guarded:value"));
-        });
-        it("should let body errors pass through", () => {
-          evaluate("macro guard {result} {unreachable}");
-          evaluate("closure cmd {var} (guard {error msg})");
-          expect(execute("cmd value")).to.eql(ERROR("msg"));
-        });
-        it("should not access closure arguments", () => {
-          evaluate("macro guard {result} {exists var}");
-          evaluate("closure cmd {var} (guard {idem $var})");
-          expect(evaluate("cmd value")).to.eql(FALSE);
-        });
-        it("should evaluate in the closure parent scope", () => {
-          evaluate("macro guard {result} {idem root}");
-          evaluate("closure cmd {} (guard {true})");
-          evaluate("scope scp {macro guard {result} {idem scp}}");
-          expect(evaluate("scp eval {cmd}")).to.eql(STR("root"));
-        });
-
-        describe("Exceptions", () => {
-          specify("empty body specifier", () => {
-            expect(execute("closure a ()")).to.eql(
-              ERROR("empty body specifier")
-            );
-            expect(execute("closure a b ()")).to.eql(
-              ERROR("empty body specifier")
-            );
-          });
-          specify("invalid body specifier", () => {
-            expect(execute("closure a (b c d)")).to.eql(
-              ERROR("invalid body specifier")
-            );
-            expect(execute("closure a b (c d e)")).to.eql(
-              ERROR("invalid body specifier")
-            );
-          });
-          specify("non-script body", () => {
-            expect(execute("closure a (b c)")).to.eql(
-              ERROR("body must be a script")
-            );
-            expect(execute("closure a b (c d)")).to.eql(
-              ERROR("body must be a script")
-            );
-          });
-        });
-      });
-
-      describe("Control flow", () => {
-        mochadoc.description(() => {
-          /**
-           * If the body returns a result code then it should be propagated
-           * properly by the closure.
-           */
-        });
-
-        describe("`return`", () => {
-          it("should interrupt a closure with `RETURN` code", () => {
-            evaluate("closure cmd {} {return val1; idem val2}");
-            expect(execute("cmd")).to.eql(RETURN(STR("val1")));
-          });
-        });
-        describe("`tailcall`", () => {
-          it("should interrupt a closure with `RETURN` code", () => {
-            evaluate("closure cmd {} {tailcall (idem val1); idem val2}");
-            expect(execute("cmd")).to.eql(RETURN(STR("val1")));
-          });
-        });
-        describe("`yield`", () => {
-          it("should interrupt a closure with `YIELD` code", () => {
-            evaluate("closure cmd {} {yield val1; idem val2}");
-            const result = execute("cmd");
-            expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(STR("val1"));
-          });
-          it("should provide a resumable state", () => {
-            evaluate("closure cmd {} {idem _[yield val1]_}");
-            const process = rootScope.prepareScript(parse("cmd"));
-
-            let result = process.run();
-            expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(STR("val1"));
-
-            process.yieldBack(STR("val2"));
-            result = process.run();
-            expect(result).to.eql(OK(STR("_val2_")));
-          });
-          it("should work recursively", () => {
-            evaluate("closure cmd1 {} {yield [cmd2]; idem val5}");
-            evaluate("closure cmd2 {} {yield [cmd3]; idem [cmd4]}");
-            evaluate("closure cmd3 {} {yield val1}");
-            evaluate("closure cmd4 {} {yield val3}");
-            const process = rootScope.prepareScript(parse("cmd1"));
-
-            let result = process.run();
-            expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(STR("val1"));
-
-            process.yieldBack(STR("val2"));
-            result = process.run();
-            expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(STR("val2"));
-
-            result = process.run();
-            expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(STR("val3"));
-
-            process.yieldBack(STR("val4"));
-            result = process.run();
-            expect(result.code).to.eql(ResultCode.YIELD);
-            expect(result.value).to.eql(STR("val4"));
-
-            result = process.run();
-            expect(result).to.eql(OK(STR("val5")));
-          });
-        });
-        describe("`error`", () => {
-          it("should interrupt a closure with `ERROR` code", () => {
-            evaluate("closure cmd {} {error msg; idem val}");
-            expect(execute("cmd")).to.eql(ERROR("msg"));
-          });
-        });
-        describe("`break`", () => {
-          it("should interrupt a closure with `BREAK` code", () => {
-            evaluate("closure cmd {} {break; idem val}");
-            expect(execute("cmd")).to.eql(BREAK());
-          });
-        });
-        describe("`continue`", () => {
-          it("should interrupt a closure with `CONTINUE` code", () => {
-            evaluate("closure cmd {} {continue; idem val}");
-            expect(execute("cmd")).to.eql(CONTINUE());
-          });
-        });
-      });
-    });
-
-    describe("Metacommand", () => {
+    mochadoc.section("Metacommand", () => {
       mochadoc.description(() => {
         /**
          * `closure` returns a metacommand value that can be used to introspect
@@ -475,6 +245,239 @@ describe("Helena closures", () => {
               ERROR("invalid subcommand name")
             );
           });
+        });
+      });
+    });
+  });
+
+  mochadoc.section("Closure commands", () => {
+    mochadoc.description(() => {
+      /**
+       * Closure commands are commands that execute a body script in the scope
+       * where they are created.
+       */
+    });
+
+    mochadoc.section("Arguments", () => {
+      it("should shadow scope variables", () => {
+        evaluate("set var val");
+        evaluate("closure cmd {var} {idem $var}");
+        expect(evaluate("cmd val2")).to.eql(STR("val2"));
+      });
+      it("should be closure-local", () => {
+        evaluate("set var val");
+        evaluate("closure cmd {var} {[[closure {} {idem $var}]]}");
+        expect(evaluate("cmd val2")).to.eql(STR("val"));
+      });
+
+      describe("Exceptions", () => {
+        specify("wrong arity", () => {
+          /**
+           * The closure will return an error message with usage when given the
+           * wrong number of arguments.
+           */
+          evaluate("closure cmd {a} {}");
+          expect(execute("cmd")).to.eql(
+            ERROR('wrong # args: should be "cmd a"')
+          );
+          expect(execute("cmd 1 2")).to.eql(
+            ERROR('wrong # args: should be "cmd a"')
+          );
+          expect(execute("[[closure {a} {}]]")).to.eql(
+            ERROR('wrong # args: should be "<closure> a"')
+          );
+          expect(execute("[[closure cmd {a} {}]]")).to.eql(
+            ERROR('wrong # args: should be "<closure> a"')
+          );
+        });
+      });
+    });
+
+    mochadoc.section("Command calls", () => {
+      it("should return nil for empty body", () => {
+        evaluate("closure cmd {} {}");
+        expect(evaluate("cmd")).to.eql(NIL);
+      });
+      it("should return the result of the last command", () => {
+        evaluate("closure cmd {} {idem val1; idem val2}");
+        expect(execute("cmd")).to.eql(OK(STR("val2")));
+      });
+      describe("should evaluate in the closure parent scope", () => {
+        specify("global scope", () => {
+          evaluate(
+            "closure cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}"
+          );
+          evaluate("cmd");
+          expect(rootScope.context.constants.get("cst")).to.eql(STR("val1"));
+          expect(rootScope.context.variables.get("var")).to.eql(STR("val2"));
+          expect(rootScope.context.commands.has("cmd2")).to.be.true;
+        });
+        specify("child scope", () => {
+          evaluate(
+            "closure cmd {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}"
+          );
+          evaluate("scope scp {cmd}");
+          expect(rootScope.context.constants.get("cst")).to.eql(STR("val1"));
+          expect(rootScope.context.variables.get("var")).to.eql(STR("val2"));
+          expect(rootScope.context.commands.has("cmd2")).to.be.true;
+        });
+        specify("scoped closure", () => {
+          evaluate(
+            "scope scp1 {set cmd [closure {} {let cst val1; set var val2; macro cmd2 {} {idem val3}}]}"
+          );
+          evaluate("scope scp2 {[[scp1 eval {get cmd}]]}");
+          expect(evaluate("scp1 eval {get cst}")).to.eql(STR("val1"));
+          expect(evaluate("scp1 eval {get var}")).to.eql(STR("val2"));
+          expect(evaluate("scp1 eval {cmd2}")).to.eql(STR("val3"));
+          expect(execute("scp2 eval {get cst}").code).to.eql(ResultCode.ERROR);
+          expect(execute("scp2 eval {get var}").code).to.eql(ResultCode.ERROR);
+          expect(execute("scp2 eval {cmd2}").code).to.eql(ResultCode.ERROR);
+        });
+      });
+    });
+
+    mochadoc.section("Return guards", () => {
+      mochadoc.description(() => {
+        /**
+         * Return guards are similar to argspec guards, but apply to the return
+         * value of the closure.
+         */
+      });
+
+      it("should apply to the return value", () => {
+        evaluate('macro guard {result} {idem "guarded:$result"}');
+        evaluate("closure cmd1 {var} {idem $var}");
+        evaluate("closure cmd2 {var} (guard {idem $var})");
+        expect(evaluate("cmd1 value")).to.eql(STR("value"));
+        expect(evaluate("cmd2 value")).to.eql(STR("guarded:value"));
+      });
+      it("should let body errors pass through", () => {
+        evaluate("macro guard {result} {unreachable}");
+        evaluate("closure cmd {var} (guard {error msg})");
+        expect(execute("cmd value")).to.eql(ERROR("msg"));
+      });
+      it("should not access closure arguments", () => {
+        evaluate("macro guard {result} {exists var}");
+        evaluate("closure cmd {var} (guard {idem $var})");
+        expect(evaluate("cmd value")).to.eql(FALSE);
+      });
+      it("should evaluate in the closure parent scope", () => {
+        evaluate("macro guard {result} {idem root}");
+        evaluate("closure cmd {} (guard {true})");
+        evaluate("scope scp {macro guard {result} {idem scp}}");
+        expect(evaluate("scp eval {cmd}")).to.eql(STR("root"));
+      });
+
+      describe("Exceptions", () => {
+        specify("empty body specifier", () => {
+          expect(execute("closure a ()")).to.eql(ERROR("empty body specifier"));
+          expect(execute("closure a b ()")).to.eql(
+            ERROR("empty body specifier")
+          );
+        });
+        specify("invalid body specifier", () => {
+          expect(execute("closure a (b c d)")).to.eql(
+            ERROR("invalid body specifier")
+          );
+          expect(execute("closure a b (c d e)")).to.eql(
+            ERROR("invalid body specifier")
+          );
+        });
+        specify("non-script body", () => {
+          expect(execute("closure a (b c)")).to.eql(
+            ERROR("body must be a script")
+          );
+          expect(execute("closure a b (c d)")).to.eql(
+            ERROR("body must be a script")
+          );
+        });
+      });
+    });
+
+    mochadoc.section("Control flow", () => {
+      mochadoc.description(() => {
+        /**
+         * If the body returns a result code othen than `OK` then it should be
+         * propagated properly by the closure to the caller.
+         */
+      });
+
+      describe("`return`", () => {
+        it("should interrupt a closure with `RETURN` code", () => {
+          evaluate("closure cmd {} {return val1; idem val2}");
+          expect(execute("cmd")).to.eql(RETURN(STR("val1")));
+        });
+      });
+      describe("`tailcall`", () => {
+        it("should interrupt a closure with `RETURN` code", () => {
+          evaluate("closure cmd {} {tailcall (idem val1); idem val2}");
+          expect(execute("cmd")).to.eql(RETURN(STR("val1")));
+        });
+      });
+      describe("`yield`", () => {
+        it("should interrupt a closure with `YIELD` code", () => {
+          evaluate("closure cmd {} {yield val1; idem val2}");
+          const result = execute("cmd");
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("val1"));
+        });
+        it("should provide a resumable state", () => {
+          evaluate("closure cmd {} {idem _[yield val1]_}");
+          const process = rootScope.prepareScript(parse("cmd"));
+
+          let result = process.run();
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("val1"));
+
+          process.yieldBack(STR("val2"));
+          result = process.run();
+          expect(result).to.eql(OK(STR("_val2_")));
+        });
+        it("should work recursively", () => {
+          evaluate("closure cmd1 {} {yield [cmd2]; idem val5}");
+          evaluate("closure cmd2 {} {yield [cmd3]; idem [cmd4]}");
+          evaluate("closure cmd3 {} {yield val1}");
+          evaluate("closure cmd4 {} {yield val3}");
+          const process = rootScope.prepareScript(parse("cmd1"));
+
+          let result = process.run();
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("val1"));
+
+          process.yieldBack(STR("val2"));
+          result = process.run();
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("val2"));
+
+          result = process.run();
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("val3"));
+
+          process.yieldBack(STR("val4"));
+          result = process.run();
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("val4"));
+
+          result = process.run();
+          expect(result).to.eql(OK(STR("val5")));
+        });
+      });
+      describe("`error`", () => {
+        it("should interrupt a closure with `ERROR` code", () => {
+          evaluate("closure cmd {} {error msg; idem val}");
+          expect(execute("cmd")).to.eql(ERROR("msg"));
+        });
+      });
+      describe("`break`", () => {
+        it("should interrupt a closure with `BREAK` code", () => {
+          evaluate("closure cmd {} {break; idem val}");
+          expect(execute("cmd")).to.eql(BREAK());
+        });
+      });
+      describe("`continue`", () => {
+        it("should interrupt a closure with `CONTINUE` code", () => {
+          evaluate("closure cmd {} {continue; idem val}");
+          expect(execute("cmd")).to.eql(CONTINUE());
         });
       });
     });
