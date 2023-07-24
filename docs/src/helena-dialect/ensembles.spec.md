@@ -13,8 +13,7 @@ Create an ensemble command
 ensemble ?name? argspec body
 ```
 
-The `ensemble` command creates a new command that can be used to
-gather subcommands under itself.
+The `ensemble` command creates a new ensemble command.
 
 ### Specifications
 
@@ -24,12 +23,6 @@ gather subcommands under itself.
 
 - ✅ should replace existing commands
 
-- ✅ should return a command object
-
-- ✅ the named command should return its command object
-
-- ✅ the command object should return itself
-
 ### Exceptions
 
 - ✅ wrong arity
@@ -37,9 +30,14 @@ gather subcommands under itself.
   The command will return an error message with usage when given the
   wrong number of arguments.
 
-- ✅ invalid argument list
+- ✅ invalid `argspec`
+
+  The command expects an argument list in `argspec` format.
 
 - ✅ variadic arguments
+
+  Ensemble argument lists are fixed-length; optional or remainder
+  arguments are forbidden.
 
 - ✅ invalid `name`
 
@@ -59,7 +57,7 @@ gather subcommands under itself.
 
 - ✅ should set ensemble variables
 
-### Control flow
+#### Control flow
 
 If the body returns a result code then it should be propagated
 properly by the command.
@@ -106,7 +104,16 @@ properly by the command.
 
   - ✅ should not define the ensemble command
 
-### Subcommands
+### Metacommand
+
+`ensemble` returns a metacommand value that can be used to introspect
+the newly created command.
+
+- ✅ should return a metacommand
+
+- ✅ the metacommand should return itself
+
+#### Subcommands
 
 - `subcommands`
 
@@ -220,7 +227,22 @@ properly by the command.
 
 - `argspec`
 
-  - ✅ should return the ensemble argspec
+  - ✅ should return the ensemble's argspec
+
+    Each ensemble has an argspec command associated to it,
+    created with the ensemble's `argspec` argument. This
+    subcommand will return it:
+
+    ```lna
+    [ensemble {a b} {}] argspec
+    # => {#{argspec: "a b"}#}
+    ```
+
+    This is identical to:
+
+    ```lna
+    argspec {a b}
+    ```
 
   - Exceptions
 
@@ -233,33 +255,54 @@ properly by the command.
 
   - ✅ unknown subcommand
 
+## Ensemble commands
+
+Ensemble commands are commands that gather subcommands defined in its
+own child scope.
+
+### Specifications
+
+- ✅ should return its ensemble metacommand when called with no argument
+
+  The typical application of this property is to access the ensemble
+  metacommand by wrapping the command within brackets, i.e. `[cmd]`.
+
+- ✅ should return the provided arguments tuple when called with no subcommand
+
+  This property is useful for encapsulation.
+
+- ✅ should evaluate argument guards
+
+  This property is useful for validation.
+
+### Exceptions
+
+- ✅ wrong arity
+
+  The command will return an error message with usage when given an
+  insufficient number of arguments.
+
+- ✅ failed guards
+
+  The command will return an error message when an argument guard
+  fails.
+
 ### Ensemble subcommands
 
 Commands defined in the ensemble scope will be exposed as
 subcommands.
 
-- ✅ when missing should return ensemble arguments tuple
+- ✅ first argument after ensemble arguments should be ensemble subcommand name
 
-- ✅ first argument after ensemble arguments should be ensemble command name
+- ✅ should pass ensemble arguments to ensemble subcommand
 
-- ✅ should pass ensemble arguments to ensemble command
+- ✅ should apply guards to passed ensemble arguments
 
-- ✅ should pass remaining arguments to ensemble command
+- ✅ should pass remaining arguments to ensemble subcommand
 
-- ✅ should evaluate command in the caller scope
+- ✅ should evaluate subcommand in the caller scope
 
 - ✅ should work recursively
-
-- `subcommands`
-
-  - ✅ should return list of subcommands
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
 
 - Control flow
 
@@ -291,11 +334,28 @@ subcommands.
 
 - Exceptions
 
-  - ✅ wrong arity
-
   - ✅ unknown subcommand
 
   - ✅ out-of-scope subcommand
 
-  - ✅ invalid subcommand
+    Commands inherited from their parent scope are not available as
+    ensemble subcommands.
+
+  - ✅ invalid subcommand name
+
+### Introspection
+
+#### `subcommands`
+
+`subcommands` is a predefined subcommand that is available for all
+ensemble commands.
+
+- ✅ should return list of subcommands
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 

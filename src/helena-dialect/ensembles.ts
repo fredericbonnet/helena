@@ -85,10 +85,8 @@ export class EnsembleValue implements CommandValue, Command {
   }
 }
 
-const ENSEMBLE_ARITY_ERROR = (name, help, signature) =>
-  ARITY_ERROR(
-    `${name.asString?.() ?? "<ensemble>"} ${help ? help + " " : ""}${signature}`
-  );
+const ENSEMBLE_COMMAND_SIGNATURE = (name, help, signature) =>
+  `${name.asString?.() ?? "<ensemble>"} ${help ? help + " " : ""}${signature}`;
 
 class EnsembleCommand implements Command {
   readonly value: EnsembleValue;
@@ -100,22 +98,38 @@ class EnsembleCommand implements Command {
     if (args.length == 1) return OK(this.value);
     const minArgs = this.value.argspec.argspec.nbRequired + 1;
     if (args.length < minArgs)
-      return ENSEMBLE_ARITY_ERROR(
-        args[0],
-        this.value.argspec.usage(),
-        "?cmdname? ?arg ...?"
+      return ARITY_ERROR(
+        ENSEMBLE_COMMAND_SIGNATURE(
+          args[0],
+          this.value.argspec.usage(),
+          "?cmdname? ?arg ...?"
+        )
       );
+    const ensembleArgs = [];
+    const getargs = (_name, value) => {
+      ensembleArgs.push(value);
+      return OK(value);
+    };
+    const result = this.value.argspec.applyArguments(
+      scope,
+      args.slice(1, minArgs),
+      0,
+      getargs
+    );
+    if (result.code != ResultCode.OK) return result;
     if (args.length == minArgs) {
-      return OK(TUPLE(args.slice(1)));
+      return OK(TUPLE(ensembleArgs));
     }
     const subcommand = args[minArgs].asString?.();
     if (subcommand == null) return ERROR("invalid subcommand name");
     if (subcommand == "subcommands") {
       if (args.length != minArgs + 1) {
-        return ENSEMBLE_ARITY_ERROR(
-          args[0],
-          this.value.argspec.usage(),
-          "subcommands"
+        return ARITY_ERROR(
+          ENSEMBLE_COMMAND_SIGNATURE(
+            args[0],
+            this.value.argspec.usage(),
+            "subcommands"
+          )
         );
       }
       return OK(
@@ -130,7 +144,7 @@ class EnsembleCommand implements Command {
     const command = this.value.scope.resolveNamedCommand(subcommand);
     const cmdline = [
       new EnsembleCommandValue(command),
-      ...args.slice(1, minArgs),
+      ...ensembleArgs,
       ...args.slice(minArgs + 1),
     ];
     return YIELD(new DeferredValue(TUPLE(cmdline), scope));
