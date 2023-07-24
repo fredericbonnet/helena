@@ -124,6 +124,21 @@ the newly created command.
 Macro commands are commands that execute a body script in the calling
 scope.
 
+### Help
+
+Macros have built-in support for `help` generated from their
+argspec.
+
+- ✅ zero
+
+- ✅ one
+
+- ✅ two
+
+- ✅ optional
+
+- ✅ remainder
+
 ### Arguments
 
 - ✅ should shadow scope variables

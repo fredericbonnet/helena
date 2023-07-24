@@ -257,6 +257,55 @@ describe("Helena macros", () => {
        */
     });
 
+    mochadoc.section("Help", () => {
+      mochadoc.description(() => {
+        /**
+         * Macros have built-in support for `help` generated from their
+         * argspec.
+         */
+      });
+
+      specify("zero", () => {
+        evaluate("macro cmd {} {}");
+        expect(evaluate("help cmd")).to.eql(STR("cmd"));
+        expect(execute("help cmd foo")).to.eql(
+          ERROR('wrong # args: should be "cmd"')
+        );
+      });
+      specify("one", () => {
+        evaluate("macro cmd {a} {}");
+        expect(evaluate("help cmd")).to.eql(STR("cmd a"));
+        expect(evaluate("help cmd foo")).to.eql(STR("cmd a"));
+        expect(execute("help cmd foo bar")).to.eql(
+          ERROR('wrong # args: should be "cmd a"')
+        );
+      });
+      specify("two", () => {
+        evaluate("macro cmd {a b} {}");
+        expect(evaluate("help cmd")).to.eql(STR("cmd a b"));
+        expect(evaluate("help cmd foo")).to.eql(STR("cmd a b"));
+        expect(evaluate("help cmd foo bar")).to.eql(STR("cmd a b"));
+        expect(execute("help cmd foo bar baz")).to.eql(
+          ERROR('wrong # args: should be "cmd a b"')
+        );
+      });
+      specify("optional", () => {
+        evaluate("macro cmd {?a} {}");
+        expect(evaluate("help cmd")).to.eql(STR("cmd ?a?"));
+        expect(evaluate("help cmd foo")).to.eql(STR("cmd ?a?"));
+        expect(execute("help cmd foo bar")).to.eql(
+          ERROR('wrong # args: should be "cmd ?a?"')
+        );
+      });
+      specify("remainder", () => {
+        evaluate("macro cmd {a *} {}");
+        expect(evaluate("help cmd")).to.eql(STR("cmd a ?arg ...?"));
+        expect(evaluate("help cmd foo")).to.eql(STR("cmd a ?arg ...?"));
+        expect(evaluate("help cmd foo bar")).to.eql(STR("cmd a ?arg ...?"));
+        expect(evaluate("help cmd foo bar baz")).to.eql(STR("cmd a ?arg ...?"));
+      });
+    });
+
     mochadoc.section("Arguments", () => {
       it("should shadow scope variables", () => {
         evaluate("set var val");

@@ -51,6 +51,9 @@ class ClosureMetacommand implements CommandValue, Command {
     });
   }
 }
+
+const CLOSURE_COMMAND_SIGNATURE = (name, help) =>
+  `${name.asString?.() ?? "<closure>"}${help ? " " + help : ""}`;
 class ClosureCommand implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
@@ -63,9 +66,7 @@ class ClosureCommand implements CommandValue, Command {
   execute(args: Value[]): Result {
     if (!this.metacommand.argspec.checkArity(args, 1)) {
       return ARITY_ERROR(
-        `${
-          args[0].asString?.() ?? "<closure>"
-        } ${this.metacommand.argspec.usage()}`
+        CLOSURE_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage())
       );
     }
     const subscope = new Scope(this.metacommand.scope, true);
@@ -92,6 +93,19 @@ class ClosureCommand implements CommandValue, Command {
       return process.run();
     }
     return OK(result.value);
+  }
+  help(args: Value[]): Result {
+    if (
+      !this.metacommand.argspec.checkArity(args, 1) &&
+      args.length > this.metacommand.argspec.argspec.nbRequired
+    ) {
+      return ARITY_ERROR(
+        CLOSURE_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage())
+      );
+    }
+    return OK(
+      STR(CLOSURE_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage()))
+    );
   }
 }
 

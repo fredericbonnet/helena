@@ -45,6 +45,8 @@ class MacroMetacommand implements CommandValue, Command {
   }
 }
 
+const MACRO_COMMAND_SIGNATURE = (name, help) =>
+  `${name.asString?.() ?? "<macro>"}${help ? " " + help : ""}`;
 class MacroCommand implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;
@@ -57,9 +59,7 @@ class MacroCommand implements CommandValue, Command {
   execute(args: Value[], scope: Scope): Result {
     if (!this.metacommand.argspec.checkArity(args, 1)) {
       return ARITY_ERROR(
-        `${
-          args[0].asString?.() ?? "<macro>"
-        } ${this.metacommand.argspec.usage()}`
+        MACRO_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage())
       );
     }
     const subscope = new Scope(scope, true);
@@ -86,6 +86,19 @@ class MacroCommand implements CommandValue, Command {
       return process.run();
     }
     return OK(result.value);
+  }
+  help(args: Value[]): Result {
+    if (
+      !this.metacommand.argspec.checkArity(args, 1) &&
+      args.length > this.metacommand.argspec.argspec.nbRequired
+    ) {
+      return ARITY_ERROR(
+        MACRO_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage())
+      );
+    }
+    return OK(
+      STR(MACRO_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage()))
+    );
   }
 }
 

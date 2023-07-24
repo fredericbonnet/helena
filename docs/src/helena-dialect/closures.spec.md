@@ -124,6 +124,21 @@ the newly created command.
 Closure commands are commands that execute a body script in the scope
 where they are created.
 
+### Help
+
+Closures have built-in support for `help` generated from their
+argspec.
+
+- ✅ zero
+
+- ✅ one
+
+- ✅ two
+
+- ✅ optional
+
+- ✅ remainder
+
 ### Arguments
 
 - ✅ should shadow scope variables
