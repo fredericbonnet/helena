@@ -122,7 +122,7 @@ const helpCmd: Command = {
     const command = scope.resolveNamedCommand(cmdname);
     if (!command) return ERROR(`unknown command "${cmdname}"`);
     if (!command.help) return ERROR(`no help for command "${cmdname}"`);
-    return command.help(args.slice(1), scope);
+    return command.help(args.slice(1), 0, scope);
   },
   help: () => {
     return OK(STR(HELP_SIGNATURE));

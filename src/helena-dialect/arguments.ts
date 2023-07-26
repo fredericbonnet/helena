@@ -119,9 +119,10 @@ function buildArgument(value: Value): Result<Argument> {
     }
   }
 }
-export function buildUsage(args: Argument[]) {
+export function buildUsage(args: Argument[], skip = 0) {
   const parts = [];
-  for (const arg of args) {
+  for (let i = skip; i < args.length; i++) {
+    const arg = args[i];
     switch (arg.type) {
       case "required":
         parts.push(arg.name);

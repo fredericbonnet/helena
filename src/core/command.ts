@@ -33,9 +33,10 @@ export interface Command {
    * Provided arguments will be validated
    *
    * @param args      - Argument values (can be partial)
+   * @param [skip]    - Number of leading arguments to skip
    * @param [context] - Opaque context
    *
    * @returns           Validation result
    */
-  help?(args: Value[], context?: unknown): Result;
+  help?(args: Value[], skip?: number, context?: unknown): Result;
 }

@@ -1,15 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Result, OK, ERROR, ResultCode } from "../core/results";
 import { Command } from "../core/command";
-import {
-  Value,
-  StringValue,
-  ValueType,
-  ScriptValue,
-  NIL,
-  STR,
-  TUPLE,
-} from "../core/values";
+import { Value, ValueType, ScriptValue, NIL, STR, TUPLE } from "../core/values";
 import { Argument, ARITY_ERROR, buildArguments, buildUsage } from "./arguments";
 import { CommandValue, commandValueType, Scope } from "./core";
 import { valueToArray } from "./lists";
@@ -17,13 +9,11 @@ import { Subcommands } from "./subcommands";
 
 export class Argspec {
   readonly args: Argument[];
-  readonly usage: StringValue;
   readonly nbRequired: number = 0;
   readonly nbOptional: number = 0;
   readonly hasRemainder: boolean = false;
   constructor(args: Argument[]) {
     this.args = args;
-    this.usage = STR(buildUsage(args));
     for (const arg of args) {
       switch (arg.type) {
         case "required":
@@ -61,8 +51,8 @@ export class ArgspecValue implements CommandValue, Command {
     return OK(command, command);
   }
 
-  usage(): string {
-    return this.argspec.usage.asString();
+  usage(skip = 0): string {
+    return buildUsage(this.argspec.args, skip);
   }
   checkArity(values: Value[], skip: number) {
     return (
@@ -137,7 +127,7 @@ export class ArgspecValue implements CommandValue, Command {
       },
       usage: () => {
         if (args.length != 2) return ARITY_ERROR("<argspec> usage");
-        return OK(this.argspec.usage);
+        return OK(STR(this.usage()));
       },
       set: () => {
         if (args.length != 3) return ARITY_ERROR("<argspec> set values");
