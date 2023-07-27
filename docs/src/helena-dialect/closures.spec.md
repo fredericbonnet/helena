@@ -139,6 +139,8 @@ argspec.
 
 - ✅ remainder
 
+- ✅ anonymous
+
 ### Arguments
 
 - ✅ should shadow scope variables

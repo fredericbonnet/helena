@@ -11,9 +11,10 @@ import {
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { NIL, STR, TUPLE } from "../core/values";
-import { Scope } from "./core";
+import { CommandValue, commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock } from "./test-helpers";
+import { Command } from "../core/command";
 
 describe("Helena basic commands", () => {
   let rootScope: Scope;
@@ -562,6 +563,23 @@ describe("Helena basic commands", () => {
           STR("help command ?arg ...?")
         );
       });
+      it("should return the command help", () => {
+        const command: Command = {
+          execute() {
+            return OK(NIL);
+          },
+          help() {
+            return OK(STR("this is a help string"));
+          },
+        };
+        rootScope.setNamedConstant("cmd", {
+          type: commandValueType,
+          command,
+        } as CommandValue);
+        rootScope.registerNamedCommand("cmd", command);
+        expect(evaluate("help cmd")).to.eql(STR("this is a help string"));
+        expect(evaluate("help $cmd")).to.eql(STR("this is a help string"));
+      });
     });
 
     mochadoc.section("Exceptions", () => {
@@ -576,8 +594,8 @@ describe("Helena basic commands", () => {
       });
       specify("invalid `command`", () => {
         /**
-         * Only named commands are supported, hence the `command` argument must
-         * have a valid string representation.
+         * The `command` argument must either be a command value or have a valid
+         * string representation.
          */
         expect(execute("help []")).to.eql(ERROR("invalid command name"));
       });
@@ -593,11 +611,17 @@ describe("Helena basic commands", () => {
         /**
          * The command cannot get help for a command that has none.
          */
-        rootScope.registerNamedCommand("cmd", {
+        const command: Command = {
           execute() {
             return OK(NIL);
           },
-        });
+        };
+        rootScope.setNamedConstant("cmd", {
+          type: commandValueType,
+          command,
+        } as CommandValue);
+        rootScope.registerNamedCommand("cmd", command);
+        expect(execute("help $cmd")).to.eql(ERROR("no help for command"));
         expect(execute("help cmd")).to.eql(ERROR('no help for command "cmd"'));
       });
     });

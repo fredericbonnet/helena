@@ -11,7 +11,7 @@ import {
 import { Command } from "../core/command";
 import { NIL, STR } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { DeferredValue, Scope } from "./core";
+import { CommandValue, commandValueType, DeferredValue, Scope } from "./core";
 
 const IDEM_SIGNATURE = "idem value";
 const idemCmd: Command = {
@@ -118,10 +118,18 @@ const helpCmd: Command = {
   execute: (args, scope: Scope) => {
     if (args.length < 2) return ARITY_ERROR(HELP_SIGNATURE);
     const cmdname = args[1].asString?.();
-    if (cmdname == null) return ERROR("invalid command name");
-    const command = scope.resolveNamedCommand(cmdname);
-    if (!command) return ERROR(`unknown command "${cmdname}"`);
-    if (!command.help) return ERROR(`no help for command "${cmdname}"`);
+    let command;
+    if (args[1].type == commandValueType) {
+      command = (args[1] as CommandValue).command;
+    } else {
+      if (cmdname == null) return ERROR("invalid command name");
+      command = scope.resolveNamedCommand(cmdname);
+      if (!command) return ERROR(`unknown command "${cmdname}"`);
+    }
+    if (!command.help)
+      return ERROR(
+        cmdname ? `no help for command "${cmdname}"` : "no help for command"
+      );
     return command.help(args.slice(1), {}, scope);
   },
   help: () => {

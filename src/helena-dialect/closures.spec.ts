@@ -305,6 +305,15 @@ describe("Helena closures", () => {
         expect(evaluate("help cmd foo bar")).to.eql(STR("cmd a ?arg ...?"));
         expect(evaluate("help cmd foo bar baz")).to.eql(STR("cmd a ?arg ...?"));
       });
+      specify("anonymous", () => {
+        evaluate("set cmd [closure {a ?b} {}]");
+        expect(evaluate("help [$cmd]")).to.eql(STR("<closure> a ?b?"));
+        expect(evaluate("help [$cmd] foo")).to.eql(STR("<closure> a ?b?"));
+        expect(evaluate("help [$cmd] foo bar")).to.eql(STR("<closure> a ?b?"));
+        expect(execute("help [$cmd] foo bar baz")).to.eql(
+          ERROR('wrong # args: should be "<closure> a ?b?"')
+        );
+      });
     });
 
     mochadoc.section("Arguments", () => {

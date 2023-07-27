@@ -315,6 +315,8 @@ The `help` command returns a help string for the given command.
 
   Passing extra arguments will validate the command signature.
 
+- ✅ should return the command help
+
 ### Exceptions
 
 - ✅ wrong arity
@@ -324,8 +326,8 @@ The `help` command returns a help string for the given command.
 
 - ✅ invalid `command`
 
-  Only named commands are supported, hence the `command` argument must
-  have a valid string representation.
+  The `command` argument must either be a command value or have a valid
+  string representation.
 
 - ✅ unknown command
 

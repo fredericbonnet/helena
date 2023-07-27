@@ -304,6 +304,15 @@ describe("Helena macros", () => {
         expect(evaluate("help cmd foo bar")).to.eql(STR("cmd a ?arg ...?"));
         expect(evaluate("help cmd foo bar baz")).to.eql(STR("cmd a ?arg ...?"));
       });
+      specify("anonymous", () => {
+        evaluate("set cmd [macro {a ?b} {}]");
+        expect(evaluate("help [$cmd]")).to.eql(STR("<macro> a ?b?"));
+        expect(evaluate("help [$cmd] foo")).to.eql(STR("<macro> a ?b?"));
+        expect(evaluate("help [$cmd] foo bar")).to.eql(STR("<macro> a ?b?"));
+        expect(execute("help [$cmd] foo bar baz")).to.eql(
+          ERROR('wrong # args: should be "<macro> a ?b?"')
+        );
+      });
     });
 
     mochadoc.section("Arguments", () => {
