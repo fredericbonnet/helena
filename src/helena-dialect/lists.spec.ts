@@ -115,11 +115,20 @@ describe("Helena lists", () => {
 
       mochadoc.section("Introspection", () => {
         describe("`subcommands`", () => {
-          it("should return list of subcommands", () => {
+          mochadoc.description(usage("list () subcommands"));
+          mochadoc.description(() => {
             /**
              * This subcommand is useful for introspection and interactive
              * calls.
              */
+          });
+
+          specify("usage", () => {
+            expect(evaluate("help list () subcommands")).to.eql(
+              STR("list value subcommands")
+            );
+          });
+          it("should return list of subcommands", () => {
             expect(evaluate("list {} subcommands")).to.eql(
               evaluate(
                 "list (subcommands length at range append remove insert replace foreach)"
@@ -137,12 +146,23 @@ describe("Helena lists", () => {
             expect(execute("list {} subcommands a")).to.eql(
               ERROR('wrong # args: should be "list value subcommands"')
             );
+            expect(execute("help list {} subcommands a")).to.eql(
+              ERROR('wrong # args: should be "list value subcommands"')
+            );
           });
         });
       });
 
       mochadoc.section("Accessors", () => {
         describe("`length`", () => {
+          mochadoc.summary("Get list length");
+          mochadoc.description(usage("list () length"));
+
+          specify("usage", () => {
+            expect(evaluate("help list () length")).to.eql(
+              STR("list value length")
+            );
+          });
           it("should return the list length", () => {
             expect(evaluate("list () length")).to.eql(INT(0));
             expect(evaluate("list (a b c) length")).to.eql(INT(3));
@@ -156,15 +176,26 @@ describe("Helena lists", () => {
               expect(execute("list () length a")).to.eql(
                 ERROR('wrong # args: should be "list value length"')
               );
+              expect(execute("help list () length a")).to.eql(
+                ERROR('wrong # args: should be "list value length"')
+              );
             });
           });
         });
 
         describe("`at`", () => {
-          it("should return the element at the given index", () => {
+          mochadoc.summary("Get list element");
+          mochadoc.description(usage("list () at"));
+
+          specify("usage", () => {
+            expect(evaluate("help list () at")).to.eql(
+              STR("list value at index ?default?")
+            );
+          });
+          it("should return the element at `index`", () => {
             expect(evaluate("list (a b c) at 1")).to.eql(STR("b"));
           });
-          it("should return the default value for an out-of-range index", () => {
+          it("should return the default value for an out-of-range `index`", () => {
             expect(evaluate("list (a b c) at 10 default")).to.eql(
               STR("default")
             );
@@ -197,13 +228,16 @@ describe("Helena lists", () => {
               expect(execute("list (a b c) at a b c")).to.eql(
                 ERROR('wrong # args: should be "list value at index ?default?"')
               );
+              expect(execute("help list (a b c) at a b c")).to.eql(
+                ERROR('wrong # args: should be "list value at index ?default?"')
+              );
             });
-            specify("invalid index", () => {
+            specify("invalid `index`", () => {
               expect(execute("list (a b c) at a")).to.eql(
                 ERROR('invalid integer "a"')
               );
             });
-            specify("index out of range", () => {
+            specify("`index` out of range", () => {
               expect(execute("list (a b c) at -1")).to.eql(
                 ERROR('index out of range "-1"')
               );
@@ -215,14 +249,22 @@ describe("Helena lists", () => {
         });
       });
 
-      mochadoc.section("List operations", () => {
+      mochadoc.section("Operations", () => {
         describe("`range`", () => {
-          it("should return the list included within [first, last]", () => {
+          mochadoc.summary("Extract range of elements from a list");
+          mochadoc.description(usage("list () range"));
+
+          specify("usage", () => {
+            expect(evaluate("help list () range")).to.eql(
+              STR("list value range first ?last?")
+            );
+          });
+          it("should return the list included within [`first`, `last`]", () => {
             expect(evaluate("list (a b c d e f) range 1 3")).to.eql(
               evaluate("list (b c d)")
             );
           });
-          it("should return the remainder of the list when given first only", () => {
+          it("should return the remainder of the list when given `first` only", () => {
             expect(evaluate("list (a b c) range 2")).to.eql(
               evaluate("list (c)")
             );
@@ -241,15 +283,15 @@ describe("Helena lists", () => {
               evaluate("list (a b c)")
             );
           });
-          it("should return an empty list when last is before first", () => {
+          it("should return an empty list when `last` is before `first`", () => {
             expect(evaluate("list (a b c) range 2 0")).to.eql(LIST([]));
           });
-          it("should return an empty list when first is past the list length", () => {
+          it("should return an empty list when `first` is past the list length", () => {
             expect(evaluate("list (a b c) range 10 12")).to.eql(
               evaluate("list ()")
             );
           });
-          it("should return an empty list when last is negative", () => {
+          it("should return an empty list when `last` is negative", () => {
             expect(evaluate("list (a b c) range -3 -1")).to.eql(
               evaluate("list ()")
             );
@@ -267,6 +309,9 @@ describe("Helena lists", () => {
               expect(execute("list (a b c) range a b c")).to.eql(
                 ERROR('wrong # args: should be "list value range first ?last?"')
               );
+              expect(execute("help list (a b c) range a b c")).to.eql(
+                ERROR('wrong # args: should be "list value range first ?last?"')
+              );
             });
             specify("invalid index", () => {
               expect(execute("list (a b c) range a")).to.eql(
@@ -280,7 +325,15 @@ describe("Helena lists", () => {
         });
 
         describe("`remove`", () => {
-          it("should remove the range included within [first, last]", () => {
+          mochadoc.summary("Remove range of elements from a list");
+          mochadoc.description(usage("list () remove"));
+
+          specify("usage", () => {
+            expect(evaluate("help list () remove")).to.eql(
+              STR("list value remove first last")
+            );
+          });
+          it("should remove the range included within [`first`, `last`]", () => {
             expect(evaluate("list (a b c d e f) remove 1 3")).to.eql(
               evaluate("list (a e f)")
             );
@@ -296,17 +349,17 @@ describe("Helena lists", () => {
               evaluate("list ()")
             );
           });
-          it("should do nothing when last is before first", () => {
+          it("should do nothing when `last` is before `first`", () => {
             expect(evaluate("list (a b c) remove 2 0")).to.eql(
               evaluate("list (a b c)")
             );
           });
-          it("should do nothing when last is negative", () => {
+          it("should do nothing when `last` is negative", () => {
             expect(evaluate("list (a b c) remove -3 -1")).to.eql(
               evaluate("list (a b c)")
             );
           });
-          it("should do nothing when first is past the list length", () => {
+          it("should do nothing when `first` is past the list length", () => {
             expect(evaluate("list (a b c) remove 10 12")).to.eql(
               evaluate("list (a b c)")
             );
@@ -324,6 +377,9 @@ describe("Helena lists", () => {
               expect(execute("list (a b c) remove a b c d")).to.eql(
                 ERROR('wrong # args: should be "list value remove first last"')
               );
+              expect(execute("help list (a b c) remove a b c d")).to.eql(
+                ERROR('wrong # args: should be "list value remove first last"')
+              );
             });
             specify("invalid index", () => {
               expect(execute("list (a b c) remove a b")).to.eql(
@@ -337,6 +393,14 @@ describe("Helena lists", () => {
         });
 
         describe("`append`", () => {
+          mochadoc.summary("Concatenate lists");
+          mochadoc.description(usage("list () append"));
+
+          specify("usage", () => {
+            expect(evaluate("help list () append")).to.eql(
+              STR("list value append ?list ...?")
+            );
+          });
           it("should append two lists", () => {
             expect(evaluate("list (a b c) append (foo bar)")).to.eql(
               evaluate("list (a b c foo bar)")
@@ -354,7 +418,7 @@ describe("Helena lists", () => {
           });
 
           describe("Exceptions", () => {
-            specify("invalid values", () => {
+            specify("invalid list values", () => {
               expect(execute("list (a b c) append []")).to.eql(
                 ERROR("invalid list")
               );
@@ -369,17 +433,25 @@ describe("Helena lists", () => {
         });
 
         describe("`insert`", () => {
-          it("should insert the list at the given index", () => {
+          mochadoc.summary("Insert list elements into a list");
+          mochadoc.description(usage("list () insert"));
+
+          specify("usage", () => {
+            expect(evaluate("help list () insert")).to.eql(
+              STR("list value insert index value2")
+            );
+          });
+          it("should insert `list` at `index`", () => {
             expect(evaluate("list (a b c) insert 1 (foo bar)")).to.eql(
               evaluate("list (a foo bar b c)")
             );
           });
-          it("should prepend the list when index is negative", () => {
+          it("should prepend `list` when `index` is negative", () => {
             expect(evaluate("list (a b c) insert -10 (foo bar)")).to.eql(
               evaluate("list (foo bar a b c)")
             );
           });
-          it("should append the list when index is past the list length", () => {
+          it("should append `list` when `index` is past the target list length", () => {
             expect(evaluate("list (a b c) insert 10 (foo bar)")).to.eql(
               evaluate("list (a b c foo bar)")
             );
@@ -392,18 +464,27 @@ describe("Helena lists", () => {
                * given the wrong number of arguments.
                */
               expect(execute("list (a b c) insert a")).to.eql(
-                ERROR('wrong # args: should be "list value insert index new"')
+                ERROR(
+                  'wrong # args: should be "list value insert index value2"'
+                )
               );
               expect(execute("list (a b c) insert a b c")).to.eql(
-                ERROR('wrong # args: should be "list value insert index new"')
+                ERROR(
+                  'wrong # args: should be "list value insert index value2"'
+                )
+              );
+              expect(execute("help list (a b c) insert a b c")).to.eql(
+                ERROR(
+                  'wrong # args: should be "list value insert index value2"'
+                )
               );
             });
-            specify("invalid index", () => {
+            specify("invalid `index`", () => {
               expect(execute("list (a b c) insert a b")).to.eql(
                 ERROR('invalid integer "a"')
               );
             });
-            specify("invalid values", () => {
+            specify("invalid `list`", () => {
               expect(execute("list (a b c) insert 1 []")).to.eql(
                 ERROR("invalid list")
               );
@@ -418,7 +499,15 @@ describe("Helena lists", () => {
         });
 
         describe("`replace`", () => {
-          it("should replace the range included within [first, last] with the given list", () => {
+          mochadoc.summary("Replace range of elements in a list");
+          mochadoc.description(usage("list () replace"));
+
+          specify("usage", () => {
+            expect(evaluate("help list () replace")).to.eql(
+              STR("list value replace first last value2")
+            );
+          });
+          it("should replace the range included within [`first`, `last`] with `list`", () => {
             expect(evaluate("list (a b c d e) replace 1 3 (foo bar)")).to.eql(
               evaluate("list (a foo bar e)")
             );
@@ -434,17 +523,17 @@ describe("Helena lists", () => {
               evaluate("list (foo bar)")
             );
           });
-          it("should insert the list at first index when last is before first", () => {
+          it("should insert `list` at `first` when `last` is before `first`", () => {
             expect(evaluate("list (a b c) replace 2 0 (foo bar)")).to.eql(
               evaluate("list (a b foo bar c)")
             );
           });
-          it("should prepend the list when last is negative", () => {
+          it("should prepend `list` when `last` is negative", () => {
             expect(evaluate("list (a b c) replace -3 -1 (foo bar)")).to.eql(
               evaluate("list (foo bar a b c)")
             );
           });
-          it("should append the list when first is past the list length", () => {
+          it("should append `list` when `first` is past the target list length", () => {
             expect(evaluate("list (a b c) replace 10 12 (foo bar)")).to.eql(
               evaluate("list (a b c foo bar)")
             );
@@ -458,12 +547,17 @@ describe("Helena lists", () => {
                */
               expect(execute("list (a b c) replace a b")).to.eql(
                 ERROR(
-                  'wrong # args: should be "list value replace first last new"'
+                  'wrong # args: should be "list value replace first last value2"'
                 )
               );
               expect(execute("list (a b c) replace a b c d")).to.eql(
                 ERROR(
-                  'wrong # args: should be "list value replace first last new"'
+                  'wrong # args: should be "list value replace first last value2"'
+                )
+              );
+              expect(execute("help list (a b c) replace a b c d")).to.eql(
+                ERROR(
+                  'wrong # args: should be "list value replace first last value2"'
                 )
               );
             });
@@ -475,7 +569,7 @@ describe("Helena lists", () => {
                 ERROR('invalid integer "b"')
               );
             });
-            specify("invalid values", () => {
+            specify("invalid `list`", () => {
               expect(execute("list (a b c) replace 1 1 []")).to.eql(
                 ERROR("invalid list")
               );
@@ -492,6 +586,14 @@ describe("Helena lists", () => {
 
       mochadoc.section("Iteration", () => {
         describe("`foreach`", () => {
+          mochadoc.summary("Iterate over list elements");
+          mochadoc.description(usage("list () foreach"));
+
+          specify("usage", () => {
+            expect(evaluate("help list () foreach")).to.eql(
+              STR("list value foreach element body")
+            );
+          });
           it("should iterate over elements", () => {
             evaluate(`
             set elements [list ()]
@@ -611,6 +713,11 @@ describe("Helena lists", () => {
                 )
               );
               expect(execute("list (a b c) foreach a b c")).to.eql(
+                ERROR(
+                  'wrong # args: should be "list value foreach element body"'
+                )
+              );
+              expect(execute("help list (a b c) foreach a b c")).to.eql(
                 ERROR(
                   'wrong # args: should be "list value foreach element body"'
                 )
@@ -748,6 +855,23 @@ describe("Helena lists", () => {
           }
         `);
         expect(evaluate("list (a b c) foo")).to.eql(STR("bar"));
+      });
+      it("should support help for custom subcommands", () => {
+        /**
+         * Like all ensemble commands, `list` have built-in support for `help`
+         * on all subcommands that support it.
+         */
+        evaluate(`
+          [list] eval {
+            macro foo {value a b} {idem bar}
+          }
+        `);
+        expect(evaluate("help list (a b c) foo")).to.eql(
+          STR("list value foo a b")
+        );
+        expect(execute("help list (a b c) foo 1 2 3")).to.eql(
+          ERROR('wrong # args: should be "list value foo a b"')
+        );
       });
 
       mochadoc.section("Examples", () => {

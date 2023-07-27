@@ -10,7 +10,7 @@ List handling
 ### Usage
 
 ```lna
-list ?value? ?subcommand? ?arg ...?
+list value ?subcommand? ?arg ...?
 ```
 
 The `list` command is a type command dedicated to list values. It
@@ -66,12 +66,18 @@ listed here.
 
 #### Introspection
 
-- `subcommands`
+##### `subcommands`
 
-  - ✅ should return list of subcommands
+```lna
+list value subcommands
+```
 
-    This subcommand is useful for introspection and interactive
-    calls.
+This subcommand is useful for introspection and interactive
+calls.
+
+- ✅ usage
+
+- ✅ should return list of subcommands
 
 - Exceptions
 
@@ -82,180 +88,244 @@ listed here.
 
 #### Accessors
 
-- `length`
+##### `length`
 
-  - ✅ should return the list length
+Get list length
 
-  - Exceptions
+```lna
+list value length
+```
 
-    - ✅ wrong arity
+- ✅ usage
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+- ✅ should return the list length
 
-- `at`
+- Exceptions
 
-  - ✅ should return the element at the given index
+  - ✅ wrong arity
 
-  - ✅ should return the default value for an out-of-range index
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
-  - ✅ `at` <-> indexed selector equivalence
+##### `at`
 
-  - Exceptions
+Get list element
 
-    - ✅ wrong arity
+```lna
+list value at index ?default?
+```
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+- ✅ usage
 
-    - ✅ invalid index
+- ✅ should return the element at `index`
 
-    - ✅ index out of range
+- ✅ should return the default value for an out-of-range `index`
 
-#### List operations
+- ✅ `at` <-> indexed selector equivalence
 
-- `range`
+- Exceptions
 
-  - ✅ should return the list included within [first, last]
+  - ✅ wrong arity
 
-  - ✅ should return the remainder of the list when given first only
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
-  - ✅ should truncate out of range boundaries
+  - ✅ invalid `index`
 
-  - ✅ should return an empty list when last is before first
+  - ✅ `index` out of range
 
-  - ✅ should return an empty list when first is past the list length
+#### Operations
 
-  - ✅ should return an empty list when last is negative
+##### `range`
 
-  - Exceptions
+Extract range of elements from a list
 
-    - ✅ wrong arity
+```lna
+list value range first ?last?
+```
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+- ✅ usage
 
-    - ✅ invalid index
+- ✅ should return the list included within [`first`, `last`]
 
-- `remove`
+- ✅ should return the remainder of the list when given `first` only
 
-  - ✅ should remove the range included within [first, last]
+- ✅ should truncate out of range boundaries
 
-  - ✅ should truncate out of range boundaries
+- ✅ should return an empty list when `last` is before `first`
 
-  - ✅ should do nothing when last is before first
+- ✅ should return an empty list when `first` is past the list length
 
-  - ✅ should do nothing when last is negative
+- ✅ should return an empty list when `last` is negative
 
-  - ✅ should do nothing when first is past the list length
+- Exceptions
 
-  - Exceptions
+  - ✅ wrong arity
 
-    - ✅ wrong arity
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+  - ✅ invalid index
 
-    - ✅ invalid index
+##### `remove`
 
-- `append`
+Remove range of elements from a list
 
-  - ✅ should append two lists
+```lna
+list value remove first last
+```
 
-  - ✅ should accept several lists
+- ✅ usage
 
-  - ✅ should accept zero list
+- ✅ should remove the range included within [`first`, `last`]
 
-  - Exceptions
+- ✅ should truncate out of range boundaries
 
-    - ✅ invalid values
+- ✅ should do nothing when `last` is before `first`
 
-- `insert`
+- ✅ should do nothing when `last` is negative
 
-  - ✅ should insert the list at the given index
+- ✅ should do nothing when `first` is past the list length
 
-  - ✅ should prepend the list when index is negative
+- Exceptions
 
-  - ✅ should append the list when index is past the list length
+  - ✅ wrong arity
 
-  - Exceptions
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
-    - ✅ wrong arity
+  - ✅ invalid index
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+##### `append`
 
-    - ✅ invalid index
+Concatenate lists
 
-    - ✅ invalid values
+```lna
+list value append ?list ...?
+```
 
-- `replace`
+- ✅ usage
 
-  - ✅ should replace the range included within [first, last] with the given list
+- ✅ should append two lists
 
-  - ✅ should truncate out of range boundaries
+- ✅ should accept several lists
 
-  - ✅ should insert the list at first index when last is before first
+- ✅ should accept zero list
 
-  - ✅ should prepend the list when last is negative
+- Exceptions
 
-  - ✅ should append the list when first is past the list length
+  - ✅ invalid list values
 
-  - Exceptions
+##### `insert`
 
-    - ✅ wrong arity
+Insert list elements into a list
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+```lna
+list value insert index value2
+```
 
-    - ✅ invalid index
+- ✅ usage
 
-    - ✅ invalid values
+- ✅ should insert `list` at `index`
+
+- ✅ should prepend `list` when `index` is negative
+
+- ✅ should append `list` when `index` is past the target list length
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+  - ✅ invalid `index`
+
+  - ✅ invalid `list`
+
+##### `replace`
+
+Replace range of elements in a list
+
+```lna
+list value replace first last value2
+```
+
+- ✅ usage
+
+- ✅ should replace the range included within [`first`, `last`] with `list`
+
+- ✅ should truncate out of range boundaries
+
+- ✅ should insert `list` at `first` when `last` is before `first`
+
+- ✅ should prepend `list` when `last` is negative
+
+- ✅ should append `list` when `first` is past the target list length
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+  - ✅ invalid index
+
+  - ✅ invalid `list`
 
 #### Iteration
 
-- `foreach`
+##### `foreach`
 
-  - ✅ should iterate over elements
+Iterate over list elements
 
-  - ✅ should return the result of the last command
+```lna
+list value foreach element body
+```
 
-  - Control flow
+- ✅ usage
 
-    - `return`
+- ✅ should iterate over elements
 
-      - ✅ should interrupt the loop with `RETURN` code
+- ✅ should return the result of the last command
 
-    - `tailcall`
+- Control flow
 
-      - ✅ should interrupt the loop with `RETURN` code
+  - `return`
 
-    - `yield`
+    - ✅ should interrupt the loop with `RETURN` code
 
-      - ✅ should interrupt the body with `YIELD` code
+  - `tailcall`
 
-      - ✅ should provide a resumable state
+    - ✅ should interrupt the loop with `RETURN` code
 
-    - `error`
+  - `yield`
 
-      - ✅ should interrupt the loop with `ERROR` code
+    - ✅ should interrupt the body with `YIELD` code
 
-    - `break`
+    - ✅ should provide a resumable state
 
-      - ✅ should interrupt the body with nil result
+  - `error`
 
-    - `continue`
+    - ✅ should interrupt the loop with `ERROR` code
 
-      - ✅ should interrupt the body iteration
+  - `break`
 
-  - Exceptions
+    - ✅ should interrupt the body with nil result
 
-    - ✅ wrong arity
+  - `continue`
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+    - ✅ should interrupt the body iteration
 
-    - ✅ non-script body
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+  - ✅ non-script body
 
 #### Exceptions
 
@@ -348,6 +418,11 @@ subcommands defined in an ensemble scope.
 
   Creating a command in the `list` ensemble scope will add it to its
   subcommands.
+
+- ✅ should support help for custom subcommands
+
+  Like all ensemble commands, `list` have built-in support for `help`
+  on all subcommands that support it.
 
 #### Examples
 

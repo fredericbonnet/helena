@@ -26,44 +26,56 @@ import { EnsembleMetacommand } from "./ensembles";
 
 class ListCommand implements Command {
   scope: Scope;
-  ensemble: EnsembleMetacommand;
+  metacommand: EnsembleMetacommand;
   constructor(scope: Scope) {
     this.scope = new Scope(scope);
     const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
-    this.ensemble = new EnsembleMetacommand(this.scope, argspec);
+    this.metacommand = new EnsembleMetacommand(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this.ensemble);
+    if (args.length == 1) return OK(this.metacommand);
     if (args.length == 2) return valueToList(args[1]);
-    return this.ensemble.ensemble.execute(args, scope);
+    return this.metacommand.ensemble.execute(args, scope);
   }
   help(args) {
-    // TODO handle args to ensemble subcommands
-    return OK(STR("list ?value? ?subcommand? ?arg ...?"));
+    return this.metacommand.ensemble.help(args, {});
   }
 }
 
+const LIST_LENGTH_SIGNATURE = "list value length";
 const listLengthCmd: Command = {
   execute(args) {
-    if (args.length != 2) return ARITY_ERROR("list value length");
+    if (args.length != 2) return ARITY_ERROR(LIST_LENGTH_SIGNATURE);
     const { data: values, ...result } = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
     return OK(INT(values.length));
   },
+  help(args) {
+    if (args.length > 2) return ARITY_ERROR(LIST_LENGTH_SIGNATURE);
+    return OK(STR(LIST_LENGTH_SIGNATURE));
+  },
 };
+
+const LIST_AT_SIGNATURE = "list value at index ?default?";
 const listAtCmd: Command = {
   execute(args) {
     if (args.length != 3 && args.length != 4)
-      return ARITY_ERROR("list value at index ?default?");
+      return ARITY_ERROR(LIST_AT_SIGNATURE);
     const { data: values, ...result } = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
     return ListValue.at(values, args[2], args[3]);
   },
+  help(args) {
+    if (args.length > 4) return ARITY_ERROR(LIST_AT_SIGNATURE);
+    return OK(STR(LIST_AT_SIGNATURE));
+  },
 };
+
+const LIST_RANGE_SIGNATURE = "list value range first ?last?";
 const listRangeCmd: Command = {
   execute(args) {
     if (args.length != 3 && args.length != 4)
-      return ARITY_ERROR("list value range first ?last?");
+      return ARITY_ERROR(LIST_RANGE_SIGNATURE);
     const { data: values, ...result } = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
     const firstResult = IntegerValue.toInteger(args[2]);
@@ -81,7 +93,13 @@ const listRangeCmd: Command = {
       return OK(LIST(values.slice(first, last + 1)));
     }
   },
+  help(args) {
+    if (args.length > 4) return ARITY_ERROR(LIST_RANGE_SIGNATURE);
+    return OK(STR(LIST_RANGE_SIGNATURE));
+  },
 };
+
+const LIST_APPEND_SIGNATURE = "list value append ?list ...?";
 const listAppendCmd: Command = {
   execute(args) {
     const { data: values, ...result } = valueToArray(args[1]);
@@ -94,11 +112,16 @@ const listAppendCmd: Command = {
     }
     return OK(LIST(values2));
   },
+  help() {
+    return OK(STR(LIST_APPEND_SIGNATURE));
+  },
 };
+
+const LIST_REMOVE_SIGNATURE = "list value remove first last";
 const listRemoveCmd: Command = {
   execute(args) {
     if (args.length != 4 && args.length != 5)
-      return ARITY_ERROR("list value remove first last");
+      return ARITY_ERROR(LIST_REMOVE_SIGNATURE);
     const { data: values, ...result } = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
     const firstResult = IntegerValue.toInteger(args[2]);
@@ -111,10 +134,16 @@ const listRemoveCmd: Command = {
     const tail = values.slice(Math.max(first, last + 1));
     return OK(LIST([...head, ...tail]));
   },
+  help(args) {
+    if (args.length > 4) return ARITY_ERROR(LIST_REMOVE_SIGNATURE);
+    return OK(STR(LIST_REMOVE_SIGNATURE));
+  },
 };
+
+const LIST_INSERT_SIGNATURE = "list value insert index value2";
 const listInsertCmd: Command = {
   execute(args) {
-    if (args.length != 4) return ARITY_ERROR("list value insert index new");
+    if (args.length != 4) return ARITY_ERROR(LIST_INSERT_SIGNATURE);
     const { data: values, ...result } = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
     const indexResult = IntegerValue.toInteger(args[2]);
@@ -126,11 +155,16 @@ const listInsertCmd: Command = {
     const tail = values.slice(index);
     return OK(LIST([...head, ...insert, ...tail]));
   },
+  help(args) {
+    if (args.length > 4) return ARITY_ERROR(LIST_INSERT_SIGNATURE);
+    return OK(STR(LIST_INSERT_SIGNATURE));
+  },
 };
+
+const LIST_REPLACE_SIGNATURE = "list value replace first last value2";
 const listReplaceCmd: Command = {
   execute(args) {
-    if (args.length != 5)
-      return ARITY_ERROR("list value replace first last new");
+    if (args.length != 5) return ARITY_ERROR(LIST_REPLACE_SIGNATURE);
     const { data: values, ...result } = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
     const firstResult = IntegerValue.toInteger(args[2]);
@@ -145,7 +179,13 @@ const listReplaceCmd: Command = {
     if (result2.code != ResultCode.OK) return result2;
     return OK(LIST([...head, ...insert, ...tail]));
   },
+  help(args) {
+    if (args.length > 5) return ARITY_ERROR(LIST_REPLACE_SIGNATURE);
+    return OK(STR(LIST_REPLACE_SIGNATURE));
+  },
 };
+
+const LIST_FOREACH_SIGNATURE = "list value foreach element body";
 type ListForeachState = {
   varname: Value;
   it: IterableIterator<Value>;
@@ -157,7 +197,7 @@ type ListForeachState = {
 };
 class ListForeachCommand implements Command {
   execute(args, scope: Scope) {
-    if (args.length != 4) return ARITY_ERROR("list value foreach element body");
+    if (args.length != 4) return ARITY_ERROR(LIST_FOREACH_SIGNATURE);
     const { data: values, ...result } = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
     const varname = args[2];
@@ -178,6 +218,10 @@ class ListForeachCommand implements Command {
     const state = result.data as ListForeachState;
     state.process.yieldBack(result.value);
     return this.run(state);
+  }
+  help(args) {
+    if (args.length > 4) return ARITY_ERROR(LIST_FOREACH_SIGNATURE);
+    return OK(STR(LIST_FOREACH_SIGNATURE));
   }
   private run(state: ListForeachState) {
     for (;;) {
