@@ -10,7 +10,7 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { INT, LIST, STR, TUPLE } from "../core/values";
+import { INT, LIST, NIL, STR, TUPLE } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, specifyExample } from "./test-helpers";
@@ -161,7 +161,7 @@ describe("Helena ensembles", () => {
         });
 
         describe("`return`", () => {
-          it("should interrupt the body with OK code", () => {
+          it("should interrupt the body with `OK` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             expect(execute("ensemble {} {cmd1; return; cmd2}").code).to.eql(
@@ -178,7 +178,7 @@ describe("Helena ensembles", () => {
           });
         });
         describe("`tailcall`", () => {
-          it("should interrupt the body with OK code", () => {
+          it("should interrupt the body with `OK` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             expect(
@@ -633,6 +633,11 @@ describe("Helena ensembles", () => {
               ERROR('unknown subcommand "unknownSubcommand"')
             );
           });
+          specify("invalid subcommand name", () => {
+            expect(execute("[ensemble {} {}] []")).to.eql(
+              ERROR("invalid subcommand name")
+            );
+          });
         });
       });
     });
@@ -641,7 +646,7 @@ describe("Helena ensembles", () => {
   mochadoc.section("Ensemble commands", () => {
     mochadoc.description(() => {
       /**
-       * Ensemble commands are commands that gather subcommands defined in its
+       * Ensemble commands are commands that gather subcommands defined in their
        * own child scope.
        */
     });
@@ -681,7 +686,7 @@ describe("Helena ensembles", () => {
          */
         evaluate("ensemble cmd {a b} {}");
         expect(execute("cmd a")).to.eql(
-          ERROR('wrong # args: should be "cmd a b ?cmdname? ?arg ...?"')
+          ERROR('wrong # args: should be "cmd a b ?subcommand? ?arg ...?"')
         );
       });
       specify("failed guards", () => {
@@ -702,6 +707,7 @@ describe("Helena ensembles", () => {
          * subcommands.
          */
       });
+
       specify(
         "first argument after ensemble arguments should be ensemble subcommand name",
         () => {
@@ -743,9 +749,186 @@ describe("Helena ensembles", () => {
         );
       });
 
-      describe("Control flow", () => {
+      mochadoc.section("Introspection", () => {
+        describe("`subcommands`", () => {
+          mochadoc.description(() => {
+            /**
+             * `subcommands` is a predefined subcommand that is available for
+             * all ensemble commands.
+             */
+          });
+          beforeEach(() => {
+            evaluate("ensemble cmd1 {} {}");
+            evaluate("ensemble cmd2 {a b} {}");
+          });
+          it("should return list of subcommands", () => {
+            expect(evaluate("cmd1 subcommands")).to.eql(
+              evaluate("list (subcommands)")
+            );
+            evaluate("[cmd1] eval {macro mac1 {} {}}");
+            expect(evaluate("cmd1 subcommands")).to.eql(
+              evaluate("list (subcommands mac1)")
+            );
+
+            expect(evaluate("cmd2 a b subcommands")).to.eql(
+              evaluate("list (subcommands)")
+            );
+            evaluate("[cmd2] eval {macro mac2 {} {}}");
+            expect(evaluate("cmd2 a b subcommands")).to.eql(
+              evaluate("list (subcommands mac2)")
+            );
+          });
+
+          describe("Exceptions", () => {
+            specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
+              expect(execute("cmd1 subcommands a")).to.eql(
+                ERROR('wrong # args: should be "cmd1 subcommands"')
+              );
+              expect(execute("help cmd1 subcommands a")).to.eql(
+                ERROR('wrong # args: should be "cmd1 subcommands"')
+              );
+              expect(execute("cmd2 a b subcommands c")).to.eql(
+                ERROR('wrong # args: should be "cmd2 a b subcommands"')
+              );
+              expect(execute("help cmd2 a b subcommands c")).to.eql(
+                ERROR('wrong # args: should be "cmd2 a b subcommands"')
+              );
+            });
+          });
+        });
+      });
+
+      mochadoc.section("Help", () => {
+        mochadoc.description(() => {
+          /**
+           * Ensemble commands have built-in support for `help` on all
+           * subcommands that support it.
+           */
+        });
+
+        it("should provide subcommand help", () => {
+          evaluate(`
+            ensemble cmd {a} {
+              macro opt1 {a b} {}
+              closure opt2 {c d} {}
+            }
+          `);
+          expect(evaluate("help cmd")).to.eql(
+            STR("cmd a ?subcommand? ?arg ...?")
+          );
+          expect(evaluate("help cmd 1")).to.eql(
+            STR("cmd a ?subcommand? ?arg ...?")
+          );
+          expect(evaluate("help cmd 1 subcommands")).to.eql(
+            STR("cmd a subcommands")
+          );
+          expect(evaluate("help cmd 1 opt1")).to.eql(STR("cmd a opt1 b"));
+          expect(evaluate("help cmd 2 opt1 3")).to.eql(STR("cmd a opt1 b"));
+          expect(evaluate("help cmd 4 opt2")).to.eql(STR("cmd a opt2 d"));
+          expect(evaluate("help cmd 5 opt2 6")).to.eql(STR("cmd a opt2 d"));
+        });
+        it("should work recursively", () => {
+          evaluate(`
+            ensemble cmd {a} {
+              ensemble sub {a b} {
+                macro opt {a b c} {}
+              }
+            }
+          `);
+          expect(evaluate("help cmd 1 sub")).to.eql(
+            STR("cmd a sub b ?subcommand? ?arg ...?")
+          );
+          expect(evaluate("help cmd 1 sub 2")).to.eql(
+            STR("cmd a sub b ?subcommand? ?arg ...?")
+          );
+          expect(evaluate("help cmd 1 sub 2 subcommands")).to.eql(
+            STR("cmd a sub b subcommands")
+          );
+          expect(evaluate("help cmd 1 sub 2 opt")).to.eql(
+            STR("cmd a sub b opt c")
+          );
+          expect(evaluate("help cmd 1 sub 2 opt 3")).to.eql(
+            STR("cmd a sub b opt c")
+          );
+        });
+
+        describe("Exceptions", () => {
+          specify("wrong arity", () => {
+            /**
+             * The command will return an error message with usage when given
+             * the wrong number of arguments.
+             */
+            evaluate(`
+              ensemble cmd {a} {
+                macro opt {a b} {}
+                ensemble sub {a b} {
+                  macro opt {a b c} {}
+                }
+              }
+            `);
+            expect(execute("help cmd 1 subcommands 2")).to.eql(
+              ERROR('wrong # args: should be "cmd a subcommands"')
+            );
+            expect(execute("help cmd 1 opt 2 3")).to.eql(
+              ERROR('wrong # args: should be "cmd a opt b"')
+            );
+            expect(execute("help cmd 1 sub 2 subcommands 3")).to.eql(
+              ERROR('wrong # args: should be "cmd a sub b subcommands"')
+            );
+            expect(execute("help cmd 1 sub 2 opt 3 4")).to.eql(
+              ERROR('wrong # args: should be "cmd a sub b opt c"')
+            );
+          });
+          specify("invalid `subcommand`", () => {
+            /**
+             * Only named commands are supported, hence the `subcommand`
+             * argument must have a valid string representation.
+             */
+            evaluate("ensemble cmd {a} {}");
+            expect(execute("help cmd 1 []")).to.eql(
+              ERROR("invalid subcommand name")
+            );
+          });
+          specify("unknown subcommand", () => {
+            /**
+             * The command cannot get help for a non-existing subcommand.
+             */
+            evaluate("ensemble cmd {a} {}");
+            expect(execute("help cmd 1 unknownSubcommand")).to.eql(
+              ERROR('unknown subcommand "unknownSubcommand"')
+            );
+          });
+          specify("subcommand with no help", () => {
+            /**
+             * The command cannot get help for a subcommand that has none.
+             */
+            rootScope.registerNamedCommand("foo", {
+              execute() {
+                return OK(NIL);
+              },
+            });
+            evaluate("ensemble cmd {a} {alias opt foo}");
+            expect(execute("help cmd 1 opt")).to.eql(
+              ERROR('no help for subcommand "opt"')
+            );
+          });
+        });
+      });
+
+      mochadoc.section("Control flow", () => {
+        mochadoc.description(() => {
+          /**
+           * If a subcommand returns a result code othen than `OK` then it
+           * should be propagated properly to the caller.
+           */
+        });
+
         describe("`return`", () => {
-          it("should interrupt the body with `RETURN` code", () => {
+          it("should interrupt the call with `RETURN` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             evaluate(
@@ -756,7 +939,7 @@ describe("Helena ensembles", () => {
           });
         });
         describe("`tailcall`", () => {
-          it("should interrupt the body with `RETURN` code", () => {
+          it("should interrupt the call with `RETURN` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             evaluate(
@@ -791,7 +974,7 @@ describe("Helena ensembles", () => {
           });
         });
         describe("`error`", () => {
-          it("should interrupt the body with `ERROR` code", () => {
+          it("should interrupt the call with `ERROR` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             evaluate("ensemble cmd {} {macro mac {} {cmd1; error msg; cmd2}}");
@@ -800,7 +983,7 @@ describe("Helena ensembles", () => {
           });
         });
         describe("`break`", () => {
-          it("should interrupt the body with `BREAK` code", () => {
+          it("should interrupt the call with `BREAK` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             evaluate("ensemble cmd {} {macro mac {} {cmd1; break; cmd2}}");
@@ -809,7 +992,7 @@ describe("Helena ensembles", () => {
           });
         });
         describe("`continue`", () => {
-          it("should interrupt the body with `CONTINUE` code", () => {
+          it("should interrupt the call with `CONTINUE` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {} {set var val2}");
             evaluate("ensemble cmd {} {macro mac {} {cmd1; continue; cmd2}}");
@@ -819,7 +1002,7 @@ describe("Helena ensembles", () => {
         });
       });
 
-      describe("Exceptions", () => {
+      mochadoc.section("Exceptions", () => {
         specify("unknown subcommand", () => {
           evaluate("ensemble cmd {} {}");
           expect(execute("cmd unknownCommand")).to.eql(
@@ -837,53 +1020,6 @@ describe("Helena ensembles", () => {
         specify("invalid subcommand name", () => {
           evaluate("ensemble cmd {} {}");
           expect(execute("cmd []")).to.eql(ERROR("invalid subcommand name"));
-        });
-      });
-    });
-
-    mochadoc.section("Introspection", () => {
-      describe("`subcommands`", () => {
-        mochadoc.description(() => {
-          /**
-           * `subcommands` is a predefined subcommand that is available for all
-           * ensemble commands.
-           */
-        });
-        beforeEach(() => {
-          evaluate("ensemble cmd1 {} {}");
-          evaluate("ensemble cmd2 {a b} {}");
-        });
-        it("should return list of subcommands", () => {
-          expect(evaluate("cmd1 subcommands")).to.eql(
-            evaluate("list (subcommands)")
-          );
-          evaluate("[cmd1] eval {macro mac1 {} {}}");
-          expect(evaluate("cmd1 subcommands")).to.eql(
-            evaluate("list (subcommands mac1)")
-          );
-
-          expect(evaluate("cmd2 a b subcommands")).to.eql(
-            evaluate("list (subcommands)")
-          );
-          evaluate("[cmd2] eval {macro mac2 {} {}}");
-          expect(evaluate("cmd2 a b subcommands")).to.eql(
-            evaluate("list (subcommands mac2)")
-          );
-        });
-
-        describe("Exceptions", () => {
-          specify("wrong arity", () => {
-            /**
-             * The subcommand will return an error message with usage when
-             * given the wrong number of arguments.
-             */
-            expect(execute("cmd1 subcommands a")).to.eql(
-              ERROR('wrong # args: should be "cmd1 subcommands"')
-            );
-            expect(execute("cmd2 a b subcommands c")).to.eql(
-              ERROR('wrong # args: should be "cmd2 a b subcommands"')
-            );
-          });
         });
       });
     });

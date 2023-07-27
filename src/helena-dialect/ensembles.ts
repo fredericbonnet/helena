@@ -86,9 +86,8 @@ export class EnsembleMetacommand implements CommandValue, Command {
   }
 }
 
-const ENSEMBLE_COMMAND_SIGNATURE = (name, help, signature) =>
-  `${name.asString?.() ?? "<ensemble>"} ${help ? help + " " : ""}${signature}`;
-
+const ENSEMBLE_COMMAND_PREFIX = (name, args) =>
+  `${name.asString?.() ?? "<ensemble>"}${args ? " " + args : ""}`;
 class EnsembleCommand implements Command {
   readonly metacommand: EnsembleMetacommand;
   constructor(metacommand: EnsembleMetacommand) {
@@ -100,11 +99,8 @@ class EnsembleCommand implements Command {
     const minArgs = this.metacommand.argspec.argspec.nbRequired + 1;
     if (args.length < minArgs)
       return ARITY_ERROR(
-        ENSEMBLE_COMMAND_SIGNATURE(
-          args[0],
-          this.metacommand.argspec.usage(),
-          "?cmdname? ?arg ...?"
-        )
+        ENSEMBLE_COMMAND_PREFIX(args[0], this.metacommand.argspec.usage()) +
+          " ?subcommand? ?arg ...?"
       );
     const ensembleArgs = [];
     const getargs = (_name, value) => {
@@ -126,11 +122,8 @@ class EnsembleCommand implements Command {
     if (subcommand == "subcommands") {
       if (args.length != minArgs + 1) {
         return ARITY_ERROR(
-          ENSEMBLE_COMMAND_SIGNATURE(
-            args[0],
-            this.metacommand.argspec.usage(),
-            "subcommands"
-          )
+          ENSEMBLE_COMMAND_PREFIX(args[0], this.metacommand.argspec.usage()) +
+            " subcommands"
         );
       }
       return OK(
@@ -149,6 +142,35 @@ class EnsembleCommand implements Command {
       ...args.slice(minArgs + 1),
     ];
     return YIELD(new DeferredValue(TUPLE(cmdline), scope));
+  }
+  help(args: Value[], { prefix, skip }) {
+    const usage = skip
+      ? this.metacommand.argspec.usage(skip - 1)
+      : ENSEMBLE_COMMAND_PREFIX(args[0], this.metacommand.argspec.usage());
+    const signature = [prefix, usage].filter(Boolean).join(" ");
+    const minArgs = this.metacommand.argspec.argspec.nbRequired + 1;
+    if (args.length <= minArgs) {
+      return OK(STR(signature + " ?subcommand? ?arg ...?"));
+    }
+    const subcommand = args[minArgs].asString?.();
+    if (subcommand == null) return ERROR("invalid subcommand name");
+    if (subcommand == "subcommands") {
+      if (args.length > minArgs + 1) {
+        return ARITY_ERROR(signature + " subcommands");
+      }
+      return OK(STR(signature + " subcommands"));
+    }
+    if (!this.metacommand.scope.hasLocalCommand(subcommand))
+      return ERROR(`unknown subcommand "${subcommand}"`);
+    const command = this.metacommand.scope.resolveNamedCommand(subcommand);
+    if (!command.help) return ERROR(`no help for subcommand "${subcommand}"`);
+    return command.help(
+      [args[minArgs], ...args.slice(1, minArgs), ...args.slice(minArgs + 1)],
+      {
+        prefix: signature + " " + subcommand,
+        skip: minArgs,
+      }
+    );
   }
 }
 

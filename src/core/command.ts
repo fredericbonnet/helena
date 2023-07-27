@@ -33,10 +33,20 @@ export interface Command {
    * Provided arguments will be validated
    *
    * @param args      - Argument values (can be partial)
-   * @param [skip]    - Number of leading arguments to skip
+   * @param [options] - Help formating options
    * @param [context] - Opaque context
    *
    * @returns           Validation result
    */
-  help?(args: Value[], skip?: number, context?: unknown): Result;
+  help?(
+    args: Value[],
+    options?: {
+      /** Prefix to prepend to the help string */
+      prefix?: string;
+
+      /** Leading arguments to skip */
+      skip?: number;
+    },
+    context?: unknown
+  ): Result;
 }

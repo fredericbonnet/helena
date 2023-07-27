@@ -94,18 +94,18 @@ class ClosureCommand implements CommandValue, Command {
     }
     return OK(result.value);
   }
-  help(args: Value[]): Result {
+  help(args: Value[], { prefix, skip }) {
+    const usage = skip
+      ? this.metacommand.argspec.usage(skip - 1)
+      : CLOSURE_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage());
+    const signature = [prefix, usage].filter(Boolean).join(" ");
     if (
       !this.metacommand.argspec.checkArity(args, 1) &&
       args.length > this.metacommand.argspec.argspec.nbRequired
     ) {
-      return ARITY_ERROR(
-        CLOSURE_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage())
-      );
+      return ARITY_ERROR(signature);
     }
-    return OK(
-      STR(CLOSURE_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage()))
-    );
+    return OK(STR(signature));
   }
 }
 

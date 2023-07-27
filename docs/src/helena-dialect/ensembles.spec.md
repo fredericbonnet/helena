@@ -64,7 +64,7 @@ properly by the command.
 
 - `return`
 
-  - ✅ should interrupt the body with OK code
+  - ✅ should interrupt the body with `OK` code
 
   - ✅ should still define the named command
 
@@ -72,7 +72,7 @@ properly by the command.
 
 - `tailcall`
 
-  - ✅ should interrupt the body with OK code
+  - ✅ should interrupt the body with `OK` code
 
   - ✅ should still define the named command
 
@@ -255,9 +255,11 @@ the newly created command.
 
   - ✅ unknown subcommand
 
+  - ✅ invalid subcommand name
+
 ## Ensemble commands
 
-Ensemble commands are commands that gather subcommands defined in its
+Ensemble commands are commands that gather subcommands defined in their
 own child scope.
 
 ### Specifications
@@ -304,51 +306,12 @@ subcommands.
 
 - ✅ should work recursively
 
-- Control flow
+#### Introspection
 
-  - `return`
+##### `subcommands`
 
-    - ✅ should interrupt the body with `RETURN` code
-
-  - `tailcall`
-
-    - ✅ should interrupt the body with `RETURN` code
-
-  - `yield`
-
-    - ✅ should interrupt the call with `YIELD` code
-
-    - ✅ should provide a resumable state
-
-  - `error`
-
-    - ✅ should interrupt the body with `ERROR` code
-
-  - `break`
-
-    - ✅ should interrupt the body with `BREAK` code
-
-  - `continue`
-
-    - ✅ should interrupt the body with `CONTINUE` code
-
-- Exceptions
-
-  - ✅ unknown subcommand
-
-  - ✅ out-of-scope subcommand
-
-    Commands inherited from their parent scope are not available as
-    ensemble subcommands.
-
-  - ✅ invalid subcommand name
-
-### Introspection
-
-#### `subcommands`
-
-`subcommands` is a predefined subcommand that is available for all
-ensemble commands.
+`subcommands` is a predefined subcommand that is available for
+all ensemble commands.
 
 - ✅ should return list of subcommands
 
@@ -358,4 +321,75 @@ ensemble commands.
 
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
+
+#### Help
+
+Ensemble commands have built-in support for `help` on all
+subcommands that support it.
+
+- ✅ should provide subcommand help
+
+- ✅ should work recursively
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The command will return an error message with usage when given
+    the wrong number of arguments.
+
+  - ✅ invalid `subcommand`
+
+    Only named commands are supported, hence the `subcommand`
+    argument must have a valid string representation.
+
+  - ✅ unknown subcommand
+
+    The command cannot get help for a non-existing subcommand.
+
+  - ✅ subcommand with no help
+
+    The command cannot get help for a subcommand that has none.
+
+#### Control flow
+
+If a subcommand returns a result code othen than `OK` then it
+should be propagated properly to the caller.
+
+- `return`
+
+  - ✅ should interrupt the call with `RETURN` code
+
+- `tailcall`
+
+  - ✅ should interrupt the call with `RETURN` code
+
+- `yield`
+
+  - ✅ should interrupt the call with `YIELD` code
+
+  - ✅ should provide a resumable state
+
+- `error`
+
+  - ✅ should interrupt the call with `ERROR` code
+
+- `break`
+
+  - ✅ should interrupt the call with `BREAK` code
+
+- `continue`
+
+  - ✅ should interrupt the call with `CONTINUE` code
+
+#### Exceptions
+
+- ✅ unknown subcommand
+
+- ✅ out-of-scope subcommand
+
+  Commands inherited from their parent scope are not available as
+  ensemble subcommands.
+
+- ✅ invalid subcommand name
 
