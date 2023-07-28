@@ -178,11 +178,20 @@ describe("Helena dictionaries", () => {
 
       mochadoc.section("Introspection", () => {
         describe("`subcommands`", () => {
-          it("should return list of subcommands", () => {
+          mochadoc.description(usage("dict () subcommands"));
+          mochadoc.description(() => {
             /**
              * This subcommand is useful for introspection and interactive
              * calls.
              */
+          });
+
+          specify("usage", () => {
+            expect(evaluate("help dict () subcommands")).to.eql(
+              STR("dict value subcommands")
+            );
+          });
+          it("should return list of subcommands", () => {
             expect(evaluate("dict () subcommands")).to.eql(
               evaluate(
                 "list (subcommands size has get add remove merge keys values entries foreach)"
@@ -199,6 +208,9 @@ describe("Helena dictionaries", () => {
               expect(execute("dict () subcommands a")).to.eql(
                 ERROR('wrong # args: should be "dict value subcommands"')
               );
+              expect(execute("help dict () subcommands a")).to.eql(
+                ERROR('wrong # args: should be "dict value subcommands"')
+              );
             });
           });
         });
@@ -206,6 +218,14 @@ describe("Helena dictionaries", () => {
 
       mochadoc.section("Accessors", () => {
         describe("`size`", () => {
+          mochadoc.summary("Get dictionary size");
+          mochadoc.description(usage("dict () size"));
+
+          specify("usage", () => {
+            expect(evaluate("help dict () size")).to.eql(
+              STR("dict value size")
+            );
+          });
           it("should return the dictionary size", () => {
             expect(evaluate("dict () size")).to.eql(INT(0));
             expect(evaluate("dict (a b c d) size")).to.eql(INT(2));
@@ -220,12 +240,23 @@ describe("Helena dictionaries", () => {
               expect(execute("dict () size a")).to.eql(
                 ERROR('wrong # args: should be "dict value size"')
               );
+              expect(execute("help dict () size a")).to.eql(
+                ERROR('wrong # args: should be "dict value size"')
+              );
             });
           });
         });
 
         describe("`has`", () => {
-          it("should test for key presence", () => {
+          mochadoc.summary("Test for dictionary key existence");
+          mochadoc.description(usage("dict () has"));
+
+          specify("usage", () => {
+            expect(evaluate("help dict () has")).to.eql(
+              STR("dict value has key")
+            );
+          });
+          it("should test for `key` existence", () => {
             expect(evaluate("dict (a b c d) has a")).to.eql(TRUE);
             expect(evaluate("dict (a b c d) has e")).to.eql(FALSE);
           });
@@ -242,8 +273,11 @@ describe("Helena dictionaries", () => {
               expect(execute("dict (a b c d) has a b")).to.eql(
                 ERROR('wrong # args: should be "dict value has key"')
               );
+              expect(execute("help dict (a b c d) has a b")).to.eql(
+                ERROR('wrong # args: should be "dict value has key"')
+              );
             });
-            specify("invalid key", () => {
+            specify("invalid `key`", () => {
               expect(execute("dict (a b c d) has []")).to.eql(
                 ERROR("invalid key")
               );
@@ -255,7 +289,15 @@ describe("Helena dictionaries", () => {
         });
 
         describe("`get`", () => {
-          it("should return the value at the given key", () => {
+          mochadoc.summary("Get dictionary value");
+          mochadoc.description(usage("dict () get"));
+
+          specify("usage", () => {
+            expect(evaluate("help dict () get")).to.eql(
+              STR("dict value get key ?default?")
+            );
+          });
+          it("should return the value at `key`", () => {
             expect(evaluate("dict (a b c d) get a")).to.eql(STR("b"));
           });
           it("should return the default value for a non-existing key", () => {
@@ -299,6 +341,9 @@ describe("Helena dictionaries", () => {
               expect(execute("dict (a b c d) get a b c")).to.eql(
                 ERROR('wrong # args: should be "dict value get key ?default?"')
               );
+              expect(execute("help dict (a b c d) get a b c")).to.eql(
+                ERROR('wrong # args: should be "dict value get key ?default?"')
+              );
             });
             specify("unknow key", () => {
               expect(execute("dict (a b c d) get e")).to.eql(
@@ -328,6 +373,14 @@ describe("Helena dictionaries", () => {
         });
 
         describe("`keys`", () => {
+          mochadoc.summary("Get dictionary keys");
+          mochadoc.description(usage("dict () keys"));
+
+          specify("usage", () => {
+            expect(evaluate("help dict () keys")).to.eql(
+              STR("dict value keys")
+            );
+          });
           it("should return the list of keys", () => {
             expect(evaluate("dict (a b c d) keys")).to.eql(
               evaluate("list (a c)")
@@ -343,11 +396,22 @@ describe("Helena dictionaries", () => {
               expect(execute("dict (a b c d) keys a")).to.eql(
                 ERROR('wrong # args: should be "dict value keys"')
               );
+              expect(execute("help dict (a b c d) keys a")).to.eql(
+                ERROR('wrong # args: should be "dict value keys"')
+              );
             });
           });
         });
 
         describe("`values`", () => {
+          mochadoc.summary("Get dictionary values");
+          mochadoc.description(usage("dict () values"));
+
+          specify("usage", () => {
+            expect(evaluate("help dict () values")).to.eql(
+              STR("dict value values")
+            );
+          });
           it("should return the list of values", () => {
             expect(evaluate("dict (a b c d) values")).to.eql(
               evaluate("list (b d)")
@@ -363,11 +427,22 @@ describe("Helena dictionaries", () => {
               expect(execute("dict (a b c d) values a")).to.eql(
                 ERROR('wrong # args: should be "dict value values"')
               );
+              expect(execute("help dict (a b c d) values a")).to.eql(
+                ERROR('wrong # args: should be "dict value values"')
+              );
             });
           });
         });
 
         describe("`entries`", () => {
+          mochadoc.summary("Get dictionary entries");
+          mochadoc.description(usage("dict () entries"));
+
+          specify("usage", () => {
+            expect(evaluate("help dict () entries")).to.eql(
+              STR("dict value entries")
+            );
+          });
           it("should return the list of key-value tuples", () => {
             expect(evaluate("dict (a b c d) entries")).to.eql(
               evaluate("list ((a b) (c d))")
@@ -383,19 +458,30 @@ describe("Helena dictionaries", () => {
               expect(execute("dict (a b c d) entries a")).to.eql(
                 ERROR('wrong # args: should be "dict value entries"')
               );
+              expect(execute("help dict (a b c d) entries a")).to.eql(
+                ERROR('wrong # args: should be "dict value entries"')
+              );
             });
           });
         });
       });
 
-      mochadoc.section("Dictionary operations", () => {
+      mochadoc.section("Operations", () => {
+        mochadoc.summary("Add entry to dictionary");
+        mochadoc.description(usage("dict () add"));
+
+        specify("usage", () => {
+          expect(evaluate("help dict () add")).to.eql(
+            STR("dict value add key value")
+          );
+        });
         describe("`add`", () => {
-          it("should add the value for a new key", () => {
+          it("should add `value` for a new `key`", () => {
             expect(evaluate("dict (a b c d) add e f")).to.eql(
               evaluate("dict (a b c d e f)")
             );
           });
-          it("should replace the value for an existing key", () => {
+          it("should replace the value for an existing `key`", () => {
             expect(evaluate("dict (a b c d) add a e")).to.eql(
               evaluate("dict (a e c d)")
             );
@@ -413,6 +499,9 @@ describe("Helena dictionaries", () => {
               expect(execute("dict (a b c d) add a b c")).to.eql(
                 ERROR('wrong # args: should be "dict value add key value"')
               );
+              expect(execute("help dict (a b c d) add a b c")).to.eql(
+                ERROR('wrong # args: should be "dict value add key value"')
+              );
             });
             specify("invalid key", () => {
               expect(execute("dict (a b c d) add [] b")).to.eql(
@@ -426,7 +515,15 @@ describe("Helena dictionaries", () => {
         });
 
         describe("`remove`", () => {
-          it("should remove the provided key", () => {
+          mochadoc.summary("Remove entry from dictionary");
+          mochadoc.description(usage("dict () remove"));
+
+          specify("usage", () => {
+            expect(evaluate("help dict () remove")).to.eql(
+              STR("dict value remove ?key ...?")
+            );
+          });
+          it("should remove the provided `key`", () => {
             expect(evaluate("dict (a b c d) remove a")).to.eql(
               evaluate("dict (c d)")
             );
@@ -448,7 +545,7 @@ describe("Helena dictionaries", () => {
           });
 
           describe("Exceptions", () => {
-            specify("invalid key", () => {
+            specify("invalid `key`", () => {
               expect(execute("dict (a b c d) remove []")).to.eql(
                 ERROR("invalid key")
               );
@@ -460,6 +557,14 @@ describe("Helena dictionaries", () => {
         });
 
         describe("`merge`", () => {
+          mochadoc.summary("Merge dictionaries");
+          mochadoc.description(usage("dict () merge"));
+
+          specify("usage", () => {
+            expect(evaluate("help dict () merge")).to.eql(
+              STR("dict value merge ?dict ...?")
+            );
+          });
           it("should merge two dictionaries", () => {
             expect(evaluate("dict (a b c d) merge (foo bar)")).to.eql(
               evaluate("dict (a b c d foo bar)")
@@ -477,7 +582,7 @@ describe("Helena dictionaries", () => {
           });
 
           describe("Exceptions", () => {
-            specify("invalid values", () => {
+            specify("invalid dictionary values", () => {
               expect(execute("dict (a b c d) merge []")).to.eql(
                 ERROR("invalid list")
               );
@@ -497,6 +602,14 @@ describe("Helena dictionaries", () => {
 
       mochadoc.section("Iteration", () => {
         describe("`foreach`", () => {
+          mochadoc.summary("Iterate over dictionary elements");
+          mochadoc.description(usage("dict () foreach"));
+
+          specify("usage", () => {
+            expect(evaluate("help dict () foreach")).to.eql(
+              STR("dict value foreach entry body")
+            );
+          });
           it("should iterate over entries", () => {
             evaluate(`
             set entries [list ()]
@@ -530,7 +643,7 @@ describe("Helena dictionaries", () => {
               `);
               expect(evaluate("get i")).to.eql(INT(3));
             });
-            it("should accept (key) tuple", () => {
+            it("should accept `(key)` tuple", () => {
               evaluate(`
               set keys [list ()]
               set d [dict (a b c d e f)]
@@ -660,6 +773,9 @@ describe("Helena dictionaries", () => {
                 ERROR('wrong # args: should be "dict value foreach entry body"')
               );
               expect(execute("dict (a b c d) foreach a b c")).to.eql(
+                ERROR('wrong # args: should be "dict value foreach entry body"')
+              );
+              expect(execute("help dict (a b c d) foreach a b c")).to.eql(
                 ERROR('wrong # args: should be "dict value foreach entry body"')
               );
             });
@@ -796,6 +912,23 @@ describe("Helena dictionaries", () => {
           }
         `);
         expect(evaluate("dict (a b c d) foo")).to.eql(STR("bar"));
+      });
+      it("should support help for custom subcommands", () => {
+        /**
+         * Like all ensemble commands, `dict` have built-in support for `help`
+         * on all subcommands that support it.
+         */
+        evaluate(`
+          [dict] eval {
+            macro foo {value a b} {idem bar}
+          }
+        `);
+        expect(evaluate("help dict (a b c d) foo")).to.eql(
+          STR("dict value foo a b")
+        );
+        expect(execute("help dict (a b c d) foo 1 2 3")).to.eql(
+          ERROR('wrong # args: should be "dict value foo a b"')
+        );
       });
 
       mochadoc.section("Examples", () => {

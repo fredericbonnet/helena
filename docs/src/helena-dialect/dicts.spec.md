@@ -10,7 +10,7 @@ Dictionary handling
 ### Usage
 
 ```lna
-dict ?value? ?subcommand? ?arg ...?
+dict value ?subcommand? ?arg ...?
 ```
 
 The `dict` command is a type command dedicated to dictionary values. It
@@ -95,109 +95,171 @@ listed here.
 
 #### Introspection
 
-- `subcommands`
+##### `subcommands`
 
-  - ✅ should return list of subcommands
+```lna
+dict value subcommands
+```
 
-    This subcommand is useful for introspection and interactive
-    calls.
+This subcommand is useful for introspection and interactive
+calls.
 
-  - Exceptions
+- ✅ usage
 
-    - ✅ wrong arity
+- ✅ should return list of subcommands
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
 #### Accessors
 
-- `size`
+##### `size`
 
-  - ✅ should return the dictionary size
+Get dictionary size
 
-  - Exceptions
+```lna
+dict value size
+```
 
-    - ✅ wrong arity
+- ✅ usage
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+- ✅ should return the dictionary size
 
-- `has`
+- Exceptions
 
-  - ✅ should test for key presence
+  - ✅ wrong arity
 
-  - Exceptions
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
-    - ✅ wrong arity
+##### `has`
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+Test for dictionary key existence
 
-    - ✅ invalid key
+```lna
+dict value has key
+```
 
-- `get`
+- ✅ usage
 
-  - ✅ should return the value at the given key
+- ✅ should test for `key` existence
 
-  - ✅ should return the default value for a non-existing key
+- Exceptions
 
-  - ✅ should support key tuples
+  - ✅ wrong arity
 
-  - ✅ `get` <-> keyed selector equivalence
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
-  - Exceptions
+  - ✅ invalid `key`
 
-    - ✅ wrong arity
+##### `get`
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+Get dictionary value
 
-    - ✅ unknow key
+```lna
+dict value get key ?default?
+```
 
-    - ✅ invalid key
+- ✅ usage
 
-    - ✅ key tuples with default
+- ✅ should return the value at `key`
 
-- `keys`
+- ✅ should return the default value for a non-existing key
 
-  - ✅ should return the list of keys
+- ✅ should support key tuples
 
-  - Exceptions
+- ✅ `get` <-> keyed selector equivalence
 
-    - ✅ wrong arity
+- Exceptions
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+  - ✅ wrong arity
 
-- `values`
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
-  - ✅ should return the list of values
+  - ✅ unknow key
 
-  - Exceptions
+  - ✅ invalid key
 
-    - ✅ wrong arity
+  - ✅ key tuples with default
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+##### `keys`
 
-- `entries`
+Get dictionary keys
 
-  - ✅ should return the list of key-value tuples
+```lna
+dict value keys
+```
 
-  - Exceptions
+- ✅ usage
 
-    - ✅ wrong arity
+- ✅ should return the list of keys
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+- Exceptions
 
-#### Dictionary operations
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+##### `values`
+
+Get dictionary values
+
+```lna
+dict value values
+```
+
+- ✅ usage
+
+- ✅ should return the list of values
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+##### `entries`
+
+Get dictionary entries
+
+```lna
+dict value entries
+```
+
+- ✅ usage
+
+- ✅ should return the list of key-value tuples
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+#### Operations
+
+Add entry to dictionary
+
+```lna
+dict value add key value
+```
+
+- ✅ usage
 
 - `add`
 
-  - ✅ should add the value for a new key
+  - ✅ should add `value` for a new `key`
 
-  - ✅ should replace the value for an existing key
+  - ✅ should replace the value for an existing `key`
 
   - Exceptions
 
@@ -208,86 +270,110 @@ listed here.
 
     - ✅ invalid key
 
-- `remove`
+##### `remove`
 
-  - ✅ should remove the provided key
+Remove entry from dictionary
 
-  - ✅ should accept several keys to remove
+```lna
+dict value remove ?key ...?
+```
 
-  - ✅ should ignore unknown keys
+- ✅ usage
 
-  - ✅ should accept zero key
+- ✅ should remove the provided `key`
 
-  - Exceptions
+- ✅ should accept several keys to remove
 
-    - ✅ invalid key
+- ✅ should ignore unknown keys
 
-- `merge`
+- ✅ should accept zero key
 
-  - ✅ should merge two dictionaries
+- Exceptions
 
-  - ✅ should accept several dictionaries
+  - ✅ invalid `key`
 
-  - ✅ should accept zero dictionary
+##### `merge`
 
-  - Exceptions
+Merge dictionaries
 
-    - ✅ invalid values
+```lna
+dict value merge ?dict ...?
+```
+
+- ✅ usage
+
+- ✅ should merge two dictionaries
+
+- ✅ should accept several dictionaries
+
+- ✅ should accept zero dictionary
+
+- Exceptions
+
+  - ✅ invalid dictionary values
 
 #### Iteration
 
-- `foreach`
+##### `foreach`
 
-  - ✅ should iterate over entries
+Iterate over dictionary elements
 
-  - ✅ should return the result of the last command
+```lna
+dict value foreach entry body
+```
 
-  - entry parameter tuples
+- ✅ usage
 
-    - ✅ should be supported
+- ✅ should iterate over entries
 
-    - ✅ should accept empty tuple
+- ✅ should return the result of the last command
 
-    - ✅ should accept (key) tuple
+- entry parameter tuples
 
-    - ✅ should ignore extra elements
+  - ✅ should be supported
 
-  - Control flow
+  - ✅ should accept empty tuple
 
-    - `return`
+  - ✅ should accept `(key)` tuple
 
-      - ✅ should interrupt the loop with `RETURN` code
+  - ✅ should ignore extra elements
 
-    - `tailcall`
+- Control flow
 
-      - ✅ should interrupt the loop with `RETURN` code
+  - `return`
 
-    - `yield`
+    - ✅ should interrupt the loop with `RETURN` code
 
-      - ✅ should interrupt the body with `YIELD` code
+  - `tailcall`
 
-      - ✅ should provide a resumable state
+    - ✅ should interrupt the loop with `RETURN` code
 
-    - `error`
+  - `yield`
 
-      - ✅ should interrupt the loop with `ERROR` code
+    - ✅ should interrupt the body with `YIELD` code
 
-    - `break`
+    - ✅ should provide a resumable state
 
-      - ✅ should interrupt the body with nil result
+  - `error`
 
-    - `continue`
+    - ✅ should interrupt the loop with `ERROR` code
 
-      - ✅ should interrupt the body iteration
+  - `break`
 
-  - Exceptions
+    - ✅ should interrupt the body with nil result
 
-    - ✅ wrong arity
+  - `continue`
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+    - ✅ should interrupt the body iteration
 
-    - ✅ non-script body
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+  - ✅ non-script body
 
 #### Exceptions
 
@@ -381,6 +467,11 @@ subcommands defined in an ensemble scope.
 
   Creating a command in the `dict` ensemble scope will add it to its
   subcommands.
+
+- ✅ should support help for custom subcommands
+
+  Like all ensemble commands, `dict` have built-in support for `help`
+  on all subcommands that support it.
 
 #### Examples
 

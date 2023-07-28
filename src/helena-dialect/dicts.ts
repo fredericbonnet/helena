@@ -29,45 +29,57 @@ import { valueToArray } from "./lists";
 
 class DictCommand implements Command {
   scope: Scope;
-  ensemble: EnsembleMetacommand;
+  metacommand: EnsembleMetacommand;
   constructor(scope: Scope) {
     this.scope = new Scope(scope);
     const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
-    this.ensemble = new EnsembleMetacommand(this.scope, argspec);
+    this.metacommand = new EnsembleMetacommand(this.scope, argspec);
   }
   execute(args: Value[], scope): Result {
-    if (args.length == 1) return OK(this.ensemble);
+    if (args.length == 1) return OK(this.metacommand);
     if (args.length == 2) return valueToDictionaryValue(args[1]);
-    return this.ensemble.ensemble.execute(args, scope);
+    return this.metacommand.ensemble.execute(args, scope);
   }
   help(args) {
-    // TODO handle args to ensemble subcommands
-    return OK(STR("dict ?value? ?subcommand? ?arg ...?"));
+    return this.metacommand.ensemble.help(args, {});
   }
 }
 
+const DICT_SIZE_SIGNATURE = "dict value size";
 const dictSizeCmd: Command = {
   execute(args) {
-    if (args.length != 2) return ARITY_ERROR("dict value size");
+    if (args.length != 2) return ARITY_ERROR(DICT_SIZE_SIGNATURE);
     const { data: map, ...result } = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     return OK(INT(map.size));
   },
+  help(args) {
+    if (args.length > 2) return ARITY_ERROR(DICT_SIZE_SIGNATURE);
+    return OK(STR(DICT_SIZE_SIGNATURE));
+  },
 };
+
+const DICT_HAS_SIGNATURE = "dict value has key";
 const dictHasCmd: Command = {
   execute(args) {
-    if (args.length != 3) return ARITY_ERROR("dict value has key");
+    if (args.length != 3) return ARITY_ERROR(DICT_HAS_SIGNATURE);
     const { data: map, ...result } = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     const key = args[2].asString?.();
     if (key == null) return ERROR("invalid key");
     return OK(BOOL(map.has(key)));
   },
+  help(args) {
+    if (args.length > 3) return ARITY_ERROR(DICT_HAS_SIGNATURE);
+    return OK(STR(DICT_HAS_SIGNATURE));
+  },
 };
+
+const DICT_GET_SIGNATURE = "dict value get key ?default?";
 const dictGetCmd: Command = {
   execute(args) {
     if (args.length != 3 && args.length != 4)
-      return ARITY_ERROR("dict value get key ?default?");
+      return ARITY_ERROR(DICT_GET_SIGNATURE);
     const { data: map, ...result } = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     switch (args[2].type) {
@@ -93,10 +105,16 @@ const dictGetCmd: Command = {
       }
     }
   },
+  help(args) {
+    if (args.length > 4) return ARITY_ERROR(DICT_GET_SIGNATURE);
+    return OK(STR(DICT_GET_SIGNATURE));
+  },
 };
+
+const DICT_ADD_SIGNATURE = "dict value add key value";
 const dictAddCmd: Command = {
   execute(args) {
-    if (args.length != 4) return ARITY_ERROR("dict value add key value");
+    if (args.length != 4) return ARITY_ERROR(DICT_ADD_SIGNATURE);
     const { data: map, ...result } = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     const key = args[2].asString?.();
@@ -104,7 +122,13 @@ const dictAddCmd: Command = {
     const clone = new Map(map);
     return OK(DICT(clone.set(key, args[3])));
   },
+  help(args) {
+    if (args.length > 4) return ARITY_ERROR(DICT_ADD_SIGNATURE);
+    return OK(STR(DICT_ADD_SIGNATURE));
+  },
 };
+
+const DICT_REMOVE_SIGNATURE = "dict value remove ?key ...?";
 const dictRemoveCmd: Command = {
   execute(args) {
     if (args.length == 2) return valueToDictionaryValue(args[1]);
@@ -118,7 +142,12 @@ const dictRemoveCmd: Command = {
     }
     return OK(DICT(clone));
   },
+  help() {
+    return OK(STR(DICT_REMOVE_SIGNATURE));
+  },
 };
+
+const DICT_MERGE_SIGNATURE = "dict value merge ?dict ...?";
 const dictMergeCmd: Command = {
   execute(args) {
     if (args.length == 2) return valueToDictionaryValue(args[1]);
@@ -134,10 +163,15 @@ const dictMergeCmd: Command = {
     }
     return OK(DICT(clone));
   },
+  help() {
+    return OK(STR(DICT_MERGE_SIGNATURE));
+  },
 };
+
+const DICT_KEYS_SIGNATURE = "dict value keys";
 const dictKeysCmd: Command = {
   execute(args) {
-    if (args.length != 2) return ARITY_ERROR("dict value keys");
+    if (args.length != 2) return ARITY_ERROR(DICT_KEYS_SIGNATURE);
     const { data: map, ...result } = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     const values = [];
@@ -146,10 +180,16 @@ const dictKeysCmd: Command = {
     }
     return OK(LIST(values));
   },
+  help(args) {
+    if (args.length > 2) return ARITY_ERROR(DICT_KEYS_SIGNATURE);
+    return OK(STR(DICT_KEYS_SIGNATURE));
+  },
 };
+
+const DICT_VALUES_SIGNATURE = "dict value values";
 const dictValuesCmd: Command = {
   execute(args) {
-    if (args.length != 2) return ARITY_ERROR("dict value values");
+    if (args.length != 2) return ARITY_ERROR(DICT_VALUES_SIGNATURE);
     const { data: map, ...result } = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     const values = [];
@@ -158,10 +198,16 @@ const dictValuesCmd: Command = {
     }
     return OK(LIST(values));
   },
+  help(args) {
+    if (args.length > 2) return ARITY_ERROR(DICT_VALUES_SIGNATURE);
+    return OK(STR(DICT_VALUES_SIGNATURE));
+  },
 };
+
+const DICT_ENTRIES_SIGNATURE = "dict value entries";
 const dictEntriesCmd: Command = {
   execute(args) {
-    if (args.length != 2) return ARITY_ERROR("dict value entries");
+    if (args.length != 2) return ARITY_ERROR(DICT_ENTRIES_SIGNATURE);
     const { data: map, ...result } = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     const values = [];
@@ -170,7 +216,13 @@ const dictEntriesCmd: Command = {
     }
     return OK(LIST(values));
   },
+  help(args) {
+    if (args.length > 2) return ARITY_ERROR(DICT_ENTRIES_SIGNATURE);
+    return OK(STR(DICT_ENTRIES_SIGNATURE));
+  },
 };
+
+const DICT_FOREACH_SIGNATURE = "dict value foreach entry body";
 type DictForeachState = {
   varname: Value;
   it: IterableIterator<[string, Value]>;
@@ -182,7 +234,7 @@ type DictForeachState = {
 };
 class DictForeachCommand implements Command {
   execute(args, scope: Scope) {
-    if (args.length != 4) return ARITY_ERROR("dict value foreach entry body");
+    if (args.length != 4) return ARITY_ERROR(DICT_FOREACH_SIGNATURE);
     const { data: map, ...result } = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     const varname = args[2];
@@ -203,6 +255,10 @@ class DictForeachCommand implements Command {
     const state = result.data as DictForeachState;
     state.process.yieldBack(result.value);
     return this.run(state);
+  }
+  help(args) {
+    if (args.length > 4) return ARITY_ERROR(DICT_FOREACH_SIGNATURE);
+    return OK(STR(DICT_FOREACH_SIGNATURE));
   }
   private run(state: DictForeachState) {
     for (;;) {
