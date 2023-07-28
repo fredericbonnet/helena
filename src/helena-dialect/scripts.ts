@@ -19,9 +19,10 @@ import { ARITY_ERROR } from "./arguments";
 import { Scope } from "./core";
 import { EnsembleMetacommand } from "./ensembles";
 
+const PARSE_SIGNATURE = "parse source";
 const parseCmd: Command = {
   execute(args) {
-    if (args.length != 2) return ARITY_ERROR("parse source");
+    if (args.length != 2) return ARITY_ERROR(PARSE_SIGNATURE);
     const { data: source, ...result } = StringValue.toString(args[1]);
     if (result.code != ResultCode.OK) return result;
     const tokenizer = new Tokenizer();
@@ -32,31 +33,45 @@ const parseCmd: Command = {
     if (!success) return ERROR(message);
     return OK(new ScriptValue(script, source));
   },
+  help(args) {
+    if (args.length > 2) return ARITY_ERROR(PARSE_SIGNATURE);
+    return OK(STR(PARSE_SIGNATURE));
+  },
 };
 
 class ScriptCommand implements Command {
   scope: Scope;
-  ensemble: EnsembleMetacommand;
+  metacommand: EnsembleMetacommand;
   constructor(scope: Scope) {
     this.scope = new Scope(scope);
     const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
-    this.ensemble = new EnsembleMetacommand(this.scope, argspec);
+    this.metacommand = new EnsembleMetacommand(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this.ensemble);
+    if (args.length == 1) return OK(this.metacommand);
     if (args.length == 2) return valueToScript(args[1]);
-    return this.ensemble.ensemble.execute(args, scope);
+    return this.metacommand.ensemble.execute(args, scope);
+  }
+  help(args) {
+    return this.metacommand.ensemble.help(args, {});
   }
 }
 
+const SCRIPT_LENGTH_SIGNATURE = "script value length";
 const scriptLengthCmd: Command = {
   execute(args) {
-    if (args.length != 2) return ARITY_ERROR("script value length");
+    if (args.length != 2) return ARITY_ERROR(SCRIPT_LENGTH_SIGNATURE);
     const result = valueToScript(args[1]);
     if (result.code != ResultCode.OK) return result;
     return OK(INT((result.value as ScriptValue).script.sentences.length));
   },
+  help(args) {
+    if (args.length > 2) return ARITY_ERROR(SCRIPT_LENGTH_SIGNATURE);
+    return OK(STR(SCRIPT_LENGTH_SIGNATURE));
+  },
 };
+
+const SCRIPT_APPEND_SIGNATURE = "script value append ?script ...?";
 const scriptAppendCmd: Command = {
   execute(args) {
     const result = valueToScript(args[1]);
@@ -71,10 +86,15 @@ const scriptAppendCmd: Command = {
     }
     return OK(new ScriptValue(script, undefined));
   },
+  help() {
+    return OK(STR(SCRIPT_APPEND_SIGNATURE));
+  },
 };
+
+const SCRIPT_SPLIT_SIGNATURE = "script value split";
 const scriptSplitCmd: Command = {
   execute(args) {
-    if (args.length != 2) return ARITY_ERROR("script value split");
+    if (args.length != 2) return ARITY_ERROR(SCRIPT_SPLIT_SIGNATURE);
     const result = valueToScript(args[1]);
     if (result.code != ResultCode.OK) return result;
     const sentences = [];
@@ -84,6 +104,10 @@ const scriptSplitCmd: Command = {
       sentences.push(new ScriptValue(script, undefined));
     }
     return OK(LIST(sentences));
+  },
+  help(args) {
+    if (args.length > 2) return ARITY_ERROR(SCRIPT_SPLIT_SIGNATURE);
+    return OK(STR(SCRIPT_SPLIT_SIGNATURE));
   },
 };
 
