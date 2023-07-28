@@ -10,7 +10,7 @@ Tuple handling
 ### Usage
 
 ```lna
-tuple ?value? ?subcommand? ?arg ...?
+tuple value ?subcommand? ?arg ...?
 ```
 
 The `tuple` command is a type command dedicated to tuple values. It
@@ -60,49 +60,71 @@ listed here.
 
 #### Introspection
 
-- `subcommands`
+##### `subcommands`
 
-  - ✅ should return list of subcommands
+```lna
+tuple value subcommands
+```
 
-    This subcommand is useful for introspection and interactive
-    calls.
+This subcommand is useful for introspection and interactive
+calls.
 
-  - Exceptions
+- ✅ usage
 
-    - ✅ wrong arity
+- ✅ should return list of subcommands
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
 #### Accessors
 
-- `length`
+##### `length`
 
-  - ✅ should return the tuple length
+Get tuple length
 
-  - Exceptions
+```lna
+tuple value length
+```
 
-    - ✅ wrong arity
+- ✅ usage
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+- ✅ should return the tuple length
 
-- `at`
+- Exceptions
 
-  - ✅ should return the element at the given index
+  - ✅ wrong arity
 
-  - ✅ should return the default value for an out-of-range index
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
-  - Exceptions
+##### `at`
 
-    - ✅ wrong arity
+Get tuple element
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+```lna
+tuple value at index ?default?
+```
 
-    - ✅ invalid index
+- ✅ usage
 
-    - ✅ index out of range
+- ✅ should return the element at `index`
+
+- ✅ should return the default value for an out-of-range `index`
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+  - ✅ invalid `index`
+
+  - ✅ `index` out of range
 
 #### Exceptions
 
@@ -197,6 +219,11 @@ of subcommands defined in an ensemble scope.
 
   Creating a command in the `tuple` ensemble scope will add it to its
   subcommands.
+
+- ✅ should support help for custom subcommands
+
+  Like all ensemble commands, `tuple` have built-in support for `help`
+  on all subcommands that support it.
 
 #### Examples
 

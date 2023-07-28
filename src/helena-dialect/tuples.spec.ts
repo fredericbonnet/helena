@@ -109,11 +109,20 @@ describe("Helena tuples", () => {
 
       mochadoc.section("Introspection", () => {
         describe("`subcommands`", () => {
-          it("should return list of subcommands", () => {
+          mochadoc.description(usage("tuple () subcommands"));
+          mochadoc.description(() => {
             /**
              * This subcommand is useful for introspection and interactive
              * calls.
              */
+          });
+
+          specify("usage", () => {
+            expect(evaluate("help tuple () subcommands")).to.eql(
+              STR("tuple value subcommands")
+            );
+          });
+          it("should return list of subcommands", () => {
             expect(evaluate("tuple () subcommands")).to.eql(
               evaluate("list (subcommands length at)")
             );
@@ -128,6 +137,9 @@ describe("Helena tuples", () => {
               expect(execute("tuple () subcommands a")).to.eql(
                 ERROR('wrong # args: should be "tuple value subcommands"')
               );
+              expect(execute("help tuple () subcommands a")).to.eql(
+                ERROR('wrong # args: should be "tuple value subcommands"')
+              );
             });
           });
         });
@@ -135,6 +147,14 @@ describe("Helena tuples", () => {
 
       mochadoc.section("Accessors", () => {
         describe("`length`", () => {
+          mochadoc.summary("Get tuple length");
+          mochadoc.description(usage("tuple () length"));
+
+          specify("usage", () => {
+            expect(evaluate("help tuple () length")).to.eql(
+              STR("tuple value length")
+            );
+          });
           it("should return the tuple length", () => {
             expect(evaluate("tuple () length")).to.eql(INT(0));
             expect(evaluate("tuple (a b c) length")).to.eql(INT(3));
@@ -149,15 +169,26 @@ describe("Helena tuples", () => {
               expect(execute("tuple () length a")).to.eql(
                 ERROR('wrong # args: should be "tuple value length"')
               );
+              expect(execute("help tuple () length a")).to.eql(
+                ERROR('wrong # args: should be "tuple value length"')
+              );
             });
           });
         });
 
         describe("`at`", () => {
-          it("should return the element at the given index", () => {
+          mochadoc.summary("Get tuple element");
+          mochadoc.description(usage("tuple () at"));
+
+          specify("usage", () => {
+            expect(evaluate("help tuple () at")).to.eql(
+              STR("tuple value at index ?default?")
+            );
+          });
+          it("should return the element at `index`", () => {
             expect(evaluate("tuple (a b c) at 1")).to.eql(STR("b"));
           });
-          it("should return the default value for an out-of-range index", () => {
+          it("should return the default value for an out-of-range `index`", () => {
             expect(evaluate("tuple (a b c) at 10 default")).to.eql(
               STR("default")
             );
@@ -179,13 +210,18 @@ describe("Helena tuples", () => {
                   'wrong # args: should be "tuple value at index ?default?"'
                 )
               );
+              expect(execute("help tuple (a b c) at a b c")).to.eql(
+                ERROR(
+                  'wrong # args: should be "tuple value at index ?default?"'
+                )
+              );
             });
-            specify("invalid index", () => {
+            specify("invalid `index`", () => {
               expect(execute("tuple (a b c) at a")).to.eql(
                 ERROR('invalid integer "a"')
               );
             });
-            specify("index out of range", () => {
+            specify("`index` out of range", () => {
               expect(execute("tuple (a b c) at -1")).to.eql(
                 ERROR('index out of range "-1"')
               );
@@ -335,6 +371,23 @@ describe("Helena tuples", () => {
           }
         `);
         expect(evaluate("tuple (a b c) foo")).to.eql(STR("bar"));
+      });
+      it("should support help for custom subcommands", () => {
+        /**
+         * Like all ensemble commands, `tuple` have built-in support for `help`
+         * on all subcommands that support it.
+         */
+        evaluate(`
+          [tuple] eval {
+            macro foo {value a b} {idem bar}
+          }
+        `);
+        expect(evaluate("help tuple (a b c) foo")).to.eql(
+          STR("tuple value foo a b")
+        );
+        expect(execute("help tuple (a b c) foo 1 2 3")).to.eql(
+          ERROR('wrong # args: should be "tuple value foo a b"')
+        );
       });
 
       mochadoc.section("Examples", () => {
