@@ -131,39 +131,37 @@ export function numberToValue(num: number) {
 
 class IntCommand implements Command {
   scope: Scope;
-  ensemble: EnsembleMetacommand;
+  metacommand: EnsembleMetacommand;
   constructor(scope: Scope) {
     this.scope = new Scope(scope);
     const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
-    this.ensemble = new EnsembleMetacommand(this.scope, argspec);
+    this.metacommand = new EnsembleMetacommand(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this.ensemble);
+    if (args.length == 1) return OK(this.metacommand);
     if (args.length == 2) return IntegerValue.fromValue(args[1]);
-    return this.ensemble.ensemble.execute(args, scope);
+    return this.metacommand.ensemble.execute(args, scope);
   }
   help(args) {
-    // TODO handle args to ensemble subcommands
-    return OK(STR("integer ?value? ?subcommand? ?arg ...?"));
+    return this.metacommand.ensemble.help(args, {});
   }
 }
 
 class RealCommand implements Command {
   scope: Scope;
-  ensemble: EnsembleMetacommand;
+  metacommand: EnsembleMetacommand;
   constructor(scope: Scope) {
     this.scope = new Scope(scope);
     const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
-    this.ensemble = new EnsembleMetacommand(this.scope, argspec);
+    this.metacommand = new EnsembleMetacommand(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this.ensemble);
+    if (args.length == 1) return OK(this.metacommand);
     if (args.length == 2) return RealValue.fromValue(args[1]);
-    return this.ensemble.ensemble.execute(args, scope);
+    return this.metacommand.ensemble.execute(args, scope);
   }
   help(args) {
-    // TODO handle args to ensemble subcommands
-    return OK(STR("real ?value? ?subcommand? ?arg ...?"));
+    return this.metacommand.ensemble.help(args, {});
   }
 }
 

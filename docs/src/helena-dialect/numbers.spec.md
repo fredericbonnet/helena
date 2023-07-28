@@ -51,8 +51,8 @@ is `REAL`.
 
 ### Infix operators
 
-A number followed by an operator can be used to express an infix
-expression.
+A number followed by an operator can be used for expressions in infix
+notation.
 
 #### Arithmetic
 
@@ -206,7 +206,7 @@ Integer number handling
 ### Usage
 
 ```lna
-integer ?value? ?subcommand? ?arg ...?
+int value ?subcommand? ?arg ...?
 ```
 
 The `int` command is a type command dedicated to integer values.
@@ -234,28 +234,34 @@ argspecs.
 
     Non-integer real values are not accepted.
 
-#### Subcommands
+### Subcommands
 
 The `int` ensemble comes with a number of predefined subcommands
 listed here.
 
-##### Introspection
+#### Introspection
 
-- `subcommands`
+##### `subcommands`
 
-  - ✅ should return list of subcommands
+```lna
+int value subcommands
+```
 
-    This subcommand is useful for introspection and interactive
-    calls.
+This subcommand is useful for introspection and interactive
+calls.
 
-  - Exceptions
+- ✅ usage
 
-    - ✅ wrong arity
+- ✅ should return list of subcommands
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+- Exceptions
 
-##### Exceptions
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+#### Exceptions
 
 - ✅ unknown subcommand
 
@@ -275,6 +281,11 @@ of subcommands defined in an ensemble scope.
 
   Creating a command in the `int` ensemble scope will add it to its
   subcommands.
+
+- ✅ should support help for custom subcommands
+
+  Like all ensemble commands, `int` have built-in support for `help`
+  on all subcommands that support it.
 
 #### Examples
 
@@ -316,7 +327,7 @@ Real number handling
 ### Usage
 
 ```lna
-real ?value? ?subcommand? ?arg ...?
+real value ?subcommand? ?arg ...?
 ```
 
 The `real` command is a type command dedicated to real values.
@@ -338,28 +349,34 @@ argspecs.
 
   - ✅ invalid values
 
-#### Subcommands
+### Subcommands
 
 The `real` ensemble comes with a number of predefined subcommands
 listed here.
 
-##### Introspection
+#### Introspection
 
-- `subcommands`
+##### `subcommands`
 
-  - ✅ should return list of subcommands
+```lna
+real value subcommands
+```
 
-    This subcommand is useful for introspection and interactive
-    calls.
+This subcommand is useful for introspection and interactive
+calls.
 
-  - Exceptions
+- ✅ usage
 
-    - ✅ wrong arity
+- ✅ should return list of subcommands
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+- Exceptions
 
-##### Exceptions
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+#### Exceptions
 
 - ✅ unknown subcommand
 
@@ -380,6 +397,11 @@ subcommands defined in an ensemble scope.
 
   Creating a command in the `real` ensemble scope will add it to its
   subcommands.
+
+- ✅ should support help for custom subcommands
+
+  Like all ensemble commands, `real` have built-in support for `help`
+  on all subcommands that support it.
 
 #### Examples
 

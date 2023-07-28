@@ -113,8 +113,8 @@ describe("Helena numbers", () => {
     mochadoc.section("Infix operators", () => {
       mochadoc.description(() => {
         /**
-         * A number followed by an operator can be used to express an infix
-         * expression.
+         * A number followed by an operator can be used for expressions in infix
+         * notation.
          */
       });
       mochadoc.section("Arithmetic", () => {
@@ -452,52 +452,62 @@ describe("Helena numbers", () => {
           expect(execute("int 1.1")).to.eql(ERROR('invalid integer "1.1"'));
         });
       });
+    });
 
-      mochadoc.section("Subcommands", () => {
-        mochadoc.description(() => {
-          /**
-           * The `int` ensemble comes with a number of predefined subcommands
-           * listed here.
-           */
-        });
+    mochadoc.section("Subcommands", () => {
+      mochadoc.description(() => {
+        /**
+         * The `int` ensemble comes with a number of predefined subcommands
+         * listed here.
+         */
+      });
 
-        mochadoc.section("Introspection", () => {
-          describe("`subcommands`", () => {
-            it("should return list of subcommands", () => {
+      mochadoc.section("Introspection", () => {
+        describe("`subcommands`", () => {
+          mochadoc.description(usage("int 0 subcommands"));
+          mochadoc.description(() => {
+            /**
+             * This subcommand is useful for introspection and interactive
+             * calls.
+             */
+          });
+
+          specify("usage", () => {
+            expect(evaluate("help int 0 subcommands")).to.eql(
+              STR("int value subcommands")
+            );
+          });
+          it("should return list of subcommands", () => {
+            expect(evaluate("int 0 subcommands")).to.eql(
+              evaluate("list (subcommands)")
+            );
+          });
+
+          describe("Exceptions", () => {
+            specify("wrong arity", () => {
               /**
-               * This subcommand is useful for introspection and interactive
-               * calls.
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
                */
-              expect(evaluate('int "" subcommands')).to.eql(
-                evaluate("list (subcommands)")
+              expect(execute("int 0 subcommands a")).to.eql(
+                ERROR('wrong # args: should be "int value subcommands"')
+              );
+              expect(execute("help int 0 subcommands a")).to.eql(
+                ERROR('wrong # args: should be "int value subcommands"')
               );
             });
-
-            describe("Exceptions", () => {
-              specify("wrong arity", () => {
-                /**
-                 * The subcommand will return an error message with usage when
-                 * given the wrong number of arguments.
-                 */
-                expect(execute('int "" subcommands a')).to.eql(
-                  ERROR('wrong # args: should be "int value subcommands"')
-                );
-              });
-            });
           });
         });
+      });
 
-        mochadoc.section("Exceptions", () => {
-          specify("unknown subcommand", () => {
-            expect(execute('int "" unknownSubcommand')).to.eql(
-              ERROR('unknown subcommand "unknownSubcommand"')
-            );
-          });
-          specify("invalid subcommand name", () => {
-            expect(execute('int "" []')).to.eql(
-              ERROR("invalid subcommand name")
-            );
-          });
+      mochadoc.section("Exceptions", () => {
+        specify("unknown subcommand", () => {
+          expect(execute("int 0 unknownSubcommand")).to.eql(
+            ERROR('unknown subcommand "unknownSubcommand"')
+          );
+        });
+        specify("invalid subcommand name", () => {
+          expect(execute("int 0 []")).to.eql(ERROR("invalid subcommand name"));
         });
       });
     });
@@ -529,6 +539,21 @@ describe("Helena numbers", () => {
           }
         `);
         expect(evaluate("int example foo")).to.eql(STR("bar"));
+      });
+      it("should support help for custom subcommands", () => {
+        /**
+         * Like all ensemble commands, `int` have built-in support for `help`
+         * on all subcommands that support it.
+         */
+        evaluate(`
+          [int] eval {
+            macro foo {value a b} {idem bar}
+          }
+        `);
+        expect(evaluate("help int 0 foo")).to.eql(STR("int value foo a b"));
+        expect(execute("help int 0 foo 1 2 3")).to.eql(
+          ERROR('wrong # args: should be "int value foo a b"')
+        );
       });
 
       mochadoc.section("Examples", () => {
@@ -609,52 +634,62 @@ describe("Helena numbers", () => {
           expect(execute("real a")).to.eql(ERROR('invalid number "a"'));
         });
       });
+    });
 
-      mochadoc.section("Subcommands", () => {
-        mochadoc.description(() => {
-          /**
-           * The `real` ensemble comes with a number of predefined subcommands
-           * listed here.
-           */
-        });
+    mochadoc.section("Subcommands", () => {
+      mochadoc.description(() => {
+        /**
+         * The `real` ensemble comes with a number of predefined subcommands
+         * listed here.
+         */
+      });
 
-        mochadoc.section("Introspection", () => {
-          describe("`subcommands`", () => {
-            it("should return list of subcommands", () => {
+      mochadoc.section("Introspection", () => {
+        describe("`subcommands`", () => {
+          mochadoc.description(usage("real 0 subcommands"));
+          mochadoc.description(() => {
+            /**
+             * This subcommand is useful for introspection and interactive
+             * calls.
+             */
+          });
+
+          specify("usage", () => {
+            expect(evaluate("help real 0 subcommands")).to.eql(
+              STR("real value subcommands")
+            );
+          });
+          it("should return list of subcommands", () => {
+            expect(evaluate("real 0 subcommands")).to.eql(
+              evaluate("list (subcommands)")
+            );
+          });
+
+          describe("Exceptions", () => {
+            specify("wrong arity", () => {
               /**
-               * This subcommand is useful for introspection and interactive
-               * calls.
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
                */
-              expect(evaluate('real "" subcommands')).to.eql(
-                evaluate("list (subcommands)")
+              expect(execute("real 0 subcommands a")).to.eql(
+                ERROR('wrong # args: should be "real value subcommands"')
+              );
+              expect(execute("help real 0 subcommands a")).to.eql(
+                ERROR('wrong # args: should be "real value subcommands"')
               );
             });
-
-            describe("Exceptions", () => {
-              specify("wrong arity", () => {
-                /**
-                 * The subcommand will return an error message with usage when
-                 * given the wrong number of arguments.
-                 */
-                expect(execute('real "" subcommands a')).to.eql(
-                  ERROR('wrong # args: should be "real value subcommands"')
-                );
-              });
-            });
           });
         });
+      });
 
-        mochadoc.section("Exceptions", () => {
-          specify("unknown subcommand", () => {
-            expect(execute('real "" unknownSubcommand')).to.eql(
-              ERROR('unknown subcommand "unknownSubcommand"')
-            );
-          });
-          specify("invalid subcommand name", () => {
-            expect(execute('real "" []')).to.eql(
-              ERROR("invalid subcommand name")
-            );
-          });
+      mochadoc.section("Exceptions", () => {
+        specify("unknown subcommand", () => {
+          expect(execute("real 0 unknownSubcommand")).to.eql(
+            ERROR('unknown subcommand "unknownSubcommand"')
+          );
+        });
+        specify("invalid subcommand name", () => {
+          expect(execute("real 0 []")).to.eql(ERROR("invalid subcommand name"));
         });
       });
     });
@@ -686,7 +721,22 @@ describe("Helena numbers", () => {
             macro foo {value} {idem bar}
           }
         `);
-        expect(evaluate("real example foo")).to.eql(STR("bar"));
+        expect(evaluate("real 0 foo")).to.eql(STR("bar"));
+      });
+      it("should support help for custom subcommands", () => {
+        /**
+         * Like all ensemble commands, `real` have built-in support for `help`
+         * on all subcommands that support it.
+         */
+        evaluate(`
+          [real] eval {
+            macro foo {value a b} {idem bar}
+          }
+        `);
+        expect(evaluate("help real 0 foo")).to.eql(STR("real value foo a b"));
+        expect(execute("help real 0 foo 1 2 3")).to.eql(
+          ERROR('wrong # args: should be "real value foo a b"')
+        );
       });
 
       mochadoc.section("Examples", () => {
