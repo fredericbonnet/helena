@@ -10,7 +10,7 @@ String handling
 ### Usage
 
 ```lna
-string ?value? ?subcommand? ?arg ...?
+string value ?subcommand? ?arg ...?
 ```
 
 The `string` command is a type command dedicated to string values. It
@@ -43,153 +43,221 @@ listed here.
 
 #### Introspection
 
-- `subcommands`
+##### `subcommands`
 
-  - ✅ should return list of subcommands
+```lna
+string value subcommands
+```
 
-    This subcommand is useful for introspection and interactive
-    calls.
+This subcommand is useful for introspection and interactive
+calls.
 
-  - Exceptions
+- ✅ usage
 
-    - ✅ wrong arity
+- ✅ should return list of subcommands
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
 #### Accessors
 
-- `length`
+##### `length`
 
-  - ✅ should return the string length
+Get string length
 
-  - Exceptions
+```lna
+string value length
+```
 
-    - ✅ wrong arity
+- ✅ usage
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+- ✅ should return the string length
 
-- `at`
+- Exceptions
 
-  - ✅ should return the character at the given index
+  - ✅ wrong arity
 
-  - ✅ should return the default value for an out-of-range index
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
-  - ✅ at <-> indexed selector equivalence
+##### `at`
 
-  - Exceptions
+Get string character
 
-    - ✅ wrong arity
+```lna
+string value at index ?default?
+```
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+- ✅ usage
 
-    - ✅ invalid index
+- ✅ should return the character at `index`
 
-    - ✅ index out of range
+- ✅ should return the default value for an out-of-range `index`
 
-#### String operations
+- ✅ `at` <-> indexed selector equivalence
 
-- `range`
+- Exceptions
 
-  - ✅ should return the string included within [first, last]
+  - ✅ wrong arity
 
-  - ✅ should return the remainder of the string when given first only
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
-  - ✅ should truncate out of range boundaries
+  - ✅ invalid `index`
 
-  - ✅ should return an empty string when last is before first
+  - ✅ `index` out of range
 
-  - ✅ should return an empty string when first is past the string length
+#### Operations
 
-  - ✅ should return an empty string when last is negative
+##### `range`
 
-  - Exceptions
+Extract range of characters from a string
 
-    - ✅ wrong arity
+```lna
+string value range first ?last?
+```
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+- ✅ usage
 
-    - ✅ invalid index
+- ✅ should return the string included within [`first`, `last`]
 
-- `remove`
+- ✅ should return the remainder of the string when given `first` only
 
-  - ✅ should remove the range included within [first, last]
+- ✅ should truncate out of range boundaries
 
-  - ✅ should truncate out of range boundaries
+- ✅ should return an empty string when last is before `first`
 
-  - ✅ should do nothing when last is before first
+- ✅ should return an empty string when `first` is past the string length
 
-  - ✅ should do nothing when last is negative
+- ✅ should return an empty string when `last` is negative
 
-  - ✅ should do nothing when first is past the string length
+- Exceptions
 
-  - Exceptions
+  - ✅ wrong arity
 
-    - ✅ wrong arity
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+  - ✅ invalid `index`
 
-    - ✅ invalid index
+##### `remove`
 
-- `append`
+Remove range of characters from a string
 
-  - ✅ should append two strings
+```lna
+list value remove first last
+```
 
-  - ✅ should accept several strings
+- ✅ usage
 
-  - ✅ should accept zero string
+- ✅ should remove the range included within [`first`, `last`]
 
-  - Exceptions
+- ✅ should truncate out of range boundaries
 
-    - ✅ values with no string representation
+- ✅ should do nothing when `last` is before `first`
 
-- `insert`
+- ✅ should do nothing when `last` is negative
 
-  - ✅ should insert the string at the given index
+- ✅ should do nothing when `first` is past the string length
 
-  - ✅ should prepend the string when index is negative
+- Exceptions
 
-  - ✅ should append the string when index is past the string length
+  - ✅ wrong arity
 
-  - Exceptions
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
-    - ✅ wrong arity
+  - ✅ invalid `index`
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+##### `append`
 
-    - ✅ invalid index
+Concatenate strings
 
-    - ✅ values with no string representation
+```lna
+string value append ?string ...?
+```
 
-- `replace`
+- ✅ usage
 
-  - ✅ should replace the range included within [first, last] with the given string
+- ✅ should append two strings
 
-  - ✅ should truncate out of range boundaries
+- ✅ should accept several strings
 
-  - ✅ should insert the string at first index when last is before first
+- ✅ should accept zero string
 
-  - ✅ should prepend the string when last is negative
+- Exceptions
 
-  - ✅ should append the string when first is past the string length
+  - ✅ values with no string representation
 
-  - Exceptions
+##### `insert`
 
-    - ✅ wrong arity
+Insert string into a string
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+```lna
+string value insert index value2
+```
 
-    - ✅ invalid index
+- ✅ usage
 
-    - ✅ values with no string representation
+- ✅ should insert `string` at `index`
+
+- ✅ should prepend `string` when `index` is negative
+
+- ✅ should append `string` when `index` is past the target string length
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+  - ✅ invalid `index`
+
+  - ✅ values with no string representation
+
+##### `replace`
+
+Replace range of characters in a list
+
+```lna
+string value replace first last value2
+```
+
+- ✅ usage
+
+- ✅ should replace the range included within [`first`, `last`] with `string`
+
+- ✅ should truncate out of range boundaries
+
+- ✅ should insert `string` at `first` index when `last` is before `first`
+
+- ✅ should prepend `string` when `last` is negative
+
+- ✅ should append `string` when `first` is past the target string length
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+  - ✅ invalid index
+
+  - ✅ values with no string representation
 
 #### String comparisons
+
+```lna
+string value1 == value2
+```
+
+- ✅ usage
 
 - `==`
 
@@ -204,70 +272,100 @@ listed here.
 
     - ✅ values with no string representation
 
-- `!=`
+##### `!=`
 
-  - ✅ should compare two strings
+```lna
+string value1 != value2
+```
 
-  - Exceptions
+- ✅ usage
 
-    - ✅ wrong arity
+- ✅ should compare two strings
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+- Exceptions
 
-    - ✅ values with no string representation
+  - ✅ wrong arity
 
-- `>`
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
-  - ✅ should compare two strings
+  - ✅ values with no string representation
 
-  - Exceptions
+##### `>`
 
-    - ✅ wrong arity
+```lna
+string value1 > value2
+```
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+- ✅ usage
 
-    - ✅ values with no string representation
+- ✅ should compare two strings
 
-- `>=`
+- Exceptions
 
-  - ✅ should compare two strings
+  - ✅ wrong arity
 
-  - Exceptions
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
-    - ✅ wrong arity
+  - ✅ values with no string representation
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+##### `>=`
 
-    - ✅ values with no string representation
+```lna
+string value1 >= value2
+```
 
-- `<`
+- ✅ usage
 
-  - ✅ should compare two strings
+- ✅ should compare two strings
 
-  - Exceptions
+- Exceptions
 
-    - ✅ wrong arity
+  - ✅ wrong arity
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
-    - ✅ values with no string representation
+  - ✅ values with no string representation
 
-- `<=`
+##### `<`
 
-  - ✅ should compare two strings
+```lna
+string value1 < value2
+```
 
-  - Exceptions
+- ✅ usage
 
-    - ✅ wrong arity
+- ✅ should compare two strings
 
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+- Exceptions
 
-    - ✅ values with no string representation
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+  - ✅ values with no string representation
+
+##### `<=`
+
+```lna
+string value1 <= value2
+```
+
+- ✅ usage
+
+- ✅ should compare two strings
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+  - ✅ values with no string representation
 
 #### Exceptions
 
@@ -370,6 +468,11 @@ of subcommands defined in an ensemble scope.
 
   Creating a command in the `string` ensemble scope will add it to its
   subcommands.
+
+- ✅ should support help for custom subcommands
+
+  Like all ensemble commands, `string` have built-in support for `help`
+  on all subcommands that support it.
 
 #### Examples
 
