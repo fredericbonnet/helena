@@ -1,10 +1,12 @@
 import { expect } from "chai";
+import * as mochadoc from "../../mochadoc";
 import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, NIL, STR } from "../core/values";
+import { FALSE, INT, NIL, STR } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
+import { codeBlock, specifyExample } from "./test-helpers";
 
 describe("Helena procedures", () => {
   let rootScope: Scope;
@@ -17,34 +19,318 @@ describe("Helena procedures", () => {
   const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 
-  beforeEach(() => {
+  const init = () => {
     rootScope = new Scope();
     initCommands(rootScope);
 
     tokenizer = new Tokenizer();
     parser = new Parser();
+  };
+  const usage = (script: string) => {
+    init();
+    return codeBlock(evaluate("help " + script).asString());
+  };
+  const example = specifyExample(({ script }) => execute(script));
+
+  beforeEach(init);
+
+  describe("`proc`", () => {
+    mochadoc.summary("Create a procedure command");
+    mochadoc.usage(usage("proc"));
+    mochadoc.description(() => {
+      /**
+       * The `proc` command creates a new procedure command. The name `proc` was
+       * preferred over `procedure` because it is shorter and is already used in
+       * Tcl.
+       */
+    });
+
+    mochadoc.section("Specifications", () => {
+      specify("usage", () => {
+        expect(evaluate("help proc")).to.eql(STR("proc ?name? argspec body"));
+        expect(evaluate("help proc args")).to.eql(
+          STR("proc ?name? argspec body")
+        );
+        expect(evaluate("help proc args {}")).to.eql(
+          STR("proc ?name? argspec body")
+        );
+        expect(evaluate("help proc cmd args {}")).to.eql(
+          STR("proc ?name? argspec body")
+        );
+      });
+
+      it("should define a new command", () => {
+        evaluate("proc cmd {} {}");
+        expect(rootScope.context.commands.has("cmd")).to.be.true;
+      });
+      it("should replace existing commands", () => {
+        evaluate("proc cmd {} {}");
+        expect(execute("proc cmd {} {}").code).to.eql(ResultCode.OK);
+      });
+    });
+
+    mochadoc.section("Exceptions", () => {
+      specify("wrong arity", () => {
+        /**
+         * The command will return an error message with usage when given the
+         * wrong number of arguments.
+         */
+        expect(execute("proc")).to.eql(
+          ERROR('wrong # args: should be "proc ?name? argspec body"')
+        );
+        expect(execute("proc a")).to.eql(
+          ERROR('wrong # args: should be "proc ?name? argspec body"')
+        );
+        expect(execute("proc a b c d")).to.eql(
+          ERROR('wrong # args: should be "proc ?name? argspec body"')
+        );
+        expect(execute("help proc a b c d")).to.eql(
+          ERROR('wrong # args: should be "proc ?name? argspec body"')
+        );
+      });
+      specify("invalid `argspec`", () => {
+        /**
+         * The command expects an argument list in `argspec` format.
+         */
+        expect(execute("proc a {}")).to.eql(ERROR("invalid argument list"));
+      });
+      specify("invalid `name`", () => {
+        /**
+         * Command names must have a valid string representation.
+         */
+        expect(execute("proc [] {} {}")).to.eql(ERROR("invalid command name"));
+      });
+      specify("non-script body", () => {
+        expect(execute("proc a b")).to.eql(ERROR("body must be a script"));
+        expect(execute("proc a b c")).to.eql(ERROR("body must be a script"));
+      });
+    });
+
+    mochadoc.section("Metacommand", () => {
+      mochadoc.description(() => {
+        /**
+         * `proc` returns a metacommand value that can be used to introspect
+         * the newly created command.
+         */
+      });
+
+      it("should return a metacommand", () => {
+        expect(evaluate("proc {} {}").type).to.eql(commandValueType);
+        expect(evaluate("proc cmd {} {}").type).to.eql(commandValueType);
+      });
+      specify("the metacommand should return the procedure", () => {
+        const value = evaluate("set cmd [proc {val} {idem _${val}_}]");
+        expect(evaluate("$cmd").type).to.eql(commandValueType);
+        expect(evaluate("$cmd")).to.not.eql(value);
+        expect(evaluate("[$cmd] arg")).to.eql(STR("_arg_"));
+      });
+
+      mochadoc.section("Examples", () => {
+        example("Calling procedure through its wrapped metacommand", [
+          {
+            doc: () => {
+              /**
+               * Here we create a procedure and call it through its metacommand:
+               */
+            },
+            script: `
+              set cmd [proc double {val} {* 2 $val}]
+              [$cmd] 3
+            `,
+            result: INT(6),
+          },
+          {
+            doc: () => {
+              /**
+               * This behaves the same as calling the procedure directly:
+               */
+            },
+            script: `
+              double 3
+            `,
+            result: INT(6),
+          },
+        ]);
+      });
+
+      mochadoc.section("Subcommands", () => {
+        describe("`subcommands`", () => {
+          it("should return list of subcommands", () => {
+            /**
+             * This subcommand is useful for introspection and interactive
+             * calls.
+             */
+            expect(evaluate("[proc {} {}] subcommands")).to.eql(
+              evaluate("list (subcommands argspec)")
+            );
+          });
+
+          describe("Exceptions", () => {
+            specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
+              expect(execute("[proc {} {}] subcommands a")).to.eql(
+                ERROR('wrong # args: should be "<proc> subcommands"')
+              );
+            });
+          });
+        });
+
+        describe("`argspec`", () => {
+          example("should return the procedure's argspec", [
+            {
+              doc: () => {
+                /**
+                 * Each procedure has an argspec command associated to it,
+                 * created with the procedure's `argspec` argument. This
+                 * subcommand will return it:
+                 */
+              },
+              script: `
+                [proc {a b} {}] argspec
+              `,
+              result: evaluate("argspec {a b}"),
+            },
+            {
+              doc: () => {
+                /**
+                 * This is identical to:
+                 */
+              },
+              script: `
+                argspec {a b}
+              `,
+            },
+          ]);
+
+          describe("Exceptions", () => {
+            specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
+              expect(execute("[proc {} {}] argspec a")).to.eql(
+                ERROR('wrong # args: should be "<proc> argspec"')
+              );
+            });
+          });
+        });
+
+        describe("Exceptions", () => {
+          specify("unknown subcommand", () => {
+            expect(execute("[proc {} {}] unknownSubcommand")).to.eql(
+              ERROR('unknown subcommand "unknownSubcommand"')
+            );
+          });
+          specify("invalid subcommand name", () => {
+            expect(execute("[proc {} {}] []")).to.eql(
+              ERROR("invalid subcommand name")
+            );
+          });
+        });
+      });
+    });
   });
 
-  describe("proc", () => {
-    it("should define a new command", () => {
-      evaluate("proc cmd {} {}");
-      expect(rootScope.context.commands.has("cmd")).to.be.true;
+  mochadoc.section("Procedure commands", () => {
+    mochadoc.description(() => {
+      /**
+       * Procedure commands are commands that execute a body script in their
+       * own child scope.
+       */
     });
-    it("should replace existing commands", () => {
-      evaluate("proc cmd {} {}");
-      expect(execute("proc cmd {} {}").code).to.eql(ResultCode.OK);
+
+    mochadoc.section("Help", () => {
+      mochadoc.description(() => {
+        /**
+         * Procedures have built-in support for `help` generated from their
+         * argspec.
+         */
+      });
+
+      specify("zero", () => {
+        evaluate("proc cmd {} {}");
+        expect(evaluate("help cmd")).to.eql(STR("cmd"));
+        expect(execute("help cmd foo")).to.eql(
+          ERROR('wrong # args: should be "cmd"')
+        );
+      });
+      specify("one", () => {
+        evaluate("proc cmd {a} {}");
+        expect(evaluate("help cmd")).to.eql(STR("cmd a"));
+        expect(evaluate("help cmd foo")).to.eql(STR("cmd a"));
+        expect(execute("help cmd foo bar")).to.eql(
+          ERROR('wrong # args: should be "cmd a"')
+        );
+      });
+      specify("two", () => {
+        evaluate("proc cmd {a b} {}");
+        expect(evaluate("help cmd")).to.eql(STR("cmd a b"));
+        expect(evaluate("help cmd foo")).to.eql(STR("cmd a b"));
+        expect(evaluate("help cmd foo bar")).to.eql(STR("cmd a b"));
+        expect(execute("help cmd foo bar baz")).to.eql(
+          ERROR('wrong # args: should be "cmd a b"')
+        );
+      });
+      specify("optional", () => {
+        evaluate("proc cmd {?a} {}");
+        expect(evaluate("help cmd")).to.eql(STR("cmd ?a?"));
+        expect(evaluate("help cmd foo")).to.eql(STR("cmd ?a?"));
+        expect(execute("help cmd foo bar")).to.eql(
+          ERROR('wrong # args: should be "cmd ?a?"')
+        );
+      });
+      specify("remainder", () => {
+        evaluate("proc cmd {a *} {}");
+        expect(evaluate("help cmd")).to.eql(STR("cmd a ?arg ...?"));
+        expect(evaluate("help cmd foo")).to.eql(STR("cmd a ?arg ...?"));
+        expect(evaluate("help cmd foo bar")).to.eql(STR("cmd a ?arg ...?"));
+        expect(evaluate("help cmd foo bar baz")).to.eql(STR("cmd a ?arg ...?"));
+      });
+      specify("anonymous", () => {
+        evaluate("set cmd [proc {a ?b} {}]");
+        expect(evaluate("help [$cmd]")).to.eql(STR("<proc> a ?b?"));
+        expect(evaluate("help [$cmd] foo")).to.eql(STR("<proc> a ?b?"));
+        expect(evaluate("help [$cmd] foo bar")).to.eql(STR("<proc> a ?b?"));
+        expect(execute("help [$cmd] foo bar baz")).to.eql(
+          ERROR('wrong # args: should be "<proc> a ?b?"')
+        );
+      });
     });
-    it("should return a command object", () => {
-      expect(evaluate("proc {} {}").type).to.eql(commandValueType);
-      expect(evaluate("proc cmd {} {}").type).to.eql(commandValueType);
+
+    mochadoc.section("Arguments", () => {
+      it("should be scope variables", () => {
+        evaluate("set var val");
+        evaluate("proc cmd {var} {macro cmd2 {} {set var _$var}; cmd2}");
+        expect(evaluate("cmd val2")).to.eql(STR("_val2"));
+      });
+
+      describe("Exceptions", () => {
+        specify("wrong arity", () => {
+          /**
+           * The procedure will return an error message with usage when given
+           * the wrong number of arguments.
+           */
+          evaluate("proc cmd {a} {}");
+          expect(execute("cmd")).to.eql(
+            ERROR('wrong # args: should be "cmd a"')
+          );
+          expect(execute("cmd 1 2")).to.eql(
+            ERROR('wrong # args: should be "cmd a"')
+          );
+          expect(execute("[[proc {a} {}]]")).to.eql(
+            ERROR('wrong # args: should be "<proc> a"')
+          );
+          expect(execute("[[proc cmd {a} {}]]")).to.eql(
+            ERROR('wrong # args: should be "<proc> a"')
+          );
+        });
+      });
     });
-    specify("the command object should return the proc", () => {
-      const value = evaluate("set cmd [proc {val} {idem _${val}_}]");
-      expect(evaluate("$cmd").type).to.eql(commandValueType);
-      expect(evaluate("$cmd")).to.not.eql(value);
-      expect(evaluate("[$cmd] arg")).to.eql(STR("_arg_"));
-    });
-    describe("calls", () => {
+
+    mochadoc.section("Command calls", () => {
       it("should return nil for empty body", () => {
         evaluate("proc cmd {} {}");
         expect(evaluate("cmd")).to.eql(NIL);
@@ -92,31 +378,15 @@ describe("Helena procedures", () => {
         expect(evaluate("cmd")).to.eql(STR("val2"));
       });
     });
-    describe("arguments", () => {
-      it("should be scope variables", () => {
-        evaluate("set var val");
-        evaluate("proc cmd {var} {macro cmd2 {} {set var _$var}; cmd2}");
-        expect(evaluate("cmd val2")).to.eql(STR("_val2"));
+
+    mochadoc.section("Return guards", () => {
+      mochadoc.description(() => {
+        /**
+         * Return guards are similar to argspec guards, but apply to the return
+         * value of the procedure.
+         */
       });
-      describe("exceptions", () => {
-        specify("wrong arity", () => {
-          evaluate("proc cmd {a} {}");
-          expect(execute("cmd")).to.eql(
-            ERROR('wrong # args: should be "cmd a"')
-          );
-          expect(execute("cmd 1 2")).to.eql(
-            ERROR('wrong # args: should be "cmd a"')
-          );
-          expect(execute("[[proc {a} {}]]")).to.eql(
-            ERROR('wrong # args: should be "<proc> a"')
-          );
-          expect(execute("[[proc cmd {a} {}]]")).to.eql(
-            ERROR('wrong # args: should be "<proc> a"')
-          );
-        });
-      });
-    });
-    describe("return guard", () => {
+
       it("should apply to the return value", () => {
         evaluate('macro guard {result} {idem "guarded:$result"}');
         evaluate("proc cmd1 {var} {return $var}");
@@ -163,21 +433,29 @@ describe("Helena procedures", () => {
         });
       });
     });
-    describe("control flow", () => {
-      describe("return", () => {
-        it("should interrupt a proc with OK code", () => {
+
+    mochadoc.section("Control flow", () => {
+      mochadoc.description(() => {
+        /**
+         * The normal return code of a procedure is `OK`. Some codes are handled
+         * within the procedure whereas others are propagated to the caller.
+         */
+      });
+
+      describe("`return`", () => {
+        it("should interrupt a proc with `OK` code", () => {
           evaluate("proc cmd {} {return val1; idem val2}");
           expect(execute("cmd")).to.eql(OK(STR("val1")));
         });
       });
-      describe("tailcall", () => {
-        it("should interrupt a proc with OK code", () => {
+      describe("`tailcall`", () => {
+        it("should interrupt a proc with `OK` code", () => {
           evaluate("proc cmd {} {tailcall (idem val1); idem val2}");
           expect(execute("cmd")).to.eql(OK(STR("val1")));
         });
       });
-      describe("yield", () => {
-        it("should interrupt a proc with YIELD code", () => {
+      describe("`yield`", () => {
+        it("should interrupt a proc with `YIELD` code", () => {
           evaluate("proc cmd {} {yield val1; idem val2}");
           const result = execute("cmd");
           expect(result.code).to.eql(ResultCode.YIELD);
@@ -225,88 +503,23 @@ describe("Helena procedures", () => {
           expect(result).to.eql(OK(STR("val5")));
         });
       });
-      describe("error", () => {
-        it("should interrupt a proc with ERROR code", () => {
+      describe("`error`", () => {
+        it("should interrupt a proc with `ERROR` code", () => {
           evaluate("proc cmd {} {error msg; idem val}");
           expect(execute("cmd")).to.eql(ERROR("msg"));
         });
       });
-      describe("break", () => {
-        it("should interrupt a proc with ERROR code", () => {
+      describe("`break`", () => {
+        it("should interrupt a proc with `ERROR` code", () => {
           evaluate("proc cmd {} {break; idem val}");
           expect(execute("cmd")).to.eql(ERROR("unexpected break"));
         });
       });
-      describe("continue", () => {
-        it("should interrupt a proc with ERROR code", () => {
+      describe("`continue`", () => {
+        it("should interrupt a proc with `ERROR` code", () => {
           evaluate("proc cmd {} {continue; idem val}");
           expect(execute("cmd")).to.eql(ERROR("unexpected continue"));
         });
-      });
-    });
-    describe("subcommands", () => {
-      describe("subcommands", () => {
-        it("should return list of subcommands", () => {
-          expect(evaluate("[proc {} {}] subcommands")).to.eql(
-            evaluate("list (subcommands argspec)")
-          );
-        });
-        describe("exceptions", () => {
-          specify("wrong arity", () => {
-            expect(execute("[proc {} {}] subcommands a")).to.eql(
-              ERROR('wrong # args: should be "<proc> subcommands"')
-            );
-          });
-        });
-      });
-      describe("argspec", () => {
-        it("should return the proc argspec", () => {
-          expect(evaluate("[proc {a b} {}] argspec")).to.eql(
-            evaluate("argspec {a b}")
-          );
-        });
-        describe("exceptions", () => {
-          specify("wrong arity", () => {
-            expect(execute("[proc {} {}] argspec a")).to.eql(
-              ERROR('wrong # args: should be "<proc> argspec"')
-            );
-          });
-        });
-      });
-      describe("exceptions", () => {
-        specify("unknown subcommand", () => {
-          expect(execute("[proc {} {}] unknownSubcommand")).to.eql(
-            ERROR('unknown subcommand "unknownSubcommand"')
-          );
-        });
-        specify("invalid subcommand name", () => {
-          expect(execute("[proc {} {}] []")).to.eql(
-            ERROR("invalid subcommand name")
-          );
-        });
-      });
-    });
-    describe("exceptions", () => {
-      specify("wrong arity", () => {
-        expect(execute("proc")).to.eql(
-          ERROR('wrong # args: should be "proc ?name? argspec body"')
-        );
-        expect(execute("proc a")).to.eql(
-          ERROR('wrong # args: should be "proc ?name? argspec body"')
-        );
-        expect(execute("proc a b c d")).to.eql(
-          ERROR('wrong # args: should be "proc ?name? argspec body"')
-        );
-      });
-      specify("invalid argument list", () => {
-        expect(execute("proc a {}")).to.eql(ERROR("invalid argument list"));
-      });
-      specify("non-script body", () => {
-        expect(execute("proc a b")).to.eql(ERROR("body must be a script"));
-        expect(execute("proc a b c")).to.eql(ERROR("body must be a script"));
-      });
-      specify("invalid command name", () => {
-        expect(execute("proc [] {} {}")).to.eql(ERROR("invalid command name"));
       });
     });
   });

@@ -10,6 +10,7 @@ import {
 import { Command } from "../core/command";
 import { Program } from "../core/compiler";
 import {
+  STR,
   ScriptValue,
   TUPLE,
   TupleValue,
@@ -65,6 +66,8 @@ class ProcMetacommand implements CommandValue, Command {
   }
 }
 
+const PROC_COMMAND_SIGNATURE = (name, help) =>
+  `${name.asString?.() ?? "<proc>"}${help ? " " + help : ""}`;
 type ProcState = {
   scope: Scope;
   process: Process;
@@ -81,9 +84,7 @@ class ProcCommand implements CommandValue, Command {
   execute(args: Value[]): Result {
     if (!this.metacommand.argspec.checkArity(args, 1)) {
       return ARITY_ERROR(
-        `${
-          args[0].asString?.() ?? "<proc>"
-        } ${this.metacommand.argspec.usage()}`
+        PROC_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage())
       );
     }
     const subscope = new Scope(this.metacommand.scope);
@@ -126,7 +127,22 @@ class ProcCommand implements CommandValue, Command {
         return ERROR("unexpected " + RESULT_CODE_NAME(result.code));
     }
   }
+  help(args: Value[]): Result {
+    if (
+      !this.metacommand.argspec.checkArity(args, 1) &&
+      args.length > this.metacommand.argspec.argspec.nbRequired
+    ) {
+      return ARITY_ERROR(
+        PROC_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage())
+      );
+    }
+    return OK(
+      STR(PROC_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage()))
+    );
+  }
 }
+
+const PROC_SIGNATURE = "proc ?name? argspec body";
 export const procCmd: Command = {
   execute: (args, scope: Scope) => {
     let name, specs, body;
@@ -138,7 +154,7 @@ export const procCmd: Command = {
         [, name, specs, body] = args;
         break;
       default:
-        return ARITY_ERROR("proc ?name? argspec body");
+        return ARITY_ERROR(PROC_SIGNATURE);
     }
     let guard;
     switch (body.type) {
@@ -180,5 +196,9 @@ export const procCmd: Command = {
       if (result.code != ResultCode.OK) return result;
     }
     return OK(metacommand);
+  },
+  help: (args) => {
+    if (args.length > 4) return ARITY_ERROR(PROC_SIGNATURE);
+    return OK(STR(PROC_SIGNATURE));
   },
 };
