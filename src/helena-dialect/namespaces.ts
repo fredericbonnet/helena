@@ -85,6 +85,7 @@ class NamespaceMetacommand implements CommandValue, Command {
   }
 }
 
+const NAMESPACE_COMMAND_PREFIX = (name) => name.asString?.() ?? "<namespace>";
 class NamespaceCommand implements Command {
   readonly metacommand: NamespaceMetacommand;
   constructor(metacommand: NamespaceMetacommand) {
@@ -97,9 +98,7 @@ class NamespaceCommand implements Command {
     if (subcommand == null) return ERROR("invalid subcommand name");
     if (subcommand == "subcommands") {
       if (args.length != 2) {
-        return ARITY_ERROR(
-          `${args[0].asString?.() ?? "<namespace>"} subcommands`
-        );
+        return ARITY_ERROR(NAMESPACE_COMMAND_PREFIX(args[0]) + " subcommands");
       }
       return OK(
         LIST([
@@ -113,8 +112,32 @@ class NamespaceCommand implements Command {
     const cmdline = args.slice(1);
     return YIELD(new DeferredValue(TUPLE(cmdline), this.metacommand.scope));
   }
+  help(args: Value[], { prefix, skip }) {
+    const usage = skip ? "" : NAMESPACE_COMMAND_PREFIX(args[0]);
+    const signature = [prefix, usage].filter(Boolean).join(" ");
+    if (args.length <= 1) {
+      return OK(STR(signature + " ?subcommand? ?arg ...?"));
+    }
+    const subcommand = args[1].asString?.();
+    if (subcommand == null) return ERROR("invalid subcommand name");
+    if (subcommand == "subcommands") {
+      if (args.length > 2) {
+        return ARITY_ERROR(signature + " subcommands");
+      }
+      return OK(STR(signature + " subcommands"));
+    }
+    if (!this.metacommand.scope.hasLocalCommand(subcommand))
+      return ERROR(`unknown subcommand "${subcommand}"`);
+    const command = this.metacommand.scope.resolveNamedCommand(subcommand);
+    if (!command.help) return ERROR(`no help for subcommand "${subcommand}"`);
+    return command.help(args.slice(1), {
+      prefix: signature + " " + subcommand,
+      skip: 1,
+    });
+  }
 }
 
+const NAMESPACE_SIGNATURE = "namespace ?name? body";
 type NamespaceBodyState = {
   scope: Scope;
   subscope: Scope;
@@ -132,7 +155,7 @@ export const namespaceCmd: Command = {
         [, name, body] = args;
         break;
       default:
-        return ARITY_ERROR("namespace ?name? body");
+        return ARITY_ERROR(NAMESPACE_SIGNATURE);
     }
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
@@ -144,6 +167,10 @@ export const namespaceCmd: Command = {
     const state = result.data as NamespaceBodyState;
     state.process.yieldBack(result.value);
     return executeNamespaceBody(state);
+  },
+  help(args) {
+    if (args.length > 3) return ARITY_ERROR(NAMESPACE_SIGNATURE);
+    return OK(STR(NAMESPACE_SIGNATURE));
   },
 };
 const executeNamespaceBody = (state: NamespaceBodyState): Result => {
