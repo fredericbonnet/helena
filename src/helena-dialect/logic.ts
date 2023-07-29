@@ -5,6 +5,7 @@ import {
   BooleanValue,
   FALSE,
   NIL,
+  STR,
   ScriptValue,
   TRUE,
   Value,
@@ -36,6 +37,23 @@ export const trueCmd: Command = {
       },
     });
   },
+  help(args: Value[]): Result {
+    if (args.length == 1) return OK(STR("true ?subcommand?"));
+    return booleanSubcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length > 2) return ARITY_ERROR("true subcommands");
+        return OK(STR("true subcommands"));
+      },
+      "?": () => {
+        if (args.length > 4) return ARITY_ERROR("true ? arg ?arg?");
+        return OK(STR("true ? arg ?arg?"));
+      },
+      "!?": () => {
+        if (args.length > 4) return ARITY_ERROR("true !? arg ?arg?");
+        return OK(STR("true !? arg ?arg?"));
+      },
+    });
+  },
 };
 export const falseCmd: Command = {
   execute(args: Value[]): Result {
@@ -57,11 +75,29 @@ export const falseCmd: Command = {
       },
     });
   },
+  help(args: Value[]): Result {
+    if (args.length == 1) return OK(STR("false ?subcommand?"));
+    return booleanSubcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length > 2) return ARITY_ERROR("false subcommands");
+        return OK(STR("false subcommands"));
+      },
+      "?": () => {
+        if (args.length > 4) return ARITY_ERROR("false ? arg ?arg?");
+        return OK(STR("false ? arg ?arg?"));
+      },
+      "!?": () => {
+        if (args.length > 4) return ARITY_ERROR("false !? arg ?arg?");
+        return OK(STR("false !? arg ?arg?"));
+      },
+    });
+  },
 };
 
+const NOT_SIGNATURE = "! arg";
 export const notCmd: Command = {
   execute(args: Value[], scope: Scope): Result {
-    if (args.length != 2) return ARITY_ERROR("! arg");
+    if (args.length != 2) return ARITY_ERROR(NOT_SIGNATURE);
     const result = executeCondition(scope, args[1]);
     if (result.code != ResultCode.OK) return result;
     return (result.value as BooleanValue).value ? OK(FALSE) : OK(TRUE);
@@ -71,8 +107,13 @@ export const notCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     return (result.value as BooleanValue).value ? OK(FALSE) : OK(TRUE);
   },
+  help(args: Value[]): Result {
+    if (args.length > 2) return ARITY_ERROR(NOT_SIGNATURE);
+    return OK(STR(NOT_SIGNATURE));
+  },
 };
 
+const AND_SIGNATURE = "&& arg ?arg ...?";
 type AndCommandState = {
   args: Value[];
   i: number;
@@ -80,13 +121,16 @@ type AndCommandState = {
 };
 class AndCommand implements Command {
   execute(args, scope: Scope) {
-    if (args.length < 2) return ARITY_ERROR("&& arg ?arg ...?");
+    if (args.length < 2) return ARITY_ERROR(AND_SIGNATURE);
     return this.run({ args, i: 1 }, scope);
   }
   resume(result: Result, scope: Scope): Result {
     const state = result.data as AndCommandState;
     state.result = YIELD_BACK(state.result, result.value);
     return this.run(result.data as AndCommandState, scope);
+  }
+  help() {
+    return OK(STR(AND_SIGNATURE));
   }
   private run(state: AndCommandState, scope: Scope) {
     let r = TRUE;
@@ -111,6 +155,7 @@ class AndCommand implements Command {
 }
 const andCmd: Command = new AndCommand();
 
+const OR_SIGNATURE = "|| arg ?arg ...?";
 type OrCommandState = {
   args: Value[];
   i: number;
@@ -118,13 +163,16 @@ type OrCommandState = {
 };
 class OrCommand implements Command {
   execute(args, scope: Scope) {
-    if (args.length < 2) return ARITY_ERROR("|| arg ?arg ...?");
+    if (args.length < 2) return ARITY_ERROR(OR_SIGNATURE);
     return this.run({ args, i: 1 }, scope);
   }
   resume(result: Result, scope: Scope): Result {
     const state = result.data as OrCommandState;
     state.result = YIELD_BACK(state.result, result.value);
     return this.run(result.data as OrCommandState, scope);
+  }
+  help() {
+    return OK(STR(OR_SIGNATURE));
   }
   private run(state: OrCommandState, scope: Scope) {
     let r = FALSE;
