@@ -477,6 +477,7 @@ describe("Helena numbers", () => {
               STR("int value subcommands")
             );
           });
+
           it("should return list of subcommands", () => {
             expect(evaluate("int 0 subcommands")).to.eql(
               evaluate("list (subcommands)")
@@ -659,6 +660,7 @@ describe("Helena numbers", () => {
               STR("real value subcommands")
             );
           });
+
           it("should return list of subcommands", () => {
             expect(evaluate("real 0 subcommands")).to.eql(
               evaluate("list (subcommands)")

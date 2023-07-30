@@ -155,8 +155,8 @@ describe("Helena ensembles", () => {
       describe("Control flow", () => {
         mochadoc.description(() => {
           /**
-           * If the body returns a result code then it should be propagated
-           * properly by the command.
+           * If the body returns a result code other than `OK` then it should be
+           * propagated properly by the command.
            */
         });
 
@@ -922,7 +922,7 @@ describe("Helena ensembles", () => {
       mochadoc.section("Control flow", () => {
         mochadoc.description(() => {
           /**
-           * If a subcommand returns a result code othen than `OK` then it
+           * If a subcommand returns a result code other than `OK` then it
            * should be propagated properly to the caller.
            */
         });

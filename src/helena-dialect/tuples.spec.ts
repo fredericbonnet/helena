@@ -122,6 +122,7 @@ describe("Helena tuples", () => {
               STR("tuple value subcommands")
             );
           });
+
           it("should return list of subcommands", () => {
             expect(evaluate("tuple () subcommands")).to.eql(
               evaluate("list (subcommands length at)")
@@ -155,6 +156,7 @@ describe("Helena tuples", () => {
               STR("tuple value length")
             );
           });
+
           it("should return the tuple length", () => {
             expect(evaluate("tuple () length")).to.eql(INT(0));
             expect(evaluate("tuple (a b c) length")).to.eql(INT(3));
@@ -185,6 +187,7 @@ describe("Helena tuples", () => {
               STR("tuple value at index ?default?")
             );
           });
+
           it("should return the element at `index`", () => {
             expect(evaluate("tuple (a b c) at 1")).to.eql(STR("b"));
           });

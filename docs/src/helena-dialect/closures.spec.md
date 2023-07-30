@@ -191,7 +191,7 @@ value of the closure.
 
 ### Control flow
 
-If the body returns a result code othen than `OK` then it should be
+If the body returns a result code other than `OK` then it should be
 propagated properly by the closure to the caller.
 
 - `return`

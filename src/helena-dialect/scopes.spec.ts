@@ -139,8 +139,8 @@ describe("Helena scopes", () => {
       describe("Control flow", () => {
         mochadoc.description(() => {
           /**
-           * If the body returns a result code then it should be propagated
-           * properly by the command.
+           * If the body returns a result code other than `OK` then it should be
+           * propagated properly by the command.
            */
         });
 

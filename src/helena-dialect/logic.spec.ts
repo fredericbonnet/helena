@@ -320,6 +320,7 @@ describe("Helena logic operations", () => {
               STR("bool value subcommands")
             );
           });
+
           it("should return list of subcommands", () => {
             expect(evaluate("bool 0 subcommands")).to.eql(
               evaluate("list (subcommands)")
@@ -453,6 +454,7 @@ describe("Helena logic operations", () => {
         specify("usage", () => {
           expect(evaluate("help !")).to.eql(STR("! arg"));
         });
+
         it("should invert boolean values", () => {
           expect(evaluate("! true")).to.eql(FALSE);
           expect(evaluate("! false")).to.eql(TRUE);
@@ -488,6 +490,13 @@ describe("Helena logic operations", () => {
       });
 
       mochadoc.section("Control flow", () => {
+        mochadoc.description(() => {
+          /**
+           * If a script expression returns a result code other than `OK` then
+           * it should be propagated properly to the caller.
+           */
+        });
+
         describe("`return`", () => {
           it("should interrupt expression with `RETURN` code", () => {
             expect(execute("! {return value; unreachable}")).to.eql(
@@ -554,6 +563,7 @@ describe("Helena logic operations", () => {
         specify("usage", () => {
           expect(evaluate("help &&")).to.eql(STR("&& arg ?arg ...?"));
         });
+
         it("should accept one boolean", () => {
           expect(evaluate("&& false")).to.eql(FALSE);
           expect(evaluate("&& true")).to.eql(TRUE);
@@ -598,7 +608,7 @@ describe("Helena logic operations", () => {
       mochadoc.section("Control flow", () => {
         mochadoc.description(() => {
           /**
-           * If a script expression returns a result code othen than `OK` then
+           * If a script expression returns a result code other than `OK` then
            * it should be propagated properly to the caller.
            */
         });
@@ -676,6 +686,7 @@ describe("Helena logic operations", () => {
         specify("usage", () => {
           expect(evaluate("help ||")).to.eql(STR("|| arg ?arg ...?"));
         });
+
         it("should accept one boolean", () => {
           expect(evaluate("|| false")).to.eql(FALSE);
           expect(evaluate("|| true")).to.eql(TRUE);
@@ -720,7 +731,7 @@ describe("Helena logic operations", () => {
       mochadoc.section("Control flow", () => {
         mochadoc.description(() => {
           /**
-           * If a script expression returns a result code othen than `OK` then
+           * If a script expression returns a result code other than `OK` then
            * it should be propagated properly to the caller.
            */
         });

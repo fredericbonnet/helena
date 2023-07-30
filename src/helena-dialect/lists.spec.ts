@@ -128,6 +128,7 @@ describe("Helena lists", () => {
               STR("list value subcommands")
             );
           });
+
           it("should return list of subcommands", () => {
             expect(evaluate("list {} subcommands")).to.eql(
               evaluate(
@@ -163,6 +164,7 @@ describe("Helena lists", () => {
               STR("list value length")
             );
           });
+
           it("should return the list length", () => {
             expect(evaluate("list () length")).to.eql(INT(0));
             expect(evaluate("list (a b c) length")).to.eql(INT(3));
@@ -192,6 +194,7 @@ describe("Helena lists", () => {
               STR("list value at index ?default?")
             );
           });
+
           it("should return the element at `index`", () => {
             expect(evaluate("list (a b c) at 1")).to.eql(STR("b"));
           });
@@ -259,6 +262,7 @@ describe("Helena lists", () => {
               STR("list value range first ?last?")
             );
           });
+
           it("should return the list included within [`first`, `last`]", () => {
             expect(evaluate("list (a b c d e f) range 1 3")).to.eql(
               evaluate("list (b c d)")
@@ -333,6 +337,7 @@ describe("Helena lists", () => {
               STR("list value remove first last")
             );
           });
+
           it("should remove the range included within [`first`, `last`]", () => {
             expect(evaluate("list (a b c d e f) remove 1 3")).to.eql(
               evaluate("list (a e f)")
@@ -401,6 +406,7 @@ describe("Helena lists", () => {
               STR("list value append ?list ...?")
             );
           });
+
           it("should append two lists", () => {
             expect(evaluate("list (a b c) append (foo bar)")).to.eql(
               evaluate("list (a b c foo bar)")
@@ -441,6 +447,7 @@ describe("Helena lists", () => {
               STR("list value insert index value2")
             );
           });
+
           it("should insert `list` at `index`", () => {
             expect(evaluate("list (a b c) insert 1 (foo bar)")).to.eql(
               evaluate("list (a foo bar b c)")
@@ -507,6 +514,7 @@ describe("Helena lists", () => {
               STR("list value replace first last value2")
             );
           });
+
           it("should replace the range included within [`first`, `last`] with `list`", () => {
             expect(evaluate("list (a b c d e) replace 1 3 (foo bar)")).to.eql(
               evaluate("list (a foo bar e)")
@@ -594,6 +602,7 @@ describe("Helena lists", () => {
               STR("list value foreach element body")
             );
           });
+
           it("should iterate over elements", () => {
             evaluate(`
             set elements [list ()]

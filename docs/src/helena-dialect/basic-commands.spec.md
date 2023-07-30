@@ -72,7 +72,8 @@ tailcall body
 ```
 
 The `tailcall` command is a control flow command that stops the script
-with the evaluated result of another script passed as argument.
+with a `RETURN` code and the evaluated result of another script passed
+as argument.
 
 ### Specifications
 
@@ -118,7 +119,7 @@ yield ?result?
 ```
 
 The `yield` command is a control flow command that pauses the script
-with a `RETURN` code and an optional result value. The script state is
+with a `YIELD` code and an optional result value. The script state is
 saved for later resumability.
 
 ### Specifications

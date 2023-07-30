@@ -103,6 +103,7 @@ describe("Helena strings", () => {
               STR("string value subcommands")
             );
           });
+
           it("should return list of subcommands", () => {
             expect(evaluate('string "" subcommands')).to.eql(
               evaluate(
@@ -138,6 +139,7 @@ describe("Helena strings", () => {
               STR("string value length")
             );
           });
+
           it("should return the string length", () => {
             expect(evaluate('string "" length')).to.eql(INT(0));
             expect(evaluate("string example length")).to.eql(INT(7));
@@ -168,6 +170,7 @@ describe("Helena strings", () => {
               STR("string value at index ?default?")
             );
           });
+
           it("should return the character at `index`", () => {
             expect(evaluate("string example at 1")).to.eql(STR("x"));
           });
@@ -238,6 +241,7 @@ describe("Helena strings", () => {
               STR("string value range first ?last?")
             );
           });
+
           it("should return the string included within [`first`, `last`]", () => {
             expect(evaluate("string example range 1 3")).to.eql(STR("xam"));
           });
@@ -304,6 +308,7 @@ describe("Helena strings", () => {
               STR("string value remove first last")
             );
           });
+
           it("should remove the range included within [`first`, `last`]", () => {
             expect(evaluate("string example remove 1 3")).to.eql(STR("eple"));
           });
@@ -372,6 +377,7 @@ describe("Helena strings", () => {
               STR("string value append ?string ...?")
             );
           });
+
           it("should append two strings", () => {
             expect(evaluate("string example append foo")).to.eql(
               STR("examplefoo")
@@ -407,6 +413,7 @@ describe("Helena strings", () => {
               STR("string value insert index value2")
             );
           });
+
           it("should insert `string` at `index`", () => {
             expect(evaluate("string example insert 1 foo")).to.eql(
               STR("efooxample")
@@ -470,6 +477,7 @@ describe("Helena strings", () => {
               STR("string value replace first last value2")
             );
           });
+
           it("should replace the range included within [`first`, `last`] with `string`", () => {
             expect(evaluate("string example replace 1 3 foo")).to.eql(
               STR("efoople")
@@ -552,6 +560,7 @@ describe("Helena strings", () => {
             STR("string value1 == value2")
           );
         });
+
         describe("`==`", () => {
           it("should compare two strings", () => {
             expect(evaluate("string example == foo")).to.equal(FALSE);
@@ -596,6 +605,7 @@ describe("Helena strings", () => {
               STR("string value1 != value2")
             );
           });
+
           it("should compare two strings", () => {
             expect(evaluate("string example != foo")).to.equal(TRUE);
             expect(evaluate("string example != example")).to.equal(FALSE);
@@ -639,6 +649,7 @@ describe("Helena strings", () => {
               STR("string value1 > value2")
             );
           });
+
           it("should compare two strings", () => {
             expect(evaluate("string example > foo")).to.equal(FALSE);
             expect(evaluate("string example > example")).to.equal(FALSE);
@@ -682,6 +693,7 @@ describe("Helena strings", () => {
               STR("string value1 >= value2")
             );
           });
+
           it("should compare two strings", () => {
             expect(evaluate("string example >= foo")).to.equal(FALSE);
             expect(evaluate("string example >= example")).to.equal(TRUE);
@@ -725,6 +737,7 @@ describe("Helena strings", () => {
               STR("string value1 < value2")
             );
           });
+
           it("should compare two strings", () => {
             expect(evaluate("string example < foo")).to.equal(TRUE);
             expect(evaluate("string example < example")).to.equal(FALSE);
@@ -768,6 +781,7 @@ describe("Helena strings", () => {
               STR("string value1 <= value2")
             );
           });
+
           it("should compare two strings", () => {
             expect(evaluate("string example <= foo")).to.equal(TRUE);
             expect(evaluate("string example <= example")).to.equal(TRUE);

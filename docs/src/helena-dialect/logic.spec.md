@@ -285,6 +285,9 @@ Logical NOT operator
 
 #### Control flow
 
+If a script expression returns a result code other than `OK` then
+it should be propagated properly to the caller.
+
 - `return`
 
   - ✅ should interrupt expression with `RETURN` code
@@ -346,7 +349,7 @@ Logical AND operator
 
 #### Control flow
 
-If a script expression returns a result code othen than `OK` then
+If a script expression returns a result code other than `OK` then
 it should be propagated properly to the caller.
 
 - `return`
@@ -412,7 +415,7 @@ Logical OR operator
 
 #### Control flow
 
-If a script expression returns a result code othen than `OK` then
+If a script expression returns a result code other than `OK` then
 it should be propagated properly to the caller.
 
 - `return`

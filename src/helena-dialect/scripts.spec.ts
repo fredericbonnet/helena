@@ -181,6 +181,7 @@ describe("Helena scripts", () => {
               STR("script value subcommands")
             );
           });
+
           it("should return list of subcommands", () => {
             expect(evaluate("script {} subcommands")).to.eql(
               evaluate("list (subcommands length append split)")
@@ -243,6 +244,7 @@ describe("Helena scripts", () => {
               STR("script value append ?script ...?")
             );
           });
+
           it("should append two scripts", () => {
             expect(evaluate("script {a b c} append {foo bar}")).to.eql(
               new ScriptValue(parse("a b c; foo bar"), undefined)
@@ -299,6 +301,7 @@ describe("Helena scripts", () => {
               STR("script value split")
             );
           });
+
           it("should split script sentences into list of scripts", () => {
             expect(evaluate("script {} split")).to.eql(evaluate("list {}"));
             expect(evaluate("script {a b; c d;; ;} split")).to.eql(

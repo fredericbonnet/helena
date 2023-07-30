@@ -191,6 +191,7 @@ describe("Helena dictionaries", () => {
               STR("dict value subcommands")
             );
           });
+
           it("should return list of subcommands", () => {
             expect(evaluate("dict () subcommands")).to.eql(
               evaluate(
@@ -226,6 +227,7 @@ describe("Helena dictionaries", () => {
               STR("dict value size")
             );
           });
+
           it("should return the dictionary size", () => {
             expect(evaluate("dict () size")).to.eql(INT(0));
             expect(evaluate("dict (a b c d) size")).to.eql(INT(2));
@@ -256,6 +258,7 @@ describe("Helena dictionaries", () => {
               STR("dict value has key")
             );
           });
+
           it("should test for `key` existence", () => {
             expect(evaluate("dict (a b c d) has a")).to.eql(TRUE);
             expect(evaluate("dict (a b c d) has e")).to.eql(FALSE);
@@ -297,6 +300,7 @@ describe("Helena dictionaries", () => {
               STR("dict value get key ?default?")
             );
           });
+
           it("should return the value at `key`", () => {
             expect(evaluate("dict (a b c d) get a")).to.eql(STR("b"));
           });
@@ -381,6 +385,7 @@ describe("Helena dictionaries", () => {
               STR("dict value keys")
             );
           });
+
           it("should return the list of keys", () => {
             expect(evaluate("dict (a b c d) keys")).to.eql(
               evaluate("list (a c)")
@@ -412,6 +417,7 @@ describe("Helena dictionaries", () => {
               STR("dict value values")
             );
           });
+
           it("should return the list of values", () => {
             expect(evaluate("dict (a b c d) values")).to.eql(
               evaluate("list (b d)")
@@ -443,6 +449,7 @@ describe("Helena dictionaries", () => {
               STR("dict value entries")
             );
           });
+
           it("should return the list of key-value tuples", () => {
             expect(evaluate("dict (a b c d) entries")).to.eql(
               evaluate("list ((a b) (c d))")
@@ -475,6 +482,7 @@ describe("Helena dictionaries", () => {
             STR("dict value add key value")
           );
         });
+
         describe("`add`", () => {
           it("should add `value` for a new `key`", () => {
             expect(evaluate("dict (a b c d) add e f")).to.eql(
@@ -523,6 +531,7 @@ describe("Helena dictionaries", () => {
               STR("dict value remove ?key ...?")
             );
           });
+
           it("should remove the provided `key`", () => {
             expect(evaluate("dict (a b c d) remove a")).to.eql(
               evaluate("dict (c d)")
@@ -565,6 +574,7 @@ describe("Helena dictionaries", () => {
               STR("dict value merge ?dict ...?")
             );
           });
+
           it("should merge two dictionaries", () => {
             expect(evaluate("dict (a b c d) merge (foo bar)")).to.eql(
               evaluate("dict (a b c d foo bar)")
@@ -610,6 +620,7 @@ describe("Helena dictionaries", () => {
               STR("dict value foreach entry body")
             );
           });
+
           it("should iterate over entries", () => {
             evaluate(`
             set entries [list ()]

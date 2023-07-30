@@ -50,8 +50,8 @@ The `namespace` command creates a new namespace command.
 
 #### Control flow
 
-If the body returns a result code then it should be propagated
-properly by the command.
+If the body returns a result code other than `OK` then it should be
+propagated properly by the command.
 
 - `return`
 
@@ -323,7 +323,7 @@ subcommands that support it.
 
 #### Control flow
 
-If a subcommand returns a result code othen than `OK` then it
+If a subcommand returns a result code other than `OK` then it
 should be propagated properly to the caller.
 
 - `return`
