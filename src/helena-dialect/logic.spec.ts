@@ -11,9 +11,10 @@ import {
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { FALSE, TRUE, NIL, STR } from "../core/values";
-import { Scope } from "./core";
+import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock } from "./test-helpers";
+import { codeBlock, specifyExample } from "./test-helpers";
+import { EnsembleMetacommand } from "./ensembles";
 
 describe("Helena logic operations", () => {
   let rootScope: Scope;
@@ -37,6 +38,7 @@ describe("Helena logic operations", () => {
     init();
     return codeBlock(evaluate("help " + script).asString());
   };
+  const example = specifyExample(({ script }) => execute(script));
 
   beforeEach(init);
 
@@ -248,6 +250,196 @@ describe("Helena logic operations", () => {
       specify("invalid subcommand name", () => {
         expect(execute("true []")).to.eql(ERROR("invalid subcommand name"));
         expect(execute("false []")).to.eql(ERROR("invalid subcommand name"));
+      });
+    });
+  });
+
+  mochadoc.section("`bool`", () => {
+    mochadoc.summary("Boolean handling");
+    mochadoc.usage(usage("bool"));
+    mochadoc.description(() => {
+      /**
+       * The `bool` command is a type command dedicated to boolean values.
+       *
+       * Boolean values are Helena values whose internal type is `BOOLEAN`. The
+       * name `bool` was preferred over `boolean` because it is shorter and is
+       * already used in many other languages like Python and C.
+       */
+    });
+
+    mochadoc.section("Boolean conversion", () => {
+      mochadoc.description(() => {
+        /**
+         * Like with most type commands, passing a single argument to `bool`
+         * will ensure a boolean value in return. This property means that
+         * `bool` can be used for creation and conversion, but also as a type
+         * guard in argspecs.
+         */
+      });
+
+      it("should return boolean value", () => {
+        expect(evaluate("bool true")).to.eql(TRUE);
+        expect(evaluate("bool false")).to.eql(FALSE);
+      });
+
+      describe("Exceptions", () => {
+        specify("values with no string representation", () => {
+          expect(execute("bool []")).to.eql(
+            ERROR("value has no string representation")
+          );
+          expect(execute("bool ()")).to.eql(
+            ERROR("value has no string representation")
+          );
+        });
+        specify("invalid values", () => {
+          expect(execute("bool a")).to.eql(ERROR('invalid boolean "a"'));
+        });
+      });
+    });
+
+    mochadoc.section("Subcommands", () => {
+      mochadoc.description(() => {
+        /**
+         * The `bool` ensemble comes with a number of predefined subcommands
+         * listed here.
+         */
+      });
+
+      mochadoc.section("Introspection", () => {
+        describe("`subcommands`", () => {
+          mochadoc.description(usage("bool 0 subcommands"));
+          mochadoc.description(() => {
+            /**
+             * This subcommand is useful for introspection and interactive
+             * calls.
+             */
+          });
+
+          specify("usage", () => {
+            expect(evaluate("help bool 0 subcommands")).to.eql(
+              STR("bool value subcommands")
+            );
+          });
+          it("should return list of subcommands", () => {
+            expect(evaluate("bool 0 subcommands")).to.eql(
+              evaluate("list (subcommands)")
+            );
+          });
+
+          describe("Exceptions", () => {
+            specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
+              expect(execute("bool 0 subcommands a")).to.eql(
+                ERROR('wrong # args: should be "bool value subcommands"')
+              );
+              expect(execute("help bool 0 subcommands a")).to.eql(
+                ERROR('wrong # args: should be "bool value subcommands"')
+              );
+            });
+          });
+        });
+      });
+
+      mochadoc.section("Exceptions", () => {
+        specify("unknown subcommand", () => {
+          expect(execute("bool 0 unknownSubcommand")).to.eql(
+            ERROR('unknown subcommand "unknownSubcommand"')
+          );
+        });
+        specify("invalid subcommand name", () => {
+          expect(execute("bool 0 []")).to.eql(ERROR("invalid subcommand name"));
+        });
+      });
+    });
+
+    mochadoc.section("Ensemble command", () => {
+      mochadoc.description(() => {
+        /**
+         * `bool` is an ensemble command, which means that it is a collection
+         * of subcommands defined in an ensemble scope.
+         */
+      });
+
+      it("should return its ensemble metacommand when called with no argument", () => {
+        /**
+         * The typical application of this property is to access the ensemble
+         * metacommand by wrapping the command within brackets, i.e. `[bool]`.
+         */
+        expect(evaluate("bool").type).to.eql(commandValueType);
+        expect(evaluate("bool")).to.be.instanceOf(EnsembleMetacommand);
+      });
+      it("should be extensible", () => {
+        /**
+         * Creating a command in the `bool` ensemble scope will add it to its
+         * subcommands.
+         */
+        evaluate(`
+          [bool] eval {
+            macro foo {value} {idem bar}
+          }
+        `);
+        expect(evaluate("bool example foo")).to.eql(STR("bar"));
+      });
+      it("should support help for custom subcommands", () => {
+        /**
+         * Like all ensemble commands, `bool` have built-in support for `help`
+         * on all subcommands that support it.
+         */
+        evaluate(`
+          [bool] eval {
+            macro foo {value a b} {idem bar}
+          }
+        `);
+        expect(evaluate("help bool 0 foo")).to.eql(STR("bool value foo a b"));
+        expect(execute("help bool 0 foo 1 2 3")).to.eql(
+          ERROR('wrong # args: should be "bool value foo a b"')
+        );
+      });
+
+      mochadoc.section("Examples", () => {
+        example("Adding a `xor` subcommand", [
+          {
+            doc: () => {
+              /**
+               * Here we create a `xor` macro within the `bool` ensemble
+               * scope, returning the excusive OR with another value. Notice the
+               * use of `bool` as a type guard for both arguments:
+               */
+            },
+            script: `
+              [bool] eval {
+                macro xor {(bool value1) (bool value2)} {
+                  $value1 ? [! $value2] $value2
+                }
+              }
+            `,
+          },
+          {
+            doc: () => {
+              /**
+               * We can then use `xor` just like the predefined `bool`
+               * subcommands:
+               */
+            },
+            script: "bool true xor false",
+            result: TRUE,
+          },
+          {
+            script: "bool true xor true",
+            result: FALSE,
+          },
+          {
+            script: "bool false xor false",
+            result: FALSE,
+          },
+          {
+            script: "bool false xor true",
+            result: TRUE,
+          },
+        ]);
       });
     });
   });

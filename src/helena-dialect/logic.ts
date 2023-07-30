@@ -4,6 +4,7 @@ import { Command } from "../core/command";
 import {
   BooleanValue,
   FALSE,
+  LIST,
   NIL,
   STR,
   ScriptValue,
@@ -14,6 +15,8 @@ import {
 import { ARITY_ERROR } from "./arguments";
 import { Process, Scope } from "./core";
 import { Subcommands } from "./subcommands";
+import { EnsembleMetacommand } from "./ensembles";
+import { ArgspecValue } from "./argspecs";
 
 const booleanSubcommands = new Subcommands(["subcommands", "?", "!?"]);
 
@@ -93,6 +96,24 @@ export const falseCmd: Command = {
     });
   },
 };
+
+class BoolCommand implements Command {
+  scope: Scope;
+  metacommand: EnsembleMetacommand;
+  constructor(scope: Scope) {
+    this.scope = new Scope(scope);
+    const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
+    this.metacommand = new EnsembleMetacommand(this.scope, argspec);
+  }
+  execute(args: Value[], scope: Scope): Result {
+    if (args.length == 1) return OK(this.metacommand);
+    if (args.length == 2) return BooleanValue.fromValue(args[1]);
+    return this.metacommand.ensemble.execute(args, scope);
+  }
+  help(args) {
+    return this.metacommand.ensemble.help(args, {});
+  }
+}
 
 const NOT_SIGNATURE = "! arg";
 export const notCmd: Command = {
@@ -219,6 +240,9 @@ function runCondition(process: Process) {
 export function registerLogicCommands(scope: Scope) {
   scope.registerNamedCommand("true", trueCmd);
   scope.registerNamedCommand("false", falseCmd);
+
+  const boolCommand = new BoolCommand(scope);
+  scope.registerNamedCommand("bool", boolCommand);
 
   scope.registerNamedCommand("!", notCmd);
   scope.registerNamedCommand("&&", andCmd);
