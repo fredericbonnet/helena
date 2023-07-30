@@ -33,6 +33,8 @@ type WhileState = {
   process?: Process;
   lastResult: Result;
 };
+
+const WHILE_SIGNATURE = "while test body";
 class WhileCommand implements Command {
   execute(args, scope: Scope) {
     let test, body: Value;
@@ -41,7 +43,7 @@ class WhileCommand implements Command {
         [, test, body] = args;
         break;
       default:
-        return ARITY_ERROR("while test body");
+        return ARITY_ERROR(WHILE_SIGNATURE);
     }
     let testProgram;
     if (test.type == ValueType.SCRIPT) {
@@ -58,6 +60,10 @@ class WhileCommand implements Command {
     const state = result.data as WhileState;
     state.process.yieldBack(result.value);
     return this.run(state, scope);
+  }
+  help(args) {
+    if (args.length > 3) return ARITY_ERROR(WHILE_SIGNATURE);
+    return OK(STR(WHILE_SIGNATURE));
   }
   private run(state: WhileState, scope: Scope) {
     for (;;) {
@@ -119,6 +125,7 @@ class WhileCommand implements Command {
 }
 const whileCmd = new WhileCommand();
 
+const IF_SIGNATURE = "if test body ?elseif test body ...? ?else? ?body?";
 class IfState {
   args: Value[];
   i: number;
@@ -136,6 +143,9 @@ class IfCommand implements Command {
     const state = result.data as IfState;
     state.process.yieldBack(result.value);
     return this.run(state, scope);
+  }
+  help() {
+    return OK(STR(IF_SIGNATURE));
   }
   private run(state: IfState, scope: Scope): Result {
     while (state.i < state.args.length) {
@@ -232,11 +242,12 @@ class IfCommand implements Command {
       }
     }
     if (i == args.length) return OK(NIL);
-    return ARITY_ERROR("if test body ?elseif test body ...? ?else? ?body?");
+    return ARITY_ERROR(IF_SIGNATURE);
   }
 }
 const ifCmd = new IfCommand();
 
+const WHEN_SIGNATURE = "when ?command? {?test body ...? ?default?}";
 class WhenState {
   command?: Value;
   cases: Value[];
@@ -264,7 +275,7 @@ class WhenCommand implements Command {
         [, command, casesBody] = args;
         break;
       default:
-        return ARITY_ERROR("when ?command? {?test body ...? ?default?}");
+        return ARITY_ERROR(WHEN_SIGNATURE);
     }
     const { data: cases, ...result } = valueToArray(casesBody);
     if (result.code != ResultCode.OK) return result;
@@ -275,6 +286,10 @@ class WhenCommand implements Command {
     const state = result.data as WhenState;
     state.process.yieldBack(result.value);
     return this.run(state, scope);
+  }
+  help(args) {
+    if (args.length > 3) return ARITY_ERROR(WHEN_SIGNATURE);
+    return OK(STR(WHEN_SIGNATURE));
   }
   private run(state: WhenState, scope: Scope): Result {
     while (state.i < state.cases.length) {
@@ -388,6 +403,8 @@ class WhenCommand implements Command {
 }
 const whenCmd = new WhenCommand();
 
+const CATCH_SIGNATURE =
+  "catch body ?return value handler? ?yield value handler? ?error message handler? ?break handler? ?continue handler? ?finally handler?";
 type CatchState = {
   args: Value[];
   step:
@@ -434,6 +451,9 @@ class CatchCommand implements Command {
     const state = result.data as CatchState;
     state.process.yieldBack(result.value);
     return this.run(state, scope);
+  }
+  help() {
+    return OK(STR(CATCH_SIGNATURE));
   }
   private run(state: CatchState, scope: Scope) {
     for (;;) {
@@ -608,18 +628,21 @@ class CatchCommand implements Command {
       }
     }
     if (i == args.length) return OK(NIL);
-    return ARITY_ERROR(
-      "catch body ?return value handler? ?yield value handler? ?error message handler? ?break handler? ?continue handler? ?finally handler?"
-    );
+    return ARITY_ERROR(CATCH_SIGNATURE);
   }
 }
 const catchCmd = new CatchCommand();
 
+const PASS_SIGNATURE = "pass";
 const passResultCode: CustomResultCode = { name: "pass" };
 const passCmd: Command = {
   execute(args) {
-    if (args.length != 1) return ARITY_ERROR("pass");
+    if (args.length != 1) return ARITY_ERROR(PASS_SIGNATURE);
     return CUSTOM_RESULT(passResultCode);
+  },
+  help(args) {
+    if (args.length != 1) return ARITY_ERROR(PASS_SIGNATURE);
+    return OK(STR(PASS_SIGNATURE));
   },
 };
 
