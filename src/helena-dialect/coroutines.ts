@@ -7,7 +7,7 @@ import {
   ResultCode,
 } from "../core/results";
 import { Command } from "../core/command";
-import { Value, ScriptValue, ValueType, BOOL } from "../core/values";
+import { Value, ScriptValue, ValueType, BOOL, STR } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { CommandValue, commandValueType, Process, Scope } from "./core";
 import { Subcommands } from "./subcommands";
@@ -85,6 +85,8 @@ class CoroutineValue implements CommandValue, Command {
     }
   }
 }
+
+const COROUTINE_SIGNATURE = "coroutine body";
 export const coroutineCmd: Command = {
   execute: (args, scope: Scope) => {
     let body;
@@ -93,11 +95,15 @@ export const coroutineCmd: Command = {
         [, body] = args;
         break;
       default:
-        return ARITY_ERROR("coroutine body");
+        return ARITY_ERROR(COROUTINE_SIGNATURE);
     }
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
     const value = new CoroutineValue(scope, body as ScriptValue);
     return OK(value);
+  },
+  help(args) {
+    if (args.length > 2) return ARITY_ERROR(COROUTINE_SIGNATURE);
+    return OK(STR(COROUTINE_SIGNATURE));
   },
 };
