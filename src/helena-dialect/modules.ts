@@ -28,17 +28,22 @@ import { valueToArray } from "./lists";
 
 type Exports = Map<string, Value>;
 
+const EXPORT_SIGNATURE = "export name";
 class ExportCommand implements Command {
   readonly exports: Exports;
   constructor(exports: Exports) {
     this.exports = exports;
   }
   execute(args: Value[]): Result {
-    if (args.length != 2) return ARITY_ERROR("export name");
+    if (args.length != 2) return ARITY_ERROR(EXPORT_SIGNATURE);
     const name = args[1].asString?.();
     if (name == null) return ERROR("invalid export name");
     this.exports.set(name, STR(name));
     return OK(NIL);
+  }
+  help(args) {
+    if (args.length > 2) return ARITY_ERROR(EXPORT_SIGNATURE);
+    return OK(STR(EXPORT_SIGNATURE));
   }
 }
 
@@ -102,6 +107,7 @@ function importCommand(
   return OK(NIL);
 }
 
+const MODULE_SIGNATURE = "module ?name? body";
 class ModuleCommand implements Command {
   readonly rootDir: string;
   constructor(rootDir: string) {
@@ -118,7 +124,7 @@ class ModuleCommand implements Command {
         [, name, body] = args;
         break;
       default:
-        return ARITY_ERROR("module ?name? body");
+        return ARITY_ERROR(MODULE_SIGNATURE);
     }
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
@@ -139,6 +145,10 @@ class ModuleCommand implements Command {
       if (result.code != ResultCode.OK) return result;
     }
     return OK(value);
+  }
+  help(args) {
+    if (args.length > 3) return ARITY_ERROR(MODULE_SIGNATURE);
+    return OK(STR(MODULE_SIGNATURE));
   }
 }
 
@@ -212,6 +222,7 @@ function resolveModule(
   return OK(module, module);
 }
 
+const IMPORT_SIGNATURE = "import path ?name|imports?";
 class ImportCommand implements Command {
   readonly rootDir: string;
   constructor(rootDir: string) {
@@ -220,7 +231,7 @@ class ImportCommand implements Command {
 
   execute(args, scope: Scope) {
     if (args.length != 2 && args.length != 3)
-      return ARITY_ERROR("import path ?name|imports?");
+      return ARITY_ERROR(IMPORT_SIGNATURE);
 
     const path = args[1].asString?.();
     if (path == null) return ERROR("invalid path");
@@ -270,6 +281,10 @@ class ImportCommand implements Command {
       }
     }
     return OK(value);
+  }
+  help(args) {
+    if (args.length > 3) return ARITY_ERROR(IMPORT_SIGNATURE);
+    return OK(STR(IMPORT_SIGNATURE));
   }
 }
 

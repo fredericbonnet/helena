@@ -1,4 +1,5 @@
 import * as path from "node:path";
+import * as mochadoc from "../../mochadoc";
 import { expect } from "chai";
 import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
@@ -6,6 +7,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { LIST, NIL, STR } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
+import { codeBlock } from "./test-helpers";
 
 describe("Helena modules", () => {
   let rootScope: Scope;
@@ -18,36 +20,90 @@ describe("Helena modules", () => {
   const execute = (script: string) => rootScope.executeScript(parse(script));
   const evaluate = (script: string) => execute(script).value;
 
-  beforeEach(() => {
+  const init = () => {
     rootScope = new Scope();
     initCommands(rootScope, __dirname);
 
     tokenizer = new Tokenizer();
     parser = new Parser();
-  });
+  };
+  const usage = (script: string) => {
+    init();
+    return codeBlock(evaluate("help " + script).asString());
+  };
 
-  describe("module", () => {
-    it("should define a new command", () => {
-      evaluate("module cmd {}");
-      expect(rootScope.context.commands.has("cmd")).to.be.true;
+  beforeEach(init);
+
+  describe("`module`", () => {
+    mochadoc.summary("Create a module command");
+    mochadoc.usage(usage("module"));
+    mochadoc.description(() => {
+      /**
+       * The `module` command creates a new command that will execute a script
+       * in its own isolated root scope.
+       */
     });
-    it("should replace existing commands", () => {
-      evaluate("module cmd {}");
-      expect(execute("module cmd {}").code).to.eql(ResultCode.OK);
+
+    mochadoc.section("Specifications", () => {
+      specify("usage", () => {
+        expect(evaluate("help module")).to.eql(STR("module ?name? body"));
+        expect(evaluate("help module {}")).to.eql(STR("module ?name? body"));
+        expect(evaluate("help module cmd {}")).to.eql(
+          STR("module ?name? body")
+        );
+      });
+
+      it("should define a new command", () => {
+        evaluate("module cmd {}");
+        expect(rootScope.context.commands.has("cmd")).to.be.true;
+      });
+      it("should replace existing commands", () => {
+        evaluate("module cmd {}");
+        expect(execute("module cmd {}").code).to.eql(ResultCode.OK);
+      });
+      it("should return a command object", () => {
+        expect(evaluate("module {}").type).to.eql(commandValueType);
+        expect(evaluate("module cmd  {}").type).to.eql(commandValueType);
+      });
+      specify("the named command should return its command object", () => {
+        const value = evaluate("module cmd {}");
+        expect(evaluate("cmd")).to.eql(value);
+      });
+      specify("the command object should return itself", () => {
+        const value = evaluate("set cmd [module {}]");
+        expect(evaluate("$cmd")).to.eql(value);
+      });
     });
-    it("should return a command object", () => {
-      expect(evaluate("module {}").type).to.eql(commandValueType);
-      expect(evaluate("module cmd  {}").type).to.eql(commandValueType);
+
+    mochadoc.section("Exceptions", () => {
+      specify("wrong arity", () => {
+        /**
+         * The command will return an error message with usage when given the
+         * wrong number of arguments.
+         */
+        expect(execute("module")).to.eql(
+          ERROR('wrong # args: should be "module ?name? body"')
+        );
+        expect(execute("module a b c")).to.eql(
+          ERROR('wrong # args: should be "module ?name? body"')
+        );
+        expect(execute("help module a b c")).to.eql(
+          ERROR('wrong # args: should be "module ?name? body"')
+        );
+      });
+      specify("invalid `name`", () => {
+        /**
+         * Command names must have a valid string representation.
+         */
+        expect(execute("module [] {}")).to.eql(ERROR("invalid command name"));
+      });
+      specify("non-script body", () => {
+        expect(execute("module a")).to.eql(ERROR("body must be a script"));
+        expect(execute("module a b")).to.eql(ERROR("body must be a script"));
+      });
     });
-    specify("the named command should return its command object", () => {
-      const value = evaluate("module cmd {}");
-      expect(evaluate("cmd")).to.eql(value);
-    });
-    specify("the command object should return itself", () => {
-      const value = evaluate("set cmd [module {}]");
-      expect(evaluate("$cmd")).to.eql(value);
-    });
-    describe("body", () => {
+
+    mochadoc.section("`body`", () => {
       it("should be executed", () => {
         expect(execute("module {macro cmd {} {error message}; cmd}")).to.eql(
           ERROR("message")
@@ -76,9 +132,17 @@ describe("Helena modules", () => {
         expect(rootScope.context.variables.get("var")).to.eql(STR("val"));
         expect(rootScope.context.constants.has("cst")).to.be.false;
       });
-      describe("control flow", () => {
-        describe("return", () => {
-          it("should interrupt the body with ERROR code", () => {
+
+      describe("Control flow", () => {
+        mochadoc.description(() => {
+          /**
+           * If the body returns a result code other than `OK` then it should be
+           * propagated properly by the command.
+           */
+        });
+
+        describe("`return`", () => {
+          it("should interrupt the body with `ERROR` code", () => {
             expect(execute("module {return value}")).to.eql(
               ERROR("unexpected return")
             );
@@ -88,8 +152,8 @@ describe("Helena modules", () => {
             expect(rootScope.context.commands.has("cmd")).to.be.false;
           });
         });
-        describe("tailcall", () => {
-          it("should interrupt the body with ERROR code", () => {
+        describe("`tailcall`", () => {
+          it("should interrupt the body with `ERROR` code", () => {
             expect(execute("module {tailcall {idem value}}")).to.eql(
               ERROR("unexpected return")
             );
@@ -99,8 +163,8 @@ describe("Helena modules", () => {
             expect(rootScope.context.commands.has("cmd")).to.be.false;
           });
         });
-        describe("yield", () => {
-          it("should interrupt the body with ERROR code", () => {
+        describe("`yield`", () => {
+          it("should interrupt the body with `ERROR` code", () => {
             expect(execute("module {yield value}")).to.eql(
               ERROR("unexpected yield")
             );
@@ -110,8 +174,8 @@ describe("Helena modules", () => {
             expect(rootScope.context.commands.has("cmd")).to.be.false;
           });
         });
-        describe("error", () => {
-          it("should interrupt the body with ERROR code", () => {
+        describe("`error`", () => {
+          it("should interrupt the body with `ERROR` code", () => {
             expect(execute("module {error message}")).to.eql(ERROR("message"));
           });
           it("should not define the module command", () => {
@@ -119,8 +183,8 @@ describe("Helena modules", () => {
             expect(rootScope.context.commands.has("cmd")).to.be.false;
           });
         });
-        describe("break", () => {
-          it("should interrupt the body with ERROR code", () => {
+        describe("`break`", () => {
+          it("should interrupt the body with `ERROR` code", () => {
             expect(execute("module {break}")).to.eql(ERROR("unexpected break"));
           });
           it("should not define the module command", () => {
@@ -128,8 +192,8 @@ describe("Helena modules", () => {
             expect(rootScope.context.commands.has("cmd")).to.be.false;
           });
         });
-        describe("continue", () => {
-          it("should interrupt the body with ERROR code", () => {
+        describe("`continue`", () => {
+          it("should interrupt the body with `ERROR` code", () => {
             expect(execute("module {continue}")).to.eql(
               ERROR("unexpected continue")
             );
@@ -139,8 +203,8 @@ describe("Helena modules", () => {
             expect(rootScope.context.commands.has("cmd")).to.be.false;
           });
         });
-        describe("pass", () => {
-          it("should interrupt the body with ERROR code", () => {
+        describe("`pass`", () => {
+          it("should interrupt the body with `ERROR` code", () => {
             expect(execute("module {pass}")).to.eql(ERROR("unexpected pass"));
           });
           it("should not define the module command", () => {
@@ -150,22 +214,33 @@ describe("Helena modules", () => {
         });
       });
     });
-    describe("subcommands", () => {
-      describe("subcommands", () => {
+
+    mochadoc.section("Subcommands", () => {
+      describe("`subcommands`", () => {
         it("should return list of subcommands", () => {
+          /**
+           * This subcommand is useful for introspection and interactive
+           * calls.
+           */
           expect(evaluate("[module {}] subcommands")).to.eql(
             evaluate("list (subcommands exports import)")
           );
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The subcommand will return an error message with usage when
+             * given the wrong number of arguments.
+             */
             expect(execute("[module {}] subcommands a")).to.eql(
               ERROR('wrong # args: should be "<module> subcommands"')
             );
           });
         });
       });
-      describe("exports", () => {
+
+      describe("`exports`", () => {
         it("should return a list", () => {
           expect(evaluate("[module {}] exports")).to.eql(LIST([]));
         });
@@ -174,15 +249,21 @@ describe("Helena modules", () => {
             evaluate("[module {export a; export b; export c}] exports")
           ).to.eql(evaluate("list (a b c)"));
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The subcommand will return an error message with usage when
+             * given the wrong number of arguments.
+             */
             expect(execute("[module {}] exports a")).to.eql(
               ERROR('wrong # args: should be "<module> exports"')
             );
           });
         });
       });
-      describe("import", () => {
+
+      describe("`import`", () => {
         it("should declare imported commands in the calling scope", () => {
           evaluate(`module mod {macro cmd {} {idem value}; export cmd}`);
           evaluate("mod import cmd");
@@ -236,8 +317,13 @@ describe("Helena modules", () => {
           expect(evaluate("cmd")).to.eql(STR("original"));
           expect(evaluate("cmd2")).to.eql(STR("imported"));
         });
-        describe("exceptions", () => {
+
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
+            /**
+             * The subcommand will return an error message with usage when
+             * given the wrong number of arguments.
+             */
             expect(execute("[module {}] import")).to.eql(
               ERROR('wrong # args: should be "<module> import name ?alias?"')
             );
@@ -267,7 +353,8 @@ describe("Helena modules", () => {
           });
         });
       });
-      describe("exceptions", () => {
+
+      describe("Exceptions", () => {
         specify("unknown subcommand", () => {
           expect(execute("[module {}] unknownSubcommand")).to.eql(
             ERROR('unknown subcommand "unknownSubcommand"')
@@ -280,177 +367,245 @@ describe("Helena modules", () => {
         });
       });
     });
-    describe("exceptions", () => {
-      specify("wrong arity", () => {
-        expect(execute("module")).to.eql(
-          ERROR('wrong # args: should be "module ?name? body"')
-        );
-        expect(execute("module a b c")).to.eql(
-          ERROR('wrong # args: should be "module ?name? body"')
-        );
-      });
-      specify("non-script body", () => {
-        expect(execute("module a")).to.eql(ERROR("body must be a script"));
-        expect(execute("module a b")).to.eql(ERROR("body must be a script"));
-      });
-      specify("invalid command name", () => {
-        expect(execute("module [] {}")).to.eql(ERROR("invalid command name"));
-      });
-    });
   });
+
   describe("export", () => {
-    it("should not exist in non-module scope", () => {
-      expect(execute("export")).to.eql(
-        ERROR('cannot resolve command "export"')
-      );
+    mochadoc.summary("Export a command from the current module");
+    mochadoc.usage(
+      (() => {
+        init();
+        const usage = evaluate(`
+          [module {
+            closure usage {} {help export}
+            export usage
+          }] import usage
+          usage
+        `);
+        return codeBlock(usage.asString());
+      })()
+    );
+    mochadoc.description(() => {
+      /**
+       * The `export` command exports a command from the current module by
+       * making it available for other modules through its `import` subcommand.
+       */
     });
-    it("should exist in module scope", () => {
-      expect(execute("module {export foo}").code).to.eql(ResultCode.OK);
-    });
-    it("should return nil", () => {
-      evaluate(`
+
+    mochadoc.section("Specifications", () => {
+      specify("usage", () => {
+        evaluate(`
+          [module {
+            closure usage {*args} {help $*args}
+            export usage
+          }] import usage
+        `);
+        expect(evaluate("usage export")).to.eql(STR("export name"));
+        expect(evaluate("usage export cmd")).to.eql(STR("export name"));
+      });
+
+      it("should not exist in non-module scope", () => {
+        expect(execute("export")).to.eql(
+          ERROR('cannot resolve command "export"')
+        );
+      });
+      it("should exist in module scope", () => {
+        expect(execute("module {export foo}").code).to.eql(ResultCode.OK);
+      });
+      it("should return nil", () => {
+        evaluate(`
         module mod {
           set result [export cmd]
           closure cmd {} {get result}
         }
       `);
-      evaluate("mod import cmd");
-      expect(execute("cmd")).to.eql(OK(NIL));
+        evaluate("mod import cmd");
+        expect(execute("cmd")).to.eql(OK(NIL));
+      });
+      it("should add command name to exports", () => {
+        evaluate("module mod {macro cmd {} {}; export cmd}");
+        expect(evaluate("mod exports")).to.eql(evaluate("list (cmd)"));
+      });
+      it("should allow non-existing command names", () => {
+        evaluate("module mod {export cmd}");
+        expect(evaluate("mod exports")).to.eql(evaluate("list (cmd)"));
+      });
     });
-    it("should add command name to exports", () => {
-      evaluate("module mod {macro cmd {} {}; export cmd}");
-      expect(evaluate("mod exports")).to.eql(evaluate("list (cmd)"));
-    });
-    it("should allow non-existing command names", () => {
-      evaluate("module mod {export cmd}");
-      expect(evaluate("mod exports")).to.eql(evaluate("list (cmd)"));
-    });
-    describe("exceptions", () => {
+
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
+        /**
+         * The command will return an error message with usage when given the
+         * wrong number of arguments.
+         */
         expect(execute("module {export}")).to.eql(
           ERROR('wrong # args: should be "export name"')
         );
         expect(execute("module {export a b}")).to.eql(
           ERROR('wrong # args: should be "export name"')
         );
+        expect(execute("module {help export a b}")).to.eql(
+          ERROR('wrong # args: should be "export name"')
+        );
       });
-      specify("invalid export name", () => {
+      specify("invalid `name`", () => {
+        /**
+         * Command names must have a valid string representation.
+         */
         expect(execute("module {export []}")).to.eql(
           ERROR("invalid export name")
         );
       });
     });
   });
-  describe("import", () => {
+
+  describe("`import`", () => {
     const moduleAPathRel = "tests/module-a.lna";
     const moduleAPathAbs = `"""${path.join(__dirname, moduleAPathRel)}"""`;
     const moduleBPath = `"tests/module-b.lna"`;
     const moduleCPath = `"tests/module-c.lna"`;
     const moduleDPath = `"tests/module-d.lna"`;
 
-    it("should return a module object", () => {
-      const value = evaluate(`set cmd [import ${moduleAPathAbs}]`);
-      expect(value.type).to.eql(commandValueType);
-      expect(evaluate("$cmd exports")).to.eql(LIST([STR("name")]));
+    mochadoc.summary("Load a module");
+    mochadoc.usage(usage("import"));
+    mochadoc.description(() => {
+      /**
+       * The `import` command loads a module from the file system. On first
+       * load, the file content is evaluated as a script in a new module scope,
+       * and the module is added to a global registry.
+       */
     });
-    specify(
-      "relative paths should resolve relatively to the working directory",
-      () => {
-        evaluate(`import ${moduleAPathRel} (name)`);
-        expect(evaluate("name")).to.eql(STR("module-a"));
-      }
-    );
-    specify(
-      "in-module relative paths should resolve relatively to the module path",
-      () => {
-        evaluate(`import ${moduleCPath} (name)`);
-        expect(evaluate("name")).to.eql(STR("module-a"));
-      }
-    );
-    specify("multiple imports should resolve to the same object", () => {
-      const value = evaluate(`import ${moduleAPathAbs}`);
-      expect(evaluate(`import ${moduleAPathAbs}`)).to.equal(value);
-      expect(evaluate(`import ${moduleAPathRel}`)).to.equal(value);
-    });
-    it("should not support circular imports", () => {
-      expect(execute(`import ${moduleDPath}`)).to.eql(
-        ERROR("circular imports are forbidden")
+
+    mochadoc.section("Specifications", () => {
+      specify("usage", () => {
+        expect(evaluate("help import")).to.eql(
+          STR("import path ?name|imports?")
+        );
+        expect(evaluate("help import /a")).to.eql(
+          STR("import path ?name|imports?")
+        );
+        expect(evaluate("help import /a b")).to.eql(
+          STR("import path ?name|imports?")
+        );
+      });
+
+      it("should return a module object", () => {
+        const value = evaluate(`set cmd [import ${moduleAPathAbs}]`);
+        expect(value.type).to.eql(commandValueType);
+        expect(evaluate("$cmd exports")).to.eql(LIST([STR("name")]));
+      });
+      specify(
+        "relative paths should resolve relatively to the working directory",
+        () => {
+          evaluate(`import ${moduleAPathRel} (name)`);
+          expect(evaluate("name")).to.eql(STR("module-a"));
+        }
       );
+      specify(
+        "in-module relative paths should resolve relatively to the module path",
+        () => {
+          evaluate(`import ${moduleCPath} (name)`);
+          expect(evaluate("name")).to.eql(STR("module-a"));
+        }
+      );
+      specify("multiple imports should resolve to the same object", () => {
+        const value = evaluate(`import ${moduleAPathAbs}`);
+        expect(evaluate(`import ${moduleAPathAbs}`)).to.equal(value);
+        expect(evaluate(`import ${moduleAPathRel}`)).to.equal(value);
+      });
+      it("should not support circular imports", () => {
+        expect(execute(`import ${moduleDPath}`)).to.eql(
+          ERROR("circular imports are forbidden")
+        );
+      });
+
+      describe("`name`", () => {
+        it("should define a new command", () => {
+          evaluate(`import ${moduleAPathAbs} cmd`);
+          expect(rootScope.context.commands.has("cmd")).to.be.true;
+        });
+        it("should replace existing commands", () => {
+          evaluate("macro cmd {}");
+          evaluate(`import ${moduleAPathAbs} cmd`);
+        });
+        specify("the named command should return its command object", () => {
+          const value = evaluate(`import ${moduleAPathAbs} cmd`);
+          expect(evaluate("cmd")).to.eql(value);
+        });
+      });
+
+      describe("`imports`", () => {
+        it("should declare imported commands in the calling scope", () => {
+          evaluate(`import ${moduleAPathAbs} (name)`);
+          expect(evaluate("name")).to.eql(STR("module-a"));
+        });
+        it("should accept tuples", () => {
+          evaluate(`import ${moduleAPathAbs} (name)`);
+          expect(evaluate("name")).to.eql(STR("module-a"));
+        });
+        it("should accept lists", () => {
+          evaluate(`import ${moduleAPathAbs} [list (name)]`);
+          expect(evaluate("name")).to.eql(STR("module-a"));
+        });
+        it("should accept blocks", () => {
+          evaluate(`import ${moduleAPathAbs} {name}`);
+          expect(evaluate("name")).to.eql(STR("module-a"));
+        });
+        it("should accept (name alias) tuples", () => {
+          evaluate("macro name {} {idem original}");
+          evaluate(`import ${moduleAPathAbs} ( (name name2) )`);
+          expect(evaluate("name")).to.eql(STR("original"));
+          expect(evaluate("name2")).to.eql(STR("module-a"));
+        });
+
+        describe("Exceptions", () => {
+          specify("unknown export", () => {
+            expect(execute(`import ${moduleAPathAbs} (a)`)).to.eql(
+              ERROR('unknown export "a"')
+            );
+          });
+          specify("unresolved export", () => {
+            expect(execute(`import ${moduleBPath} (unresolved)`)).to.eql(
+              ERROR('cannot resolve export "unresolved"')
+            );
+          });
+          specify("invalid import name", () => {
+            expect(execute(`import ${moduleBPath} ([])`)).to.eql(
+              ERROR("invalid import name")
+            );
+            expect(execute(`import ${moduleBPath} ( ([] a) )`)).to.eql(
+              ERROR("invalid import name")
+            );
+          });
+          specify("invalid alias name", () => {
+            expect(execute(`import ${moduleBPath} ( (name []) )`)).to.eql(
+              ERROR("invalid alias name")
+            );
+          });
+          specify("invalid name tuple", () => {
+            expect(execute(`import ${moduleBPath} ( () )`)).to.eql(
+              ERROR("invalid (name alias) tuple")
+            );
+            expect(execute(`import ${moduleBPath} ( (a b c) )`)).to.eql(
+              ERROR("invalid (name alias) tuple")
+            );
+          });
+        });
+      });
     });
-    describe("name", () => {
-      it("should define a new command", () => {
-        evaluate(`import ${moduleAPathAbs} cmd`);
-        expect(rootScope.context.commands.has("cmd")).to.be.true;
-      });
-      it("should replace existing commands", () => {
-        evaluate("macro cmd {}");
-        evaluate(`import ${moduleAPathAbs} cmd`);
-      });
-      specify("the named command should return its command object", () => {
-        const value = evaluate(`import ${moduleAPathAbs} cmd`);
-        expect(evaluate("cmd")).to.eql(value);
-      });
-    });
-    describe("imports", () => {
-      it("should declare imported commands in the calling scope", () => {
-        evaluate(`import ${moduleAPathAbs} (name)`);
-        expect(evaluate("name")).to.eql(STR("module-a"));
-      });
-      it("should accept tuples", () => {
-        evaluate(`import ${moduleAPathAbs} (name)`);
-        expect(evaluate("name")).to.eql(STR("module-a"));
-      });
-      it("should accept lists", () => {
-        evaluate(`import ${moduleAPathAbs} [list (name)]`);
-        expect(evaluate("name")).to.eql(STR("module-a"));
-      });
-      it("should accept blocks", () => {
-        evaluate(`import ${moduleAPathAbs} {name}`);
-        expect(evaluate("name")).to.eql(STR("module-a"));
-      });
-      it("should accept (name alias) tuples", () => {
-        evaluate("macro name {} {idem original}");
-        evaluate(`import ${moduleAPathAbs} ( (name name2) )`);
-        expect(evaluate("name")).to.eql(STR("original"));
-        expect(evaluate("name2")).to.eql(STR("module-a"));
-      });
-      describe("exceptions", () => {
-        specify("unknown export", () => {
-          expect(execute(`import ${moduleAPathAbs} (a)`)).to.eql(
-            ERROR('unknown export "a"')
-          );
-        });
-        specify("unresolved export", () => {
-          expect(execute(`import ${moduleBPath} (unresolved)`)).to.eql(
-            ERROR('cannot resolve export "unresolved"')
-          );
-        });
-        specify("invalid import name", () => {
-          expect(execute(`import ${moduleBPath} ([])`)).to.eql(
-            ERROR("invalid import name")
-          );
-          expect(execute(`import ${moduleBPath} ( ([] a) )`)).to.eql(
-            ERROR("invalid import name")
-          );
-        });
-        specify("invalid alias name", () => {
-          expect(execute(`import ${moduleBPath} ( (name []) )`)).to.eql(
-            ERROR("invalid alias name")
-          );
-        });
-        specify("invalid name tuple", () => {
-          expect(execute(`import ${moduleBPath} ( () )`)).to.eql(
-            ERROR("invalid (name alias) tuple")
-          );
-          expect(execute(`import ${moduleBPath} ( (a b c) )`)).to.eql(
-            ERROR("invalid (name alias) tuple")
-          );
-        });
-      });
-    });
-    describe("exceptions", () => {
+
+    mochadoc.section("Exceptions", () => {
       specify("wrong arity", () => {
-        expect(execute("import ")).to.eql(
+        /**
+         * The command will return an error message with usage when given the
+         * wrong number of arguments.
+         */
+        expect(execute("import")).to.eql(
+          ERROR('wrong # args: should be "import path ?name|imports?"')
+        );
+        expect(execute("import a b c")).to.eql(
+          ERROR('wrong # args: should be "import path ?name|imports?"')
+        );
+        expect(execute("help import a b c")).to.eql(
           ERROR('wrong # args: should be "import path ?name|imports?"')
         );
       });
