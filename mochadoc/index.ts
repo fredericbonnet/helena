@@ -3,7 +3,13 @@
  */
 
 import { Documentation } from "./types";
-import { addBlock, setSummary, markAsSection, addTestContent } from "./writer";
+import {
+  addBlock,
+  setSummary,
+  markAsSection,
+  addMetainfo,
+  addTestContent,
+} from "./writer";
 
 /**
  * Define a new Mocha suite as a section
@@ -31,6 +37,17 @@ section.skip = (title: string, fn: (this: Mocha.Suite) => void) => {
     return fn.call(this);
   });
 };
+
+/**
+ * Add metainformation to the current Mocha suite
+ *
+ * @param metainfo - Metainformation
+ */
+export function meta(metainfo) {
+  before("mochadoc.meta", function () {
+    addMetainfo(this.test.parent, metainfo);
+  });
+}
 
 /**
  * Set summary for the current Mocha suite

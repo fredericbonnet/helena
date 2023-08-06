@@ -546,6 +546,7 @@ describe("Helena basic commands", () => {
   });
 
   describe("`help`", () => {
+    mochadoc.meta({ page: "helena-dialect/commands/help" });
     mochadoc.summary("Give usage of a command");
     mochadoc.usage(usage("help"));
     mochadoc.description(() => {

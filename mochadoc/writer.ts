@@ -47,6 +47,17 @@ export function addBlock(
 }
 
 /**
+ * Add metainformation to Mocha suite
+ *
+ * @param suite    - Mocha suite to add metainformation to
+ * @param metainfo - Metainformation
+ */
+export function addMetainfo(suite: mocha.Suite, metainfo: object) {
+  const info = ensureSuiteInfo(suite);
+  info.metainfo = { ...(info.metainfo ?? {}), ...metainfo };
+}
+
+/**
  * Attach documentation block to Mocha test
  *
  * @param test    - Mocha test to attach block to
@@ -69,16 +80,16 @@ export function openSuite(suite: mocha.Suite) {
 /**
  * Called by reporter at the end of a Mocha suite execution
  *
- * Will write all the content to the documentation file
+ * Will write all the content of a main suite to its documentation file
  *
  * @param suite - Mocha suite
  */
 export function closeSuite(suite: mocha.Suite) {
   if (isMainSuite(suite)) {
+    computeSectionLevels(suite);
     const fd = createDocFile(suite);
     fs.writeSync(fd, frontMatter({ source: getSuiteSourcePath(suite) }));
-    computeSectionLevels(suite);
-    writeSuiteDoc(fd, suite);
+    writeSuite(fd, suite);
     fs.closeSync(fd);
   }
 }
@@ -155,6 +166,9 @@ interface SuiteInfo {
 
   /** Suite content blocks (can be empty) */
   blocks: DocumentationBlock[];
+
+  /** Metainformation (optional) */
+  metainfo?: object;
 }
 
 /** Info attached to Mocha tests */
@@ -252,6 +266,18 @@ function isMainSuite(suite: mocha.Suite) {
 }
 
 /**
+ * Test whether the given Mocha suite is a page
+ *
+ * @param suite - Mocha suite to test
+ *
+ * @returns       Predicate result
+ */
+function isPage(suite: mocha.Suite) {
+  const info = ensureSuiteInfo(suite);
+  return !!info.metainfo?.["page"];
+}
+
+/**
  * Test whether the given Mocha suite should be output as a doc section
  *
  * This is the case for main suites, any suite with attached content, and suites
@@ -297,10 +323,25 @@ function sourceToDocPath(src: string) {
  * @returns       File descriptor
  */
 function createDocFile(suite: mocha.Suite) {
-  const src = getSuiteSourcePath(suite);
+  const src = getDocFilePath(suite);
   const filePath = sourceToDocPath(src);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   return fs.openSync(filePath, "w");
+}
+
+/**
+ * Get the documentation file path for a Mocha suite
+ *
+ * @param suite - Mocha suite
+ *
+ * @returns       File path
+ */
+function getDocFilePath(suite: mocha.Suite) {
+  if (isPage(suite)) {
+    const info = ensureSuiteInfo(suite);
+    return "pages/" + info.metainfo?.["page"] + ".md";
+  }
+  return getSuiteSourcePath(suite);
 }
 
 /**
@@ -314,7 +355,7 @@ function computeSectionLevels(suite: mocha.Suite) {
 
   // Suites are not sections by default (stop condition for recursive calls)
   info.sectionLevel = 0;
-  if (isMainSuite(suite)) {
+  if (isMainSuite(suite) || isPage(suite)) {
     info.sectionLevel = 1;
   } else if (info.isSection || hasContentOrSubcontent(suite)) {
     // The whole chain of parent suites must also be sections, this implies that
@@ -361,6 +402,32 @@ function getIndentLevel(suite: mocha.Suite) {
  * @param fd    - File descriptor
  * @param suite - Mocha suite
  */
+function writeSuite(fd: number, suite: mocha.Suite) {
+  if (isPage(suite)) {
+    writePage(suite);
+  } else {
+    writeSuiteDoc(fd, suite);
+  }
+}
+
+/**
+ * Write a documentation page for this Mocha suite and below
+ *
+ * @param suite - Mocha suite
+ */
+function writePage(suite: mocha.Suite) {
+  const fd = createDocFile(suite);
+  fs.writeSync(fd, frontMatter({ source: getSuiteSourcePath(suite) }));
+  writeSuiteDoc(fd, suite);
+  fs.closeSync(fd);
+}
+
+/**
+ * Write all documentation content for this Mocha suite and below
+ *
+ * @param fd    - File descriptor
+ * @param suite - Mocha suite
+ */
 function writeSuiteDoc(fd: number, suite: mocha.Suite) {
   const info = ensureSuiteInfo(suite);
   if (isSection(suite)) {
@@ -372,7 +439,7 @@ function writeSuiteDoc(fd: number, suite: mocha.Suite) {
     writeTestDoc(fd, test);
   }
   for (const child of suite.suites) {
-    writeSuiteDoc(fd, child);
+    writeSuite(fd, child);
   }
 }
 
@@ -384,11 +451,11 @@ function writeSuiteDoc(fd: number, suite: mocha.Suite) {
  */
 function writeSection(fd: number, suite: mocha.Suite) {
   const info = ensureSuiteInfo(suite);
-  fs.writeSync(fd, sectionTitle(info.title, getSectionLevel(suite)));
+  fs.writeSync(fd, sectionTitle(info.title, info.sectionLevel));
   if (info.summary) writeDocContent(fd, info.summary);
   for (const block of info.blocks) {
     if (block.title)
-      fs.writeSync(fd, sectionTitle(block.title, info.level + 1));
+      fs.writeSync(fd, sectionTitle(block.title, info.sectionLevel + 1));
     writeDocContent(fd, block.content);
   }
 }
