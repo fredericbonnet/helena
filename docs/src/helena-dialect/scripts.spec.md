@@ -1,9 +1,10 @@
 ---
 source: src\helena-dialect\scripts.spec.ts
 ---
-# Helena scripts
+# <a id=""></a>Helena scripts
 
-## `parse`
+
+## <a id="parse"></a>`parse`
 
 Helena script parsing
 
@@ -18,15 +19,14 @@ values.
 
 Script values are Helena values whose internal type is `SCRIPT`.
 
-### Specifications
+
+### <a id="parse_Specifications"></a>Specifications
 
 - ✅ should return a script value
-
 - ✅ should return parsed script and source
-
 - ✅ should parse blocks as string values
 
-### Exceptions
+### <a id="parse_Exceptions"></a>Exceptions
 
 - ✅ wrong arity
 
@@ -34,10 +34,9 @@ Script values are Helena values whose internal type is `SCRIPT`.
   wrong number of arguments.
 
 - ✅ parsing error
-
 - ✅ values with no string representation
 
-## `script`
+## <a id="script"></a>`script`
 
 Script handling
 
@@ -55,34 +54,32 @@ Script values are Helena values whose internal type is `SCRIPT`.
 
 - ✅ should be extensible
 
-### Script creation and conversion
+### <a id="script_Script_creation_and_conversion"></a>Script creation and conversion
 
 Like with most type commands, passing a single argument to `script` will
 ensure a script value in return. This property means that `script` can be
 used for creation and conversion, but also as a type guard in argspecs.
 
 - ✅ should return script value
-
 - ✅ should accept blocks
 
 - tuples
 
   - ✅ should be converted to scripts
-
   - ✅ string value should be undefined
-
   - ✅ empty tuples should return empty scripts
-
   - ✅ non-empty tuples should return single-sentence scripts
 
-### Subcommands
+### <a id="script_Subcommands"></a>Subcommands
 
 The `script` ensemble comes with a number of predefined subcommands
 listed here.
 
-#### Introspection
 
-##### `subcommands`
+#### <a id="script_Subcommands_Introspection"></a>Introspection
+
+
+##### <a id="script_Subcommands_Introspection_subcommands"></a>`subcommands`
 
 ```lna
 script value subcommands
@@ -92,7 +89,6 @@ This subcommand is useful for introspection and interactive
 calls.
 
 - ✅ usage
-
 - ✅ should return list of subcommands
 
 - Exceptions
@@ -102,9 +98,11 @@ calls.
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-#### Accessors
 
-##### `length`
+#### <a id="script_Subcommands_Accessors"></a>Accessors
+
+
+##### <a id="script_Subcommands_Accessors_length"></a>`length`
 
 Get script length
 
@@ -121,9 +119,11 @@ script value length
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-#### Operations
 
-##### `append`
+#### <a id="script_Subcommands_Operations"></a>Operations
+
+
+##### <a id="script_Subcommands_Operations_append"></a>`append`
 
 Concatenate scripts
 
@@ -132,20 +132,16 @@ script value append ?script ...?
 ```
 
 - ✅ usage
-
 - ✅ should append two scripts
-
 - ✅ should accept several scripts
-
 - ✅ should accept both scripts and tuples scripts
-
 - ✅ should accept zero scripts
 
 - Exceptions
 
   - ✅ invalid values
 
-##### `split`
+##### <a id="script_Subcommands_Operations_split"></a>`split`
 
 Split scripts into sentences
 
@@ -154,7 +150,6 @@ script value split
 ```
 
 - ✅ usage
-
 - ✅ should split script sentences into list of scripts
 
 - Exceptions
@@ -164,13 +159,13 @@ script value split
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-#### Exceptions
+
+#### <a id="script_Subcommands_Exceptions"></a>Exceptions
 
 - ✅ unknown subcommand
-
 - ✅ invalid subcommand name
 
-### Examples
+### <a id="script_Examples"></a>Examples
 
 - ✅ Currying and encapsulation
 
@@ -231,7 +226,8 @@ script value split
   # => [error "value must be a script or tuple"]
   ```
 
-### Ensemble command
+
+### <a id="script_Ensemble_command"></a>Ensemble command
 
 `script` is an ensemble command, which means that it is a collection
 of subcommands defined in an ensemble scope.
@@ -251,7 +247,8 @@ of subcommands defined in an ensemble scope.
   Like all ensemble commands, `script` have built-in support for `help`
   on all subcommands that support it.
 
-#### Examples
+
+#### <a id="script_Ensemble_command_Examples"></a>Examples
 
 - ✅ Adding a `last` subcommand
 
@@ -272,4 +269,5 @@ of subcommands defined in an ensemble scope.
   ```lna
   script {a b c; d e; f} last
   ```
+
 

@@ -1,9 +1,10 @@
 ---
 source: src\helena-dialect\dicts.spec.ts
 ---
-# Helena dictionaries
+# <a id=""></a>Helena dictionaries
 
-## `dict`
+
+## <a id="dict"></a>`dict`
 
 Dictionary handling
 
@@ -22,7 +23,8 @@ Dictionary values are Helena values whose internal type is
 it is shorter and is already used in other languages like Tcl and
 Python.
 
-### Dictionary creation and conversion
+
+### <a id="dict_Dictionary_creation_and_conversion"></a>Dictionary creation and conversion
 
 Like with most type commands, passing a single argument to `dict`
 will ensure a dictionary value in return. This property means that
@@ -30,7 +32,6 @@ will ensure a dictionary value in return. This property means that
 guard in argspecs.
 
 - ✅ should return dictionary value
-
 - ✅ should convert key-value tuples to dictionaries
 
   The most common syntax for dictionary creation is to simply pass a
@@ -69,6 +70,7 @@ guard in argspecs.
 
   Contrary to keys, values are preserved with no conversion.
 
+
 - Exceptions
 
   - ✅ invalid lists
@@ -88,14 +90,17 @@ guard in argspecs.
     Providing a block with side effects like substitutions or
     expressions will result in an error.
 
-### Subcommands
+
+### <a id="dict_Subcommands"></a>Subcommands
 
 The `dict` ensemble comes with a number of predefined subcommands
 listed here.
 
-#### Introspection
 
-##### `subcommands`
+#### <a id="dict_Subcommands_Introspection"></a>Introspection
+
+
+##### <a id="dict_Subcommands_Introspection_subcommands"></a>`subcommands`
 
 ```lna
 dict value subcommands
@@ -105,7 +110,6 @@ This subcommand is useful for introspection and interactive
 calls.
 
 - ✅ usage
-
 - ✅ should return list of subcommands
 
 - Exceptions
@@ -115,9 +119,11 @@ calls.
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-#### Accessors
 
-##### `size`
+#### <a id="dict_Subcommands_Accessors"></a>Accessors
+
+
+##### <a id="dict_Subcommands_Accessors_size"></a>`size`
 
 Get dictionary size
 
@@ -126,7 +132,6 @@ dict value size
 ```
 
 - ✅ usage
-
 - ✅ should return the dictionary size
 
 - Exceptions
@@ -136,7 +141,8 @@ dict value size
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-##### `has`
+
+##### <a id="dict_Subcommands_Accessors_has"></a>`has`
 
 Test for dictionary key existence
 
@@ -145,7 +151,6 @@ dict value has key
 ```
 
 - ✅ usage
-
 - ✅ should test for `key` existence
 
 - Exceptions
@@ -157,7 +162,7 @@ dict value has key
 
   - ✅ invalid `key`
 
-##### `get`
+##### <a id="dict_Subcommands_Accessors_get"></a>`get`
 
 Get dictionary value
 
@@ -166,13 +171,9 @@ dict value get key ?default?
 ```
 
 - ✅ usage
-
 - ✅ should return the value at `key`
-
 - ✅ should return the default value for a non-existing key
-
 - ✅ should support key tuples
-
 - ✅ `get` <-> keyed selector equivalence
 
 - Exceptions
@@ -183,12 +184,10 @@ dict value get key ?default?
     given the wrong number of arguments.
 
   - ✅ unknow key
-
   - ✅ invalid key
-
   - ✅ key tuples with default
 
-##### `keys`
+##### <a id="dict_Subcommands_Accessors_keys"></a>`keys`
 
 Get dictionary keys
 
@@ -197,7 +196,6 @@ dict value keys
 ```
 
 - ✅ usage
-
 - ✅ should return the list of keys
 
 - Exceptions
@@ -207,7 +205,8 @@ dict value keys
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-##### `values`
+
+##### <a id="dict_Subcommands_Accessors_values"></a>`values`
 
 Get dictionary values
 
@@ -216,7 +215,6 @@ dict value values
 ```
 
 - ✅ usage
-
 - ✅ should return the list of values
 
 - Exceptions
@@ -226,7 +224,8 @@ dict value values
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-##### `entries`
+
+##### <a id="dict_Subcommands_Accessors_entries"></a>`entries`
 
 Get dictionary entries
 
@@ -235,7 +234,6 @@ dict value entries
 ```
 
 - ✅ usage
-
 - ✅ should return the list of key-value tuples
 
 - Exceptions
@@ -245,7 +243,8 @@ dict value entries
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-#### Operations
+
+#### <a id="dict_Subcommands_Operations"></a>Operations
 
 Add entry to dictionary
 
@@ -258,7 +257,6 @@ dict value add key value
 - `add`
 
   - ✅ should add `value` for a new `key`
-
   - ✅ should replace the value for an existing `key`
 
   - Exceptions
@@ -270,7 +268,7 @@ dict value add key value
 
     - ✅ invalid key
 
-##### `remove`
+##### <a id="dict_Subcommands_Operations_remove"></a>`remove`
 
 Remove entry from dictionary
 
@@ -279,20 +277,16 @@ dict value remove ?key ...?
 ```
 
 - ✅ usage
-
 - ✅ should remove the provided `key`
-
 - ✅ should accept several keys to remove
-
 - ✅ should ignore unknown keys
-
 - ✅ should accept zero key
 
 - Exceptions
 
   - ✅ invalid `key`
 
-##### `merge`
+##### <a id="dict_Subcommands_Operations_merge"></a>`merge`
 
 Merge dictionaries
 
@@ -301,20 +295,18 @@ dict value merge ?dict ...?
 ```
 
 - ✅ usage
-
 - ✅ should merge two dictionaries
-
 - ✅ should accept several dictionaries
-
 - ✅ should accept zero dictionary
 
 - Exceptions
 
   - ✅ invalid dictionary values
 
-#### Iteration
+#### <a id="dict_Subcommands_Iteration"></a>Iteration
 
-##### `foreach`
+
+##### <a id="dict_Subcommands_Iteration_foreach"></a>`foreach`
 
 Iterate over dictionary elements
 
@@ -323,22 +315,18 @@ dict value foreach entry body
 ```
 
 - ✅ usage
-
 - ✅ should iterate over entries
-
 - ✅ should return the result of the last command
 
 - entry parameter tuples
 
   - ✅ should be supported
-
   - ✅ should accept empty tuple
-
   - ✅ should accept `(key)` tuple
-
   - ✅ should ignore extra elements
 
 - Control flow
+
 
   - `return`
 
@@ -351,7 +339,6 @@ dict value foreach entry body
   - `yield`
 
     - ✅ should interrupt the body with `YIELD` code
-
     - ✅ should provide a resumable state
 
   - `error`
@@ -375,13 +362,12 @@ dict value foreach entry body
 
   - ✅ non-script body
 
-#### Exceptions
+#### <a id="dict_Subcommands_Exceptions"></a>Exceptions
 
 - ✅ unknown subcommand
-
 - ✅ invalid subcommand name
 
-### Examples
+### <a id="dict_Examples"></a>Examples
 
 - ✅ Currying and encapsulation
 
@@ -453,7 +439,8 @@ dict value foreach entry body
   # => [error "invalid dictionary"]
   ```
 
-### Ensemble command
+
+### <a id="dict_Ensemble_command"></a>Ensemble command
 
 `list` is an ensemble command, which means that it is a collection of
 subcommands defined in an ensemble scope.
@@ -473,7 +460,8 @@ subcommands defined in an ensemble scope.
   Like all ensemble commands, `dict` have built-in support for `help`
   on all subcommands that support it.
 
-#### Examples
+
+#### <a id="dict_Ensemble_command_Examples"></a>Examples
 
 - ✅ Adding a `+` operator
 
@@ -496,13 +484,14 @@ subcommands defined in an ensemble scope.
   # => [dict (a e c d f g)]
   ```
 
-## `displayDictionaryValue`
+
+## <a id="displayDictionaryValue"></a>`displayDictionaryValue`
 
 Display function for dictionaries
 
 - ✅ should display dictionaries as `dict` command + key-value tuple
-
 - ✅ should produce an isomorphic string
 
   Evaluating the string will produce an identical dictionary value.
+
 

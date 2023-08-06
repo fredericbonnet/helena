@@ -1,9 +1,10 @@
 ---
 source: src\helena-dialect\tuples.spec.ts
 ---
-# Helena tuples
+# <a id=""></a>Helena tuples
 
-## `tuple`
+
+## <a id="tuple"></a>`tuple`
 
 Tuple handling
 
@@ -19,7 +20,8 @@ access, and operations.
 
 Tuple values are Helena values whose internal type is `TUPLE`.
 
-### Tuple creation and conversion
+
+### <a id="tuple_Tuple_creation_and_conversion"></a>Tuple creation and conversion
 
 Like with most type commands, passing a single argument to `tuple`
 will ensure a tuple value in return. This property means that `tuple`
@@ -27,9 +29,7 @@ can be used for creation and conversion, but also as a type guard in
 argspecs.
 
 - ✅ should return tuple value
-
 - ✅ should convert lists to tuple
-
 - ✅ should convert blocks to tuples
 
   Blocks are also accepted; the block is evaluated in an empty scope
@@ -39,6 +39,7 @@ argspecs.
   tuple {a b c}
   # => (a b c)
   ```
+
 
 - Exceptions
 
@@ -51,16 +52,18 @@ argspecs.
     Providing a block with side effects like substitutions or
     expressions will result in an error.
 
-### Subcommands
+
+### <a id="tuple_Subcommands"></a>Subcommands
 
 The `tuple` ensemble comes with a number of predefined subcommands
 listed here.
 
 - ✅ should be extensible
 
-#### Introspection
+#### <a id="tuple_Subcommands_Introspection"></a>Introspection
 
-##### `subcommands`
+
+##### <a id="tuple_Subcommands_Introspection_subcommands"></a>`subcommands`
 
 ```lna
 tuple value subcommands
@@ -70,7 +73,6 @@ This subcommand is useful for introspection and interactive
 calls.
 
 - ✅ usage
-
 - ✅ should return list of subcommands
 
 - Exceptions
@@ -80,9 +82,11 @@ calls.
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-#### Accessors
 
-##### `length`
+#### <a id="tuple_Subcommands_Accessors"></a>Accessors
+
+
+##### <a id="tuple_Subcommands_Accessors_length"></a>`length`
 
 Get tuple length
 
@@ -91,7 +95,6 @@ tuple value length
 ```
 
 - ✅ usage
-
 - ✅ should return the tuple length
 
 - Exceptions
@@ -101,7 +104,8 @@ tuple value length
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-##### `at`
+
+##### <a id="tuple_Subcommands_Accessors_at"></a>`at`
 
 Get tuple element
 
@@ -110,9 +114,7 @@ tuple value at index ?default?
 ```
 
 - ✅ usage
-
 - ✅ should return the element at `index`
-
 - ✅ should return the default value for an out-of-range `index`
 
 - Exceptions
@@ -123,16 +125,14 @@ tuple value at index ?default?
     given the wrong number of arguments.
 
   - ✅ invalid `index`
-
   - ✅ `index` out of range
 
-#### Exceptions
+#### <a id="tuple_Subcommands_Exceptions"></a>Exceptions
 
 - ✅ unknown subcommand
-
 - ✅ invalid subcommand name
 
-### Examples
+### <a id="tuple_Examples"></a>Examples
 
 - ✅ Currying and encapsulation
 
@@ -205,7 +205,8 @@ tuple value at index ?default?
   # => [error "invalid tuple"]
   ```
 
-### Ensemble command
+
+### <a id="tuple_Ensemble_command"></a>Ensemble command
 
 `tuple` is an ensemble command, which means that it is a collection
 of subcommands defined in an ensemble scope.
@@ -225,7 +226,8 @@ of subcommands defined in an ensemble scope.
   Like all ensemble commands, `tuple` have built-in support for `help`
   on all subcommands that support it.
 
-#### Examples
+
+#### <a id="tuple_Ensemble_command_Examples"></a>Examples
 
 - ✅ Adding a `last` subcommand
 
@@ -247,4 +249,5 @@ of subcommands defined in an ensemble scope.
   tuple (a b c) last
   # => c
   ```
+
 

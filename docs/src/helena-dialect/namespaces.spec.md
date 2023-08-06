@@ -1,9 +1,10 @@
 ---
 source: src\helena-dialect\namespaces.spec.ts
 ---
-# Helena namespaces
+# <a id=""></a>Helena namespaces
 
-## `namespace`
+
+## <a id="namespace"></a>`namespace`
 
 Create a namespace command
 
@@ -15,15 +16,14 @@ namespace ?name? body
 
 The `namespace` command creates a new namespace command.
 
-### Specifications
+
+### <a id="namespace_Specifications"></a>Specifications
 
 - ✅ usage
-
 - ✅ should define a new command
-
 - ✅ should replace existing commands
 
-### Exceptions
+### <a id="namespace_Exceptions"></a>Exceptions
 
 - ✅ wrong arity
 
@@ -36,75 +36,63 @@ The `namespace` command creates a new namespace command.
 
 - ✅ non-script body
 
-### `body`
+### <a id="namespace_body"></a>`body`
 
 - ✅ should be executed
-
 - ✅ should access global commands
-
 - ✅ should not access global variables
-
 - ✅ should not set global variables
-
 - ✅ should set namespace variables
 
-#### Control flow
+#### <a id="namespace_body_Control_flow"></a>Control flow
 
 If the body returns a result code other than `OK` then it should be
 propagated properly by the command.
 
+
 - `return`
 
   - ✅ should interrupt the body with `OK` code
-
   - ✅ should still define the named command
-
   - ✅ should return passed value instead of the command object
 
 - `tailcall`
 
   - ✅ should interrupt the body with `OK` code
-
   - ✅ should still define the named command
-
   - ✅ should return passed value instead of the command object
 
 - `yield`
 
   - ✅ should interrupt the body with `YIELD` code
-
   - ✅ should provide a resumable state
-
   - ✅ should delay the definition of namespace command until resumed
 
 - `error`
 
   - ✅ should interrupt the body with `ERROR` code
-
   - ✅ should not define the namespace command
 
 - `break`
 
   - ✅ should interrupt the body with `ERROR` code
-
   - ✅ should not define the namespace command
 
 - `continue`
 
   - ✅ should interrupt the body with `ERROR` code
-
   - ✅ should not define the namespace command
 
-### Metacommand
+### <a id="namespace_Metacommand"></a>Metacommand
 
 `namespace` returns a metacommand value that can be used to
 introspect the newly created command.
 
 - ✅ should return a metacommand
-
 - ✅ the metacommand should return itself
 
-#### Subcommands
+#### <a id="namespace_Metacommand_Subcommands"></a>Subcommands
+
 
 - `subcommands`
 
@@ -113,6 +101,7 @@ introspect the newly created command.
     This subcommand is useful for introspection and interactive
     calls.
 
+
   - Exceptions
 
     - ✅ wrong arity
@@ -120,17 +109,16 @@ introspect the newly created command.
       The subcommand will return an error message with usage when
       given the wrong number of arguments.
 
+
 - `eval`
 
   - ✅ should evaluate body in namespace scope
-
   - ✅ should accept tuple bodies
-
   - ✅ should evaluate macros in namespace scope
-
   - ✅ should evaluate closures in their scope
 
   - Control flow
+
 
     - `return`
 
@@ -143,7 +131,6 @@ introspect the newly created command.
     - `yield`
 
       - ✅ should interrupt the body with `YIELD` code
-
       - ✅ should provide a resumable state
 
     - `error`
@@ -170,12 +157,11 @@ introspect the newly created command.
 - `call`
 
   - ✅ should call namespace commands
-
   - ✅ should evaluate macros in namespace
-
   - ✅ should evaluate namespace closures in namespace
 
   - Control flow
+
 
     - `return`
 
@@ -188,7 +174,6 @@ introspect the newly created command.
     - `yield`
 
       - ✅ should interrupt the call with `YIELD` code
-
       - ✅ should provide a resumable state
 
     - `error`
@@ -211,25 +196,17 @@ introspect the newly created command.
       given the wrong number of arguments.
 
     - ✅ unknown command
-
     - ✅ out-of-scope command
-
     - ✅ invalid command name
 
 - `import`
 
   - ✅ should declare imported commands in the calling scope
-
   - ✅ should return nil
-
   - ✅ should replace existing commands
-
   - ✅ should evaluate macros in the caller scope
-
   - ✅ should evaluate closures in their scope
-
   - ✅ should resolve imported commands at call time
-
   - ✅ should accept an optional alias name
 
   - Exceptions
@@ -240,45 +217,42 @@ introspect the newly created command.
       given the wrong number of arguments.
 
     - ✅ unresolved command
-
     - ✅ invalid import name
-
     - ✅ invalid alias name
 
 - Exceptions
 
   - ✅ unknown subcommand
-
   - ✅ invalid subcommand name
 
-## Namespace commands
+## <a id="Namespace_commands"></a>Namespace commands
 
 Namespace commands are commands that gather subcommands and variables
 defined in their own child scope.
 
-### Specifications
+
+### <a id="Namespace_commands_Specifications"></a>Specifications
 
 - ✅ should return its namespace metacommand when called with no argument
 
   The typical application of this property is to access the namespace
   metacommand by wrapping the command within brackets, i.e. `[cmd]`.
 
-### Namespace subcommands
+
+### <a id="Namespace_commands_Namespace_subcommands"></a>Namespace subcommands
 
 Commands defined in the namespace scope will be exposed as
 subcommands.
 
 - ✅ first argument should be namespace subcommand name
-
 - ✅ should pass remaining arguments to namespace subcommand
-
 - ✅ should evaluate subcommand in namespace scope
-
 - ✅ should work recursively
 
-#### Introspection
+#### <a id="Namespace_commands_Namespace_subcommands_Introspection"></a>Introspection
 
-##### `subcommands`
+
+##### <a id="Namespace_commands_Namespace_subcommands_Introspection_subcommands"></a>`subcommands`
 
 `subcommands` is a predefined subcommand that is available for
 all namespace commands.
@@ -292,13 +266,13 @@ all namespace commands.
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-#### Help
+
+#### <a id="Namespace_commands_Namespace_subcommands_Help"></a>Help
 
 Namespace commands have built-in support for `help` on all
 subcommands that support it.
 
 - ✅ should provide subcommand help
-
 - ✅ should work recursively
 
 - Exceptions
@@ -321,10 +295,12 @@ subcommands that support it.
 
     The command cannot get help for a subcommand that has none.
 
-#### Control flow
+
+#### <a id="Namespace_commands_Namespace_subcommands_Control_flow"></a>Control flow
 
 If a subcommand returns a result code other than `OK` then it
 should be propagated properly to the caller.
+
 
 - `return`
 
@@ -337,7 +313,6 @@ should be propagated properly to the caller.
 - `yield`
 
   - ✅ should interrupt the call with `YIELD` code
-
   - ✅ should provide a resumable state
 
 - `error`
@@ -352,10 +327,9 @@ should be propagated properly to the caller.
 
   - ✅ should interrupt the call with `CONTINUE` code
 
-#### Exceptions
+#### <a id="Namespace_commands_Namespace_subcommands_Exceptions"></a>Exceptions
 
 - ✅ unknown subcommand
-
 - ✅ out-of-scope subcommand
 
   Commands inherited from their parent scope are not available as
@@ -363,20 +337,17 @@ should be propagated properly to the caller.
 
 - ✅ invalid subcommand name
 
-### Namespace variables
+### <a id="Namespace_commands_Namespace_variables"></a>Namespace variables
 
 Variables defined in the namespace scope will be key selectable on
 both the namespace command and metacommand.
 
 - ✅ should map to value keys
-
 - ✅ should work recursively
 
-#### Exceptions
+#### <a id="Namespace_commands_Namespace_variables_Exceptions"></a>Exceptions
 
 - ✅ unknown variables
-
 - ✅ out-of-scope variable
-
 - ✅ invalid variable name
 

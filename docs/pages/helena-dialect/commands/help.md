@@ -1,7 +1,7 @@
 ---
 source: src\helena-dialect\basic-commands.spec.ts
 ---
-# `help`
+# <a id="help"></a>`help`
 
 Give usage of a command
 
@@ -13,17 +13,17 @@ help command ?arg ...?
 
 The `help` command returns a help string for the given command.
 
-## Specifications
+
+## <a id="help_Specifications"></a>Specifications
 
 - ✅ should give usage of itself
-
 - ✅ should accept optional arguments
 
   Passing extra arguments will validate the command signature.
 
 - ✅ should return the command help
 
-## Exceptions
+## <a id="help_Exceptions"></a>Exceptions
 
 - ✅ wrong arity
 
@@ -42,4 +42,5 @@ The `help` command returns a help string for the given command.
 - ✅ command with no help
 
   The command cannot get help for a command that has none.
+
 

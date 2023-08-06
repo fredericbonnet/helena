@@ -1,9 +1,10 @@
 ---
 source: src\helena-dialect\macros.spec.ts
 ---
-# Helena macros
+# <a id=""></a>Helena macros
 
-## `macro`
+
+## <a id="macro"></a>`macro`
 
 Create a macro command
 
@@ -15,15 +16,14 @@ macro ?name? argspec body
 
 The `macro` command creates a new macro command.
 
-### Specifications
+
+### <a id="macro_Specifications"></a>Specifications
 
 - ✅ usage
-
 - ✅ should define a new command 
-
 - ✅ should replace existing commands
 
-### Exceptions
+### <a id="macro_Exceptions"></a>Exceptions
 
 - ✅ wrong arity
 
@@ -40,19 +40,19 @@ The `macro` command creates a new macro command.
 
 - ✅ non-script body
 
-### Metacommand
+### <a id="macro_Metacommand"></a>Metacommand
 
 `macro` returns a metacommand value that can be used to introspect
 the newly created command.
 
 - ✅ should return a metacommand
-
 - ✅ the metacommand should return the macro
 
   The typical application of this property is to call the macro by
   wrapping its metacommand within brackets, e.g. `[$metacommand]`.
 
-#### Examples
+
+#### <a id="macro_Metacommand_Examples"></a>Examples
 
 - ✅ Calling macro through its wrapped metacommand
 
@@ -71,7 +71,9 @@ the newly created command.
   # => 6
   ```
 
-#### Subcommands
+
+#### <a id="macro_Metacommand_Subcommands"></a>Subcommands
+
 
 - `subcommands`
 
@@ -80,12 +82,14 @@ the newly created command.
     This subcommand is useful for introspection and interactive
     calls.
 
+
   - Exceptions
 
     - ✅ wrong arity
 
       The subcommand will return an error message with usage when
       given the wrong number of arguments.
+
 
 - `argspec`
 
@@ -106,6 +110,7 @@ the newly created command.
     argspec {a b}
     ```
 
+
   - Exceptions
 
     - ✅ wrong arity
@@ -113,38 +118,33 @@ the newly created command.
       The subcommand will return an error message with usage when
       given the wrong number of arguments.
 
+
 - Exceptions
 
   - ✅ unknown subcommand
-
   - ✅ invalid subcommand name
 
-## Macro commands
+## <a id="Macro_commands"></a>Macro commands
 
 Macro commands are commands that execute a body script in the calling
 scope.
 
-### Help
+
+### <a id="Macro_commands_Help"></a>Help
 
 Macros have built-in support for `help` generated from their
 argspec.
 
 - ✅ zero
-
 - ✅ one
-
 - ✅ two
-
 - ✅ optional
-
 - ✅ remainder
-
 - ✅ anonymous
 
-### Arguments
+### <a id="Macro_commands_Arguments"></a>Arguments
 
 - ✅ should shadow scope variables
-
 - ✅ should be macro-local
 
 - Exceptions
@@ -154,51 +154,42 @@ argspec.
     The macro will return an error message with usage when given the
     wrong number of arguments.
 
-### Command calls
+
+### <a id="Macro_commands_Command_calls"></a>Command calls
 
 - ✅ should return nil for empty body
-
 - ✅ should return the result of the last command
-
 - ✅ should access scope variables
-
 - ✅ should set scope variables
-
 - ✅ should access scope commands
 
 - should evaluate in the caller scope
 
   - ✅ global scope
-
   - ✅ child scope
-
   - ✅ scoped macro
 
-### Return guards
+### <a id="Macro_commands_Return_guards"></a>Return guards
 
 Return guards are similar to argspec guards, but apply to the
 return value of the macro.
 
 - ✅ should apply to the return value
-
 - ✅ should let body errors pass through
-
 - ✅ should not access macro arguments
-
 - ✅ should evaluate in the caller scope
 
 - Exceptions
 
   - ✅ empty body specifier
-
   - ✅ invalid body specifier
-
   - ✅ non-script body
 
-### Control flow
+### <a id="Macro_commands_Control_flow"></a>Control flow
 
 If the body returns a result code other than `OK` then it should be
 propagated properly by the macro to the caller.
+
 
 - `return`
 
@@ -211,9 +202,7 @@ propagated properly by the macro to the caller.
 - `yield`
 
   - ✅ should interrupt a macro with `YIELD` code
-
   - ✅ should provide a resumable state
-
   - ✅ should work recursively
 
 - `error`

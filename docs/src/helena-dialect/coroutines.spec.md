@@ -1,9 +1,10 @@
 ---
 source: src\helena-dialect\coroutines.spec.ts
 ---
-# Helena coroutines
+# <a id=""></a>Helena coroutines
 
-## `coroutine`
+
+## <a id="coroutine"></a>`coroutine`
 
 Create a coroutine
 
@@ -17,13 +18,13 @@ The `coroutine` command creates a coroutine that will execute a body
 script in its own child scope. Coroutine execution is interruptible and
 resumable, and can be used for cooperative multitasking.
 
-### Specifications
+
+### <a id="coroutine_Specifications"></a>Specifications
 
 - ✅ usage
-
 - ✅ should return a coroutine object
 
-### Exceptions
+### <a id="coroutine_Exceptions"></a>Exceptions
 
 - ✅ wrong arity
 
@@ -32,34 +33,29 @@ resumable, and can be used for cooperative multitasking.
 
 - ✅ non-script body
 
-### `body`
+### <a id="coroutine_body"></a>`body`
 
 - ✅ should access scope variables
-
 - ✅ should set scope variables
-
 - ✅ should access scope commands
 
-#### Control flow
+#### <a id="coroutine_body_Control_flow"></a>Control flow
+
 
 - `return`
 
   - ✅ should interrupt the body with `OK` code
-
   - ✅ should return passed value
 
 - `tailcall`
 
   - ✅ should interrupt the body with `OK` code
-
   - ✅ should return passed value
 
 - `yield`
 
   - ✅ should interrupt the body with `OK` code
-
   - ✅ should return yielded value
-
   - ✅ should work recursively
 
 - `error`
@@ -74,14 +70,15 @@ resumable, and can be used for cooperative multitasking.
 
   - ✅ should interrupt the body with `ERROR` code
 
-### Coroutine object
+### <a id="coroutine_Coroutine_object"></a>Coroutine object
 
 `coroutine` returns a coroutine object value that can be used to
 control the execution of the coroutine.
 
 - ✅ the coroutine object should return itself
 
-#### Subcommands
+#### <a id="coroutine_Coroutine_object_Subcommands"></a>Subcommands
+
 
 - `subcommands`
 
@@ -90,6 +87,7 @@ control the execution of the coroutine.
     This subcommand is useful for introspection and interactive
     calls.
 
+
   - Exceptions
 
     - ✅ wrong arity
@@ -97,12 +95,11 @@ control the execution of the coroutine.
       The command will return an error message with usage when given the
       wrong number of arguments.
 
+
 - `wait`
 
   - ✅ should evaluate body
-
   - ✅ should resume yielded body
-
   - ✅ should return result of completed coroutines
 
   - Exceptions
@@ -112,14 +109,12 @@ control the execution of the coroutine.
       The command will return an error message with usage when given the
       wrong number of arguments.
 
+
 - `active`
 
   - ✅ should return `false` on new coroutines
-
   - ✅ should return `false` on completed coroutines
-
   - ✅ should return `true` on yielded coroutines
-
   - ✅ should return `false` on yielded coroutines ran to completion
 
   - Exceptions
@@ -129,14 +124,12 @@ control the execution of the coroutine.
       The command will return an error message with usage when given the
       wrong number of arguments.
 
+
 - `done`
 
   - ✅ should return `false` on new coroutines
-
   - ✅ should return `true` on completed coroutines
-
   - ✅ should return `false` on yielded coroutines
-
   - ✅ should return `true` on yielded coroutines ran to completion
 
   - Exceptions
@@ -146,10 +139,10 @@ control the execution of the coroutine.
       The command will return an error message with usage when given the
       wrong number of arguments.
 
+
 - `yield`
 
   - ✅ should resume yielded body
-
   - ✅ should yield back value to coroutine
 
   - Exceptions
@@ -160,12 +153,10 @@ control the execution of the coroutine.
       wrong number of arguments.
 
     - ✅ inactive coroutine
-
     - ✅ completed coroutine
 
-#### Exceptions
+#### <a id="coroutine_Coroutine_object_Exceptions"></a>Exceptions
 
 - ✅ unknown subcommand
-
 - ✅ invalid subcommand name
 

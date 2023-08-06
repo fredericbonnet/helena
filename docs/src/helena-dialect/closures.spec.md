@@ -1,9 +1,10 @@
 ---
 source: src\helena-dialect\closures.spec.ts
 ---
-# Helena closures
+# <a id=""></a>Helena closures
 
-## `closure`
+
+## <a id="closure"></a>`closure`
 
 Create a closure command
 
@@ -15,15 +16,14 @@ closure ?name? argspec body
 
 The `closure` command creates a new closure command.
 
-### Specifications
+
+### <a id="closure_Specifications"></a>Specifications
 
 - ✅ usage
-
 - ✅ should define a new command
-
 - ✅ should replace existing commands
 
-### Exceptions
+### <a id="closure_Exceptions"></a>Exceptions
 
 - ✅ wrong arity
 
@@ -40,19 +40,19 @@ The `closure` command creates a new closure command.
 
 - ✅ non-script body
 
-### Metacommand
+### <a id="closure_Metacommand"></a>Metacommand
 
 `closure` returns a metacommand value that can be used to introspect
 the newly created command.
 
 - ✅ should return a metacommand
-
 - ✅ the metacommand should return the closure
 
   The typical application of this property is to call the closure by
   wrapping its metacommand within brackets, e.g. `[$metacommand]`.
 
-#### Examples
+
+#### <a id="closure_Metacommand_Examples"></a>Examples
 
 - ✅ Calling closure through its wrapped metacommand
 
@@ -71,7 +71,9 @@ the newly created command.
   # => 6
   ```
 
-#### Subcommands
+
+#### <a id="closure_Metacommand_Subcommands"></a>Subcommands
+
 
 - `subcommands`
 
@@ -80,12 +82,14 @@ the newly created command.
     This subcommand is useful for introspection and interactive
     calls.
 
+
   - Exceptions
 
     - ✅ wrong arity
 
       The subcommand will return an error message with usage when
       given the wrong number of arguments.
+
 
 - `argspec`
 
@@ -106,6 +110,7 @@ the newly created command.
     argspec {a b}
     ```
 
+
   - Exceptions
 
     - ✅ wrong arity
@@ -113,38 +118,33 @@ the newly created command.
       The subcommand will return an error message with usage when
       given the wrong number of arguments.
 
+
 - Exceptions
 
   - ✅ unknown subcommand
-
   - ✅ invalid subcommand name
 
-## Closure commands
+## <a id="Closure_commands"></a>Closure commands
 
 Closure commands are commands that execute a body script in the scope
 where they are created.
 
-### Help
+
+### <a id="Closure_commands_Help"></a>Help
 
 Closures have built-in support for `help` generated from their
 argspec.
 
 - ✅ zero
-
 - ✅ one
-
 - ✅ two
-
 - ✅ optional
-
 - ✅ remainder
-
 - ✅ anonymous
 
-### Arguments
+### <a id="Closure_commands_Arguments"></a>Arguments
 
 - ✅ should shadow scope variables
-
 - ✅ should be closure-local
 
 - Exceptions
@@ -154,45 +154,39 @@ argspec.
     The closure will return an error message with usage when given the
     wrong number of arguments.
 
-### Command calls
+
+### <a id="Closure_commands_Command_calls"></a>Command calls
 
 - ✅ should return nil for empty body
-
 - ✅ should return the result of the last command
 
 - should evaluate in the closure parent scope
 
   - ✅ global scope
-
   - ✅ child scope
-
   - ✅ scoped closure
 
-### Return guards
+### <a id="Closure_commands_Return_guards"></a>Return guards
 
 Return guards are similar to argspec guards, but apply to the return
 value of the closure.
 
 - ✅ should apply to the return value
-
 - ✅ should let body errors pass through
-
 - ✅ should not access closure arguments
-
 - ✅ should evaluate in the closure parent scope
 
 - Exceptions
 
   - ✅ empty body specifier
-
   - ✅ invalid body specifier
-
   - ✅ non-script body
 
-### Control flow
+### <a id="Closure_commands_Control_flow"></a>Control flow
 
 If the body returns a result code other than `OK` then it should be
 propagated properly by the closure to the caller.
+
 
 - `return`
 
@@ -205,9 +199,7 @@ propagated properly by the closure to the caller.
 - `yield`
 
   - ✅ should interrupt a closure with `YIELD` code
-
   - ✅ should provide a resumable state
-
   - ✅ should work recursively
 
 - `error`

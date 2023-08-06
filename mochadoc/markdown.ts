@@ -31,6 +31,24 @@ export function sectionTitle(title: string, level: number) {
 }
 
 /**
+ * Indent Markdown text
+ *
+ * @param text        - Text
+ * @param indentLevel - Indentation level
+ *
+ * @returns             Markdown string
+ */
+export function indent(text: string, indentLevel?: number) {
+  const indent = "  ".repeat(indentLevel);
+  return indentLevel > 0
+    ? text
+        .split("\n")
+        .map((line) => indent + line)
+        .join("\n")
+    : text;
+}
+
+/**
  * Generate Markdown paragraph
  *
  * @param paragraph   - Paragraph text
@@ -39,14 +57,7 @@ export function sectionTitle(title: string, level: number) {
  * @returns             Markdown string
  */
 export function paragraph(paragraph: string, indentLevel?: number) {
-  const indent = "  ".repeat(indentLevel);
-  const text = indentLevel
-    ? paragraph
-        .split("\n")
-        .map((line) => indent + line)
-        .join("\n")
-    : paragraph;
-  return text + "\n\n";
+  return indent(paragraph, indentLevel) + "\n\n";
 }
 
 /**
@@ -58,5 +69,28 @@ export function paragraph(paragraph: string, indentLevel?: number) {
  * @returns             Markdown string
  */
 export function listItem(text: string, indentLevel?: number) {
-  return paragraph(`- ${text}`, indentLevel);
+  return indent(`- ${text}`, indentLevel) + "\n";
+}
+
+/**
+ * Generate Markdown link
+ *
+ * @param text - Link text
+ * @param url  - Link URL
+ *
+ * @returns      Markdown string
+ */
+export function link(text: string, url: string) {
+  return `[${text}](${url})`;
+}
+
+/**
+ * Generate Markdown anchor
+ *
+ * @param id - Anchor ID
+ *
+ * @returns    Markdown string
+ */
+export function anchor(id: string) {
+  return `<a id="${id}"></a>`;
 }

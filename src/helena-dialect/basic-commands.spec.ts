@@ -40,6 +40,8 @@ describe("Helena basic commands", () => {
 
   beforeEach(init);
 
+  mochadoc.meta({ toc: true });
+
   describe("`idem`", () => {
     mochadoc.summary("Return the value that is passed to it");
     mochadoc.usage(usage("idem"));
@@ -388,6 +390,7 @@ describe("Helena basic commands", () => {
   });
 
   describe("`eval`", () => {
+    mochadoc.summary("Evaluate a script");
     mochadoc.usage(usage("eval"));
     mochadoc.description(() => {
       /**

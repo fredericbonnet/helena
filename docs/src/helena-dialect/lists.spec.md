@@ -1,9 +1,10 @@
 ---
 source: src\helena-dialect\lists.spec.ts
 ---
-# Helena lists
+# <a id=""></a>Helena lists
 
-## `list`
+
+## <a id="list"></a>`list`
 
 List handling
 
@@ -19,7 +20,8 @@ access, and operations.
 
 List values are Helena values whose internal type is `LIST`.
 
-### List creation and conversion
+
+### <a id="list_List_creation_and_conversion"></a>List creation and conversion
 
 Like with most type commands, passing a single argument to `list`
 will ensure a list value in return. This property means that `list`
@@ -27,7 +29,6 @@ can be used for creation and conversion, but also as a type guard in
 argspecs.
 
 - ✅ should return list value
-
 - ✅ should convert tuples to lists
 
   The most common syntax for list creation is to simply pass a tuple
@@ -48,6 +49,7 @@ argspecs.
   # => [list (a b c)]
   ```
 
+
 - Exceptions
 
   - ✅ invalid values
@@ -59,14 +61,17 @@ argspecs.
     Providing a block with side effects like substitutions or
     expressions will result in an error.
 
-### Subcommands
+
+### <a id="list_Subcommands"></a>Subcommands
 
 The `list` ensemble comes with a number of predefined subcommands
 listed here.
 
-#### Introspection
 
-##### `subcommands`
+#### <a id="list_Subcommands_Introspection"></a>Introspection
+
+
+##### <a id="list_Subcommands_Introspection_subcommands"></a>`subcommands`
 
 ```lna
 list value subcommands
@@ -76,7 +81,6 @@ This subcommand is useful for introspection and interactive
 calls.
 
 - ✅ usage
-
 - ✅ should return list of subcommands
 
 - Exceptions
@@ -86,9 +90,11 @@ calls.
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-#### Accessors
 
-##### `length`
+#### <a id="list_Subcommands_Accessors"></a>Accessors
+
+
+##### <a id="list_Subcommands_Accessors_length"></a>`length`
 
 Get list length
 
@@ -97,7 +103,6 @@ list value length
 ```
 
 - ✅ usage
-
 - ✅ should return the list length
 
 - Exceptions
@@ -107,7 +112,8 @@ list value length
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-##### `at`
+
+##### <a id="list_Subcommands_Accessors_at"></a>`at`
 
 Get list element
 
@@ -116,11 +122,8 @@ list value at index ?default?
 ```
 
 - ✅ usage
-
 - ✅ should return the element at `index`
-
 - ✅ should return the default value for an out-of-range `index`
-
 - ✅ `at` <-> indexed selector equivalence
 
 - Exceptions
@@ -131,12 +134,12 @@ list value at index ?default?
     given the wrong number of arguments.
 
   - ✅ invalid `index`
-
   - ✅ `index` out of range
 
-#### Operations
+#### <a id="list_Subcommands_Operations"></a>Operations
 
-##### `range`
+
+##### <a id="list_Subcommands_Operations_range"></a>`range`
 
 Extract range of elements from a list
 
@@ -145,17 +148,11 @@ list value range first ?last?
 ```
 
 - ✅ usage
-
 - ✅ should return the list included within [`first`, `last`]
-
 - ✅ should return the remainder of the list when given `first` only
-
 - ✅ should truncate out of range boundaries
-
 - ✅ should return an empty list when `last` is before `first`
-
 - ✅ should return an empty list when `first` is past the list length
-
 - ✅ should return an empty list when `last` is negative
 
 - Exceptions
@@ -167,7 +164,7 @@ list value range first ?last?
 
   - ✅ invalid index
 
-##### `remove`
+##### <a id="list_Subcommands_Operations_remove"></a>`remove`
 
 Remove range of elements from a list
 
@@ -176,15 +173,10 @@ list value remove first last
 ```
 
 - ✅ usage
-
 - ✅ should remove the range included within [`first`, `last`]
-
 - ✅ should truncate out of range boundaries
-
 - ✅ should do nothing when `last` is before `first`
-
 - ✅ should do nothing when `last` is negative
-
 - ✅ should do nothing when `first` is past the list length
 
 - Exceptions
@@ -196,7 +188,7 @@ list value remove first last
 
   - ✅ invalid index
 
-##### `append`
+##### <a id="list_Subcommands_Operations_append"></a>`append`
 
 Concatenate lists
 
@@ -205,18 +197,15 @@ list value append ?list ...?
 ```
 
 - ✅ usage
-
 - ✅ should append two lists
-
 - ✅ should accept several lists
-
 - ✅ should accept zero list
 
 - Exceptions
 
   - ✅ invalid list values
 
-##### `insert`
+##### <a id="list_Subcommands_Operations_insert"></a>`insert`
 
 Insert list elements into a list
 
@@ -225,11 +214,8 @@ list value insert index value2
 ```
 
 - ✅ usage
-
 - ✅ should insert `list` at `index`
-
 - ✅ should prepend `list` when `index` is negative
-
 - ✅ should append `list` when `index` is past the target list length
 
 - Exceptions
@@ -240,10 +226,9 @@ list value insert index value2
     given the wrong number of arguments.
 
   - ✅ invalid `index`
-
   - ✅ invalid `list`
 
-##### `replace`
+##### <a id="list_Subcommands_Operations_replace"></a>`replace`
 
 Replace range of elements in a list
 
@@ -252,15 +237,10 @@ list value replace first last value2
 ```
 
 - ✅ usage
-
 - ✅ should replace the range included within [`first`, `last`] with `list`
-
 - ✅ should truncate out of range boundaries
-
 - ✅ should insert `list` at `first` when `last` is before `first`
-
 - ✅ should prepend `list` when `last` is negative
-
 - ✅ should append `list` when `first` is past the target list length
 
 - Exceptions
@@ -271,12 +251,12 @@ list value replace first last value2
     given the wrong number of arguments.
 
   - ✅ invalid index
-
   - ✅ invalid `list`
 
-#### Iteration
+#### <a id="list_Subcommands_Iteration"></a>Iteration
 
-##### `foreach`
+
+##### <a id="list_Subcommands_Iteration_foreach"></a>`foreach`
 
 Iterate over list elements
 
@@ -285,12 +265,11 @@ list value foreach element body
 ```
 
 - ✅ usage
-
 - ✅ should iterate over elements
-
 - ✅ should return the result of the last command
 
 - Control flow
+
 
   - `return`
 
@@ -303,7 +282,6 @@ list value foreach element body
   - `yield`
 
     - ✅ should interrupt the body with `YIELD` code
-
     - ✅ should provide a resumable state
 
   - `error`
@@ -327,13 +305,12 @@ list value foreach element body
 
   - ✅ non-script body
 
-#### Exceptions
+#### <a id="list_Subcommands_Exceptions"></a>Exceptions
 
 - ✅ unknown subcommand
-
 - ✅ invalid subcommand name
 
-### Examples
+### <a id="list_Examples"></a>Examples
 
 - ✅ Currying and encapsulation
 
@@ -404,7 +381,8 @@ list value foreach element body
   # => [error "invalid list"]
   ```
 
-### Ensemble command
+
+### <a id="list_Ensemble_command"></a>Ensemble command
 
 `list` is an ensemble command, which means that it is a collection of
 subcommands defined in an ensemble scope.
@@ -424,7 +402,8 @@ subcommands defined in an ensemble scope.
   Like all ensemble commands, `list` have built-in support for `help`
   on all subcommands that support it.
 
-#### Examples
+
+#### <a id="list_Ensemble_command_Examples"></a>Examples
 
 - ✅ Adding a `last` subcommand
 
@@ -483,13 +462,14 @@ subcommands defined in an ensemble scope.
   # => false
   ```
 
-## `displayListValue`
+
+## <a id="displayListValue"></a>`displayListValue`
 
 Display function for lists
 
 - ✅ should display lists as `list` command + tuple values
-
 - ✅ should produce an isomorphic string
 
   Evaluating the string will produce an identical list value.
+
 

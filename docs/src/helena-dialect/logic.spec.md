@@ -1,9 +1,10 @@
 ---
 source: src\helena-dialect\logic.spec.ts
 ---
-# Helena logic operations
+# <a id=""></a>Helena logic operations
 
-## Booleans
+
+## <a id="Booleans"></a>Booleans
 
 ### Usage
 
@@ -25,14 +26,17 @@ Boolean values (or booleans) are Helena values whose internal type is
 
   Argument-less boolean commands return themselves.
 
-### Infix operators
+
+### <a id="Booleans_Infix_operators"></a>Infix operators
 
 A boolean followed by an operator can be used for expressions in
 infix notation.
 
-#### Conditional
 
-##### `?`
+#### <a id="Booleans_Infix_operators_Conditional"></a>Conditional
+
+
+##### <a id="Booleans_Infix_operators_Conditional_"></a>`?`
 
 Conditional operator
 
@@ -45,16 +49,15 @@ false ? arg ?arg?
 
 The `?` operator conditionally returns a truthy vs. falsy value.
 
+
 - `true`
 
   - ✅ should return first argument
-
   - ✅ should support a single argument
 
 - `false`
 
   - ✅ should return nil if no second argument is given
-
   - ✅ should return second argument
 
 - Exceptions
@@ -64,7 +67,8 @@ The `?` operator conditionally returns a truthy vs. falsy value.
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-##### `!?`
+
+##### <a id="Booleans_Infix_operators_Conditional_"></a>`!?`
 
 Reverse conditional operator
 
@@ -78,16 +82,15 @@ false !? arg ?arg?
 The `!?` operator conditionally returns a falsy vs. truthy value.
 It is the opposite of `?`.
 
+
 - `true`
 
   - ✅ should return nil if no second argument is given
-
   - ✅ should return second argument
 
 - `false`
 
   - ✅ should return first argument
-
   - ✅ should support a single argument
 
 - Exceptions
@@ -97,14 +100,17 @@ It is the opposite of `?`.
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-### Subcommands
+
+### <a id="Booleans_Subcommands"></a>Subcommands
 
 Apart from operators, boolean commands accept the subcommands listed
 here.
 
-#### Introspection
 
-##### `subcommands`
+#### <a id="Booleans_Subcommands_Introspection"></a>Introspection
+
+
+##### <a id="Booleans_Subcommands_Introspection_subcommands"></a>`subcommands`
 
 ```lna
 true subcommands
@@ -125,13 +131,13 @@ calls.
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-### Exceptions
+
+### <a id="Booleans_Exceptions"></a>Exceptions
 
 - ✅ unknown subcommand
-
 - ✅ invalid subcommand name
 
-## `bool`
+## <a id="bool"></a>`bool`
 
 Boolean handling
 
@@ -147,7 +153,8 @@ Boolean values are Helena values whose internal type is `BOOLEAN`. The
 name `bool` was preferred over `boolean` because it is shorter and is
 already used in many other languages like Python and C.
 
-### Boolean conversion
+
+### <a id="bool_Boolean_conversion"></a>Boolean conversion
 
 Like with most type commands, passing a single argument to `bool`
 will ensure a boolean value in return. This property means that
@@ -159,17 +166,18 @@ guard in argspecs.
 - Exceptions
 
   - ✅ values with no string representation
-
   - ✅ invalid values
 
-### Subcommands
+### <a id="bool_Subcommands"></a>Subcommands
 
 The `bool` ensemble comes with a number of predefined subcommands
 listed here.
 
-#### Introspection
 
-##### `subcommands`
+#### <a id="bool_Subcommands_Introspection"></a>Introspection
+
+
+##### <a id="bool_Subcommands_Introspection_subcommands"></a>`subcommands`
 
 ```lna
 bool value subcommands
@@ -179,7 +187,6 @@ This subcommand is useful for introspection and interactive
 calls.
 
 - ✅ usage
-
 - ✅ should return list of subcommands
 
 - Exceptions
@@ -189,13 +196,13 @@ calls.
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-#### Exceptions
+
+#### <a id="bool_Subcommands_Exceptions"></a>Exceptions
 
 - ✅ unknown subcommand
-
 - ✅ invalid subcommand name
 
-### Ensemble command
+### <a id="bool_Ensemble_command"></a>Ensemble command
 
 `bool` is an ensemble command, which means that it is a collection
 of subcommands defined in an ensemble scope.
@@ -215,7 +222,8 @@ of subcommands defined in an ensemble scope.
   Like all ensemble commands, `bool` have built-in support for `help`
   on all subcommands that support it.
 
-#### Examples
+
+#### <a id="bool_Ensemble_command_Examples"></a>Examples
 
 - ✅ Adding a `xor` subcommand
 
@@ -254,9 +262,11 @@ of subcommands defined in an ensemble scope.
   # => true
   ```
 
-## Prefix operators
 
-### `!`
+## <a id="Prefix_operators"></a>Prefix operators
+
+
+### <a id="Prefix_operators_"></a>`!`
 
 Logical NOT operator
 
@@ -264,15 +274,14 @@ Logical NOT operator
 ! arg
 ```
 
-#### Specifications
+
+#### <a id="Prefix_operators__Specifications"></a>Specifications
 
 - ✅ usage
-
 - ✅ should invert boolean values
-
 - ✅ should accept script expressions
 
-#### Exceptions
+#### <a id="Prefix_operators__Exceptions"></a>Exceptions
 
 - ✅ wrong arity
 
@@ -283,10 +292,12 @@ Logical NOT operator
 
   Only booleans and scripts are acceptable values.
 
-#### Control flow
+
+#### <a id="Prefix_operators__Control_flow"></a>Control flow
 
 If a script expression returns a result code other than `OK` then
 it should be propagated properly to the caller.
+
 
 - `return`
 
@@ -299,7 +310,6 @@ it should be propagated properly to the caller.
 - `yield`
 
   - ✅ should interrupt expression with `YIELD` code
-
   - ✅ should provide a resumable state
 
 - `error`
@@ -314,7 +324,7 @@ it should be propagated properly to the caller.
 
   - ✅ should interrupt expression with `CONTINUE` code
 
-### `&&`
+### <a id="Prefix_operators_"></a>`&&`
 
 Logical AND operator
 
@@ -322,21 +332,17 @@ Logical AND operator
 && arg ?arg ...?
 ```
 
-#### Specifications
+
+#### <a id="Prefix_operators__Specifications"></a>Specifications
 
 - ✅ usage
-
 - ✅ should accept one boolean
-
 - ✅ should accept two booleans
-
 - ✅ should accept several booleans
-
 - ✅ should accept script expressions
-
 - ✅ should short-circuit on `false`
 
-#### Exceptions
+#### <a id="Prefix_operators__Exceptions"></a>Exceptions
 
 - ✅ wrong arity
 
@@ -347,10 +353,12 @@ Logical AND operator
 
   Only booleans and scripts are acceptable values.
 
-#### Control flow
+
+#### <a id="Prefix_operators__Control_flow"></a>Control flow
 
 If a script expression returns a result code other than `OK` then
 it should be propagated properly to the caller.
+
 
 - `return`
 
@@ -363,7 +371,6 @@ it should be propagated properly to the caller.
 - `yield`
 
   - ✅ should interrupt expression with `YIELD` code
-
   - ✅ should provide a resumable state
 
 - `error`
@@ -378,7 +385,7 @@ it should be propagated properly to the caller.
 
   - ✅ should interrupt expression with `CONTINUE` code
 
-### `||`
+### <a id="Prefix_operators_"></a>`||`
 
 Logical OR operator
 
@@ -388,21 +395,17 @@ Logical OR operator
 || arg ?arg ...?
 ```
 
-#### Specifications
+
+#### <a id="Prefix_operators__Specifications"></a>Specifications
 
 - ✅ usage
-
 - ✅ should accept one boolean
-
 - ✅ should accept two booleans
-
 - ✅ should accept several booleans
-
 - ✅ should accept script expressions
-
 - ✅ should short-circuit on `true`
 
-#### Exceptions
+#### <a id="Prefix_operators__Exceptions"></a>Exceptions
 
 - ✅ wrong arity
 
@@ -413,10 +416,12 @@ Logical OR operator
 
   Only booleans and scripts are acceptable values.
 
-#### Control flow
+
+#### <a id="Prefix_operators__Control_flow"></a>Control flow
 
 If a script expression returns a result code other than `OK` then
 it should be propagated properly to the caller.
+
 
 - `return`
 
@@ -429,7 +434,6 @@ it should be propagated properly to the caller.
 - `yield`
 
   - ✅ should interrupt expression with `YIELD` code
-
   - ✅ should provide a resumable state
 
 - `error`

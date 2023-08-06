@@ -1,11 +1,13 @@
 ---
 source: src\helena-dialect\numbers.spec.ts
 ---
-# Helena numbers
+# <a id=""></a>Helena numbers
 
-## Number commands
 
-### Integer numbers
+## <a id="Number_commands"></a>Number commands
+
+
+### <a id="Number_commands_Integer_numbers"></a>Integer numbers
 
 Integer number values (or integers) are Helena values whose internal
 type is `INTEGER`.
@@ -24,10 +26,9 @@ type is `INTEGER`.
 - Exceptions
 
   - ✅ unknown subcommand
-
   - ✅ invalid subcommand name
 
-### Real numbers
+### <a id="Number_commands_Real_numbers"></a>Real numbers
 
 Real number values (or reals) are Helena values whose internal type
 is `REAL`.
@@ -46,26 +47,22 @@ is `REAL`.
 - Exceptions
 
   - ✅ unknown subcommand
-
   - ✅ invalid subcommand name
 
-### Infix operators
+### <a id="Number_commands_Infix_operators"></a>Infix operators
 
 A number followed by an operator can be used for expressions in infix
 notation.
 
-#### Arithmetic
+
+#### <a id="Number_commands_Infix_operators_Arithmetic"></a>Arithmetic
 
 Numbers support the standard arithmetic operators.
 
 - ✅ `+`
-
 - ✅ `-`
-
 - ✅ `*`
-
 - ✅ `/`
-
 - ✅ Precedence rules
 
   Operators are evaluated left-to-right with the following precedence
@@ -83,6 +80,7 @@ Numbers support the standard arithmetic operators.
   Integers and reals can be mixed in the same expressions, the result
   will be losslessly converted to an integer whenever possible.
 
+
 - Exceptions
 
   - ✅ wrong arity
@@ -91,14 +89,13 @@ Numbers support the standard arithmetic operators.
     wrong number of arguments.
 
   - ✅ invalid value
-
   - ✅ unknown operator
-
   - ✅ invalid operator
 
-#### Comparisons
+#### <a id="Number_commands_Infix_operators_Comparisons"></a>Comparisons
 
 Numbers support the standard comparison operators.
+
 
 - `==`
 
@@ -178,12 +175,14 @@ Numbers support the standard comparison operators.
 
     - ✅ invalid value
 
-### Subcommands
+### <a id="Number_commands_Subcommands"></a>Subcommands
 
 Apart from operators, number commands accept the subcommands listed
 here.
 
-#### Introspection
+
+#### <a id="Number_commands_Subcommands_Introspection"></a>Introspection
+
 
 - `subcommands`
 
@@ -192,6 +191,7 @@ here.
     This subcommand is useful for introspection and interactive
     calls.
 
+
   - Exceptions
 
     - ✅ wrong arity
@@ -199,7 +199,8 @@ here.
       The subcommand will return an error message with usage when
       given the wrong number of arguments.
 
-## `int`
+
+## <a id="int"></a>`int`
 
 Integer number handling
 
@@ -215,7 +216,8 @@ Integer values are Helena values whose internal type is `INTEGER`. The
 name `int` was preferred over `integer` because it is shorter and is
 already used in many other languages like Python and C.
 
-### Integer conversion
+
+### <a id="int_Integer_conversion"></a>Integer conversion
 
 Like with most type commands, passing a single argument to `int` will
 ensure an integer value in return. This property means that `int` can
@@ -227,21 +229,22 @@ argspecs.
 - Exceptions
 
   - ✅ values with no string representation
-
   - ✅ invalid values
-
   - ✅ real values
 
     Non-integer real values are not accepted.
 
-### Subcommands
+
+### <a id="int_Subcommands"></a>Subcommands
 
 The `int` ensemble comes with a number of predefined subcommands
 listed here.
 
-#### Introspection
 
-##### `subcommands`
+#### <a id="int_Subcommands_Introspection"></a>Introspection
+
+
+##### <a id="int_Subcommands_Introspection_subcommands"></a>`subcommands`
 
 ```lna
 int value subcommands
@@ -251,7 +254,6 @@ This subcommand is useful for introspection and interactive
 calls.
 
 - ✅ usage
-
 - ✅ should return list of subcommands
 
 - Exceptions
@@ -261,13 +263,13 @@ calls.
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-#### Exceptions
+
+#### <a id="int_Subcommands_Exceptions"></a>Exceptions
 
 - ✅ unknown subcommand
-
 - ✅ invalid subcommand name
 
-### Ensemble command
+### <a id="int_Ensemble_command"></a>Ensemble command
 
 `int` is an ensemble command, which means that it is a collection
 of subcommands defined in an ensemble scope.
@@ -287,7 +289,8 @@ of subcommands defined in an ensemble scope.
   Like all ensemble commands, `int` have built-in support for `help`
   on all subcommands that support it.
 
-#### Examples
+
+#### <a id="int_Ensemble_command_Examples"></a>Examples
 
 - ✅ Adding a `positive` subcommand
 
@@ -320,7 +323,8 @@ of subcommands defined in an ensemble scope.
   # => false
   ```
 
-## `real`
+
+## <a id="real"></a>`real`
 
 Real number handling
 
@@ -334,7 +338,8 @@ The `real` command is a type command dedicated to real values.
 
 Real values are Helena values whose internal type is `REAL`.
 
-### Real conversion
+
+### <a id="real_Real_conversion"></a>Real conversion
 
 Like with most type commands, passing a single argument to `real`
 will ensure a real value in return. This property means that `real`
@@ -346,17 +351,18 @@ argspecs.
 - Exceptions
 
   - ✅ values with no string representation
-
   - ✅ invalid values
 
-### Subcommands
+### <a id="real_Subcommands"></a>Subcommands
 
 The `real` ensemble comes with a number of predefined subcommands
 listed here.
 
-#### Introspection
 
-##### `subcommands`
+#### <a id="real_Subcommands_Introspection"></a>Introspection
+
+
+##### <a id="real_Subcommands_Introspection_subcommands"></a>`subcommands`
 
 ```lna
 real value subcommands
@@ -366,7 +372,6 @@ This subcommand is useful for introspection and interactive
 calls.
 
 - ✅ usage
-
 - ✅ should return list of subcommands
 
 - Exceptions
@@ -376,13 +381,13 @@ calls.
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-#### Exceptions
+
+#### <a id="real_Subcommands_Exceptions"></a>Exceptions
 
 - ✅ unknown subcommand
-
 - ✅ invalid subcommand name
 
-### Ensemble command
+### <a id="real_Ensemble_command"></a>Ensemble command
 
 `real` is an ensemble command, which means that it is a collection of
 subcommands defined in an ensemble scope.
@@ -403,7 +408,8 @@ subcommands defined in an ensemble scope.
   Like all ensemble commands, `real` have built-in support for `help`
   on all subcommands that support it.
 
-#### Examples
+
+#### <a id="real_Ensemble_command_Examples"></a>Examples
 
 - ✅ Adding a `positive` subcommand
 
@@ -435,4 +441,5 @@ subcommands defined in an ensemble scope.
   real -1 positive
   # => false
   ```
+
 

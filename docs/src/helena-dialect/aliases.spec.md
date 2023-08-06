@@ -1,9 +1,10 @@
 ---
 source: src\helena-dialect\aliases.spec.ts
 ---
-# Helena aliases
+# <a id=""></a>Helena aliases
 
-## `alias`
+
+## <a id="alias"></a>`alias`
 
 Define a command alias
 
@@ -16,15 +17,14 @@ alias name command
 The `alias` command defines a new command that is the alias of another
 command.
 
-### Specifications
+
+### <a id="alias_Specifications"></a>Specifications
 
 - ✅ usage
-
 - ✅ should define a new command
-
 - ✅ should replace existing commands
 
-### Exceptions
+### <a id="alias_Exceptions"></a>Exceptions
 
 - ✅ wrong arity
 
@@ -35,10 +35,10 @@ command.
 
   Command names must have a valid string representation.
 
-### Command calls
+
+### <a id="alias_Command_calls"></a>Command calls
 
 - ✅ should call the aliased command
-
 - ✅ should pass arguments to aliased commands
 
 - Exceptions
@@ -48,21 +48,19 @@ command.
     Argument validation is done by the aliased command and
     propagated properly by the alias.
 
-#### Command tuples
+
+#### <a id="alias_Command_calls_Command_tuples"></a>Command tuples
 
 Aliased commands can be any type of command, including tuple
 commands, which are auto-expanded when calling the alias. This can
 be used for currying or encapsulation.
 
 - ✅ zero
-
 - ✅ one
-
 - ✅ two
-
 - ✅ three
 
-##### Examples
+##### <a id="alias_Command_calls_Command_tuples_Examples"></a>Examples
 
 - ✅ Currying
 
@@ -97,64 +95,58 @@ be used for currying or encapsulation.
   # => [list (1 2 3)]
   ```
 
-#### Control flow
+
+#### <a id="alias_Command_calls_Control_flow"></a>Control flow
 
 If the aliased command returns a result code then it should be
 propagated properly by the alias.
 
+
 - `return`
 
   - ✅ should interrupt a macro alias with `RETURN` code
-
   - ✅ should interrupt a tuple alias with `RETURN` code
 
 - `tailcall`
 
   - ✅ should interrupt a macro alias with `RETURN` code
-
   - ✅ should interrupt a tuple alias with `RETURN` code
 
 - `yield`
 
   - ✅ should interrupt a macro alias with `YIELD` code
-
   - ✅ should interrupt a tuple alias with `YIELD` code
-
   - ✅ should provide a resumable state for macro alias
-
   - ✅ should provide a resumable state for tuple alias
 
 - `error`
 
   - ✅ should interrupt a macro alias with `ERROR` code
-
   - ✅ should interrupt a tuple alias with `ERROR` code
 
 - `break`
 
   - ✅ should interrupt a macro alias with `BREAK` code
-
   - ✅ should interrupt a tuple alias with `BREAK` code
 
 - `continue`
 
   - ✅ should interrupt a macro alias with `CONTINUE` code
-
   - ✅ should interrupt a tuple alias with `CONTINUE` code
 
-### Metacommand
+### <a id="alias_Metacommand"></a>Metacommand
 
 `alias` returns a metacommand value that can be used to introspect
 the newly created command.
 
 - ✅ should return a metacommand
-
 - ✅ the metacommand should return the aliased command
 
   The typical application of this property is to call the command by
   wrapping its metacommand within brackets, e.g. `[$metacommand]`.
 
-#### Examples
+
+#### <a id="alias_Metacommand_Examples"></a>Examples
 
 - ✅ Calling alias through its wrapped metacommand
 
@@ -174,7 +166,9 @@ the newly created command.
   # => [list (1 2 3)]
   ```
 
-#### Subcommands
+
+#### <a id="alias_Metacommand_Subcommands"></a>Subcommands
+
 
 - `subcommands`
 
@@ -183,12 +177,14 @@ the newly created command.
     This subcommand is useful for introspection and interactive
     calls.
 
+
   - Exceptions
 
     - ✅ wrong arity
 
       The subcommand will return an error message with usage when
       given the wrong number of arguments.
+
 
 - `command`
 
@@ -203,6 +199,7 @@ the newly created command.
     # => (idem val)
     ```
 
+
   - Exceptions
 
     - ✅ wrong arity
@@ -210,9 +207,9 @@ the newly created command.
       The subcommand will return an error message with usage when
       given the wrong number of arguments.
 
+
 - Exceptions
 
   - ✅ unknown subcommand
-
   - ✅ invalid subcommand name
 

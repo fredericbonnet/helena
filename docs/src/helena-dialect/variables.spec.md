@@ -1,9 +1,10 @@
 ---
 source: src\helena-dialect\variables.spec.ts
 ---
-# Helena constants and variables
+# <a id=""></a>Helena constants and variables
 
-## `let`
+
+## <a id="let"></a>`let`
 
 Define a constant
 
@@ -16,32 +17,26 @@ let constname value
 The `let` command defines a new constant by associating a variable name
 to a constant value.
 
-### Specifications
+
+### <a id="let_Specifications"></a>Specifications
 
 - ✅ usage
-
 - ✅ should define the value of a new constant
-
 - ✅ should return the constant value
 
-#### Tuple destructuring
+#### <a id="let_Specifications_Tuple_destructuring"></a>Tuple destructuring
 
 You can define several constants at once by passing name and value
 tuples. This also works recursively.
 
 - ✅ should define several constants at once
-
 - ✅ should work recursively
-
 - ✅ should support setting a constant to a tuple value
-
 - ✅ should not define constants in case of missing value
-
 - ✅ should not define constants in case of missing subvalue
-
 - ✅ should not define constants in case of bad shape
 
-### Exceptions
+### <a id="let_Exceptions"></a>Exceptions
 
 - ✅ wrong arity
 
@@ -65,7 +60,8 @@ tuples. This also works recursively.
 
   The command cannot redefine an existing variable.
 
-## `set`
+
+## <a id="set"></a>`set`
 
 Define or set a variable
 
@@ -78,34 +74,27 @@ set varname value
 The `set` command defines a new variable or redefines an existing one
 by associating a variable name to a value.
 
-### Specifications
+
+### <a id="set_Specifications"></a>Specifications
 
 - ✅ usage
-
 - ✅ should set the value of a new variable
-
 - ✅ should redefine the value of an existing variable
-
 - ✅ should return the set value
 
-#### Tuple destructuring
+#### <a id="set_Specifications_Tuple_destructuring"></a>Tuple destructuring
 
 You can set several variables at once by passing name and value
 tuples. This also works recursively.
 
 - ✅ should set several variables at once
-
 - ✅ should work recursively
-
 - ✅ should support setting a variable to a tuple value
-
 - ✅ should not set variables in case of missing value
-
 - ✅ should not set variables in case of missing subvalue
-
 - ✅ should not set variables in case of bad shape
 
-### Exceptions
+### <a id="set_Exceptions"></a>Exceptions
 
 - ✅ wrong arity
 
@@ -125,7 +114,8 @@ tuples. This also works recursively.
 
   The command cannot redefine an existing constant.
 
-## `get`
+
+## <a id="get"></a>`get`
 
 Get a constant or variable value
 
@@ -137,41 +127,34 @@ get varname ?default?
 
 The `get` command gets the value of an existing constant or variable.
 
-### Specifications
+
+### <a id="get_Specifications"></a>Specifications
 
 - ✅ usage
-
 - ✅ should return the value of an existing variable
-
 - ✅ should return the value of an existing constant
-
 - ✅ should return the default value for a unknown variable
 
-#### Qualified names
+#### <a id="get_Specifications_Qualified_names"></a>Qualified names
 
 Passing a qualified name will apply its selectors to the variable
 value.
 
 - ✅ indexed selector
-
 - ✅ keyed selector
-
 - ✅ should work recursively
-
 - ✅ should return the default value when a selector fails
 
-#### Tuple destructuring
+#### <a id="get_Specifications_Tuple_destructuring"></a>Tuple destructuring
 
 You can get several variables at once by passing a name tuple. This
 also works recursively.
 
 - ✅ should get several variables at once
-
 - ✅ should work recursively
-
 - ✅ should support qualified names
 
-### Exceptions
+### <a id="get_Exceptions"></a>Exceptions
 
 - ✅ wrong arity
 
@@ -192,7 +175,8 @@ also works recursively.
   The command will return an error when a qualified name selector fails
   and no default value is provided.
 
-## `exists`
+
+## <a id="exists"></a>`exists`
 
 Test for existence of a variable
 
@@ -204,32 +188,26 @@ exists varname
 
 The `exists` command tests wether a variable or constant exists.
 
-### Specifications
+
+### <a id="exists_Specifications"></a>Specifications
 
 - ✅ usage
-
 - ✅ should return `true` for an existing variable
-
 - ✅ should return `true` for an existing constant
-
 - ✅ should return `false` for a unknown variable
 
-#### Qualified names
+#### <a id="exists_Specifications_Qualified_names"></a>Qualified names
 
 Passing a qualified name will apply its selectors to the variable
 value.
 
 - ✅ indexed selector
-
 - ✅ keyed selector
-
 - ✅ recursive selectors
-
 - ✅ should return `false` for a unknown variable
-
 - ✅ should return `false` when a selector fails
 
-### Exceptions
+### <a id="exists_Exceptions"></a>Exceptions
 
 - ✅ wrong arity
 
@@ -240,7 +218,8 @@ value.
 
   Name tuples are not supported.
 
-## `unset`
+
+## <a id="unset"></a>`unset`
 
 Undefine a variable
 
@@ -252,30 +231,25 @@ unset varname
 
 The `unset` command undefines an existing variable.
 
-### Specifications
+
+### <a id="unset_Specifications"></a>Specifications
 
 - ✅ usage
-
 - ✅ should unset an existing variable
-
 - ✅ should return nil
 
-#### Tuples
+#### <a id="unset_Specifications_Tuples"></a>Tuples
 
 You can unset several variables at once by passing a name tuple.
 This also works recursively.
 
 - ✅ should unset several variables at once
-
 - ✅ should work recursively
-
 - ✅ should not unset variables in case the name tuple contains unknown variables
-
 - ✅ should not unset variables in case the name tuple contains qualified names
-
 - ✅ should not unset variables in case the name tuple contains invalid variables
 
-### Exceptions
+### <a id="unset_Exceptions"></a>Exceptions
 
 - ✅ wrong arity
 
@@ -297,4 +271,5 @@ This also works recursively.
 - ✅ unknown variable
 
   The command cannot undefine an unknown variable.
+
 

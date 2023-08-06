@@ -1,9 +1,10 @@
 ---
 source: src\helena-dialect\argspecs.spec.ts
 ---
-# Helena argument handling
+# <a id=""></a>Helena argument handling
 
-## `argspec`
+
+## <a id="argspec"></a>`argspec`
 
 Create an argument-parsing command
 
@@ -17,21 +18,17 @@ The `argspec` command creates a new command that will parse a list of
 arguments according to a given _argument specification_ (abbreviated
 _"argspec"_).
 
-### Specifications
+
+### <a id="argspec_Specifications"></a>Specifications
 
 - ✅ usage
-
 - ✅ should define a new command
-
 - ✅ should replace existing commands
-
 - ✅ should return a command object
-
 - ✅ the named command should return its command object
-
 - ✅ the command object should return itself
 
-### Exceptions
+### <a id="argspec_Exceptions"></a>Exceptions
 
 - ✅ wrong arity
 
@@ -42,30 +39,26 @@ _"argspec"_).
 
   Command names must have a valid string representation.
 
-### `specs`
+
+### <a id="argspec_specs"></a>`specs`
+
 
 - empty
 
   - ✅ value
-
   - ✅ usage
-
   - ✅ set
 
 - one parameter
 
   - ✅ value
-
   - ✅ usage
-
   - ✅ set
 
 - two parameters
 
   - ✅ value
-
   - ✅ usage
-
   - ✅ set
 
 - remainder
@@ -75,164 +68,133 @@ _"argspec"_).
   - anonymous
 
     - ✅ value
-
     - ✅ usage
 
     - set
 
       - ✅ zero
-
       - ✅ one
-
       - ✅ two
 
   - named
 
     - ✅ value
-
     - ✅ usage
 
     - set
 
       - ✅ zero
-
       - ✅ one
-
       - ✅ two
 
   - prefix
 
     - ✅ one
-
     - ✅ two
-
     - ✅ three
 
   - infix
 
     - ✅ two
-
     - ✅ three
-
     - ✅ four
 
   - suffix
 
     - ✅ one
-
     - ✅ two
-
     - ✅ three
 
 - optional parameter
 
+
   - single
 
     - ✅ value
-
     - ✅ usage
 
     - set
 
       - ✅ zero
-
       - ✅ one
 
   - multiple
 
     - ✅ value
-
     - ✅ usage
 
     - set
 
       - ✅ zero
-
       - ✅ one
-
       - ✅ one two
 
   - prefix
 
     - ✅ one
-
     - ✅ two
 
   - infix
 
     - ✅ two
-
     - ✅ three
 
   - suffix
 
     - ✅ one
-
     - ✅ two
 
 - default parameter
 
   - ✅ value
-
   - ✅ usage
 
   - set
 
+
     - static
 
       - ✅ zero
-
       - ✅ one
 
     - dynamic
 
       - ✅ zero
-
       - ✅ one
 
 - guard
 
   - ✅ required parameter
-
   - ✅ optional parameter
-
   - ✅ default parameter
-
   - ✅ usage
 
   - set
 
+
     - simple command
 
       - ✅ required
-
       - ✅ optional
-
       - ✅ default
 
     - tuple prefix
 
       - ✅ required
-
       - ✅ optional
-
       - ✅ default
 
-#### Exceptions
+#### <a id="argspec_specs_Exceptions"></a>Exceptions
 
 - ✅ empty argument name
-
 - ✅ invalid argument name
-
 - ✅ duplicate arguments
-
 - ✅ empty argument specifier
-
 - ✅ too many specifiers
-
 - ✅ non-optional parameter with guard and default
 
-### Subcommands
+### <a id="argspec_Subcommands"></a>Subcommands
+
 
 - `subcommands`
 
@@ -240,12 +202,14 @@ _"argspec"_).
 
     This subcommand is useful for introspection and interactive calls.
 
+
   - Exceptions
 
     - ✅ wrong arity
 
       The subcommand will return an error message with usage when given
       the wrong number of arguments.
+
 
 - `usage`
 
@@ -254,6 +218,7 @@ _"argspec"_).
     This subcommand returns a help string for the argspec command.
     
 
+
   - Exceptions
 
     - ✅ wrong arity
@@ -261,24 +226,17 @@ _"argspec"_).
       The subcommand will return an error message with usage when given
       the wrong number of arguments.
 
+
 - `set`
 
   - ✅ should return nil
-
   - ✅ should set argument variables in the caller scope
-
   - ✅ should enforce minimum number of arguments
-
   - ✅ should enforce maximum number of arguments
-
   - ✅ should set required attributes first
-
   - ✅ should skip missing optional attributes
-
   - ✅ should set optional attributes in order
-
   - ✅ should set remainder after optional attributes
-
   - ✅ should set all present attributes in order
 
   - Exceptions
@@ -288,9 +246,9 @@ _"argspec"_).
       The subcommand will return an error message with usage when given
       the wrong number of arguments.
 
+
 - Exceptions
 
   - ✅ unknown subcommand
-
   - ✅ invalid subcommand name
 

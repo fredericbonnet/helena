@@ -3,7 +3,14 @@ import * as path from "path";
 import * as mocha from "mocha";
 import { TSDocParser } from "@microsoft/tsdoc";
 import { Documentation } from "./types";
-import { frontMatter, listItem, paragraph, sectionTitle } from "./markdown";
+import {
+  anchor,
+  frontMatter,
+  link,
+  listItem,
+  paragraph,
+  sectionTitle,
+} from "./markdown";
 
 const commentRE = /\/\*\*(.|\n|\r)*?\*\//;
 
@@ -86,7 +93,7 @@ export function openSuite(suite: mocha.Suite) {
  */
 export function closeSuite(suite: mocha.Suite) {
   if (isMainSuite(suite)) {
-    computeSectionLevels(suite);
+    computeSuiteAttributes(suite);
     const fd = createDocFile(suite);
     fs.writeSync(fd, frontMatter({ source: getSuiteSourcePath(suite) }));
     writeSuite(fd, suite);
@@ -155,9 +162,6 @@ interface SuiteInfo {
   /** Section flag */
   isSection?: boolean;
 
-  /** Section level */
-  sectionLevel: number;
-
   /** Suite title */
   title: string;
 
@@ -169,6 +173,15 @@ interface SuiteInfo {
 
   /** Metainformation (optional) */
   metainfo?: object;
+
+  /** Section level */
+  sectionLevel: number;
+
+  /** Doc file path */
+  path: string;
+
+  /** Anchor in file */
+  anchor: string;
 }
 
 /** Info attached to Mocha tests */
@@ -312,7 +325,7 @@ function getSuiteSourcePath(suite: mocha.Suite) {
 function sourceToDocPath(src: string) {
   const parsed = path.parse(src);
   const base = parsed.name + ".md";
-  return path.join("docs", parsed.dir, base);
+  return path.join(parsed.dir, base);
 }
 
 /**
@@ -323,8 +336,8 @@ function sourceToDocPath(src: string) {
  * @returns       File descriptor
  */
 function createDocFile(suite: mocha.Suite) {
-  const src = getDocFilePath(suite);
-  const filePath = sourceToDocPath(src);
+  const info = ensureSuiteInfo(suite);
+  const filePath = path.join("docs", info.path);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   return fs.openSync(filePath, "w");
 }
@@ -341,20 +354,19 @@ function getDocFilePath(suite: mocha.Suite) {
     const info = ensureSuiteInfo(suite);
     return "pages/" + info.metainfo?.["page"] + ".md";
   }
-  return getSuiteSourcePath(suite);
+  return sourceToDocPath(getSuiteSourcePath(suite));
 }
 
 /**
- * Compute section level for Mocha suite and subsuites
+ * Compute suite attributes: section level, file path, etc.
  *
  * @param suite - Mocha suite
  */
-function computeSectionLevels(suite: mocha.Suite) {
+function computeSuiteAttributes(suite: mocha.Suite) {
   const info = ensureSuiteInfo(suite);
-  if (info.sectionLevel >= 0) return;
 
-  // Suites are not sections by default (stop condition for recursive calls)
-  info.sectionLevel = 0;
+  // Section level
+  info.sectionLevel = 0; // Suites are not sections by default
   if (isMainSuite(suite) || isPage(suite)) {
     info.sectionLevel = 1;
   } else if (info.isSection || hasContentOrSubcontent(suite)) {
@@ -363,8 +375,19 @@ function computeSectionLevels(suite: mocha.Suite) {
     info.sectionLevel = getSectionLevel(suite.parent) + 1;
   }
 
+  // File path
+  info.path = getDocFilePath(suite);
+
+  // Suite anchor
+  info.anchor = suite
+    .titlePath()
+    .slice(1)
+    .join("_")
+    .replaceAll(/[ ]/g, "_")
+    .replaceAll(/[^\w]/g, "");
+
   for (const child of suite.suites) {
-    computeSectionLevels(child);
+    computeSuiteAttributes(child);
   }
 }
 
@@ -380,6 +403,26 @@ function computeSectionLevels(suite: mocha.Suite) {
 function getSectionLevel(suite: mocha.Suite): number {
   const info = ensureSuiteInfo(suite);
   return info.sectionLevel;
+}
+
+/**
+ * Get section URL for Mocha suite
+ *
+ * @param suite - Mocha suite
+ *
+ * @returns       URL: relative path for pages or anchor for sections
+ */
+function getSectionUrl(suite: mocha.Suite) {
+  const info = ensureSuiteInfo(suite);
+  if (isPage(suite)) {
+    // Relative path to page
+    const from = path.dirname(ensureSuiteInfo(suite.parent).path);
+    const to = info.path;
+    return path.relative(from, to).replaceAll(path.sep, "/");
+  } else {
+    // Anchor in current file
+    return "#" + info.anchor;
+  }
 }
 
 /**
@@ -434,10 +477,12 @@ function writeSuiteDoc(fd: number, suite: mocha.Suite) {
     writeSection(fd, suite);
   } else {
     fs.writeSync(fd, listItem(info.title, getIndentLevel(suite) - 1));
+    fs.writeFileSync(fd, "\n");
   }
   for (const test of suite.tests) {
     writeTestDoc(fd, test);
   }
+  fs.writeFileSync(fd, "\n");
   for (const child of suite.suites) {
     writeSuite(fd, child);
   }
@@ -451,12 +496,39 @@ function writeSuiteDoc(fd: number, suite: mocha.Suite) {
  */
 function writeSection(fd: number, suite: mocha.Suite) {
   const info = ensureSuiteInfo(suite);
-  fs.writeSync(fd, sectionTitle(info.title, info.sectionLevel));
+  fs.writeSync(
+    fd,
+    sectionTitle(anchor(info.anchor) + info.title, info.sectionLevel)
+  );
   if (info.summary) writeDocContent(fd, info.summary);
+  if (info.metainfo?.["toc"]) {
+    for (const child of suite.suites) {
+      fs.writeSync(fd, tocEntry(child));
+    }
+    fs.writeSync(fd, "\n");
+  }
   for (const block of info.blocks) {
     if (block.title)
       fs.writeSync(fd, sectionTitle(block.title, info.sectionLevel + 1));
     writeDocContent(fd, block.content);
+  }
+}
+
+/**
+ * Write a Table of Contents entry
+ *
+ * @param suite - Mocha suite
+ *
+ * @returns       Markdown string
+ */
+function tocEntry(suite: mocha.Suite) {
+  const info = ensureSuiteInfo(suite);
+  const url = getSectionUrl(suite);
+  const label = link(info.title, url);
+  if (info.summary) {
+    return listItem(label + " - " + info.summary, getIndentLevel(suite));
+  } else {
+    return listItem(label, getIndentLevel(suite));
   }
 }
 
@@ -490,16 +562,22 @@ function writeTestDoc(fd: number, test: mocha.Test) {
       indentLevel
     )
   );
+
+  const paragraphs = [];
   const s = getTSDocs(test.body);
-  if (s) fs.writeSync(fd, paragraph(s, indentLevel + 1));
+  if (s) paragraphs.push(s);
   if (!passed && !test.pending && !!test.err)
-    fs.writeSync(
-      fd,
-      paragraph("```\n" + test.err.toString() + "\n```", indentLevel + 1)
-    );
+    paragraphs.push("```\n" + test.err.toString() + "\n```");
   const info = ensureTestInfo(test);
   for (const block of info.blocks) {
     const s = getDocString(block);
-    if (s) fs.writeSync(fd, paragraph(s, indentLevel + 1));
+    if (s) paragraphs.push(s);
+  }
+
+  if (paragraphs.length) {
+    fs.writeFileSync(fd, "\n");
+    for (const p of paragraphs) {
+      fs.writeFileSync(fd, paragraph(p, indentLevel + 1));
+    }
   }
 }

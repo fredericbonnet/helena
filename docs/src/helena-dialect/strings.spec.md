@@ -1,9 +1,10 @@
 ---
 source: src\helena-dialect\strings.spec.ts
 ---
-# Helena strings
+# <a id=""></a>Helena strings
 
-## `string`
+
+## <a id="string"></a>`string`
 
 String handling
 
@@ -19,7 +20,8 @@ access, and operations.
 
 String values are Helena values whose internal type is `STRING`.
 
-### String creation and conversion
+
+### <a id="string_String_creation_and_conversion"></a>String creation and conversion
 
 Like with most type commands, passing a single argument to `string`
 will ensure a string value in return. This property means that
@@ -27,23 +29,25 @@ will ensure a string value in return. This property means that
 guard in argspecs.
 
 - ✅ should return string value
-
 - ✅ should convert non-string values to strings
 
   Any value having a valid string representation can be used.
+
 
 - Exceptions
 
   - ✅ values with no string representation
 
-### Subcommands
+### <a id="string_Subcommands"></a>Subcommands
 
 The `string` ensemble comes with a number of predefined subcommands
 listed here.
 
-#### Introspection
 
-##### `subcommands`
+#### <a id="string_Subcommands_Introspection"></a>Introspection
+
+
+##### <a id="string_Subcommands_Introspection_subcommands"></a>`subcommands`
 
 ```lna
 string value subcommands
@@ -53,7 +57,6 @@ This subcommand is useful for introspection and interactive
 calls.
 
 - ✅ usage
-
 - ✅ should return list of subcommands
 
 - Exceptions
@@ -63,9 +66,11 @@ calls.
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-#### Accessors
 
-##### `length`
+#### <a id="string_Subcommands_Accessors"></a>Accessors
+
+
+##### <a id="string_Subcommands_Accessors_length"></a>`length`
 
 Get string length
 
@@ -74,7 +79,6 @@ string value length
 ```
 
 - ✅ usage
-
 - ✅ should return the string length
 
 - Exceptions
@@ -84,7 +88,8 @@ string value length
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-##### `at`
+
+##### <a id="string_Subcommands_Accessors_at"></a>`at`
 
 Get string character
 
@@ -93,11 +98,8 @@ string value at index ?default?
 ```
 
 - ✅ usage
-
 - ✅ should return the character at `index`
-
 - ✅ should return the default value for an out-of-range `index`
-
 - ✅ `at` <-> indexed selector equivalence
 
 - Exceptions
@@ -108,12 +110,12 @@ string value at index ?default?
     given the wrong number of arguments.
 
   - ✅ invalid `index`
-
   - ✅ `index` out of range
 
-#### Operations
+#### <a id="string_Subcommands_Operations"></a>Operations
 
-##### `range`
+
+##### <a id="string_Subcommands_Operations_range"></a>`range`
 
 Extract range of characters from a string
 
@@ -122,17 +124,11 @@ string value range first ?last?
 ```
 
 - ✅ usage
-
 - ✅ should return the string included within [`first`, `last`]
-
 - ✅ should return the remainder of the string when given `first` only
-
 - ✅ should truncate out of range boundaries
-
 - ✅ should return an empty string when last is before `first`
-
 - ✅ should return an empty string when `first` is past the string length
-
 - ✅ should return an empty string when `last` is negative
 
 - Exceptions
@@ -144,7 +140,7 @@ string value range first ?last?
 
   - ✅ invalid `index`
 
-##### `remove`
+##### <a id="string_Subcommands_Operations_remove"></a>`remove`
 
 Remove range of characters from a string
 
@@ -153,15 +149,10 @@ list value remove first last
 ```
 
 - ✅ usage
-
 - ✅ should remove the range included within [`first`, `last`]
-
 - ✅ should truncate out of range boundaries
-
 - ✅ should do nothing when `last` is before `first`
-
 - ✅ should do nothing when `last` is negative
-
 - ✅ should do nothing when `first` is past the string length
 
 - Exceptions
@@ -173,7 +164,7 @@ list value remove first last
 
   - ✅ invalid `index`
 
-##### `append`
+##### <a id="string_Subcommands_Operations_append"></a>`append`
 
 Concatenate strings
 
@@ -182,18 +173,15 @@ string value append ?string ...?
 ```
 
 - ✅ usage
-
 - ✅ should append two strings
-
 - ✅ should accept several strings
-
 - ✅ should accept zero string
 
 - Exceptions
 
   - ✅ values with no string representation
 
-##### `insert`
+##### <a id="string_Subcommands_Operations_insert"></a>`insert`
 
 Insert string into a string
 
@@ -202,11 +190,8 @@ string value insert index value2
 ```
 
 - ✅ usage
-
 - ✅ should insert `string` at `index`
-
 - ✅ should prepend `string` when `index` is negative
-
 - ✅ should append `string` when `index` is past the target string length
 
 - Exceptions
@@ -217,10 +202,9 @@ string value insert index value2
     given the wrong number of arguments.
 
   - ✅ invalid `index`
-
   - ✅ values with no string representation
 
-##### `replace`
+##### <a id="string_Subcommands_Operations_replace"></a>`replace`
 
 Replace range of characters in a list
 
@@ -229,15 +213,10 @@ string value replace first last value2
 ```
 
 - ✅ usage
-
 - ✅ should replace the range included within [`first`, `last`] with `string`
-
 - ✅ should truncate out of range boundaries
-
 - ✅ should insert `string` at `first` index when `last` is before `first`
-
 - ✅ should prepend `string` when `last` is negative
-
 - ✅ should append `string` when `first` is past the target string length
 
 - Exceptions
@@ -248,10 +227,9 @@ string value replace first last value2
     given the wrong number of arguments.
 
   - ✅ invalid index
-
   - ✅ values with no string representation
 
-#### String comparisons
+#### <a id="string_Subcommands_String_comparisons"></a>String comparisons
 
 ```lna
 string value1 == value2
@@ -272,14 +250,13 @@ string value1 == value2
 
     - ✅ values with no string representation
 
-##### `!=`
+##### <a id="string_Subcommands_String_comparisons_"></a>`!=`
 
 ```lna
 string value1 != value2
 ```
 
 - ✅ usage
-
 - ✅ should compare two strings
 
 - Exceptions
@@ -291,14 +268,13 @@ string value1 != value2
 
   - ✅ values with no string representation
 
-##### `>`
+##### <a id="string_Subcommands_String_comparisons_"></a>`>`
 
 ```lna
 string value1 > value2
 ```
 
 - ✅ usage
-
 - ✅ should compare two strings
 
 - Exceptions
@@ -310,14 +286,13 @@ string value1 > value2
 
   - ✅ values with no string representation
 
-##### `>=`
+##### <a id="string_Subcommands_String_comparisons_"></a>`>=`
 
 ```lna
 string value1 >= value2
 ```
 
 - ✅ usage
-
 - ✅ should compare two strings
 
 - Exceptions
@@ -329,14 +304,13 @@ string value1 >= value2
 
   - ✅ values with no string representation
 
-##### `<`
+##### <a id="string_Subcommands_String_comparisons_"></a>`<`
 
 ```lna
 string value1 < value2
 ```
 
 - ✅ usage
-
 - ✅ should compare two strings
 
 - Exceptions
@@ -348,14 +322,13 @@ string value1 < value2
 
   - ✅ values with no string representation
 
-##### `<=`
+##### <a id="string_Subcommands_String_comparisons_"></a>`<=`
 
 ```lna
 string value1 <= value2
 ```
 
 - ✅ usage
-
 - ✅ should compare two strings
 
 - Exceptions
@@ -367,13 +340,12 @@ string value1 <= value2
 
   - ✅ values with no string representation
 
-#### Exceptions
+#### <a id="string_Subcommands_Exceptions"></a>Exceptions
 
 - ✅ unknown subcommand
-
 - ✅ invalid subcommand name
 
-### Examples
+### <a id="string_Examples"></a>Examples
 
 - ✅ Currying and encapsulation
 
@@ -454,7 +426,8 @@ string value1 <= value2
   # => [error "value has no string representation"]
   ```
 
-### Ensemble command
+
+### <a id="string_Ensemble_command"></a>Ensemble command
 
 `string` is an ensemble command, which means that it is a collection
 of subcommands defined in an ensemble scope.
@@ -474,7 +447,8 @@ of subcommands defined in an ensemble scope.
   Like all ensemble commands, `string` have built-in support for `help`
   on all subcommands that support it.
 
-#### Examples
+
+#### <a id="string_Ensemble_command_Examples"></a>Examples
 
 - ✅ Adding a `last` subcommand
 
@@ -518,4 +492,5 @@ of subcommands defined in an ensemble scope.
   string s1 + s2
   # => s1s2
   ```
+
 
