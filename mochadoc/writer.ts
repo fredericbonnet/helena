@@ -77,6 +77,7 @@ export function closeSuite(suite: mocha.Suite) {
   if (isMainSuite(suite)) {
     const fd = createDocFile(suite);
     fs.writeSync(fd, frontMatter({ source: getSuiteSourcePath(suite) }));
+    computeSectionLevels(suite);
     writeSuiteDoc(fd, suite);
     fs.closeSync(fd);
   }
@@ -303,6 +304,30 @@ function createDocFile(suite: mocha.Suite) {
 }
 
 /**
+ * Compute section level for Mocha suite and subsuites
+ *
+ * @param suite - Mocha suite
+ */
+function computeSectionLevels(suite: mocha.Suite) {
+  const info = ensureSuiteInfo(suite);
+  if (info.sectionLevel >= 0) return;
+
+  // Suites are not sections by default (stop condition for recursive calls)
+  info.sectionLevel = 0;
+  if (isMainSuite(suite)) {
+    info.sectionLevel = 1;
+  } else if (info.isSection || hasContentOrSubcontent(suite)) {
+    // The whole chain of parent suites must also be sections, this implies that
+    // the section is immediately under the parent
+    info.sectionLevel = getSectionLevel(suite.parent) + 1;
+  }
+
+  for (const child of suite.suites) {
+    computeSectionLevels(child);
+  }
+}
+
+/**
  * Get section level for Mocha suite
  *
  * Section suites are output as Markdown sections
@@ -313,21 +338,6 @@ function createDocFile(suite: mocha.Suite) {
  */
 function getSectionLevel(suite: mocha.Suite): number {
   const info = ensureSuiteInfo(suite);
-  if (info.sectionLevel >= 0) return info.sectionLevel;
-
-  // Suites are not sections by default (stop condition for recursive calls)
-  info.sectionLevel = 0;
-  if (
-    info.isSection ||
-    // Main suites are toplevel sections
-    isMainSuite(suite) ||
-    // Suites with content in their descendence
-    hasContentOrSubcontent(suite)
-  ) {
-    // The whole chain of parent suites must also be sections, this implies that
-    // the section level is the suite level
-    info.sectionLevel = info.level;
-  }
   return info.sectionLevel;
 }
 
@@ -346,7 +356,7 @@ function getIndentLevel(suite: mocha.Suite) {
 }
 
 /**
- * Write all documentation content for this Mocha suite and above
+ * Write all documentation content for this Mocha suite and below
  *
  * @param fd    - File descriptor
  * @param suite - Mocha suite
