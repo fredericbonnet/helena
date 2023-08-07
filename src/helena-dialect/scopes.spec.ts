@@ -13,7 +13,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { STR } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock } from "./test-helpers";
+import { codeBlock, describeCommand } from "./test-helpers";
 
 describe("Helena scopes", () => {
   let rootScope: Scope;
@@ -40,7 +40,9 @@ describe("Helena scopes", () => {
 
   beforeEach(init);
 
-  mochadoc.section("`scope`", () => {
+  mochadoc.meta({ toc: true });
+
+  describeCommand("scope", () => {
     mochadoc.summary("Create a scope command");
     mochadoc.usage(usage("scope"));
     mochadoc.description(() => {

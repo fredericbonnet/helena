@@ -6,7 +6,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { INT, STR, TUPLE } from "../core/values";
 import { Scope, commandValueType } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock, specifyExample } from "./test-helpers";
+import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 import { EnsembleMetacommand } from "./ensembles";
 
 describe("Helena tuples", () => {
@@ -35,7 +35,9 @@ describe("Helena tuples", () => {
 
   beforeEach(init);
 
-  describe("`tuple`", () => {
+  mochadoc.meta({ toc: true });
+
+  describeCommand("tuple", () => {
     mochadoc.summary("Tuple handling");
     mochadoc.usage(usage("tuple"));
     mochadoc.description(() => {

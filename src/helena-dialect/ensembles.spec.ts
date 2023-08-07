@@ -13,7 +13,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { INT, LIST, NIL, STR, TUPLE } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock, specifyExample } from "./test-helpers";
+import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 
 describe("Helena ensembles", () => {
   let rootScope: Scope;
@@ -41,7 +41,9 @@ describe("Helena ensembles", () => {
 
   beforeEach(init);
 
-  mochadoc.section("`ensemble`", () => {
+  mochadoc.meta({ toc: true });
+
+  describeCommand("ensemble", () => {
     mochadoc.summary("Create an ensemble command");
     mochadoc.usage(usage("ensemble"));
     mochadoc.description(() => {

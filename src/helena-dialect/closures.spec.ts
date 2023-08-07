@@ -13,7 +13,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { FALSE, INT, NIL, STR } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock, specifyExample } from "./test-helpers";
+import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 
 describe("Helena closures", () => {
   let rootScope: Scope;
@@ -41,7 +41,9 @@ describe("Helena closures", () => {
 
   beforeEach(init);
 
-  mochadoc.section("`closure`", () => {
+  mochadoc.meta({ toc: true });
+
+  describeCommand("closure", () => {
     mochadoc.summary("Create a closure command");
     mochadoc.usage(usage("closure"));
     mochadoc.description(() => {

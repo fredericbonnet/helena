@@ -382,9 +382,10 @@ function computeSuiteAttributes(suite: mocha.Suite) {
   info.anchor = suite
     .titlePath()
     .slice(1)
-    .join("_")
-    .replaceAll(/[ ]/g, "_")
-    .replaceAll(/[^\w]/g, "");
+    .join(" ")
+    .toLowerCase()
+    .replaceAll(/[ _]/g, "-")
+    .replaceAll(/[^-\w]/g, "");
 
   for (const child of suite.suites) {
     computeSuiteAttributes(child);

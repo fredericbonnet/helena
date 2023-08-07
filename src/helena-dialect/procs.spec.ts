@@ -6,7 +6,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { FALSE, INT, NIL, STR } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock, specifyExample } from "./test-helpers";
+import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 
 describe("Helena procedures", () => {
   let rootScope: Scope;
@@ -34,7 +34,9 @@ describe("Helena procedures", () => {
 
   beforeEach(init);
 
-  describe("`proc`", () => {
+  mochadoc.meta({ toc: true });
+
+  describeCommand("proc", () => {
     mochadoc.summary("Create a procedure command");
     mochadoc.usage(usage("proc"));
     mochadoc.description(() => {

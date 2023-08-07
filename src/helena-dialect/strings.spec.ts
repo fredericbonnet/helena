@@ -6,7 +6,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { FALSE, INT, STR, TRUE } from "../core/values";
 import { Scope, commandValueType } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock, specifyExample } from "./test-helpers";
+import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 import { EnsembleMetacommand } from "./ensembles";
 
 describe("Helena strings", () => {
@@ -35,7 +35,9 @@ describe("Helena strings", () => {
 
   beforeEach(init);
 
-  describe("`string`", () => {
+  mochadoc.meta({ toc: true });
+
+  describeCommand("string", () => {
     mochadoc.summary("String handling");
     mochadoc.usage(usage("string"));
     mochadoc.description(() => {

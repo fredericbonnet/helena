@@ -1,18 +1,18 @@
 ---
 source: src\helena-dialect\math.spec.ts
 ---
-# <a id=""></a>Helena math operations
+# Helena math operations
 
 
-## <a id="Prefix_operators"></a>Prefix operators
+## <a id="prefix-operators"></a>Prefix operators
 
 
-### <a id="Prefix_operators_Arithmetic"></a>Arithmetic
+### <a id="prefix-operators-arithmetic"></a>Arithmetic
 
 Helena supports the standard arithmetic operators in prefix notation.
 
 
-#### <a id="Prefix_operators_Arithmetic_"></a>`+`
+#### <a id="prefix-operators-arithmetic-"></a>`+`
 
 ```lna
 + number ?number ...?
@@ -32,7 +32,7 @@ Helena supports the standard arithmetic operators in prefix notation.
 
   - ✅ invalid value
 
-#### <a id="Prefix_operators_Arithmetic_"></a>`-`
+#### <a id="prefix-operators-arithmetic--"></a>`-`
 
 ```lna
 - number ?number ...?
@@ -52,7 +52,7 @@ Helena supports the standard arithmetic operators in prefix notation.
 
   - ✅ invalid value
 
-#### <a id="Prefix_operators_Arithmetic_"></a>`*`
+#### <a id="prefix-operators-arithmetic-"></a>`*`
 
 ```lna
 * number ?number ...?
@@ -72,7 +72,7 @@ Helena supports the standard arithmetic operators in prefix notation.
 
   - ✅ invalid value
 
-#### <a id="Prefix_operators_Arithmetic_"></a>`/`
+#### <a id="prefix-operators-arithmetic-"></a>`/`
 
 ```lna
 / number number ?number ...?

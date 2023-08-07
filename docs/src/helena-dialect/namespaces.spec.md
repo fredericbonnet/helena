@@ -1,237 +1,19 @@
 ---
 source: src\helena-dialect\namespaces.spec.ts
 ---
-# <a id=""></a>Helena namespaces
+# Helena namespaces
 
+- [`namespace`](../../pages/helena-dialect/commands/namespace.md) - Create a namespace command
+- [Namespace commands](#namespace-commands)
 
-## <a id="namespace"></a>`namespace`
 
-Create a namespace command
-
-### Usage
-
-```lna
-namespace ?name? body
-```
-
-The `namespace` command creates a new namespace command.
-
-
-### <a id="namespace_Specifications"></a>Specifications
-
-- ✅ usage
-- ✅ should define a new command
-- ✅ should replace existing commands
-
-### <a id="namespace_Exceptions"></a>Exceptions
-
-- ✅ wrong arity
-
-  The command will return an error message with usage when given the
-  wrong number of arguments.
-
-- ✅ invalid `name`
-
-  Command names must have a valid string representation.
-
-- ✅ non-script body
-
-### <a id="namespace_body"></a>`body`
-
-- ✅ should be executed
-- ✅ should access global commands
-- ✅ should not access global variables
-- ✅ should not set global variables
-- ✅ should set namespace variables
-
-#### <a id="namespace_body_Control_flow"></a>Control flow
-
-If the body returns a result code other than `OK` then it should be
-propagated properly by the command.
-
-
-- `return`
-
-  - ✅ should interrupt the body with `OK` code
-  - ✅ should still define the named command
-  - ✅ should return passed value instead of the command object
-
-- `tailcall`
-
-  - ✅ should interrupt the body with `OK` code
-  - ✅ should still define the named command
-  - ✅ should return passed value instead of the command object
-
-- `yield`
-
-  - ✅ should interrupt the body with `YIELD` code
-  - ✅ should provide a resumable state
-  - ✅ should delay the definition of namespace command until resumed
-
-- `error`
-
-  - ✅ should interrupt the body with `ERROR` code
-  - ✅ should not define the namespace command
-
-- `break`
-
-  - ✅ should interrupt the body with `ERROR` code
-  - ✅ should not define the namespace command
-
-- `continue`
-
-  - ✅ should interrupt the body with `ERROR` code
-  - ✅ should not define the namespace command
-
-### <a id="namespace_Metacommand"></a>Metacommand
-
-`namespace` returns a metacommand value that can be used to
-introspect the newly created command.
-
-- ✅ should return a metacommand
-- ✅ the metacommand should return itself
-
-#### <a id="namespace_Metacommand_Subcommands"></a>Subcommands
-
-
-- `subcommands`
-
-  - ✅ should return list of subcommands
-
-    This subcommand is useful for introspection and interactive
-    calls.
-
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-
-- `eval`
-
-  - ✅ should evaluate body in namespace scope
-  - ✅ should accept tuple bodies
-  - ✅ should evaluate macros in namespace scope
-  - ✅ should evaluate closures in their scope
-
-  - Control flow
-
-
-    - `return`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `tailcall`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `yield`
-
-      - ✅ should interrupt the body with `YIELD` code
-      - ✅ should provide a resumable state
-
-    - `error`
-
-      - ✅ should interrupt the body with `ERROR` code
-
-    - `break`
-
-      - ✅ should interrupt the body with `BREAK` code
-
-    - `continue`
-
-      - ✅ should interrupt the body with `CONTINUE` code
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-    - ✅ invalid body
-
-- `call`
-
-  - ✅ should call namespace commands
-  - ✅ should evaluate macros in namespace
-  - ✅ should evaluate namespace closures in namespace
-
-  - Control flow
-
-
-    - `return`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `tailcall`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `yield`
-
-      - ✅ should interrupt the call with `YIELD` code
-      - ✅ should provide a resumable state
-
-    - `error`
-
-      - ✅ should interrupt the body with `ERROR` code
-
-    - `break`
-
-      - ✅ should interrupt the body with `BREAK` code
-
-    - `continue`
-
-      - ✅ should interrupt the body with `CONTINUE` code
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-    - ✅ unknown command
-    - ✅ out-of-scope command
-    - ✅ invalid command name
-
-- `import`
-
-  - ✅ should declare imported commands in the calling scope
-  - ✅ should return nil
-  - ✅ should replace existing commands
-  - ✅ should evaluate macros in the caller scope
-  - ✅ should evaluate closures in their scope
-  - ✅ should resolve imported commands at call time
-  - ✅ should accept an optional alias name
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-    - ✅ unresolved command
-    - ✅ invalid import name
-    - ✅ invalid alias name
-
-- Exceptions
-
-  - ✅ unknown subcommand
-  - ✅ invalid subcommand name
-
-## <a id="Namespace_commands"></a>Namespace commands
+## <a id="namespace-commands"></a>Namespace commands
 
 Namespace commands are commands that gather subcommands and variables
 defined in their own child scope.
 
 
-### <a id="Namespace_commands_Specifications"></a>Specifications
+### <a id="namespace-commands-specifications"></a>Specifications
 
 - ✅ should return its namespace metacommand when called with no argument
 
@@ -239,7 +21,7 @@ defined in their own child scope.
   metacommand by wrapping the command within brackets, i.e. `[cmd]`.
 
 
-### <a id="Namespace_commands_Namespace_subcommands"></a>Namespace subcommands
+### <a id="namespace-commands-namespace-subcommands"></a>Namespace subcommands
 
 Commands defined in the namespace scope will be exposed as
 subcommands.
@@ -249,10 +31,10 @@ subcommands.
 - ✅ should evaluate subcommand in namespace scope
 - ✅ should work recursively
 
-#### <a id="Namespace_commands_Namespace_subcommands_Introspection"></a>Introspection
+#### <a id="namespace-commands-namespace-subcommands-introspection"></a>Introspection
 
 
-##### <a id="Namespace_commands_Namespace_subcommands_Introspection_subcommands"></a>`subcommands`
+##### <a id="namespace-commands-namespace-subcommands-introspection-subcommands"></a>`subcommands`
 
 `subcommands` is a predefined subcommand that is available for
 all namespace commands.
@@ -267,7 +49,7 @@ all namespace commands.
     given the wrong number of arguments.
 
 
-#### <a id="Namespace_commands_Namespace_subcommands_Help"></a>Help
+#### <a id="namespace-commands-namespace-subcommands-help"></a>Help
 
 Namespace commands have built-in support for `help` on all
 subcommands that support it.
@@ -296,7 +78,7 @@ subcommands that support it.
     The command cannot get help for a subcommand that has none.
 
 
-#### <a id="Namespace_commands_Namespace_subcommands_Control_flow"></a>Control flow
+#### <a id="namespace-commands-namespace-subcommands-control-flow"></a>Control flow
 
 If a subcommand returns a result code other than `OK` then it
 should be propagated properly to the caller.
@@ -327,7 +109,7 @@ should be propagated properly to the caller.
 
   - ✅ should interrupt the call with `CONTINUE` code
 
-#### <a id="Namespace_commands_Namespace_subcommands_Exceptions"></a>Exceptions
+#### <a id="namespace-commands-namespace-subcommands-exceptions"></a>Exceptions
 
 - ✅ unknown subcommand
 - ✅ out-of-scope subcommand
@@ -337,7 +119,7 @@ should be propagated properly to the caller.
 
 - ✅ invalid subcommand name
 
-### <a id="Namespace_commands_Namespace_variables"></a>Namespace variables
+### <a id="namespace-commands-namespace-variables"></a>Namespace variables
 
 Variables defined in the namespace scope will be key selectable on
 both the namespace command and metacommand.
@@ -345,7 +127,7 @@ both the namespace command and metacommand.
 - ✅ should map to value keys
 - ✅ should work recursively
 
-#### <a id="Namespace_commands_Namespace_variables_Exceptions"></a>Exceptions
+#### <a id="namespace-commands-namespace-variables-exceptions"></a>Exceptions
 
 - ✅ unknown variables
 - ✅ out-of-scope variable

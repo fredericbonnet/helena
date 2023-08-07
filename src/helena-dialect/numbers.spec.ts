@@ -6,7 +6,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { FALSE, INT, REAL, STR, TRUE } from "../core/values";
 import { Scope, commandValueType } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock, specifyExample } from "./test-helpers";
+import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 import { EnsembleMetacommand } from "./ensembles";
 
 describe("Helena numbers", () => {
@@ -34,6 +34,8 @@ describe("Helena numbers", () => {
   const example = specifyExample(({ script }) => execute(script));
 
   beforeEach(init);
+
+  mochadoc.meta({ toc: true });
 
   mochadoc.section("Number commands", () => {
     mochadoc.section("Integer numbers", () => {
@@ -406,7 +408,7 @@ describe("Helena numbers", () => {
     });
   });
 
-  mochadoc.section("`int`", () => {
+  describeCommand("int", () => {
     mochadoc.summary("Integer number handling");
     mochadoc.usage(usage("int"));
     mochadoc.description(() => {
@@ -597,7 +599,7 @@ describe("Helena numbers", () => {
     });
   });
 
-  mochadoc.section("`real`", () => {
+  describeCommand("real", () => {
     mochadoc.summary("Real number handling");
     mochadoc.usage(usage("real"));
     mochadoc.description(() => {

@@ -77,3 +77,13 @@ export const specifyExample =
       });
     });
   };
+
+export const describeCommand = (
+  name: string,
+  fn: (this: Mocha.Suite) => void
+) => {
+  return describe("`" + name + "`", function (this: Mocha.Suite) {
+    mochadoc.meta({ page: "helena-dialect/commands/" + name });
+    return fn.call(this);
+  });
+};

@@ -13,7 +13,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { NIL, STR } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock } from "./test-helpers";
+import { codeBlock, describeCommand } from "./test-helpers";
 
 describe("Helena namespaces", () => {
   let rootScope: Scope;
@@ -40,7 +40,9 @@ describe("Helena namespaces", () => {
 
   beforeEach(init);
 
-  describe("`namespace`", () => {
+  mochadoc.meta({ toc: true });
+
+  describeCommand("namespace", () => {
     mochadoc.summary("Create a namespace command");
     mochadoc.usage(usage("namespace"));
     mochadoc.description(() => {

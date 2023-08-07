@@ -7,7 +7,7 @@ import { FALSE, INT, LIST, NIL, STR, TRUE } from "../core/values";
 import { Scope, commandValueType } from "./core";
 import { initCommands } from "./helena-dialect";
 import { displayListValue } from "./lists";
-import { codeBlock, specifyExample } from "./test-helpers";
+import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 import { EnsembleMetacommand } from "./ensembles";
 
 describe("Helena lists", () => {
@@ -36,7 +36,9 @@ describe("Helena lists", () => {
 
   beforeEach(init);
 
-  mochadoc.section("`list`", () => {
+  mochadoc.meta({ toc: true });
+
+  describeCommand("list", () => {
     mochadoc.summary("List handling");
     mochadoc.usage(usage("list"));
     mochadoc.description(() => {

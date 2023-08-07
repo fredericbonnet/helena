@@ -13,7 +13,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { FALSE, TRUE, NIL, STR } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock, specifyExample } from "./test-helpers";
+import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 import { EnsembleMetacommand } from "./ensembles";
 
 describe("Helena logic operations", () => {
@@ -41,6 +41,8 @@ describe("Helena logic operations", () => {
   const example = specifyExample(({ script }) => execute(script));
 
   beforeEach(init);
+
+  mochadoc.meta({ toc: true });
 
   describe("Booleans", () => {
     mochadoc.usage(usage("true") + "\n" + usage("false"));
@@ -254,7 +256,7 @@ describe("Helena logic operations", () => {
     });
   });
 
-  mochadoc.section("`bool`", () => {
+  describeCommand("bool", () => {
     mochadoc.summary("Boolean handling");
     mochadoc.usage(usage("bool"));
     mochadoc.description(() => {

@@ -14,7 +14,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { FALSE, INT, NIL, STR, TRUE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock } from "./test-helpers";
+import { codeBlock, describeCommand } from "./test-helpers";
 
 describe("Helena control flow commands", () => {
   let rootScope: Scope;
@@ -41,7 +41,9 @@ describe("Helena control flow commands", () => {
 
   beforeEach(init);
 
-  describe("`while`", () => {
+  mochadoc.meta({ toc: true });
+
+  describeCommand("while", () => {
     mochadoc.summary("Conditional loop");
     mochadoc.usage(usage("while"));
     mochadoc.description(() => {
@@ -235,7 +237,7 @@ describe("Helena control flow commands", () => {
     });
   });
 
-  describe("`if`", () => {
+  describeCommand("if", () => {
     mochadoc.summary("Conditional branching");
     mochadoc.usage(usage("if"));
     mochadoc.description(() => {
@@ -585,7 +587,7 @@ describe("Helena control flow commands", () => {
     });
   });
 
-  describe("`when`", () => {
+  describeCommand("when", () => {
     mochadoc.summary("Multi-way branching");
     mochadoc.usage(usage("when"));
     mochadoc.description(() => {
@@ -1153,7 +1155,7 @@ describe("Helena control flow commands", () => {
     });
   });
 
-  describe("`catch`", () => {
+  describeCommand("catch", () => {
     mochadoc.summary("Result handling");
     mochadoc.usage(usage("catch"));
     mochadoc.description(() => {
@@ -2159,7 +2161,7 @@ describe("Helena control flow commands", () => {
     });
   });
 
-  describe("`pass`", () => {
+  describeCommand("pass", () => {
     mochadoc.summary("`catch` handler pass-through");
     mochadoc.usage(usage("pass"));
     mochadoc.description(() => {

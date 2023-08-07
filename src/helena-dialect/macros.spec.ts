@@ -13,7 +13,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { FALSE, INT, NIL, STR } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock, specifyExample } from "./test-helpers";
+import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 
 describe("Helena macros", () => {
   let rootScope: Scope;
@@ -41,7 +41,9 @@ describe("Helena macros", () => {
 
   beforeEach(init);
 
-  mochadoc.section("`macro`", () => {
+  mochadoc.meta({ toc: true });
+
+  describeCommand("macro", () => {
     mochadoc.summary("Create a macro command");
     mochadoc.usage(usage("macro"));
     mochadoc.description(() => {

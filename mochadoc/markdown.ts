@@ -92,5 +92,5 @@ export function link(text: string, url: string) {
  * @returns    Markdown string
  */
 export function anchor(id: string) {
-  return `<a id="${id}"></a>`;
+  return id ? `<a id="${id}"></a>` : "";
 }

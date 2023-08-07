@@ -13,7 +13,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { NIL, STR, TUPLE } from "../core/values";
 import { CommandValue, commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock } from "./test-helpers";
+import { codeBlock, describeCommand } from "./test-helpers";
 import { Command } from "../core/command";
 
 describe("Helena basic commands", () => {
@@ -42,7 +42,7 @@ describe("Helena basic commands", () => {
 
   mochadoc.meta({ toc: true });
 
-  describe("`idem`", () => {
+  describeCommand("idem", () => {
     mochadoc.summary("Return the value that is passed to it");
     mochadoc.usage(usage("idem"));
     mochadoc.description(() => {
@@ -85,7 +85,7 @@ describe("Helena basic commands", () => {
     });
   });
 
-  describe("`return`", () => {
+  describeCommand("return", () => {
     mochadoc.summary("Stop execution with `RETURN` code");
     mochadoc.usage(usage("return"));
     mochadoc.description(() => {
@@ -131,7 +131,7 @@ describe("Helena basic commands", () => {
     });
   });
 
-  describe("`tailcall`", () => {
+  describeCommand("tailcall", () => {
     mochadoc.summary("Transfer execution to another script");
     mochadoc.usage(usage("tailcall"));
     mochadoc.description(() => {
@@ -223,7 +223,7 @@ describe("Helena basic commands", () => {
     });
   });
 
-  describe("`yield`", () => {
+  describeCommand("yield", () => {
     mochadoc.summary("Pause execution with `YIELD` code");
     mochadoc.usage(usage("yield"));
     mochadoc.description(() => {
@@ -267,7 +267,7 @@ describe("Helena basic commands", () => {
     });
   });
 
-  describe("`error`", () => {
+  describeCommand("error", () => {
     mochadoc.summary("Stop execution with `ERROR` code");
     mochadoc.usage(usage("error"));
     mochadoc.description(() => {
@@ -317,7 +317,7 @@ describe("Helena basic commands", () => {
     });
   });
 
-  describe("`break`", () => {
+  describeCommand("break", () => {
     mochadoc.summary("Stop execution with `BREAK` code");
     mochadoc.usage(usage("break"));
     mochadoc.description(() => {
@@ -353,7 +353,7 @@ describe("Helena basic commands", () => {
     });
   });
 
-  describe("`continue`", () => {
+  describeCommand("continue", () => {
     mochadoc.summary("Stop execution with `CONTINUE` code");
     mochadoc.usage(usage("continue"));
     mochadoc.description(() => {
@@ -389,7 +389,7 @@ describe("Helena basic commands", () => {
     });
   });
 
-  describe("`eval`", () => {
+  describeCommand("eval", () => {
     mochadoc.summary("Evaluate a script");
     mochadoc.usage(usage("eval"));
     mochadoc.description(() => {
@@ -548,8 +548,7 @@ describe("Helena basic commands", () => {
     });
   });
 
-  describe("`help`", () => {
-    mochadoc.meta({ page: "helena-dialect/commands/help" });
+  describeCommand("help", () => {
     mochadoc.summary("Give usage of a command");
     mochadoc.usage(usage("help"));
     mochadoc.description(() => {

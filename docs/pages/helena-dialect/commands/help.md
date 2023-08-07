@@ -14,7 +14,7 @@ help command ?arg ...?
 The `help` command returns a help string for the given command.
 
 
-## <a id="help_Specifications"></a>Specifications
+## <a id="help-specifications"></a>Specifications
 
 - ✅ should give usage of itself
 - ✅ should accept optional arguments
@@ -23,7 +23,7 @@ The `help` command returns a help string for the given command.
 
 - ✅ should return the command help
 
-## <a id="help_Exceptions"></a>Exceptions
+## <a id="help-exceptions"></a>Exceptions
 
 - ✅ wrong arity
 

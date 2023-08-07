@@ -7,7 +7,7 @@ import { FALSE, INT, DICT, NIL, STR, TRUE, TUPLE } from "../core/values";
 import { Scope, commandValueType } from "./core";
 import { initCommands } from "./helena-dialect";
 import { displayDictionaryValue } from "./dicts";
-import { codeBlock, specifyExample } from "./test-helpers";
+import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 import { EnsembleMetacommand } from "./ensembles";
 
 describe("Helena dictionaries", () => {
@@ -36,7 +36,9 @@ describe("Helena dictionaries", () => {
 
   beforeEach(init);
 
-  describe("`dict`", () => {
+  mochadoc.meta({ toc: true });
+
+  describeCommand("dict", () => {
     mochadoc.summary("Dictionary handling");
     mochadoc.usage(usage("dict"));
     mochadoc.description(() => {

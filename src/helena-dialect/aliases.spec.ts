@@ -13,7 +13,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { INT, LIST, NIL, STR, TUPLE } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock, specifyExample } from "./test-helpers";
+import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 
 describe("Helena aliases", () => {
   let rootScope: Scope;
@@ -41,7 +41,9 @@ describe("Helena aliases", () => {
 
   beforeEach(init);
 
-  describe("`alias`", () => {
+  mochadoc.meta({ toc: true });
+
+  describeCommand("alias", () => {
     mochadoc.summary("Define a command alias");
     mochadoc.usage(usage("alias"));
     mochadoc.description(() => {

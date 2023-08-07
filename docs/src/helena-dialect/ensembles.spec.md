@@ -1,253 +1,19 @@
 ---
 source: src\helena-dialect\ensembles.spec.ts
 ---
-# <a id=""></a>Helena ensembles
+# Helena ensembles
 
+- [`ensemble`](../../pages/helena-dialect/commands/ensemble.md) - Create an ensemble command
+- [Ensemble commands](#ensemble-commands)
 
-## <a id="ensemble"></a>`ensemble`
 
-Create an ensemble command
-
-### Usage
-
-```lna
-ensemble ?name? argspec body
-```
-
-The `ensemble` command creates a new ensemble command.
-
-
-### <a id="ensemble_Specifications"></a>Specifications
-
-- ✅ usage
-- ✅ should define a new command
-- ✅ should replace existing commands
-
-### <a id="ensemble_Exceptions"></a>Exceptions
-
-- ✅ wrong arity
-
-  The command will return an error message with usage when given the
-  wrong number of arguments.
-
-- ✅ invalid `argspec`
-
-  The command expects an argument list in `argspec` format.
-
-- ✅ variadic arguments
-
-  Ensemble argument lists are fixed-length; optional or remainder
-  arguments are forbidden.
-
-- ✅ invalid `name`
-
-  Command names must have a valid string representation.
-
-- ✅ non-script body
-
-### <a id="ensemble_body"></a>`body`
-
-- ✅ should be executed
-- ✅ should access global commands
-- ✅ should not access global variables
-- ✅ should not set global variables
-- ✅ should set ensemble variables
-
-#### <a id="ensemble_body_Control_flow"></a>Control flow
-
-If the body returns a result code other than `OK` then it should be
-propagated properly by the command.
-
-
-- `return`
-
-  - ✅ should interrupt the body with `OK` code
-  - ✅ should still define the named command
-  - ✅ should return passed value instead of the command object
-
-- `tailcall`
-
-  - ✅ should interrupt the body with `OK` code
-  - ✅ should still define the named command
-  - ✅ should return passed value instead of the command object
-
-- `yield`
-
-  - ✅ should interrupt the body with `YIELD` code
-  - ✅ should provide a resumable state
-  - ✅ should delay the definition of ensemble command until resumed
-
-- `error`
-
-  - ✅ should interrupt the body with `ERROR` code
-  - ✅ should not define the ensemble command
-
-- `break`
-
-  - ✅ should interrupt the body with `ERROR` code
-  - ✅ should not define the ensemble command
-
-- `continue`
-
-  - ✅ should interrupt the body with `ERROR` code
-  - ✅ should not define the ensemble command
-
-### <a id="ensemble_Metacommand"></a>Metacommand
-
-`ensemble` returns a metacommand value that can be used to introspect
-the newly created command.
-
-- ✅ should return a metacommand
-- ✅ the metacommand should return itself
-
-#### <a id="ensemble_Metacommand_Subcommands"></a>Subcommands
-
-
-- `subcommands`
-
-  - ✅ should return list of subcommands
-
-    This subcommand is useful for introspection and interactive
-    calls.
-
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-
-- `eval`
-
-  - ✅ should evaluate body in ensemble scope
-  - ✅ should accept tuple bodies
-  - ✅ should evaluate macros in ensemble scope
-  - ✅ should evaluate closures in their scope
-
-  - Control flow
-
-
-    - `return`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `tailcall`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `yield`
-
-      - ✅ should interrupt the body with `YIELD` code
-      - ✅ should provide a resumable state
-
-    - `error`
-
-      - ✅ should interrupt the body with `ERROR` code
-
-    - `break`
-
-      - ✅ should interrupt the body with `BREAK` code
-
-    - `continue`
-
-      - ✅ should interrupt the body with `CONTINUE` code
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-    - ✅ invalid body
-
-- `call`
-
-  - ✅ should call ensemble commands
-  - ✅ should evaluate macros in the caller scope
-  - ✅ should evaluate ensemble closures in ensemble scope
-
-  - Control flow
-
-
-    - `return`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `tailcall`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `yield`
-
-      - ✅ should interrupt the call with `YIELD` code
-      - ✅ should provide a resumable state
-
-    - `error`
-
-      - ✅ should interrupt the body with `ERROR` code
-
-    - `break`
-
-      - ✅ should interrupt the body with `BREAK` code
-
-    - `continue`
-
-      - ✅ should interrupt the body with `CONTINUE` code
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-    - ✅ unknown command
-    - ✅ out-of-scope command
-    - ✅ invalid command name
-
-- `argspec`
-
-  - ✅ should return the ensemble's argspec
-
-    Each ensemble has an argspec command associated to it,
-    created with the ensemble's `argspec` argument. This
-    subcommand will return it:
-
-    ```lna
-    [ensemble {a b} {}] argspec
-    # => {#{argspec: "a b"}#}
-    ```
-
-    This is identical to:
-
-    ```lna
-    argspec {a b}
-    ```
-
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-
-- Exceptions
-
-  - ✅ unknown subcommand
-  - ✅ invalid subcommand name
-
-## <a id="Ensemble_commands"></a>Ensemble commands
+## <a id="ensemble-commands"></a>Ensemble commands
 
 Ensemble commands are commands that gather subcommands defined in their
 own child scope.
 
 
-### <a id="Ensemble_commands_Specifications"></a>Specifications
+### <a id="ensemble-commands-specifications"></a>Specifications
 
 - ✅ should return its ensemble metacommand when called with no argument
 
@@ -263,7 +29,7 @@ own child scope.
   This property is useful for validation.
 
 
-### <a id="Ensemble_commands_Exceptions"></a>Exceptions
+### <a id="ensemble-commands-exceptions"></a>Exceptions
 
 - ✅ wrong arity
 
@@ -276,7 +42,7 @@ own child scope.
   fails.
 
 
-### <a id="Ensemble_commands_Ensemble_subcommands"></a>Ensemble subcommands
+### <a id="ensemble-commands-ensemble-subcommands"></a>Ensemble subcommands
 
 Commands defined in the ensemble scope will be exposed as
 subcommands.
@@ -288,10 +54,10 @@ subcommands.
 - ✅ should evaluate subcommand in the caller scope
 - ✅ should work recursively
 
-#### <a id="Ensemble_commands_Ensemble_subcommands_Introspection"></a>Introspection
+#### <a id="ensemble-commands-ensemble-subcommands-introspection"></a>Introspection
 
 
-##### <a id="Ensemble_commands_Ensemble_subcommands_Introspection_subcommands"></a>`subcommands`
+##### <a id="ensemble-commands-ensemble-subcommands-introspection-subcommands"></a>`subcommands`
 
 `subcommands` is a predefined subcommand that is available for
 all ensemble commands.
@@ -306,7 +72,7 @@ all ensemble commands.
     given the wrong number of arguments.
 
 
-#### <a id="Ensemble_commands_Ensemble_subcommands_Help"></a>Help
+#### <a id="ensemble-commands-ensemble-subcommands-help"></a>Help
 
 Ensemble commands have built-in support for `help` on all
 subcommands that support it.
@@ -335,7 +101,7 @@ subcommands that support it.
     The command cannot get help for a subcommand that has none.
 
 
-#### <a id="Ensemble_commands_Ensemble_subcommands_Control_flow"></a>Control flow
+#### <a id="ensemble-commands-ensemble-subcommands-control-flow"></a>Control flow
 
 If a subcommand returns a result code other than `OK` then it
 should be propagated properly to the caller.
@@ -366,7 +132,7 @@ should be propagated properly to the caller.
 
   - ✅ should interrupt the call with `CONTINUE` code
 
-#### <a id="Ensemble_commands_Ensemble_subcommands_Exceptions"></a>Exceptions
+#### <a id="ensemble-commands-ensemble-subcommands-exceptions"></a>Exceptions
 
 - ✅ unknown subcommand
 - ✅ out-of-scope subcommand

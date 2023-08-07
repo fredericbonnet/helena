@@ -7,7 +7,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { LIST, NIL, STR } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock } from "./test-helpers";
+import { codeBlock, describeCommand } from "./test-helpers";
 
 describe("Helena modules", () => {
   let rootScope: Scope;
@@ -34,7 +34,9 @@ describe("Helena modules", () => {
 
   beforeEach(init);
 
-  describe("`module`", () => {
+  mochadoc.meta({ toc: true });
+
+  describeCommand("module", () => {
     mochadoc.summary("Create a module command");
     mochadoc.usage(usage("module"));
     mochadoc.description(() => {
@@ -369,7 +371,7 @@ describe("Helena modules", () => {
     });
   });
 
-  describe("export", () => {
+  describeCommand("export", () => {
     mochadoc.summary("Export a command from the current module");
     mochadoc.usage(
       (() => {
@@ -458,7 +460,7 @@ describe("Helena modules", () => {
     });
   });
 
-  describe("`import`", () => {
+  describeCommand("import", () => {
     const moduleAPathRel = "tests/module-a.lna";
     const moduleAPathAbs = `"""${path.join(__dirname, moduleAPathRel)}"""`;
     const moduleBPath = `"tests/module-b.lna"`;

@@ -6,7 +6,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { FALSE, LIST, DICT, NIL, STR, TRUE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock } from "./test-helpers";
+import { codeBlock, describeCommand } from "./test-helpers";
 
 describe("Helena constants and variables", () => {
   let rootScope: Scope;
@@ -32,7 +32,9 @@ describe("Helena constants and variables", () => {
 
   beforeEach(init);
 
-  describe("`let`", () => {
+  mochadoc.meta({ toc: true });
+
+  describeCommand("let", () => {
     mochadoc.summary("Define a constant");
     mochadoc.usage(usage("let"));
     mochadoc.description(() => {
@@ -173,7 +175,7 @@ describe("Helena constants and variables", () => {
     });
   });
 
-  describe("`set`", () => {
+  describeCommand("set", () => {
     mochadoc.summary("Define or set a variable");
     mochadoc.usage(usage("set"));
     mochadoc.description(() => {
@@ -308,7 +310,7 @@ describe("Helena constants and variables", () => {
     });
   });
 
-  describe("`get`", () => {
+  describeCommand("get", () => {
     mochadoc.summary("Get a constant or variable value");
     mochadoc.usage(usage("get"));
     mochadoc.description(() => {
@@ -458,12 +460,12 @@ describe("Helena constants and variables", () => {
     });
   });
 
-  describe("`exists`", () => {
-    mochadoc.summary("Test for existence of a variable");
+  describeCommand("exists", () => {
+    mochadoc.summary("Test for existence of a constant or variable");
     mochadoc.usage(usage("exists"));
     mochadoc.description(() => {
       /**
-       * The `exists` command tests wether a variable or constant exists.
+       * The `exists` command tests wether a constant or variable exists.
        */
     });
 
@@ -549,7 +551,7 @@ describe("Helena constants and variables", () => {
     });
   });
 
-  describe("`unset`", () => {
+  describeCommand("unset", () => {
     mochadoc.summary("Undefine a variable");
     mochadoc.usage(usage("unset"));
     mochadoc.description(() => {

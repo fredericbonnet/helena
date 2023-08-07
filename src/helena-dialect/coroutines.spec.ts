@@ -6,7 +6,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { FALSE, STR, TRUE } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock } from "./test-helpers";
+import { codeBlock, describeCommand } from "./test-helpers";
 
 describe("Helena coroutines", () => {
   let rootScope: Scope;
@@ -33,7 +33,9 @@ describe("Helena coroutines", () => {
 
   beforeEach(init);
 
-  describe("`coroutine`", () => {
+  mochadoc.meta({ toc: true });
+
+  describeCommand("coroutine", () => {
     mochadoc.summary("Create a coroutine");
     mochadoc.usage(usage("coroutine"));
     mochadoc.description(() => {

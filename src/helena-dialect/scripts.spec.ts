@@ -6,7 +6,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { INT, LIST, ScriptValue, STR, TUPLE } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock, specifyExample } from "./test-helpers";
+import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 import { EnsembleMetacommand } from "./ensembles";
 
 describe("Helena scripts", () => {
@@ -35,7 +35,9 @@ describe("Helena scripts", () => {
 
   beforeEach(init);
 
-  describe("`parse`", () => {
+  mochadoc.meta({ toc: true });
+
+  describeCommand("parse", () => {
     mochadoc.summary("Helena script parsing");
     mochadoc.usage(usage("parse"));
     mochadoc.description(() => {
@@ -100,7 +102,7 @@ describe("Helena scripts", () => {
     });
   });
 
-  mochadoc.section("`script`", () => {
+  describeCommand("script", () => {
     mochadoc.summary("Script handling");
     mochadoc.usage(usage("script"));
     mochadoc.description(() => {

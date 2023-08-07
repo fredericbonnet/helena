@@ -7,7 +7,7 @@ import { NIL, TRUE, FALSE, INT, STR, TUPLE } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock } from "./test-helpers";
+import { codeBlock, describeCommand } from "./test-helpers";
 
 describe("Helena argument handling", () => {
   let rootScope: Scope;
@@ -34,7 +34,9 @@ describe("Helena argument handling", () => {
 
   beforeEach(init);
 
-  mochadoc.section("`argspec`", () => {
+  mochadoc.meta({ toc: true });
+
+  describeCommand("argspec", () => {
     mochadoc.summary("Create an argument-parsing command");
     mochadoc.usage(usage("argspec"));
     mochadoc.description(() => {
