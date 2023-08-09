@@ -4,7 +4,8 @@ import { exit } from "process";
 import * as repl from "repl";
 import * as c from "ansi-colors";
 import { defaultDisplayFunction, display } from "./src/core/display";
-import { Parser, TokenStream } from "./src/core/parser";
+import { ArrayTokenStream } from "./src/core/tokenizer";
+import { Parser } from "./src/core/parser";
 import {
   ERROR,
   Result,
@@ -85,7 +86,7 @@ function run(scope: Scope, cmd, callback?: (err?: Error, result?) => void) {
     return callback(new repl.Recoverable(new Error("continuation")));
   }
 
-  const stream = new TokenStream(tokens);
+  const stream = new ArrayTokenStream(tokens);
   const parser = new Parser();
   let parseResult = parser.parseStream(stream);
   if (!parseResult.success) {

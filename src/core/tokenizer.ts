@@ -25,9 +25,9 @@ export enum TokenType {
 }
 
 /**
- * Position in character stream
+ * Position in source stream
  */
-export class Position {
+export class SourcePosition {
   /** Character index (zero-indexed) */
   index = 0;
 
@@ -43,7 +43,7 @@ export class Position {
    * @returns a new position
    */
   copy() {
-    const copy = new Position();
+    const copy = new SourcePosition();
     copy.index = this.index;
     copy.line = this.line;
     copy.column = this.column;
@@ -76,7 +76,7 @@ export interface Token {
   type: TokenType;
 
   /** Position in source stream */
-  position: Position;
+  position: SourcePosition;
 
   /** Raw sequence of characters from stream */
   sequence: string;
@@ -92,36 +92,50 @@ export interface Token {
  */
 export class Tokenizer {
   /** Input stream */
-  private stream: StringStream;
+  private input: SourceStream;
 
   /** Output tokens */
-  private tokens: Token[];
+  private output: TokenStream;
+
+  /** Current token */
+  private currentToken: Token;
 
   /**
-   * Tokenize a Helena source string
+   * Tokenize a Helena source string into a token array
    *
    * @param source - Source string
    *
    * @returns        Array of tokens
    */
   tokenize(source: string): Token[] {
-    this.stream = new StringStream(source);
-    this.tokens = [];
+    const input = new StringStream(source);
+    const output = new ArrayTokenStream([]);
+    this.tokenizeStream(input, output);
+    return output.tokens;
+  }
 
-    while (!this.stream.end()) {
-      const position = this.stream.position.copy();
-      const c = this.stream.next();
+  /**
+   * Tokenize a Helena source stream into a token stream
+   *
+   * @param input  - Input source stream
+   * @param output - Output token stream
+   */
+  tokenizeStream(input: SourceStream, output: TokenStream) {
+    this.input = input;
+    this.output = output;
+    this.currentToken = null;
+
+    while (!this.input.end()) {
+      const position = this.input.currentPosition();
+      const c = this.input.next();
       switch (c) {
         // Whitespaces
         case " ":
         case "\t":
         case "\r":
         case "\f":
-          while (
-            !this.stream.end() &&
-            this.isWhitespace(this.stream.current())
-          ) {
-            this.stream.next();
+          while (!this.input.end() && this.isWhitespace(this.input.current())) {
+            this.input.next();
           }
           this.addToken(TokenType.WHITESPACE, position);
           break;
@@ -133,18 +147,18 @@ export class Tokenizer {
 
         // Escape sequence
         case "\\": {
-          if (this.stream.end()) {
+          if (this.input.end()) {
             this.addToken(TokenType.TEXT, position);
             break;
           }
-          const e = this.stream.next();
+          const e = this.input.next();
           if (e == "\n") {
             // Continuation, eat up all subsequent whitespaces
             while (
-              !this.stream.end() &&
-              this.isWhitespace(this.stream.current())
+              !this.input.end() &&
+              this.isWhitespace(this.input.current())
             ) {
-              this.stream.next();
+              this.input.next();
             }
             this.addToken(TokenType.CONTINUATION, position, " ");
             break;
@@ -156,13 +170,13 @@ export class Tokenizer {
             let codepoint = Number.parseInt(e);
             let i = 1;
             while (
-              !this.stream.end() &&
-              this.isOctal(this.stream.current()) &&
+              !this.input.end() &&
+              this.isOctal(this.input.current()) &&
               i < 3
             ) {
               codepoint *= 8;
-              codepoint += Number.parseInt(this.stream.current());
-              this.stream.next();
+              codepoint += Number.parseInt(this.input.current());
+              this.input.next();
               i++;
             }
             escape = String.fromCharCode(codepoint);
@@ -170,13 +184,13 @@ export class Tokenizer {
             let codepoint = 0;
             let i = 0;
             while (
-              !this.stream.end() &&
-              this.isHexadecimal(this.stream.current()) &&
+              !this.input.end() &&
+              this.isHexadecimal(this.input.current()) &&
               i < 2
             ) {
               codepoint *= 16;
-              codepoint += Number.parseInt("0x" + this.stream.current());
-              this.stream.next();
+              codepoint += Number.parseInt("0x" + this.input.current());
+              this.input.next();
               i++;
             }
             if (i > 0) {
@@ -186,13 +200,13 @@ export class Tokenizer {
             let codepoint = 0;
             let i = 0;
             while (
-              !this.stream.end() &&
-              this.isHexadecimal(this.stream.current()) &&
+              !this.input.end() &&
+              this.isHexadecimal(this.input.current()) &&
               i < 4
             ) {
               codepoint *= 16;
-              codepoint += Number.parseInt("0x" + this.stream.current());
-              this.stream.next();
+              codepoint += Number.parseInt("0x" + this.input.current());
+              this.input.next();
               i++;
             }
             if (i > 0) {
@@ -202,13 +216,13 @@ export class Tokenizer {
             let codepoint = 0;
             let i = 0;
             while (
-              !this.stream.end() &&
-              this.isHexadecimal(this.stream.current()) &&
+              !this.input.end() &&
+              this.isHexadecimal(this.input.current()) &&
               i < 8
             ) {
               codepoint *= 16;
-              codepoint += Number.parseInt("0x" + this.stream.current());
-              this.stream.next();
+              codepoint += Number.parseInt("0x" + this.input.current());
+              this.input.next();
               i++;
             }
             if (i > 0) {
@@ -221,8 +235,8 @@ export class Tokenizer {
 
         // Comment
         case "#":
-          while (!this.stream.end() && this.stream.current() == "#") {
-            this.stream.next();
+          while (!this.input.end() && this.input.current() == "#") {
+            this.input.next();
           }
           this.addToken(TokenType.COMMENT, position);
           break;
@@ -253,8 +267,8 @@ export class Tokenizer {
 
         // String delimiter
         case '"':
-          while (!this.stream.end() && this.stream.current() == '"') {
-            this.stream.next();
+          while (!this.input.end() && this.input.current() == '"') {
+            this.input.next();
           }
           this.addToken(TokenType.STRING_DELIMITER, position);
           break;
@@ -279,7 +293,17 @@ export class Tokenizer {
       }
     }
 
-    return this.tokens;
+    this.emitToken();
+  }
+
+  /**
+   * Emit current token to the output stream.
+   */
+  private emitToken() {
+    if (this.currentToken) {
+      this.output.emit(this.currentToken);
+    }
+    this.currentToken = null;
   }
 
   /**
@@ -289,17 +313,22 @@ export class Tokenizer {
    * @param position - Position of first character
    * @param literal  - Literal value
    */
-  private addToken(type: TokenType, position: Position, literal?: string) {
-    const sequence = this.stream.range(
+  private addToken(
+    type: TokenType,
+    position: SourcePosition,
+    literal?: string
+  ) {
+    this.emitToken();
+    const sequence = this.input.range(
       position.index,
-      this.stream.position.index
+      this.input.currentIndex()
     );
-    this.tokens.push({
+    this.currentToken = {
       type,
       position,
       sequence,
       literal: literal ?? sequence,
-    });
+    };
   }
 
   /**
@@ -310,19 +339,15 @@ export class Tokenizer {
    *
    * @param position - Position of first character to add
    */
-  private addText(position: Position) {
-    const last = this.tokens[this.tokens.length - 1];
-    const literal = this.stream.range(
-      position.index,
-      this.stream.position.index
-    );
-    if (last?.type != TokenType.TEXT) {
+  private addText(position: SourcePosition) {
+    const literal = this.input.range(position.index, this.input.currentIndex());
+    if (this.currentToken?.type != TokenType.TEXT) {
       this.addToken(TokenType.TEXT, position, literal);
     } else {
-      last.literal += literal;
-      last.sequence = this.stream.range(
-        last.position.index,
-        this.stream.position.index
+      this.currentToken.literal += literal;
+      this.currentToken.sequence = this.input.range(
+        this.currentToken.position.index,
+        this.input.currentIndex()
       );
     }
   }
@@ -393,14 +418,64 @@ export class Tokenizer {
 }
 
 /**
+ * Source stream (input)
+ */
+export interface SourceStream {
+  /**
+   * At end predicate
+   *
+   * @returns Whether stream is at end
+   */
+  end(): boolean;
+
+  /**
+   * Advance to next character
+   *
+   * @returns Character at previous position
+   */
+  next(): string;
+
+  /**
+   * Get current character
+   *
+   * @returns Character at current position
+   */
+  current(): string;
+
+  /**
+   * Get range of characters
+   *
+   * @param start - First character index (inclusive)
+   * @param end   - Last character index (exclusive)
+   *
+   * @returns       Range of characters
+   */
+  range(start: number, end: number): string;
+
+  /**
+   * Get current character index
+   *
+   * @returns Current index
+   */
+  currentIndex(): number;
+
+  /**
+   * Get current character position
+   *
+   * @returns Current position
+   */
+  currentPosition(): SourcePosition;
+}
+
+/**
  * String-based character stream
  */
-class StringStream {
+export class StringStream implements SourceStream {
   /** Source string */
-  readonly source: string;
+  private readonly source: string;
 
-  /** Current position in stream */
-  readonly position: Position = new Position();
+  /** Current input position in stream */
+  private readonly position: SourcePosition = new SourcePosition();
 
   /**
    * Create a new stream from a string
@@ -448,5 +523,150 @@ class StringStream {
    */
   range(start: number, end: number) {
     return this.source.substring(start, end);
+  }
+
+  /**
+   * Get current character index
+   *
+   * @returns Current index
+   */
+  currentIndex() {
+    return this.position.index;
+  }
+
+  /**
+   * Get current character position
+   *
+   * @returns Current position
+   */
+  currentPosition() {
+    return this.position.copy();
+  }
+}
+
+/**
+ * Token stream (input/output)
+ */
+export interface TokenStream {
+  /**
+   * Emit (add) token to end of stream
+   *
+   * @param token - Token to emit
+   */
+  emit(token: Token);
+
+  /**
+   * At end predicate
+   *
+   * @returns Whether stream is at end
+   */
+  end(): boolean;
+
+  /**
+   * Advance to next token
+   *
+   * @returns Token at previous position
+   */
+  next(): Token;
+
+  /**
+   * Get current token
+   *
+   * @returns Token at current position
+   */
+  current(): Token;
+
+  /**
+   * Get range of tokens
+   *
+   * @param start - First token index (inclusive)
+   * @param end   - Last token index (exclusive)
+   *
+   * @returns       Range of tokens
+   */
+  range(start: number, end: number): Token[];
+
+  /**
+   * Get current token index
+   *
+   * @returns Current index
+   */
+  currentIndex(): number;
+}
+
+/**
+ * Array-based token stream
+ */
+export class ArrayTokenStream implements TokenStream {
+  /** Emitted tokens */
+  readonly tokens: Token[];
+
+  /** Current input position in stream */
+  index = 0;
+
+  /**
+   * Create a new stream from an array of tokens
+   *
+   * @param tokens - Source array
+   */
+  constructor(tokens: Token[]) {
+    this.tokens = tokens;
+  }
+
+  /**
+   * Emit (add) token to end of stream
+   *
+   * @param token - Token to emit
+   */
+  emit(token: Token) {
+    this.tokens.push(token);
+  }
+
+  /**
+   * At end predicate
+   *
+   * @returns Whether stream is at end
+   */
+  end() {
+    return this.index >= this.tokens.length;
+  }
+
+  /**
+   * Advance to next token
+   *
+   * @returns Token at previous position
+   */
+  next() {
+    return this.tokens[this.index++];
+  }
+
+  /**
+   * Get current token
+   *
+   * @returns Token at current position
+   */
+  current() {
+    return this.tokens[this.index];
+  }
+
+  /**
+   * Get range of tokens
+   *
+   * @param start - First token index (inclusive)
+   * @param end   - Last token index (exclusive)
+   *
+   * @returns       Range of tokens
+   */
+  range(start: number, end: number) {
+    return this.tokens.slice(start, end);
+  }
+
+  /**
+   * Get current token index
+   *
+   * @returns Current index
+   */
+  currentIndex() {
+    return this.index;
   }
 }

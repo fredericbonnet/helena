@@ -2,7 +2,7 @@
  * @file Helena parsing and AST generation
  */
 
-import { Token, TokenType } from "./tokenizer";
+import { ArrayTokenStream, Token, TokenStream, TokenType } from "./tokenizer";
 import {
   Script,
   Sentence,
@@ -221,7 +221,7 @@ export class Parser {
    * @returns        Result
    */
   parse(tokens: Token[]): ParseResult {
-    const result = this.parseStream(new TokenStream(tokens));
+    const result = this.parseStream(new ArrayTokenStream(tokens));
     if (!result.success) return result;
     return this.closeStream();
   }
@@ -237,7 +237,7 @@ export class Parser {
    *
    * @returns        Empty result on success, else error
    */
-  parseStream(stream): ParseResult {
+  parseStream(stream: TokenStream): ParseResult {
     this.context = new Context({
       script: new Script(),
     });
@@ -417,7 +417,7 @@ export class Parser {
 
   /** Open a block parsing context */
   private openBlock() {
-    const node = new BlockNode(this.stream.index);
+    const node = new BlockNode(this.stream.currentIndex());
     this.context.morphemes.push(node);
     this.pushContext(node, {
       script: node.subscript,
@@ -427,7 +427,7 @@ export class Parser {
   /** Close the block parsing context */
   private closeBlock() {
     const node = this.context.node as BlockNode;
-    const range = this.stream.range(node.start, this.stream.index - 1);
+    const range = this.stream.range(node.start, this.stream.currentIndex() - 1);
     node.value = range.map((token) => token.literal).join("");
     this.popContext();
   }
@@ -953,64 +953,5 @@ export class Parser {
   }
   private expectSelector() {
     return this.context.substitutionMode == "expect-selector";
-  }
-}
-
-/**
- * Array-based token stream
- */
-export class TokenStream {
-  /** Source tokens */
-  tokens: Token[];
-
-  /** Current position in stream */
-  index = 0;
-
-  /**
-   * Create a new stream from an array of tokens
-   *
-   * @param tokens - Source array
-   */
-  constructor(tokens: Token[]) {
-    this.tokens = tokens;
-  }
-
-  /**
-   * At end predicate
-   *
-   * @returns Whether stream is at end
-   */
-  end() {
-    return this.index >= this.tokens.length;
-  }
-
-  /**
-   * Advance to next token
-   *
-   * @returns Token at previous position
-   */
-  next() {
-    return this.tokens[this.index++];
-  }
-
-  /**
-   * Get current token
-   *
-   * @returns Token at current position
-   */
-  current() {
-    return this.tokens[this.index];
-  }
-
-  /**
-   * Get range of tokens
-   *
-   * @param start - First token index (inclusive)
-   * @param end   - Last token index (exclusive)
-   *
-   * @returns       Range of tokens
-   */
-  range(start: number, end: number) {
-    return this.tokens.slice(start, end);
   }
 }
