@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { Token, Tokenizer, TokenType } from "./tokenizer";
+import { StringStream, Token, Tokenizer, TokenType } from "./tokenizer";
 
 const toType = (token: Token) => token.type;
 const toIndex = (token: Token) => token.position.index;
@@ -383,5 +383,16 @@ describe("Tokenizer", () => {
         "\\\n  ",
       ]);
     });
+  });
+
+  specify("incremental", () => {
+    const source = "foo (bar) \\\n {$baz [sprong]}";
+    const tokens = tokenizer.tokenize(source);
+    const incrementalTokens = [];
+    tokenizer.begin(new StringStream(source));
+    while (!tokenizer.end()) {
+      incrementalTokens.push(tokenizer.next());
+    }
+    expect(incrementalTokens).to.eql(tokens);
   });
 });

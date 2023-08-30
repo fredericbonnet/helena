@@ -94,9 +94,6 @@ export class Tokenizer {
   /** Input stream */
   private input: SourceStream;
 
-  /** Output tokens */
-  private output: TokenStream;
-
   /** Current token */
   private currentToken: Token;
 
@@ -121,13 +118,42 @@ export class Tokenizer {
    * @param output - Output token stream
    */
   tokenizeStream(input: SourceStream, output: TokenStream) {
-    this.input = input;
-    this.output = output;
-    this.currentToken = null;
+    this.begin(input);
+    while (!this.end()) {
+      const emittedToken = this.next();
+      if (emittedToken) output.emit(emittedToken);
+    }
+  }
 
+  /**
+   * Start incremental tokenization of a Helena source stream
+   *
+   * @param input - Input source stream
+   */
+  begin(input: SourceStream) {
+    this.input = input;
+    this.currentToken = null;
+  }
+
+  /**
+   * Check end of incremental tokenization
+   *
+   * @returns Whether tokenization is done
+   */
+  end(): boolean {
+    return this.input.end() && !this.currentToken;
+  }
+
+  /**
+   * Get current token and advance to next one
+   *
+   * @returns Current token
+   */
+  next(): Token {
     while (!this.input.end()) {
       const position = this.input.currentPosition();
       const c = this.input.next();
+      let emittedToken;
       switch (c) {
         // Whitespaces
         case " ":
@@ -137,18 +163,18 @@ export class Tokenizer {
           while (!this.input.end() && this.isWhitespace(this.input.current())) {
             this.input.next();
           }
-          this.addToken(TokenType.WHITESPACE, position);
+          emittedToken = this.addToken(TokenType.WHITESPACE, position);
           break;
 
         // Newline
         case "\n":
-          this.addToken(TokenType.NEWLINE, position);
+          emittedToken = this.addToken(TokenType.NEWLINE, position);
           break;
 
         // Escape sequence
         case "\\": {
           if (this.input.end()) {
-            this.addToken(TokenType.TEXT, position);
+            emittedToken = this.addToken(TokenType.TEXT, position);
             break;
           }
           const e = this.input.next();
@@ -160,7 +186,7 @@ export class Tokenizer {
             ) {
               this.input.next();
             }
-            this.addToken(TokenType.CONTINUATION, position, " ");
+            emittedToken = this.addToken(TokenType.CONTINUATION, position, " ");
             break;
           }
           let escape = e; // Default value for unrecognized sequences
@@ -229,7 +255,7 @@ export class Tokenizer {
               escape = String.fromCharCode(codepoint);
             }
           }
-          this.addToken(TokenType.ESCAPE, position, escape);
+          emittedToken = this.addToken(TokenType.ESCAPE, position, escape);
           break;
         }
 
@@ -238,31 +264,31 @@ export class Tokenizer {
           while (!this.input.end() && this.input.current() == "#") {
             this.input.next();
           }
-          this.addToken(TokenType.COMMENT, position);
+          emittedToken = this.addToken(TokenType.COMMENT, position);
           break;
 
         // Tuple delimiters
         case "(":
-          this.addToken(TokenType.OPEN_TUPLE, position);
+          emittedToken = this.addToken(TokenType.OPEN_TUPLE, position);
           break;
         case ")":
-          this.addToken(TokenType.CLOSE_TUPLE, position);
+          emittedToken = this.addToken(TokenType.CLOSE_TUPLE, position);
           break;
 
         // Block delimiters
         case "{":
-          this.addToken(TokenType.OPEN_BLOCK, position);
+          emittedToken = this.addToken(TokenType.OPEN_BLOCK, position);
           break;
         case "}":
-          this.addToken(TokenType.CLOSE_BLOCK, position);
+          emittedToken = this.addToken(TokenType.CLOSE_BLOCK, position);
           break;
 
         // Expression delimiters
         case "[":
-          this.addToken(TokenType.OPEN_EXPRESSION, position);
+          emittedToken = this.addToken(TokenType.OPEN_EXPRESSION, position);
           break;
         case "]":
-          this.addToken(TokenType.CLOSE_EXPRESSION, position);
+          emittedToken = this.addToken(TokenType.CLOSE_EXPRESSION, position);
           break;
 
         // String delimiter
@@ -270,40 +296,41 @@ export class Tokenizer {
           while (!this.input.end() && this.input.current() == '"') {
             this.input.next();
           }
-          this.addToken(TokenType.STRING_DELIMITER, position);
+          emittedToken = this.addToken(TokenType.STRING_DELIMITER, position);
           break;
 
         // Dollar
         case "$":
-          this.addToken(TokenType.DOLLAR, position);
+          emittedToken = this.addToken(TokenType.DOLLAR, position);
           break;
 
         // Semicolon
         case ";":
-          this.addToken(TokenType.SEMICOLON, position);
+          emittedToken = this.addToken(TokenType.SEMICOLON, position);
           break;
 
         // Asterisk
         case "*":
-          this.addToken(TokenType.ASTERISK, position);
+          emittedToken = this.addToken(TokenType.ASTERISK, position);
           break;
 
         default:
-          this.addText(position);
+          emittedToken = this.addText(position);
       }
+      if (emittedToken) return emittedToken;
     }
-
-    this.emitToken();
+    return this.emitToken();
   }
 
   /**
-   * Emit current token to the output stream.
+   * Emit current token if any
+   *
+   * @returns Emitted token or null
    */
-  private emitToken() {
-    if (this.currentToken) {
-      this.output.emit(this.currentToken);
-    }
+  private emitToken(): Token {
+    const emitted = this.currentToken;
     this.currentToken = null;
+    return emitted;
   }
 
   /**
@@ -312,13 +339,15 @@ export class Tokenizer {
    * @param type     - Token type
    * @param position - Position of first character
    * @param literal  - Literal value
+   *
+   * @returns          Emitted token
    */
   private addToken(
     type: TokenType,
     position: SourcePosition,
     literal?: string
-  ) {
-    this.emitToken();
+  ): Token {
+    const emitted = this.emitToken();
     const sequence = this.input.range(
       position.index,
       this.input.currentIndex()
@@ -329,6 +358,7 @@ export class Tokenizer {
       sequence,
       literal: literal ?? sequence,
     };
+    return emitted;
   }
 
   /**
@@ -338,17 +368,20 @@ export class Tokenizer {
    * position
    *
    * @param position - Position of first character to add
+   *
+   * @returns          Emitted token
    */
-  private addText(position: SourcePosition) {
+  private addText(position: SourcePosition): Token {
     const literal = this.input.range(position.index, this.input.currentIndex());
     if (this.currentToken?.type != TokenType.TEXT) {
-      this.addToken(TokenType.TEXT, position, literal);
+      return this.addToken(TokenType.TEXT, position, literal);
     } else {
       this.currentToken.literal += literal;
       this.currentToken.sequence = this.input.range(
         this.currentToken.position.index,
         this.input.currentIndex()
       );
+      return null;
     }
   }
 
