@@ -211,15 +211,15 @@ describe("values", () => {
       expect(value.type).to.eql(ValueType.REAL);
     });
     it("should be displayed as a literal decimal value", () => {
-      const integer = 123.4;
-      const value = new RealValue(integer);
+      const real = 123.4;
+      const value = new RealValue(real);
       expect(value.display()).to.eql("123.4");
     });
     specify(
       "string representation should be the decimal representation of its value",
       () => {
-        const integer = 123.4;
-        const value = new RealValue(integer);
+        const real = 123.4;
+        const value = new RealValue(real);
         expect(value.asString()).to.eql("123.4");
       }
     );

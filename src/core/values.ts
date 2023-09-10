@@ -259,7 +259,7 @@ export class RealValue implements Value {
   /** @override */
   readonly type = ValueType.REAL;
 
-  /** @override */
+  /** Encapsulated value */
   readonly value: number;
 
   /**
@@ -400,7 +400,7 @@ export class StringValue implements Value {
   static at(value: string, index: Value, def?: Value): Result {
     const result = IntegerValue.toInteger(index);
     if (result.code != ResultCode.OK) return result;
-    const i = result.data as number;
+    const i = result.data;
     if (i < 0 || i >= value.length)
       return def ? OK(def) : ERROR(`index out of range "${i}"`);
     return OK(new StringValue(value[i]));
@@ -488,7 +488,7 @@ export class ListValue implements Value {
   static at(values: Value[], index: Value, def?: Value): Result {
     const result = IntegerValue.toInteger(index);
     if (result.code != ResultCode.OK) return result;
-    const i = result.data as number;
+    const i = result.data;
     if (i < 0 || i >= values.length)
       return def ? OK(def) : ERROR(`index out of range "${i}"`);
     return OK(values[i]);
@@ -604,13 +604,13 @@ export class ScriptValue implements Value {
   readonly script: Script;
 
   /** Script source string */
-  readonly source: string;
+  readonly source?: string;
 
   /**
    * @param script - Script to encapsulate
    * @param source - Script source string
    */
-  constructor(script: Script, source: string) {
+  constructor(script: Script, source?: string) {
     this.script = script;
     this.source = source;
   }
