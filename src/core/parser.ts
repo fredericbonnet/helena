@@ -218,11 +218,15 @@ export class Parser {
    *
    * @param tokens - Tokens to parse
    *
-   * @returns        Result
+   * @returns        Script result on success, else error
    */
   parse(tokens: Token[]): ParseResult {
-    const result = this.parseStream(new ArrayTokenStream(tokens));
-    if (!result.success) return result;
+    const stream = new ArrayTokenStream(tokens);
+    this.begin(stream);
+    while (!this.end()) {
+      const result = this.next();
+      if (!result.success) return result;
+    }
     return this.closeStream();
   }
 
@@ -238,25 +242,52 @@ export class Parser {
    * @returns        Empty result on success, else error
    */
   parseStream(stream: TokenStream): ParseResult {
-    this.context = new Context({
-      script: new Script(),
-    });
-    this.stream = stream;
-    while (!this.stream.end()) {
-      const token = this.stream.next();
-      const result = this.parseToken(token);
+    this.begin(stream);
+    while (!this.end()) {
+      const result = this.next();
       if (!result.success) return result;
     }
     return PARSE_OK();
   }
 
   /**
-   * Close the current tolen stream
+   * Start incremental parsing of a Helena token stream
+   *
+   * @param stream - Stream to parse
+   */
+  begin(stream: TokenStream) {
+    this.context = new Context({
+      script: new Script(),
+    });
+    this.stream = stream;
+  }
+
+  /**
+   * Check end of incremental parsing
+   *
+   * @returns Whether parsing is done
+   */
+  end(): boolean {
+    return this.stream.end();
+  }
+
+  /**
+   * Parse current token and advance to next one
+   *
+   * @returns Result
+   */
+  next(): ParseResult {
+    const token = this.stream.next();
+    return this.parseToken(token);
+  }
+
+  /**
+   * Close the current token stream
    *
    * This method is useful when testing for script completeness in interactive
    * mode and prompt for more input
    *
-   * @returns Script on success, else error
+   * @returns Script result on success, else error
    */
   closeStream(): ParseResult {
     if (this.context.node) {
