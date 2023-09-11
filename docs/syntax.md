@@ -178,9 +178,9 @@ Substitutions can be immediately followed by one or several selectors:
 - a generic selector selects a sub-value by one or several rules, provided as
   sentences in a block:
 
-      ```lna
-      $varname{rule1} $varname{rule2 arg1 arg2; rule3 arg 3}
-      ```
+  ```lna
+  $varname{rule1} $varname{rule2 arg1 arg2; rule3 arg 3}
+  ```
 
 Selectors apply sequentially to the previously substituted value:
 
@@ -200,7 +200,7 @@ In the context of a **substitution word** (see rule 14 below), the prefix can
 contain or end with an asterisk character '`*`':
 
 ```lna
-cmd arg1 $\*(var2 var3 var4) arg5
+cmd arg1 $*(var2 var3 var4) arg5
 ```
 
 ## 8. Strings
@@ -268,8 +268,8 @@ leading sequences of the preceding lines:
 
 ```lna
 ""TAG
-ignored content
-ignored TAG""
+ignored prefix|content
+ignored prefix|TAG""
 ```
 
 This is useful to remove indentations, line numbers, shell prompts, etc.:
