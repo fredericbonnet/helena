@@ -1068,6 +1068,16 @@ int main(void) {
           ],
         ]);
       });
+      specify("prefix with shorter lines", () => {
+        const script = parse(`""TAG
+          $ prompt
+
+          > result
+          > TAG""`);
+        expect(toTree(script)).to.eql([
+          [[{ TAGGED_STRING: `prompt\n\nresult\n` }]],
+        ]);
+      });
       describe("exceptions", () => {
         specify("unterminated tagged string", () => {
           const tokens = tokenizer.tokenize('""EOF\nhello');

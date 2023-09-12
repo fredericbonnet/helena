@@ -28,20 +28,23 @@ import {
  * data along with the generated AST instead of relying on the call stack
  */
 class Context {
-  /** Node the context belongs to */
-  readonly node: ContextualNode;
+  /** Parent parsing context */
+  readonly parentContext?: Context;
+
+  /** Morpheme the context belongs to */
+  readonly node?: MorphemeNode;
 
   /** Current script */
-  readonly script: Script;
+  readonly script?: ScriptNode;
 
   /** Current sentence (if any) */
-  sentence?: Sentence;
+  sentence?: SentenceNode;
 
   /** Current word (if any) */
-  word?: Word;
+  word?: WordNode;
 
   /** Current morphemes (if any) */
-  morphemes?: Morpheme[];
+  morphemes?: MorphemeNode[];
 
   /** 3-state mode during substitution */
   substitutionMode: "" | "expect-source" | "expect-selector";
@@ -50,6 +53,7 @@ class Context {
    * @param ctx - Context to copy
    */
   constructor(ctx: Partial<Context>) {
+    this.parentContext = ctx.parentContext;
     this.node = ctx.node;
     this.script = ctx.script;
     this.sentence = ctx.sentence;
@@ -64,37 +68,91 @@ class Context {
   }
 }
 
-/** Morphemes with additional context for non-recursive parsing */
-interface ContextualNode extends Morpheme {
-  /** Parent parsing context */
-  parentContext?: Context;
-}
-
 /* eslint-disable jsdoc/require-jsdoc */
 
+/** Script AST node */
+class ScriptNode {
+  sentences: SentenceNode[] = [];
+
+  toScript(): Script {
+    const script = new Script();
+    for (const sentence of this.sentences) {
+      script.sentences.push(sentence.toSentence());
+    }
+    return script;
+  }
+}
+
+/** Sentence AST node */
+class SentenceNode {
+  words: WordNode[] = [];
+
+  toSentence(): Sentence {
+    const sentence = new Sentence();
+    for (const word of this.words) {
+      sentence.words.push(word.toWord());
+    }
+    return sentence;
+  }
+}
+
+/** Word AST node */
+class WordNode {
+  morphemes: MorphemeNode[] = [];
+
+  toWord(): Word {
+    const word = new Word();
+    for (const morpheme of this.morphemes) {
+      word.morphemes.push(morpheme.toMorpheme());
+    }
+    return word;
+  }
+}
+
+/** Morpheme AST node */
+interface MorphemeNode {
+  /** Type identifier */
+  type: MorphemeType;
+
+  /** Create morpheme from node */
+  toMorpheme(): Morpheme;
+}
+
 /** Literal morpheme AST node */
-class LiteralNode implements LiteralMorpheme {
+class LiteralNode implements MorphemeNode {
   readonly type = MorphemeType.LITERAL;
   value: string;
 
   constructor(value: string) {
     this.value = value;
   }
+
+  toMorpheme(): LiteralMorpheme {
+    return {
+      type: this.type,
+      value: this.value,
+    };
+  }
 }
 
 /** Tuple morpheme AST node */
-class TupleNode implements TupleMorpheme, ContextualNode {
+class TupleNode implements MorphemeNode {
   readonly type = MorphemeType.TUPLE;
-  readonly subscript: Script = new Script();
-  parentContext?: Context;
+  readonly subscript: ScriptNode = new ScriptNode();
+
+  toMorpheme(): TupleMorpheme {
+    return {
+      type: this.type,
+      subscript: this.subscript.toScript(),
+    };
+  }
 }
 
 /** Block morpheme AST node */
-class BlockNode implements BlockMorpheme, ContextualNode {
+class BlockNode implements MorphemeNode {
   readonly type = MorphemeType.BLOCK;
-  readonly subscript: Script = new Script();
+  readonly subscript: ScriptNode = new ScriptNode();
   value: string;
-  parentContext?: Context;
 
   /** Starting position of block, used to get literal value */
   start: number;
@@ -102,64 +160,109 @@ class BlockNode implements BlockMorpheme, ContextualNode {
   constructor(start: number) {
     this.start = start;
   }
+
+  toMorpheme(): BlockMorpheme {
+    return {
+      type: this.type,
+      subscript: this.subscript.toScript(),
+      value: this.value,
+    };
+  }
 }
 
 /** Expression morpheme AST node */
-class ExpressionNode implements ExpressionMorpheme, ContextualNode {
+class ExpressionNode implements MorphemeNode {
   readonly type = MorphemeType.EXPRESSION;
-  readonly subscript: Script = new Script();
-  parentContext?: Context;
+  readonly subscript: ScriptNode = new ScriptNode();
+
+  toMorpheme(): ExpressionMorpheme {
+    return {
+      type: this.type,
+      subscript: this.subscript.toScript(),
+    };
+  }
 }
 
 /** String morpheme AST node */
-class StringNode implements StringMorpheme, ContextualNode {
+class StringNode implements MorphemeNode {
   readonly type = MorphemeType.STRING;
-  readonly morphemes: Morpheme[] = [];
-  parentContext?: Context;
+  readonly morphemes: MorphemeNode[] = [];
+
+  toMorpheme(): StringMorpheme {
+    return {
+      type: this.type,
+      morphemes: this.morphemes.map((morpheme) => morpheme.toMorpheme()),
+    };
+  }
 }
 
 /** Here-string morpheme AST node */
-class HereStringNode implements HereStringMorpheme, ContextualNode {
+class HereStringNode implements MorphemeNode {
   readonly type = MorphemeType.HERE_STRING;
   value = "";
   readonly delimiterLength: number;
-  parentContext?: Context;
 
   constructor(delimiter: string) {
     this.delimiterLength = delimiter.length;
+  }
+
+  toMorpheme(): HereStringMorpheme {
+    return {
+      type: this.type,
+      value: this.value,
+      delimiterLength: this.delimiterLength,
+    };
   }
 }
 
 /** Tagged string morpheme AST node */
-class TaggedStringNode implements TaggedStringMorpheme, ContextualNode {
+class TaggedStringNode implements MorphemeNode {
   readonly type = MorphemeType.TAGGED_STRING;
   value = "";
   readonly tag: string;
-  parentContext?: Context;
 
   constructor(tag: string) {
     this.tag = tag;
   }
+
+  toMorpheme(): TaggedStringMorpheme {
+    // Shift lines by prefix length
+    const lines = this.value.split("\n");
+    const prefix = lines[lines.length - 1];
+    const value = lines.map((line) => line.substring(prefix.length)).join("\n");
+
+    return {
+      type: this.type,
+      value: value,
+      tag: this.tag,
+    };
+  }
 }
 
 /** Line comment morpheme AST node */
-class LineCommentNode implements LineCommentMorpheme, ContextualNode {
+class LineCommentNode implements MorphemeNode {
   readonly type = MorphemeType.LINE_COMMENT;
   value = "";
   readonly delimiterLength: number;
-  parentContext?: Context;
 
   constructor(delimiter: string) {
     this.delimiterLength = delimiter.length;
   }
+
+  toMorpheme(): LineCommentMorpheme {
+    return {
+      type: this.type,
+      value: this.value,
+      delimiterLength: this.delimiterLength,
+    };
+  }
 }
 
 /** Block comment morpheme AST node */
-class BlockCommentNode implements BlockCommentMorpheme, ContextualNode {
+class BlockCommentNode implements MorphemeNode {
   readonly type = MorphemeType.BLOCK_COMMENT;
   value = "";
   readonly delimiterLength: number;
-  parentContext?: Context;
 
   /** Nesting level, node is closed when it reaches zero */
   nesting = 1;
@@ -167,10 +270,18 @@ class BlockCommentNode implements BlockCommentMorpheme, ContextualNode {
   constructor(delimiter: string) {
     this.delimiterLength = delimiter.length;
   }
+
+  toMorpheme(): BlockCommentMorpheme {
+    return {
+      type: this.type,
+      value: this.value,
+      delimiterLength: this.delimiterLength,
+    };
+  }
 }
 
 /** Substitute Next morpheme AST node */
-class SubstituteNextNode implements SubstituteNextMorpheme {
+class SubstituteNextNode implements MorphemeNode {
   readonly type = MorphemeType.SUBSTITUTE_NEXT;
   expansion = false;
   levels = 1;
@@ -178,6 +289,15 @@ class SubstituteNextNode implements SubstituteNextMorpheme {
 
   constructor(value: string) {
     this.value = value;
+  }
+
+  toMorpheme(): SubstituteNextMorpheme {
+    return {
+      type: this.type,
+      expansion: this.expansion,
+      levels: this.levels,
+      value: this.value,
+    };
   }
 }
 
@@ -257,7 +377,7 @@ export class Parser {
    */
   begin(stream: TokenStream) {
     this.context = new Context({
-      script: new Script(),
+      script: new ScriptNode(),
     });
     this.stream = stream;
   }
@@ -315,7 +435,7 @@ export class Parser {
     }
     this.closeSentence();
 
-    return PARSE_OK(this.context.script);
+    return PARSE_OK(this.context.script.toScript());
   }
 
   /**
@@ -366,18 +486,15 @@ export class Parser {
    * @param node - Contextual node
    * @param ctx  - New context data
    */
-  private pushContext(node: ContextualNode, ctx: Partial<Context>) {
-    node.parentContext = this.context;
-    this.context = new Context({ ...ctx, node });
+  private pushContext(node: MorphemeNode, ctx: Partial<Context>) {
+    this.context = new Context({ ...ctx, node, parentContext: this.context });
   }
 
   /**
    * Pop the existing context and return to its parent
    */
   private popContext() {
-    const node = this.context.node;
-    this.context = node.parentContext;
-    node.parentContext = undefined;
+    this.context = this.context.parentContext;
   }
 
   /*
@@ -598,11 +715,10 @@ export class Parser {
   private ensureWord() {
     if (this.context.word) return false;
     if (!this.context.sentence) {
-      this.context.sentence = new Sentence();
+      this.context.sentence = new SentenceNode();
       this.context.script.sentences.push(this.context.sentence);
-      this.context.word = undefined;
     }
-    this.context.word = new Word();
+    this.context.word = new WordNode();
     this.context.sentence.words.push(this.context.word);
     this.context.morphemes = this.context.word.morphemes;
     return true;
@@ -614,12 +730,13 @@ export class Parser {
    * @param value - Literal to add or merge
    */
   private addLiteral(value: string) {
-    if (this.context.currentMorpheme()?.type == MorphemeType.LITERAL) {
+    if (
+      this.context.currentMorpheme()?.type == MorphemeType.LITERAL &&
+      !this.withinSubstitution()
+    ) {
       const morpheme = this.context.currentMorpheme() as LiteralNode;
-      if (!this.withinSubstitution()) {
-        morpheme.value += value;
-        return;
-      }
+      morpheme.value += value;
+      return;
     }
     const morpheme = new LiteralNode(value);
     this.context.morphemes.push(morpheme);
@@ -713,14 +830,12 @@ export class Parser {
    */
 
   private parseHereString(token: Token): ParseResult {
-    switch (token.type) {
-      case TokenType.STRING_DELIMITER:
-        if (this.closeHereString(token.literal)) break;
-      /* continued */
-      // eslint-disable-next-line no-fallthrough
-      default:
-        this.addHereStringSequence(token.sequence);
-    }
+    if (
+      token.type == TokenType.STRING_DELIMITER &&
+      this.closeHereString(token.literal)
+    )
+      return PARSE_OK();
+    this.addHereStringSequence(token.sequence);
     return PARSE_OK();
   }
 
@@ -734,6 +849,7 @@ export class Parser {
     this.context.morphemes.push(node);
     this.pushContext(node, {});
   }
+
   /**
    * Attempt to close the here-string parsing context
    *
@@ -763,14 +879,9 @@ export class Parser {
    */
 
   private parseTaggedString(token: Token) {
-    switch (token.type) {
-      case TokenType.TEXT:
-        if (this.closeTaggedString(token.literal)) break;
-      /* continued */
-      // eslint-disable-next-line no-fallthrough
-      default:
-        this.addTaggedStringSequence(token.sequence);
-    }
+    if (token.type == TokenType.TEXT && this.closeTaggedString(token.literal))
+      return PARSE_OK();
+    this.addTaggedStringSequence(token.sequence);
     return PARSE_OK();
   }
 
@@ -802,11 +913,6 @@ export class Parser {
     if (next?.type != TokenType.STRING_DELIMITER) return false;
     if (next.literal.length != 2) return false;
     this.stream.next();
-
-    // Shift lines by prefix length
-    const lines = node.value.split("\n");
-    const prefix = lines[lines.length - 1];
-    node.value = lines.map((line) => line.substring(prefix.length)).join("\n");
 
     this.popContext();
     return true;
