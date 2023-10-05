@@ -223,7 +223,7 @@ export class Compiler {
       case WordType.INVALID:
         throw new Error("invalid word structure");
       default:
-        throw new Error("unknown word type");
+        throw new Error("CANTHAPPEN");
     }
   }
   private emitRoot(program: Program, root: Morpheme) {
@@ -397,87 +397,111 @@ export class Compiler {
     let mode: "" | "substitute" | "selectable" = "";
     let substitute: SubstituteNextMorpheme;
     for (const morpheme of morphemes) {
-      switch (morpheme.type) {
-        case MorphemeType.SUBSTITUTE_NEXT:
-          mode = "substitute";
-          substitute = morpheme as SubstituteNextMorpheme;
-          break;
-
-        case MorphemeType.LITERAL: {
-          const literal = morpheme as LiteralMorpheme;
-          if (mode == "substitute") {
-            this.emitLiteralVarname(program, literal);
-            mode = "selectable";
-          } else {
-            this.emitLiteral(program, literal);
+      if (mode == "selectable") {
+        switch (morpheme.type) {
+          case MorphemeType.SUBSTITUTE_NEXT:
+          case MorphemeType.LITERAL: {
+            // Terminate substitution sequence
+            for (let level = 1; level < substitute.levels; level++) {
+              program.pushOpCode(OpCode.RESOLVE_VALUE);
+            }
+            substitute = undefined;
             mode = "";
+          }
+        }
+      }
+
+      switch (mode) {
+        case "substitute": {
+          // Expecting a source (varname or expression)
+          switch (morpheme.type) {
+            case MorphemeType.LITERAL: {
+              const literal = morpheme as LiteralMorpheme;
+              this.emitLiteralVarname(program, literal);
+              break;
+            }
+
+            case MorphemeType.TUPLE: {
+              const tuple = morpheme as TupleMorpheme;
+              this.emitTupleVarnames(program, tuple);
+              break;
+            }
+
+            case MorphemeType.BLOCK: {
+              const block = morpheme as BlockMorpheme;
+              this.emitBlockVarname(program, block);
+              break;
+            }
+
+            case MorphemeType.EXPRESSION: {
+              const expression = morpheme as ExpressionMorpheme;
+              this.emitExpression(program, expression);
+              break;
+            }
+
+            default:
+              throw new Error("unexpected morpheme");
+          }
+          mode = "selectable";
+          break;
+        }
+
+        case "selectable": {
+          // Expecting a selector
+          switch (morpheme.type) {
+            case MorphemeType.TUPLE: {
+              const tuple = morpheme as TupleMorpheme;
+              this.emitKeyedSelector(program, tuple);
+              break;
+            }
+
+            case MorphemeType.BLOCK: {
+              const block = morpheme as BlockMorpheme;
+              this.emitSelector(program, block);
+              break;
+            }
+
+            case MorphemeType.EXPRESSION: {
+              const expression = morpheme as ExpressionMorpheme;
+              this.emitIndexedSelector(program, expression);
+              break;
+            }
+
+            default:
+              throw new Error("unexpected morpheme");
           }
           break;
         }
 
-        case MorphemeType.TUPLE: {
-          const tuple = morpheme as TupleMorpheme;
-          if (mode == "selectable") {
-            this.emitKeyedSelector(program, tuple);
-          } else if (mode == "substitute") {
-            this.emitTupleVarnames(program, tuple);
-            mode = "selectable";
-          } else {
-            this.emitTuple(program, tuple);
-            mode = "";
+        default: {
+          switch (morpheme.type) {
+            case MorphemeType.SUBSTITUTE_NEXT:
+              // Start substitution sequence
+              substitute = morpheme as SubstituteNextMorpheme;
+              mode = "substitute";
+              break;
+
+            case MorphemeType.LITERAL: {
+              const literal = morpheme as LiteralMorpheme;
+              this.emitLiteral(program, literal);
+              break;
+            }
+
+            case MorphemeType.EXPRESSION: {
+              const expression = morpheme as ExpressionMorpheme;
+              this.emitExpression(program, expression);
+              break;
+            }
+
+            default:
+              throw new Error("unexpected morpheme");
           }
-          break;
         }
-
-        case MorphemeType.BLOCK: {
-          const block = morpheme as BlockMorpheme;
-          if (mode == "substitute") {
-            this.emitBlockVarname(program, block);
-            mode = "selectable";
-          } else {
-            this.emitBlock(program, block);
-            mode = "";
-          }
-          break;
-        }
-
-        case MorphemeType.EXPRESSION: {
-          const expression = morpheme as ExpressionMorpheme;
-          if (mode == "selectable") {
-            this.emitIndexedSelector(program, expression);
-          } else if (mode == "substitute") {
-            this.emitExpression(program, expression);
-            mode = "selectable";
-          } else {
-            this.emitExpression(program, expression);
-            mode = "";
-          }
-          break;
-        }
-
-        case MorphemeType.STRING: {
-          const string = morpheme as StringMorpheme;
-          this.emitString(program, string);
-          break;
-        }
-
-        case MorphemeType.HERE_STRING: {
-          const string = morpheme as HereStringMorpheme;
-          this.emitHereString(program, string);
-          break;
-        }
-
-        case MorphemeType.TAGGED_STRING: {
-          const string = morpheme as TaggedStringMorpheme;
-          this.emitTaggedString(program, string);
-          break;
-        }
-
-        default:
-          throw new Error("unknown morpheme");
       }
     }
-    if (substitute) {
+
+    if (mode == "selectable") {
+      // Terminate substitution sequence
       for (let level = 1; level < substitute.levels; level++) {
         program.pushOpCode(OpCode.RESOLVE_VALUE);
       }

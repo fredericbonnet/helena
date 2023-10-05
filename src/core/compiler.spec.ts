@@ -441,9 +441,528 @@ describe("Compilation and execution", () => {
                 });
               });
 
+              describe("substitutions", () => {
+                describe("scalars", () => {
+                  specify("simple substitution", () => {
+                    const script = parse('"this $var a string"');
+                    const program = compileFirstWord(script);
+                    expect(program.opCodes).to.eql([
+                      OpCode.OPEN_FRAME,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.RESOLVE_VALUE,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.CLOSE_FRAME,
+                      OpCode.JOIN_STRINGS,
+                    ]);
+                    expect(program.constants).to.eql([
+                      STR("this "),
+                      STR("var"),
+                      STR(" a string"),
+                    ]);
+
+                    variableResolver.register("var", STR("is"));
+                    expect(evaluate(program)).to.eql(STR("this is a string"));
+                  });
+                  specify("double substitution", () => {
+                    const script = parse('"this $$var1 a string"');
+                    const program = compileFirstWord(script);
+                    expect(program.opCodes).to.eql([
+                      OpCode.OPEN_FRAME,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.RESOLVE_VALUE,
+                      OpCode.RESOLVE_VALUE,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.CLOSE_FRAME,
+                      OpCode.JOIN_STRINGS,
+                    ]);
+                    expect(program.constants).to.eql([
+                      STR("this "),
+                      STR("var1"),
+                      STR(" a string"),
+                    ]);
+
+                    variableResolver.register("var1", STR("var2"));
+                    variableResolver.register("var2", STR("is"));
+                    expect(evaluate(program)).to.eql(STR("this is a string"));
+                  });
+                  specify("triple substitution", () => {
+                    const script = parse('"this $$$var1 a string"');
+                    const program = compileFirstWord(script);
+                    expect(program.opCodes).to.eql([
+                      OpCode.OPEN_FRAME,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.RESOLVE_VALUE,
+                      OpCode.RESOLVE_VALUE,
+                      OpCode.RESOLVE_VALUE,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.CLOSE_FRAME,
+                      OpCode.JOIN_STRINGS,
+                    ]);
+                    expect(program.constants).to.eql([
+                      STR("this "),
+                      STR("var1"),
+                      STR(" a string"),
+                    ]);
+
+                    variableResolver.register("var1", STR("var2"));
+                    variableResolver.register("var2", STR("var3"));
+                    variableResolver.register("var3", STR("is"));
+                    expect(evaluate(program)).to.eql(STR("this is a string"));
+                  });
+                });
+
+                describe("blocks", () => {
+                  specify("varname with spaces", () => {
+                    const script = parse('"this ${variable name} a string"');
+                    const program = compileFirstWord(script);
+                    expect(program.opCodes).to.eql([
+                      OpCode.OPEN_FRAME,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.RESOLVE_VALUE,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.CLOSE_FRAME,
+                      OpCode.JOIN_STRINGS,
+                    ]);
+                    expect(program.constants).to.eql([
+                      STR("this "),
+                      STR("variable name"),
+                      STR(" a string"),
+                    ]);
+
+                    variableResolver.register("variable name", STR("is"));
+                    expect(evaluate(program)).to.eql(STR("this is a string"));
+                  });
+                  specify("varname with special characters", () => {
+                    const script = parse(
+                      '"this ${variable " " name} a string"'
+                    );
+                    const program = compileFirstWord(script);
+                    expect(program.opCodes).to.eql([
+                      OpCode.OPEN_FRAME,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.RESOLVE_VALUE,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.CLOSE_FRAME,
+                      OpCode.JOIN_STRINGS,
+                    ]);
+                    expect(program.constants).to.eql([
+                      STR("this "),
+                      STR('variable " " name'),
+                      STR(" a string"),
+                    ]);
+
+                    variableResolver.register('variable " " name', STR("is"));
+                    expect(evaluate(program)).to.eql(STR("this is a string"));
+                  });
+                  specify("double substitution", () => {
+                    const script = parse('"this $${variable name} a string"');
+                    const program = compileFirstWord(script);
+                    expect(program.opCodes).to.eql([
+                      OpCode.OPEN_FRAME,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.RESOLVE_VALUE,
+                      OpCode.RESOLVE_VALUE,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.CLOSE_FRAME,
+                      OpCode.JOIN_STRINGS,
+                    ]);
+                    expect(program.constants).to.eql([
+                      STR("this "),
+                      STR("variable name"),
+                      STR(" a string"),
+                    ]);
+
+                    variableResolver.register("variable name", STR("var2"));
+                    variableResolver.register("var2", STR("is"));
+                    expect(evaluate(program)).to.eql(STR("this is a string"));
+                  });
+                });
+
+                describe("expressions", () => {
+                  specify("simple substitution", () => {
+                    const script = parse('"this $[cmd] a string"');
+                    const program = compileFirstWord(script);
+                    expect(program.opCodes).to.eql([
+                      OpCode.OPEN_FRAME,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.OPEN_FRAME,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.CLOSE_FRAME,
+                      OpCode.EVALUATE_SENTENCE,
+                      OpCode.PUSH_RESULT,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.CLOSE_FRAME,
+                      OpCode.JOIN_STRINGS,
+                    ]);
+                    expect(program.constants).to.eql([
+                      STR("this "),
+                      STR("cmd"),
+                      STR(" a string"),
+                    ]);
+
+                    commandResolver.register(
+                      "cmd",
+                      new FunctionCommand(() => STR("is"))
+                    );
+                    expect(evaluate(program)).to.eql(STR("this is a string"));
+                  });
+                  specify("double substitution", () => {
+                    const script = parse('"this $$[cmd] a string"');
+                    const program = compileFirstWord(script);
+                    expect(program.opCodes).to.eql([
+                      OpCode.OPEN_FRAME,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.OPEN_FRAME,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.CLOSE_FRAME,
+                      OpCode.EVALUATE_SENTENCE,
+                      OpCode.PUSH_RESULT,
+                      OpCode.RESOLVE_VALUE,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.CLOSE_FRAME,
+                      OpCode.JOIN_STRINGS,
+                    ]);
+                    expect(program.constants).to.eql([
+                      STR("this "),
+                      STR("cmd"),
+                      STR(" a string"),
+                    ]);
+
+                    commandResolver.register(
+                      "cmd",
+                      new FunctionCommand(() => STR("var"))
+                    );
+                    variableResolver.register("var", STR("is"));
+                    expect(evaluate(program)).to.eql(STR("this is a string"));
+                  });
+                });
+              });
+
+              describe("indexed selectors", () => {
+                specify("simple substitution", () => {
+                  const script = parse('"this $varname[1] a string"');
+                  const program = compileFirstWord(script);
+                  expect(program.opCodes).to.eql([
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.RESOLVE_VALUE,
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.EVALUATE_SENTENCE,
+                    OpCode.PUSH_RESULT,
+                    OpCode.SELECT_INDEX,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.JOIN_STRINGS,
+                  ]);
+                  expect(program.constants).to.eql([
+                    STR("this "),
+                    STR("varname"),
+                    STR("1"),
+                    STR(" a string"),
+                  ]);
+
+                  variableResolver.register(
+                    "varname",
+                    LIST([STR("value"), STR("is")])
+                  );
+                  expect(evaluate(program)).to.eql(STR("this is a string"));
+                });
+                specify("double substitution", () => {
+                  const script = parse('"this $$var1[0] a string"');
+                  const program = compileFirstWord(script);
+                  expect(program.opCodes).to.eql([
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.RESOLVE_VALUE,
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.EVALUATE_SENTENCE,
+                    OpCode.PUSH_RESULT,
+                    OpCode.SELECT_INDEX,
+                    OpCode.RESOLVE_VALUE,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.JOIN_STRINGS,
+                  ]);
+                  expect(program.constants).to.eql([
+                    STR("this "),
+                    STR("var1"),
+                    STR("0"),
+                    STR(" a string"),
+                  ]);
+
+                  variableResolver.register("var1", LIST([STR("var2")]));
+                  variableResolver.register("var2", STR("is"));
+                  expect(evaluate(program)).to.eql(STR("this is a string"));
+                });
+                specify("successive indexes", () => {
+                  const script = parse('"this $varname[1][0] a string"');
+                  const program = compileFirstWord(script);
+                  expect(program.opCodes).to.eql([
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.RESOLVE_VALUE,
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.EVALUATE_SENTENCE,
+                    OpCode.PUSH_RESULT,
+                    OpCode.SELECT_INDEX,
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.EVALUATE_SENTENCE,
+                    OpCode.PUSH_RESULT,
+                    OpCode.SELECT_INDEX,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.JOIN_STRINGS
+                  ]);
+                  expect(program.constants).to.eql([
+                    STR("this "),
+                    STR("varname"),
+                    STR("1"),
+                    STR("0"),
+                    STR(" a string"),
+                  ]);
+
+                  variableResolver.register(
+                    "varname",
+                    LIST([
+                      STR("value1"),
+                      LIST([STR("is"), STR("value2")]),
+                    ])
+                  );
+                  expect(evaluate(program)).to.eql(STR("this is a string"));
+                });
+              });
+
+              describe("keyed selectors", () => {
+                specify("simple substitution", () => {
+                  const script = parse('"this $varname(key) a string"');
+                  const program = compileFirstWord(script);
+                  expect(program.opCodes).to.eql([
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.RESOLVE_VALUE,
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.SELECT_KEYS,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.JOIN_STRINGS
+                  ]);
+                  expect(program.constants).to.eql([
+                    STR("this "),
+                    STR("varname"), STR("key"),
+                    STR(" a string"),
+                  ]);
+  
+                  variableResolver.register(
+                    "varname",
+                    DICT({
+                      key: STR("is"),
+                    })
+                  );
+                  expect(evaluate(program)).to.eql(STR("this is a string"));
+                });
+                specify("double substitution", () => {
+                  const script = parse('"this $$var1(key) a string"');
+                  const program = compileFirstWord(script);
+                  expect(program.opCodes).to.eql([
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.RESOLVE_VALUE,
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.SELECT_KEYS,
+                    OpCode.RESOLVE_VALUE,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.JOIN_STRINGS
+                  ]);
+                  expect(program.constants).to.eql([
+                    STR("this "),
+                    STR("var1"), STR("key"),
+                    STR(" a string"),
+                  ]);
+  
+                  variableResolver.register("var1", DICT({ key: STR("var2") }));
+                  variableResolver.register("var2", STR("is"));
+                  expect(evaluate(program)).to.eql(STR("this is a string"));
+                });
+                specify("successive keys", () => {
+                  const script = parse('"this $varname(key1)(key2) a string"');
+                  const program = compileFirstWord(script);
+                  expect(program.opCodes).to.eql([
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.RESOLVE_VALUE,
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.SELECT_KEYS,
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.SELECT_KEYS,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.JOIN_STRINGS
+                  ]);
+                  expect(program.constants).to.eql([
+                    STR("this "),
+                    STR("varname"),
+                    STR("key1"),
+                    STR("key2"),
+                    STR(" a string"),
+                  ]);
+  
+                  variableResolver.register(
+                    "varname",
+                    DICT({
+                      key1: DICT({ key2: STR("is") }),
+                    })
+                  );
+                  expect(evaluate(program)).to.eql(STR("this is a string"));
+                });
+              });
+  
+              describe("custom selectors", () => {
+                beforeEach(() => {
+                  const lastSelector = {
+                    apply(value: Value): Result {
+                      const list = value as ListValue;
+                      return OK(list.values[list.values.length - 1]);
+                    },
+                  };
+                  selectorResolver.register(() => lastSelector);
+                });
+                specify("simple substitution", () => {
+                  const script = parse('"this $varname{last} a string"');
+                  const program = compileFirstWord(script);
+                  expect(program.opCodes).to.eql([
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.RESOLVE_VALUE,
+                    OpCode.OPEN_FRAME,
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.SELECT_RULES,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.JOIN_STRINGS
+                  ]);
+                  expect(program.constants).to.eql([
+                    STR("this "),
+                    STR("varname"), STR("last"),
+STR(" a string")
+                  ]);
+  
+                  variableResolver.register(
+                    "varname",
+                    LIST([STR("value1"), STR("value2"), STR("is")])
+                  );
+                  expect(evaluate(program)).to.eql(STR("this is a string"));
+                });
+                specify("double substitution", () => {
+                  const script = parse('"this $$var1{last} a string"');
+                  const program = compileFirstWord(script);
+                  expect(program.opCodes).to.eql([
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.RESOLVE_VALUE,
+                    OpCode.OPEN_FRAME,
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.SELECT_RULES,
+                    OpCode.RESOLVE_VALUE,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.JOIN_STRINGS
+                  ]);
+                  expect(program.constants).to.eql([
+                    STR("this "),
+                    STR("var1"), STR("last"),
+                    STR(" a string"),
+                  ]);
+  
+                  variableResolver.register(
+                    "var1",
+                    LIST([STR("var2"), STR("var3")])
+                  );
+                  variableResolver.register("var3", STR("is"));
+                  expect(evaluate(program)).to.eql(STR("this is a string"));
+                });
+                specify("successive selectors", () => {
+                  const script = parse('"this $var{last}{last} a string"');
+                  const program = compileFirstWord(script);
+                  expect(program.opCodes).to.eql([
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.RESOLVE_VALUE,
+                    OpCode.OPEN_FRAME,
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.SELECT_RULES,
+                    OpCode.OPEN_FRAME,
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.SELECT_RULES,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.JOIN_STRINGS
+                  ]);
+                  expect(program.constants).to.eql([
+                    STR("this "),
+                    STR("var"),
+                    STR("last"),
+                    STR("last"),
+                    STR(" a string"),
+                  ]);
+  
+                  variableResolver.register(
+                    "var",
+                    LIST([
+                      STR("value1"),
+                      LIST([STR("value2"), STR("is")]),
+                    ])
+                  );
+                  expect(evaluate(program)).to.eql(STR("this is a string"));
+                });
+              });
+  
               specify("string with multiple substitutions", () => {
                 const script = parse(
-                  '"this $var1 ${variable 2} [cmd1] with subst[cmd2]${var3}[cmd3]$var4"'
+                  '"this $$var1$${variable 2} [cmd1] with subst[cmd2]${var3}[cmd3]$var4"'
                 );
                 const program = compileFirstWord(script);
 
@@ -452,8 +971,9 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.PUSH_CONSTANT,
                   OpCode.RESOLVE_VALUE,
+                  OpCode.RESOLVE_VALUE,
                   OpCode.PUSH_CONSTANT,
-                  OpCode.PUSH_CONSTANT,
+                  OpCode.RESOLVE_VALUE,
                   OpCode.RESOLVE_VALUE,
                   OpCode.PUSH_CONSTANT,
                   OpCode.OPEN_FRAME,
@@ -483,7 +1003,6 @@ describe("Compilation and execution", () => {
                 expect(program.constants).to.eql([
                   STR("this "),
                   STR("var1"),
-                  STR(" "),
                   STR("variable 2"),
                   STR(" "),
                   STR("cmd1"),
@@ -494,8 +1013,10 @@ describe("Compilation and execution", () => {
                   STR("var4"),
                 ]);
 
-                variableResolver.register("var1", STR("is"));
-                variableResolver.register("variable 2", STR("a"));
+                variableResolver.register("var1", STR("var5"));
+                variableResolver.register("var5", STR("is"));
+                variableResolver.register("variable 2", STR("var6"));
+                variableResolver.register("var6", STR(" a"));
                 commandResolver.register(
                   "cmd1",
                   new FunctionCommand(() => STR("string"))
