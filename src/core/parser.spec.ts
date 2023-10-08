@@ -560,11 +560,21 @@ describe("Parser", () => {
             ]);
           });
           specify("escapes", () => {
-            const script = parse("$a\\x62 $c\\d");
+            const script = parse('"$a\\x62 $c\\d"');
             expect(toTree(script)).to.eql([
               [
-                [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a" }, { LITERAL: "b" }],
-                [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "c" }, { LITERAL: "d" }],
+                [
+                  {
+                    STRING: [
+                      { SUBSTITUTE_NEXT: 1 },
+                      { LITERAL: "a" },
+                      { LITERAL: "b " },
+                      { SUBSTITUTE_NEXT: 1 },
+                      { LITERAL: "c" },
+                      { LITERAL: "d" },
+                    ],
+                  },
+                ],
               ],
             ]);
           });
