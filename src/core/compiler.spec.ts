@@ -728,7 +728,7 @@ describe("Compilation and execution", () => {
                     OpCode.SELECT_INDEX,
                     OpCode.PUSH_CONSTANT,
                     OpCode.CLOSE_FRAME,
-                    OpCode.JOIN_STRINGS
+                    OpCode.JOIN_STRINGS,
                   ]);
                   expect(program.constants).to.eql([
                     STR("this "),
@@ -740,10 +740,7 @@ describe("Compilation and execution", () => {
 
                   variableResolver.register(
                     "varname",
-                    LIST([
-                      STR("value1"),
-                      LIST([STR("is"), STR("value2")]),
-                    ])
+                    LIST([STR("value1"), LIST([STR("is"), STR("value2")])])
                   );
                   expect(evaluate(program)).to.eql(STR("this is a string"));
                 });
@@ -764,14 +761,15 @@ describe("Compilation and execution", () => {
                     OpCode.SELECT_KEYS,
                     OpCode.PUSH_CONSTANT,
                     OpCode.CLOSE_FRAME,
-                    OpCode.JOIN_STRINGS
+                    OpCode.JOIN_STRINGS,
                   ]);
                   expect(program.constants).to.eql([
                     STR("this "),
-                    STR("varname"), STR("key"),
+                    STR("varname"),
+                    STR("key"),
                     STR(" a string"),
                   ]);
-  
+
                   variableResolver.register(
                     "varname",
                     DICT({
@@ -795,14 +793,15 @@ describe("Compilation and execution", () => {
                     OpCode.RESOLVE_VALUE,
                     OpCode.PUSH_CONSTANT,
                     OpCode.CLOSE_FRAME,
-                    OpCode.JOIN_STRINGS
+                    OpCode.JOIN_STRINGS,
                   ]);
                   expect(program.constants).to.eql([
                     STR("this "),
-                    STR("var1"), STR("key"),
+                    STR("var1"),
+                    STR("key"),
                     STR(" a string"),
                   ]);
-  
+
                   variableResolver.register("var1", DICT({ key: STR("var2") }));
                   variableResolver.register("var2", STR("is"));
                   expect(evaluate(program)).to.eql(STR("this is a string"));
@@ -825,7 +824,7 @@ describe("Compilation and execution", () => {
                     OpCode.SELECT_KEYS,
                     OpCode.PUSH_CONSTANT,
                     OpCode.CLOSE_FRAME,
-                    OpCode.JOIN_STRINGS
+                    OpCode.JOIN_STRINGS,
                   ]);
                   expect(program.constants).to.eql([
                     STR("this "),
@@ -834,7 +833,7 @@ describe("Compilation and execution", () => {
                     STR("key2"),
                     STR(" a string"),
                   ]);
-  
+
                   variableResolver.register(
                     "varname",
                     DICT({
@@ -844,7 +843,7 @@ describe("Compilation and execution", () => {
                   expect(evaluate(program)).to.eql(STR("this is a string"));
                 });
               });
-  
+
               describe("custom selectors", () => {
                 beforeEach(() => {
                   const lastSelector = {
@@ -871,14 +870,15 @@ describe("Compilation and execution", () => {
                     OpCode.SELECT_RULES,
                     OpCode.PUSH_CONSTANT,
                     OpCode.CLOSE_FRAME,
-                    OpCode.JOIN_STRINGS
+                    OpCode.JOIN_STRINGS,
                   ]);
                   expect(program.constants).to.eql([
                     STR("this "),
-                    STR("varname"), STR("last"),
-STR(" a string")
+                    STR("varname"),
+                    STR("last"),
+                    STR(" a string"),
                   ]);
-  
+
                   variableResolver.register(
                     "varname",
                     LIST([STR("value1"), STR("value2"), STR("is")])
@@ -902,14 +902,15 @@ STR(" a string")
                     OpCode.RESOLVE_VALUE,
                     OpCode.PUSH_CONSTANT,
                     OpCode.CLOSE_FRAME,
-                    OpCode.JOIN_STRINGS
+                    OpCode.JOIN_STRINGS,
                   ]);
                   expect(program.constants).to.eql([
                     STR("this "),
-                    STR("var1"), STR("last"),
+                    STR("var1"),
+                    STR("last"),
                     STR(" a string"),
                   ]);
-  
+
                   variableResolver.register(
                     "var1",
                     LIST([STR("var2"), STR("var3")])
@@ -939,7 +940,7 @@ STR(" a string")
                     OpCode.SELECT_RULES,
                     OpCode.PUSH_CONSTANT,
                     OpCode.CLOSE_FRAME,
-                    OpCode.JOIN_STRINGS
+                    OpCode.JOIN_STRINGS,
                   ]);
                   expect(program.constants).to.eql([
                     STR("this "),
@@ -948,18 +949,15 @@ STR(" a string")
                     STR("last"),
                     STR(" a string"),
                   ]);
-  
+
                   variableResolver.register(
                     "var",
-                    LIST([
-                      STR("value1"),
-                      LIST([STR("value2"), STR("is")]),
-                    ])
+                    LIST([STR("value1"), LIST([STR("value2"), STR("is")])])
                   );
                   expect(evaluate(program)).to.eql(STR("this is a string"));
                 });
               });
-  
+
               specify("string with multiple substitutions", () => {
                 const script = parse(
                   '"this $$var1$${variable 2} [cmd1] with subst[cmd2]${var3}[cmd3]$var4"'
@@ -3027,6 +3025,64 @@ STR(" a string")
             expect(evaluate(program)).to.eql(INT(9));
             expect(counter).to.eql(10);
             expect(acc).to.eql("foo".repeat(10));
+          });
+        });
+
+        describe("sentences", () => {
+          specify("single sentence", () => {
+            const script = parse("cmd $*[cmd2] arg");
+            const program = compiler.compileSentence(script.sentences[0]);
+            expect(program.opCodes).to.eql([
+              OpCode.PUSH_CONSTANT,
+              OpCode.OPEN_FRAME,
+              OpCode.PUSH_CONSTANT,
+              OpCode.CLOSE_FRAME,
+              OpCode.EVALUATE_SENTENCE,
+              OpCode.PUSH_RESULT,
+              OpCode.EXPAND_VALUE,
+              OpCode.PUSH_CONSTANT,
+            ]);
+            expect(program.constants).to.eql([
+              STR("cmd"),
+              STR("cmd2"),
+              STR("arg"),
+            ]);
+          });
+          specify("multiple sentences", () => {
+            const script = parse(
+              "cmd1 $arg1 arg2; $*[cmd2] arg3; cmd3 $$arg4 arg5"
+            );
+            const program = compiler.compileSentences(script.sentences);
+            expect(program.opCodes).to.eql([
+              OpCode.OPEN_FRAME,
+              OpCode.PUSH_CONSTANT,
+              OpCode.PUSH_CONSTANT,
+              OpCode.RESOLVE_VALUE,
+              OpCode.PUSH_CONSTANT,
+              OpCode.OPEN_FRAME,
+              OpCode.PUSH_CONSTANT,
+              OpCode.CLOSE_FRAME,
+              OpCode.EVALUATE_SENTENCE,
+              OpCode.PUSH_RESULT,
+              OpCode.EXPAND_VALUE,
+              OpCode.PUSH_CONSTANT,
+              OpCode.PUSH_CONSTANT,
+              OpCode.PUSH_CONSTANT,
+              OpCode.RESOLVE_VALUE,
+              OpCode.RESOLVE_VALUE,
+              OpCode.PUSH_CONSTANT,
+              OpCode.CLOSE_FRAME,
+            ]);
+            expect(program.constants).to.eql([
+              STR("cmd1"),
+              STR("arg1"),
+              STR("arg2"),
+              STR("cmd2"),
+              STR("arg3"),
+              STR("cmd3"),
+              STR("arg4"),
+              STR("arg5"),
+            ]);
           });
         });
       });
