@@ -1,12 +1,10 @@
 import { expect } from "chai";
 import {
-  Evaluator,
   VariableResolver,
   CommandResolver,
-  InlineEvaluator,
-  CompilingEvaluator,
   SelectorResolver,
-} from "./evaluator";
+} from "./resolvers";
+import { Evaluator, InlineEvaluator, CompilingEvaluator } from "./evaluator";
 import { Parser } from "./parser";
 import { Tokenizer } from "./tokenizer";
 import { Script, Word } from "./syntax";

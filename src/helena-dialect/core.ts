@@ -16,7 +16,7 @@ import {
   Program,
   ProgramState,
 } from "../core/compiler";
-import { VariableResolver, CommandResolver } from "../core/evaluator";
+import { VariableResolver, CommandResolver } from "../core/resolvers";
 import { Script } from "../core/syntax";
 import {
   Value,

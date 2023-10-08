@@ -6,7 +6,7 @@ import {
   VariableResolver,
   CommandResolver,
   SelectorResolver,
-} from "./evaluator";
+} from "./resolvers";
 import { Parser } from "./parser";
 import {
   GenericSelector,

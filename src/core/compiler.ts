@@ -8,7 +8,7 @@ import {
   CommandResolver,
   SelectorResolver,
   VariableResolver,
-} from "./evaluator";
+} from "./resolvers";
 import { IndexedSelector, KeyedSelector } from "./selectors";
 import {
   BlockMorpheme,

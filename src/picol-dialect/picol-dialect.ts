@@ -9,9 +9,8 @@ import {
   ERROR,
 } from "../core/results";
 import { Command } from "../core/command";
+import { VariableResolver, CommandResolver } from "../core/resolvers";
 import {
-  VariableResolver,
-  CommandResolver,
   CompilingEvaluator,
   InlineEvaluator,
   Evaluator,
