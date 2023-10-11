@@ -912,9 +912,7 @@ export class Executor {
   private resolveValue(source: Value): Result {
     switch (source.type) {
       case ValueType.TUPLE:
-        return this.mapTuple(source as TupleValue, (element) =>
-          this.resolveValue(element)
-        );
+        return this.resolveTuple(source as TupleValue);
       case ValueType.QUALIFIED:
         return this.resolveQualified(source as QualifiedValue);
       default: {
@@ -935,23 +933,22 @@ export class Executor {
   }
 
   /**
-   * Apply a function to a tuple values recursively
+   * Resolve tuple values recursively
    *
    * @param tuple - Tuple to map
-   * @param mapFn - Map function
    *
-   * @returns       Mapped tuple
+   * @returns       Resolved tuple
    */
-  private mapTuple(tuple: TupleValue, mapFn: (value: Value) => Result): Result {
+  private resolveTuple(tuple: TupleValue): Result {
     const values: Value[] = [];
     for (const value of tuple.values) {
       let result: Result;
       switch (value.type) {
         case ValueType.TUPLE:
-          result = this.mapTuple(value as TupleValue, mapFn);
+          result = this.resolveTuple(value as TupleValue);
           break;
         default:
-          result = mapFn(value);
+          result = this.resolveValue(value);
       }
       if (result.code != ResultCode.OK) return result;
       values.push(result.value);
