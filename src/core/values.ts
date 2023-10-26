@@ -75,6 +75,35 @@ export interface Value extends Displayable {
 }
 
 /**
+ * Apply a selector to a value
+ *
+ * @param value    - Value to select
+ * @param selector - Selector to apply
+ *
+ * @returns          Selected subvalue
+ */
+export function applySelector(value: Value, selector: Selector): Result {
+  return value.select ? value.select(selector) : selector.apply(value);
+}
+
+/**
+ * Select value with either {@link Value.select} or {@link Value.selectRules} in
+ * this order of precedence.
+ *
+ * @param value    - Value to select
+ * @param selector - Selector to apply
+ *
+ * @returns          Selected value
+ */
+export function selectGeneric(value: Value, selector: GenericSelector): Result {
+  if (!value.select && !value.selectRules)
+    return ERROR("value is not selectable");
+  return value.select
+    ? value.select(selector)
+    : value.selectRules(selector.rules);
+}
+
+/**
  * Nil value
  */
 class NilValue implements Value {
@@ -576,9 +605,7 @@ export class TupleValue implements Value {
   select(selector: Selector): Result {
     const values = [];
     for (const value of this.values) {
-      const result = value.select
-        ? value.select(selector)
-        : selector.apply(value);
+      const result = applySelector(value, selector);
       if (result.code != ResultCode.OK) return result;
       values.push(result.value);
     }

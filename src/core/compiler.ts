@@ -35,6 +35,7 @@ import {
   TupleValue,
   Value,
   ValueType,
+  applySelector,
 } from "./values";
 
 /** Supported compiler opcodes */
@@ -658,7 +659,7 @@ export class ProgramState {
   }
 
   /** @returns Last value on current frame */
-  last() {
+  private last() {
     return this.frame()[this.frame().length - 1];
   }
 
@@ -796,9 +797,7 @@ export class Executor {
             const rules = state.pop() as TupleValue;
             const selector = this.resolveSelector(rules.values);
             const value = state.pop();
-            const result = value.select
-              ? value.select(selector)
-              : selector.apply(value);
+            const result = applySelector(value, selector);
             if (result.code != ResultCode.OK) return result;
             state.push(result.value);
           }
@@ -872,6 +871,7 @@ export class Executor {
       QualifiedValue,
       IndexedSelector,
       KeyedSelector,
+      applySelector,
     };
     const importsCode = `
     const {
@@ -884,6 +884,7 @@ export class Executor {
       QualifiedValue,
       IndexedSelector,
       KeyedSelector,
+      applySelector,
     } = imports;
     `;
 
@@ -1106,9 +1107,7 @@ export class Translator {
             const rules = state.pop();
             const selector = resolver.resolveSelector(rules.values);
             const value = state.pop();
-            const result = value.select
-              ? value.select(selector)
-              : selector.apply(value);
+            const result = applySelector(value, selector);
             if (result.code != ResultCode.OK) return result;
             state.push(result.value);
           }

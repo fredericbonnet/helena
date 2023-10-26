@@ -3,7 +3,7 @@
  */
 
 import { ERROR, OK, Result, ResultCode } from "./results";
-import { NIL, TupleValue, Value, ValueType } from "./values";
+import { NIL, TupleValue, Value, ValueType, selectGeneric } from "./values";
 import { defaultDisplayFunction, Displayable, displayList } from "./display";
 
 /**
@@ -110,9 +110,7 @@ export class GenericSelector implements Selector {
 
   /** @override */
   apply(value: Value): Result {
-    if (!value.select && !value.selectRules)
-      return ERROR("value is not selectable");
-    return value.select ? value.select(this) : value.selectRules(this.rules);
+    return selectGeneric(value, this);
   }
 
   /** @override */
