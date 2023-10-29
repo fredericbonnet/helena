@@ -73,7 +73,7 @@ class FunctionCommand implements Command {
 
 class MockSelectorResolver implements SelectorResolver {
   resolve(rules: Value[]): Selector {
-    return this.builder(rules);
+    return this.builder?.(rules);
   }
   builder: (rules) => Selector;
   register(builder: (rules) => Selector) {
@@ -345,6 +345,25 @@ describe("Compilation and execution", () => {
                     STR("expression"),
                   ])
                 );
+              });
+              describe("exceptions", () => {
+                specify("unresolved command", () => {
+                  const script = parse("[ cmd arg ]");
+                  const program = compileFirstWord(script);
+                  expect(program.opCodes).to.eql([
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.EVALUATE_SENTENCE,
+                    OpCode.PUSH_RESULT,
+                  ]);
+                  expect(program.constants).to.eql([STR("cmd"), STR("arg")]);
+
+                  expect(execute(program)).to.eql(
+                    ERROR('cannot resolve command "cmd"')
+                  );
+                });
               });
             });
 
@@ -845,15 +864,12 @@ describe("Compilation and execution", () => {
               });
 
               describe("custom selectors", () => {
-                beforeEach(() => {
-                  const lastSelector = {
-                    apply(value: Value): Result {
-                      const list = value as ListValue;
-                      return OK(list.values[list.values.length - 1]);
-                    },
-                  };
-                  selectorResolver.register(() => lastSelector);
-                });
+                const lastSelector = {
+                  apply(value: Value): Result {
+                    const list = value as ListValue;
+                    return OK(list.values[list.values.length - 1]);
+                  },
+                };
                 specify("simple substitution", () => {
                   const script = parse('"this $varname{last} a string"');
                   const program = compileFirstWord(script);
@@ -883,6 +899,7 @@ describe("Compilation and execution", () => {
                     "varname",
                     LIST([STR("value1"), STR("value2"), STR("is")])
                   );
+                  selectorResolver.register(() => lastSelector);
                   expect(evaluate(program)).to.eql(STR("this is a string"));
                 });
                 specify("double substitution", () => {
@@ -916,6 +933,7 @@ describe("Compilation and execution", () => {
                     LIST([STR("var2"), STR("var3")])
                   );
                   variableResolver.register("var3", STR("is"));
+                  selectorResolver.register(() => lastSelector);
                   expect(evaluate(program)).to.eql(STR("this is a string"));
                 });
                 specify("successive selectors", () => {
@@ -954,7 +972,43 @@ describe("Compilation and execution", () => {
                     "var",
                     LIST([STR("value1"), LIST([STR("value2"), STR("is")])])
                   );
+                  selectorResolver.register(() => lastSelector);
                   expect(evaluate(program)).to.eql(STR("this is a string"));
+                });
+                describe("exceptions", () => {
+                  specify("unresolved selector", () => {
+                    const script = parse('"this $varname{last} a string"');
+                    const program = compileFirstWord(script);
+                    expect(program.opCodes).to.eql([
+                      OpCode.OPEN_FRAME,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.RESOLVE_VALUE,
+                      OpCode.OPEN_FRAME,
+                      OpCode.OPEN_FRAME,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.CLOSE_FRAME,
+                      OpCode.CLOSE_FRAME,
+                      OpCode.SELECT_RULES,
+                      OpCode.PUSH_CONSTANT,
+                      OpCode.CLOSE_FRAME,
+                      OpCode.JOIN_STRINGS,
+                    ]);
+                    expect(program.constants).to.eql([
+                      STR("this "),
+                      STR("varname"),
+                      STR("last"),
+                      STR(" a string"),
+                    ]);
+
+                    variableResolver.register(
+                      "varname",
+                      LIST([STR("value1"), STR("value2"), STR("is")])
+                    );
+                    expect(execute(program)).to.eql(
+                      ERROR("cannot resolve selector {(last)}")
+                    );
+                  });
                 });
               });
 
@@ -1984,15 +2038,13 @@ describe("Compilation and execution", () => {
             });
 
             describe("custom selectors", () => {
-              beforeEach(() => {
-                const lastSelector = {
-                  apply(value: Value): Result {
-                    const list = value as ListValue;
-                    return OK(list.values[list.values.length - 1]);
-                  },
-                };
-                selectorResolver.register(() => lastSelector);
-              });
+              const lastSelector = {
+                apply(value: Value): Result {
+                  const list = value as ListValue;
+                  return OK(list.values[list.values.length - 1]);
+                },
+              };
+
               specify("simple substitution", () => {
                 const script = parse("$varname{last}");
                 const program = compileFirstWord(script);
@@ -2012,6 +2064,7 @@ describe("Compilation and execution", () => {
                   "varname",
                   LIST([STR("value1"), STR("value2"), STR("value3")])
                 );
+                selectorResolver.register(() => lastSelector);
                 expect(evaluate(program)).to.eql(STR("value3"));
               });
               specify("double substitution", () => {
@@ -2035,6 +2088,7 @@ describe("Compilation and execution", () => {
                   LIST([STR("var2"), STR("var3")])
                 );
                 variableResolver.register("var3", STR("value"));
+                selectorResolver.register(() => lastSelector);
                 expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("successive selectors", () => {
@@ -2069,6 +2123,7 @@ describe("Compilation and execution", () => {
                     LIST([STR("value2_1"), STR("value2_2")]),
                   ])
                 );
+                selectorResolver.register(() => lastSelector);
                 expect(evaluate(program)).to.eql(STR("value2_2"));
               });
               specify("indirect selector", () => {
@@ -2092,12 +2147,7 @@ describe("Compilation and execution", () => {
                   LIST([STR("value1"), STR("value2"), STR("value3")])
                 );
                 variableResolver.register("var2", STR("last"));
-                selectorResolver.register(() => ({
-                  apply(value: Value): Result {
-                    const list = value as ListValue;
-                    return OK(list.values[list.values.length - 1]);
-                  },
-                }));
+                selectorResolver.register(() => lastSelector);
                 expect(evaluate(program)).to.eql(STR("value3"));
               });
               specify("expression", () => {
@@ -2124,7 +2174,52 @@ describe("Compilation and execution", () => {
                     LIST([STR("value1"), STR("value2")])
                   )
                 );
+                selectorResolver.register(() => lastSelector);
                 expect(evaluate(program)).to.eql(STR("value2"));
+              });
+              describe("exceptions", () => {
+                specify("unresolved selector", () => {
+                  const script = parse("$varname{last}");
+                  const program = compileFirstWord(script);
+                  expect(program.opCodes).to.eql([
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.RESOLVE_VALUE,
+                    OpCode.OPEN_FRAME,
+                    OpCode.OPEN_FRAME,
+                    OpCode.PUSH_CONSTANT,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.CLOSE_FRAME,
+                    OpCode.SELECT_RULES,
+                  ]);
+                  expect(program.constants).to.eql([
+                    STR("varname"),
+                    STR("last"),
+                  ]);
+
+                  variableResolver.register(
+                    "varname",
+                    LIST([STR("value1"), STR("value2"), STR("value3")])
+                  );
+                  expect(execute(program)).to.eql(
+                    ERROR("cannot resolve selector {(last)}")
+                  );
+                });
+              });
+            });
+
+            describe("exceptions", () => {
+              specify("unresolved variable", () => {
+                const script = parse("$varname");
+                const program = compileFirstWord(script);
+                expect(program.opCodes).to.eql([
+                  OpCode.PUSH_CONSTANT,
+                  OpCode.RESOLVE_VALUE,
+                ]);
+                expect(program.constants).to.eql([STR("varname")]);
+
+                expect(execute(program)).to.eql(
+                  ERROR('cannot resolve variable "varname"')
+                );
               });
             });
           });

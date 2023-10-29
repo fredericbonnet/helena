@@ -9,7 +9,7 @@ import {
   SelectorResolver,
   VariableResolver,
 } from "./resolvers";
-import { IndexedSelector, KeyedSelector } from "./selectors";
+import { IndexedSelector, KeyedSelector, Selector } from "./selectors";
 import {
   BlockMorpheme,
   ExpressionMorpheme,
@@ -37,6 +37,7 @@ import {
   ValueType,
   applySelector,
 } from "./values";
+import { displayList } from "./display";
 
 /** Supported compiler opcodes */
 export enum OpCode {
@@ -773,8 +774,8 @@ export class Executor {
         case OpCode.SELECT_INDEX:
           {
             const index = state.pop();
-            const selector = new IndexedSelector(index);
             const value = state.pop();
+            const selector = new IndexedSelector(index);
             const result = selector.apply(value);
             if (result.code != ResultCode.OK) return result;
             state.push(result.value);
@@ -784,8 +785,8 @@ export class Executor {
         case OpCode.SELECT_KEYS:
           {
             const keys = state.pop() as TupleValue;
-            const selector = new KeyedSelector(keys.values);
             const value = state.pop();
+            const selector = new KeyedSelector(keys.values);
             const result = selector.apply(value);
             if (result.code != ResultCode.OK) return result;
             state.push(result.value);
@@ -795,11 +796,14 @@ export class Executor {
         case OpCode.SELECT_RULES:
           {
             const rules = state.pop() as TupleValue;
-            const selector = this.resolveSelector(rules.values);
             const value = state.pop();
-            const result = applySelector(value, selector);
+            const { data: selector, ...result } = this.resolveSelector(
+              rules.values
+            );
             if (result.code != ResultCode.OK) return result;
-            state.push(result.value);
+            const result2 = applySelector(value, selector);
+            if (result2.code != ResultCode.OK) return result2;
+            state.push(result2.value);
           }
           break;
 
@@ -807,15 +811,9 @@ export class Executor {
           {
             const args = state.pop() as TupleValue;
             if (args.values.length) {
-              const command = this.resolveCommand(args.values[0]);
-              if (!command) {
-                const cmdname = args.values[0].asString?.();
-                return ERROR(
-                  cmdname == null
-                    ? `invalid command name`
-                    : `cannot resolve command "${cmdname}"`
-                );
-              }
+              const cmdname = args.values[0];
+              const { data: command, ...result } = this.resolveCommand(cmdname);
+              if (result.code != ResultCode.OK) return result;
               state.command = command;
               state.result = state.command.execute(args.values, this.context);
               if (state.result.code != ResultCode.OK) return state.result;
@@ -962,11 +960,20 @@ export class Executor {
     if (!value) return ERROR(`cannot resolve variable "${varname}"`);
     return OK(value);
   }
-  private resolveCommand(cmdname: Value) {
-    return this.commandResolver.resolve(cmdname);
+  private resolveCommand(cmdname: Value): Result<Command> {
+    const command = this.commandResolver.resolve(cmdname);
+    if (!command) {
+      const name = cmdname.asString?.();
+      if (name == null) return ERROR("invalid command name");
+      return ERROR(`cannot resolve command "${name}"`);
+    }
+    return OK(NIL, command);
   }
-  private resolveSelector(rules: Value[]) {
-    return this.selectorResolver.resolve(rules);
+  private resolveSelector(rules: Value[]): Result<Selector> {
+    const selector = this.selectorResolver.resolve(rules);
+    if (!selector)
+      return ERROR(`cannot resolve selector {${displayList(rules)}}`);
+    return OK(NIL, selector);
   }
 }
 
@@ -1079,8 +1086,8 @@ export class Translator {
           sections.push(`
           {
             const index = state.pop();
-            const selector = new IndexedSelector(index);
             const value = state.pop();
+            const selector = new IndexedSelector(index);
             const result = selector.apply(value);
             if (result.code != ResultCode.OK) return result;
             state.push(result.value);
@@ -1092,8 +1099,8 @@ export class Translator {
           sections.push(`
           {
             const keys = state.pop();
-            const selector = new KeyedSelector(keys.values);
             const value = state.pop();
+            const selector = new KeyedSelector(keys.values);
             const result = selector.apply(value);
             if (result.code != ResultCode.OK) return result;
             state.push(result.value);
@@ -1105,11 +1112,14 @@ export class Translator {
           sections.push(`
           {
             const rules = state.pop();
-            const selector = resolver.resolveSelector(rules.values);
             const value = state.pop();
-            const result = applySelector(value, selector);
+            const { data: selector, ...result } = resolver.resolveSelector(
+              rules.values
+            );
             if (result.code != ResultCode.OK) return result;
-            state.push(result.value);
+            const result2 = applySelector(value, selector);
+            if (result2.code != ResultCode.OK) return result2;
+            state.push(result2.value);
           }
           `);
           break;
@@ -1119,15 +1129,9 @@ export class Translator {
           {
             const args = state.pop();
             if (args.values.length) {
-              const command = resolver.resolveCommand(args.values[0]);
-              if (!command) {
-                const cmdname = args.values[0].asString?.();
-                return ERROR(
-                  cmdname == null
-                    ? \`invalid command name\`
-                    : \`cannot resolve command "\${cmdname}"\`
-                );
-              }
+              const cmdname = args.values[0];
+              const { data: command, ...result } = resolver.resolveCommand(cmdname);
+              if (result.code != ResultCode.OK) return result;
               state.command = command;
               state.result = state.command.execute(args.values, context);
               if (state.result.code != ResultCode.OK) return state.result;
