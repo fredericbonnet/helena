@@ -34,6 +34,8 @@ import {
   Selector,
 } from "./selectors";
 
+const asString = (value) => StringValue.toString(value).data;
+
 const mapValue = (value: Value) => {
   if (value == NIL) {
     return NIL;
@@ -100,9 +102,9 @@ class IntCommand implements Command {
 const INT_CMD = new IntCommand();
 class MockCommandResolver implements CommandResolver {
   resolve(name: Value): Command {
-    if (name.type == ValueType.INTEGER || !isNaN(parseInt(name.asString?.())))
+    if (name.type == ValueType.INTEGER || !isNaN(parseInt(asString(name))))
       return INT_CMD;
-    return this.commands.get(name.asString?.());
+    return this.commands.get(asString(name));
   }
 
   commands: Map<string, Command> = new Map();
@@ -246,7 +248,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             commandResolver.register(
               "cmd",
               new FunctionCommand((args) =>
-                STR(args.map((value) => value.asString()).join(""))
+                STR(args.map((value) => asString(value)).join(""))
               )
             );
             const morpheme = firstMorpheme(parse("[cmd foo bar baz]"));
@@ -1428,7 +1430,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
         commandResolver.register(
           "cmd",
           new FunctionCommand((args) =>
-            STR(args[1].asString() + args[2].asString())
+            STR(asString(args[1]) + asString(args[2]))
           )
         );
         const word = firstWord(
@@ -1621,13 +1623,13 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
         commandResolver.register("if", {
           execute(args) {
             const condition = args[1];
-            const block = condition.asString() == "true" ? args[2] : args[4];
+            const block = asString(condition) == "true" ? args[2] : args[4];
             return evaluator.evaluateScript((block as ScriptValue).script);
           },
         });
         const called = {};
         const fn = new FunctionCommand((args) => {
-          const cmd = args[0].asString();
+          const cmd = asString(args[0]);
           called[cmd] = called[cmd] ?? 0 + 1;
           return args[1];
         });
@@ -1662,7 +1664,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
         commandResolver.register(
           "cmd",
           new FunctionCommand((args) => {
-            const value = args[1].asString();
+            const value = asString(args[1]);
             acc += value;
             return INT(counter++);
           })

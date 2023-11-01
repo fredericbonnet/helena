@@ -10,10 +10,12 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { INT, LIST, NIL, STR, TUPLE } from "../core/values";
+import { INT, LIST, NIL, STR, StringValue, TUPLE } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
+
+const asString = (value) => StringValue.toString(value).data;
 
 describe("Helena aliases", () => {
   let rootScope: Scope;
@@ -35,7 +37,7 @@ describe("Helena aliases", () => {
   };
   const usage = (script: string) => {
     init();
-    return codeBlock(evaluate("help " + script).asString());
+    return codeBlock(asString(evaluate("help " + script)));
   };
   const example = specifyExample(({ script }) => execute(script));
 

@@ -4,6 +4,7 @@ import { Command } from "../core/command";
 import {
   STR,
   ScriptValue,
+  StringValue,
   TUPLE,
   TupleValue,
   Value,
@@ -53,7 +54,7 @@ class ClosureMetacommand implements CommandValue, Command {
 }
 
 const CLOSURE_COMMAND_SIGNATURE = (name, help) =>
-  `${name.asString?.() ?? "<closure>"}${help ? " " + help : ""}`;
+  `${StringValue.toString(name, "<closure>").data}${help ? " " + help : ""}`;
 class ClosureCommand implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;

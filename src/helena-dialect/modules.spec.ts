@@ -4,10 +4,12 @@ import { expect } from "chai";
 import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { LIST, NIL, STR } from "../core/values";
+import { LIST, NIL, STR, StringValue } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand } from "./test-helpers";
+
+const asString = (value) => StringValue.toString(value).data;
 
 describe("Helena modules", () => {
   let rootScope: Scope;
@@ -29,7 +31,7 @@ describe("Helena modules", () => {
   };
   const usage = (script: string) => {
     init();
-    return codeBlock(evaluate("help " + script).asString());
+    return codeBlock(asString(evaluate("help " + script)));
   };
 
   beforeEach(init);
@@ -383,7 +385,7 @@ describe("Helena modules", () => {
           }] import usage
           usage
         `);
-        return codeBlock(usage.asString());
+        return codeBlock((usage as StringValue).value);
       })()
     );
     mochadoc.description(() => {

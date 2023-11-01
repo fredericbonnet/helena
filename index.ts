@@ -21,6 +21,7 @@ import {
   DictionaryValue,
   Value,
   ValueType,
+  StringValue,
 } from "./src/core/values";
 import { displayListValue } from "./src/helena-dialect/lists";
 import { displayDictionaryValue } from "./src/helena-dialect/dicts";
@@ -40,7 +41,7 @@ function sourceFile(path: string, scope: Scope): Result {
 const sourceCmd: Command = {
   execute: function (args: Value[], scope: Scope): Result {
     if (args.length != 2) return ARITY_ERROR("source path");
-    const path = args[1].asString();
+    const { data: path } = StringValue.toString(args[1]);
     return sourceFile(path, scope);
   },
 };
@@ -115,7 +116,7 @@ function processResult(result, onSuccess, onError) {
       break;
     }
     case ResultCode.ERROR: {
-      onError(new Error(result.value.asString()));
+      onError(new Error(StringValue.toString(result.value).data));
       break;
     }
     default: {

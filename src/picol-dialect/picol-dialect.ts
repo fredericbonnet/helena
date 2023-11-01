@@ -30,6 +30,7 @@ import {
   STR,
   TUPLE,
   BOOL,
+  StringValue,
 } from "../core/values";
 import { Word } from "../core/syntax";
 
@@ -62,7 +63,7 @@ export class PicolScope {
     return null;
   }
   resolveCommand(name: Value): Command {
-    return this.resolveNamedCommand(name.asString());
+    return this.resolveNamedCommand(StringValue.toString(name).data);
   }
   private resolveNamedCommand(name: string): Command {
     if (!this.commands.has(name)) {
@@ -72,6 +73,8 @@ export class PicolScope {
     return this.commands.get(name);
   }
 }
+
+const asString = (value: Value) => StringValue.toString(value).data;
 
 const EMPTY: Result = OK(STR(""));
 
@@ -160,11 +163,11 @@ const compareValuesCmd = (
 });
 const eqCmd = compareValuesCmd(
   "==",
-  (op1, op2) => op1 == op2 || op1.asString() == op2.asString()
+  (op1, op2) => op1 == op2 || asString(op1) == asString(op2)
 );
 const neCmd = compareValuesCmd(
   "!=",
-  (op1, op2) => op1 != op2 && op1.asString() != op2.asString()
+  (op1, op2) => op1 != op2 && asString(op1) != asString(op2)
 );
 
 const compareNumbersCmd = (
@@ -310,7 +313,7 @@ function evaluateCondition(value: Value, scope: PicolScope): Result {
     if (result.code != ResultCode.OK) return result;
     return BooleanValue.fromValue(result.value);
   }
-  const s = value.asString();
+  const s = asString(value);
   if (s == "true" || s == "yes" || s == "1") return OK(TRUE);
   if (s == "false" || s == "no" || s == "0") return OK(FALSE);
   const i = parseInt(s);
@@ -322,13 +325,13 @@ const setCmd: Command = {
   execute: (args, scope: PicolScope) => {
     switch (args.length) {
       case 2: {
-        const name = args[1].asString();
+        const name = asString(args[1]);
         const value = scope.variableResolver.resolve(name);
         if (value) return OK(value);
         return ERROR(`can't read "${name}": no such variable`);
       }
       case 3:
-        scope.variables.set(args[1].asString(), args[2]);
+        scope.variables.set(asString(args[1]), args[2]);
         return OK(args[2]);
       default:
         return ARITY_ERROR("set varName ?newValue?");
@@ -352,7 +355,7 @@ const incrCmd: Command = {
       default:
         return ARITY_ERROR("incr varName ?increment?");
     }
-    const varName = args[1].asString();
+    const varName = asString(args[1]);
     const value = scope.variables.get(varName);
     let incremented;
     if (value) {
@@ -437,8 +440,8 @@ function valueToArgspec(value: Value): Result<ArgSpec> {
       const { data: values, ...result } = valueToArray(value);
       if (result.code != ResultCode.OK) return result;
       if (values.length == 0) return ERROR("argument with no name");
-      const name = values[0].asString();
-      if (name == "") return ERROR("argument with no name");
+      const name = asString(values[0]);
+      if (!name) return ERROR("argument with no name");
       switch (values.length) {
         case 1:
           return OK(NIL, { name });
@@ -446,12 +449,12 @@ function valueToArgspec(value: Value): Result<ArgSpec> {
           return OK(NIL, { name, default: values[1] });
         default:
           return ERROR(
-            `too many fields in argument specifier "${value.asString()}"`
+            `too many fields in argument specifier "${asString(value)}"`
           );
       }
     }
     default:
-      return OK(NIL, { name: value.asString() });
+      return OK(NIL, { name: asString(value) });
   }
 }
 function valueToArgspecs(value: Value): Result<ArgSpec[]> {
@@ -466,7 +469,7 @@ function valueToArgspecs(value: Value): Result<ArgSpec[]> {
   return OK(NIL, argspecs);
 }
 function argspecsToSignature(name: Value, argspecs: ArgSpec[]): string {
-  const chunks = [name.asString()];
+  const chunks = [asString(name)];
   const argspectoSignature = (argspec) =>
     argspec.default ? `?${argspec.name}?` : argspec.name;
   if (argspecs[argspecs.length - 1]?.name == "args") {
@@ -485,7 +488,7 @@ const procCmd: Command = {
     const { data: argspecs, ...result } = valueToArgspecs(_argspecs);
     if (result.code != ResultCode.OK) return result;
     scope.commands.set(
-      name.asString(),
+      asString(name),
       new ProcCommand(argspecs, body as ScriptValue)
     );
     return EMPTY;

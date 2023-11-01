@@ -20,6 +20,7 @@ import {
   STR,
   TUPLE,
   BOOL,
+  StringValue,
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
@@ -65,8 +66,8 @@ const dictHasCmd: Command = {
     if (args.length != 3) return ARITY_ERROR(DICT_HAS_SIGNATURE);
     const { data: map, ...result } = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const key = args[2].asString?.();
-    if (key == null) return ERROR("invalid key");
+    const { data: key, code } = StringValue.toString(args[2]);
+    if (code != ResultCode.OK) return ERROR("invalid key");
     return OK(BOOL(map.has(key)));
   },
   help(args) {
@@ -89,16 +90,16 @@ const dictGetCmd: Command = {
         const keys = (args[2] as TupleValue).values;
         const values = [];
         for (const k of keys) {
-          const key = k.asString?.();
-          if (key == null) return ERROR("invalid key");
+          const { data: key, code } = StringValue.toString(k);
+          if (code != ResultCode.OK) return ERROR("invalid key");
           if (!map.has(key)) return ERROR(`unknown key "${key}"`);
           values.push(map.get(key));
         }
         return OK(TUPLE(values));
       }
       default: {
-        const key = args[2].asString?.();
-        if (key == null) return ERROR("invalid key");
+        const { data: key, code } = StringValue.toString(args[2]);
+        if (code != ResultCode.OK) return ERROR("invalid key");
         if (!map.has(key))
           return args.length == 4 ? OK(args[3]) : ERROR(`unknown key "${key}"`);
         return OK(map.get(key));
@@ -117,8 +118,8 @@ const dictAddCmd: Command = {
     if (args.length != 4) return ARITY_ERROR(DICT_ADD_SIGNATURE);
     const { data: map, ...result } = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const key = args[2].asString?.();
-    if (key == null) return ERROR("invalid key");
+    const { data: key, code } = StringValue.toString(args[2]);
+    if (code != ResultCode.OK) return ERROR("invalid key");
     const clone = new Map(map);
     return OK(DICT(clone.set(key, args[3])));
   },
@@ -136,8 +137,8 @@ const dictRemoveCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     const clone = new Map(map);
     for (let i = 2; i < args.length; i++) {
-      const key = args[i].asString?.();
-      if (key == null) return ERROR("invalid key");
+      const { data: key, code } = StringValue.toString(args[i]);
+      if (code != ResultCode.OK) return ERROR("invalid key");
       clone.delete(key);
     }
     return OK(DICT(clone));
@@ -268,7 +269,7 @@ class DictForeachCommand implements Command {
           if (done) return state.lastResult;
           const [key, value] = entry;
           const setLocal = (name, value) => {
-            state.scope.setLocal(name.asString(), value);
+            state.scope.setLocal(StringValue.toString(name).data, value);
             return OK(value);
           };
           destructureValue(setLocal, state.varname, TUPLE([STR(key), value]));
@@ -317,8 +318,8 @@ function valueToMap(value: Value): Result<Map<string, Value>> {
   if (values.length % 2 != 0) return ERROR("invalid key-value list");
   const map = new Map();
   for (let i = 0; i < values.length; i += 2) {
-    const key = values[i].asString?.();
-    if (key == null) return ERROR("invalid key");
+    const { data: key, code } = StringValue.toString(values[i]);
+    if (code != ResultCode.OK) return ERROR("invalid key");
     const value = values[i + 1];
     map.set(key, value);
   }

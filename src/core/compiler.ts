@@ -915,8 +915,8 @@ export class Executor {
       case ValueType.QUALIFIED:
         return this.resolveQualified(source as QualifiedValue);
       default: {
-        const varname = source.asString?.();
-        if (varname == null) return ERROR("invalid variable name");
+        const { data: varname, code } = StringValue.toString(source);
+        if (code != ResultCode.OK) return ERROR("invalid variable name");
         return this.resolveVariable(varname);
       }
     }
@@ -963,8 +963,8 @@ export class Executor {
   private resolveCommand(cmdname: Value): Result<Command> {
     const command = this.commandResolver.resolve(cmdname);
     if (!command) {
-      const name = cmdname.asString?.();
-      if (name == null) return ERROR("invalid command name");
+      const { data: name, code } = StringValue.toString(cmdname);
+      if (code != ResultCode.OK) return ERROR("invalid command name");
       return ERROR(`cannot resolve command "${name}"`);
     }
     return OK(NIL, command);

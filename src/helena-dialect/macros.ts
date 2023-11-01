@@ -4,6 +4,7 @@ import { Command } from "../core/command";
 import {
   STR,
   ScriptValue,
+  StringValue,
   TUPLE,
   TupleValue,
   Value,
@@ -46,7 +47,7 @@ class MacroMetacommand implements CommandValue, Command {
 }
 
 const MACRO_COMMAND_SIGNATURE = (name, help) =>
-  `${name.asString?.() ?? "<macro>"}${help ? " " + help : ""}`;
+  `${StringValue.toString(name, "<macro>").data}${help ? " " + help : ""}`;
 class MacroCommand implements CommandValue, Command {
   readonly type = commandValueType;
   readonly command: Command;

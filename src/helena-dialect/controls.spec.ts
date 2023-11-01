@@ -11,10 +11,12 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, INT, NIL, STR, TRUE } from "../core/values";
+import { FALSE, INT, NIL, STR, StringValue, TRUE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand } from "./test-helpers";
+
+const asString = (value) => StringValue.toString(value).data;
 
 describe("Helena control flow commands", () => {
   let rootScope: Scope;
@@ -36,7 +38,7 @@ describe("Helena control flow commands", () => {
   };
   const usage = (script: string) => {
     init();
-    return codeBlock(evaluate("help " + script).asString());
+    return codeBlock(asString(evaluate("help " + script)));
   };
 
   beforeEach(init);

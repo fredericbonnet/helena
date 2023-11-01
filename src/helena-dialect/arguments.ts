@@ -1,6 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { ERROR, OK, Result, ResultCode } from "../core/results";
-import { NIL, Value, ValueType } from "../core/values";
+import { NIL, StringValue, Value, ValueType } from "../core/values";
 import { valueToArray } from "./lists";
 
 export const ARITY_ERROR = (signature: string) =>
@@ -43,8 +43,8 @@ function buildArgument(value: Value): Result<Argument> {
         case 0:
           return ERROR("empty argument specifier");
         case 1: {
-          const name = specs[0].asString?.();
-          if (name == null) return ERROR("invalid argument name");
+          const { data: name, code } = StringValue.toString(specs[0]);
+          if (code != ResultCode.OK) return ERROR("invalid argument name");
           if (name == "" || name == "?") return ERROR("empty argument name");
           if (name[0] == "?") {
             return OK(NIL, { name: name.substring(1), type: "optional" });
@@ -53,9 +53,13 @@ function buildArgument(value: Value): Result<Argument> {
           }
         }
         case 2: {
-          const nameOrGuard = specs[0].asString?.();
-          const nameOrDefault = specs[1].asString?.();
-          if (nameOrGuard == null && nameOrDefault == null)
+          const { data: nameOrGuard, code: code1 } = StringValue.toString(
+            specs[0]
+          );
+          const { data: nameOrDefault, code: code2 } = StringValue.toString(
+            specs[1]
+          );
+          if (code1 != ResultCode.OK && code2 != ResultCode.OK)
             return ERROR("invalid argument name");
           if (
             (nameOrGuard == "" || nameOrGuard == "?") &&
@@ -83,8 +87,8 @@ function buildArgument(value: Value): Result<Argument> {
           }
         }
         case 3: {
-          const name = specs[1].asString?.();
-          if (name == null) return ERROR("invalid argument name");
+          const { data: name, code } = StringValue.toString(specs[1]);
+          if (code != ResultCode.OK) return ERROR("invalid argument name");
           if (name == "" || name == "?") return ERROR("empty argument name");
           if (name[0] != "?")
             return ERROR(`default argument "${name}" must be optional`);
@@ -96,14 +100,15 @@ function buildArgument(value: Value): Result<Argument> {
           });
         }
         default: {
-          const name = specs[0].asString?.();
+          const { data: name, code } = StringValue.toString(specs[0]);
+          if (code != ResultCode.OK) return ERROR("invalid argument name");
           return ERROR(`too many specifiers for argument "${name}"`);
         }
       }
     }
     default: {
-      const name = value.asString?.();
-      if (name == null) return ERROR("invalid argument name");
+      const { data: name, code } = StringValue.toString(value);
+      if (code != ResultCode.OK) return ERROR("invalid argument name");
       if (name == "" || name == "?") return ERROR("empty argument name");
       if (name[0] == "*") {
         if (name.length == 1) {

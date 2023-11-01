@@ -17,6 +17,7 @@ import {
   LIST,
   STR,
   TupleValue,
+  StringValue,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { CommandValue, commandValueType, Scope } from "./core";
@@ -36,8 +37,8 @@ class ExportCommand implements Command {
   }
   execute(args: Value[]): Result {
     if (args.length != 2) return ARITY_ERROR(EXPORT_SIGNATURE);
-    const name = args[1].asString?.();
-    if (name == null) return ERROR("invalid export name");
+    const { data: name, code } = StringValue.toString(args[1]);
+    if (code != ResultCode.OK) return ERROR("invalid export name");
     this.exports.set(name, STR(name));
     return OK(NIL);
   }
@@ -96,10 +97,10 @@ function importCommand(
   source: Scope,
   destination: Scope
 ): Result {
-  const name = importName.asString?.();
-  if (name == null) return ERROR("invalid import name");
-  const alias = aliasName.asString?.();
-  if (alias == null) return ERROR("invalid alias name");
+  const { data: name, code } = StringValue.toString(importName);
+  if (code != ResultCode.OK) return ERROR("invalid import name");
+  const { data: alias, code: code2 } = StringValue.toString(aliasName);
+  if (code2 != ResultCode.OK) return ERROR("invalid alias name");
   if (!exports.has(name)) return ERROR(`unknown export "${name}"`);
   const command = source.resolveNamedCommand(name);
   if (!command) return ERROR(`cannot resolve export "${name}"`);
@@ -233,8 +234,8 @@ class ImportCommand implements Command {
     if (args.length != 2 && args.length != 3)
       return ARITY_ERROR(IMPORT_SIGNATURE);
 
-    const path = args[1].asString?.();
-    if (path == null) return ERROR("invalid path");
+    const { data: path, code } = StringValue.toString(args[1]);
+    if (code != ResultCode.OK) return ERROR("invalid path");
 
     const { data: value, ...result } = resolveModule(path, this.rootDir);
     if (result.code != ResultCode.OK) return result;

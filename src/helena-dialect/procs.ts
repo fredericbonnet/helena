@@ -12,6 +12,7 @@ import { Program } from "../core/compiler";
 import {
   STR,
   ScriptValue,
+  StringValue,
   TUPLE,
   TupleValue,
   Value,
@@ -67,7 +68,7 @@ class ProcMetacommand implements CommandValue, Command {
 }
 
 const PROC_COMMAND_SIGNATURE = (name, help) =>
-  `${name.asString?.() ?? "<proc>"}${help ? " " + help : ""}`;
+  `${StringValue.toString(name, "<proc>").data}${help ? " " + help : ""}`;
 type ProcState = {
   scope: Scope;
   process: Process;

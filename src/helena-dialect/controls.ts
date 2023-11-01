@@ -15,6 +15,7 @@ import {
   NIL,
   ScriptValue,
   STR,
+  StringValue,
   TUPLE,
   TupleValue,
   Value,
@@ -151,7 +152,7 @@ class IfCommand implements Command {
     while (state.i < state.args.length) {
       switch (state.step) {
         case "beforeTest":
-          if (state.args[state.i].asString() == "else") {
+          if (StringValue.toString(state.args[state.i]).data == "else") {
             state.step = "beforeBody";
           } else {
             state.result = this.executeTest(state, scope);
@@ -178,7 +179,7 @@ class IfCommand implements Command {
           break;
         case "beforeBody": {
           const body =
-            state.args[state.i].asString() == "else"
+            StringValue.toString(state.args[state.i]).data == "else"
               ? state.args[state.i + 1]
               : state.args[state.i + 2];
           if (body.type != ValueType.SCRIPT)
@@ -216,8 +217,8 @@ class IfCommand implements Command {
     if (args.length == 2) return ERROR("wrong # args: missing if body");
     let i = 3;
     while (i < args.length) {
-      const keyword = args[i].asString?.();
-      if (keyword == null) return ERROR("invalid keyword");
+      const { data: keyword, code } = StringValue.toString(args[i]);
+      if (code != ResultCode.OK) return ERROR("invalid keyword");
       switch (keyword) {
         case "elseif":
           switch (args.length - i) {
@@ -486,10 +487,10 @@ class CatchCommand implements Command {
             case ResultCode.RETURN:
             case ResultCode.YIELD:
             case ResultCode.ERROR: {
-              const varname = state.args[i + 1];
+              const { data: varname } = StringValue.toString(state.args[i + 1]);
               const handler = state.args[i + 2];
               const subscope = new Scope(scope, true);
-              subscope.setLocal(varname.asString(), state.result.value);
+              subscope.setLocal(varname, state.result.value);
               state.process = subscope.prepareScriptValue(
                 handler as ScriptValue
               ); // TODO check type
@@ -544,7 +545,7 @@ class CatchCommand implements Command {
   ): number {
     let i = 2;
     while (i < args.length) {
-      const keyword = args[i].asString();
+      const { data: keyword } = StringValue.toString(args[i]);
       switch (keyword) {
         case "return":
           if (code == ResultCode.RETURN) return i;
@@ -576,7 +577,7 @@ class CatchCommand implements Command {
   private findFinallyIndex(args: Value[]): number {
     let i = 2;
     while (i < args.length) {
-      const keyword = args[i].asString();
+      const { data: keyword } = StringValue.toString(args[i]);
       switch (keyword) {
         case "return":
         case "yield":
@@ -596,8 +597,8 @@ class CatchCommand implements Command {
   private checkArgs(args: Value[]): Result {
     let i = 2;
     while (i < args.length) {
-      const keyword = args[i].asString?.();
-      if (keyword == null) return ERROR("invalid keyword");
+      const { data: keyword, code } = StringValue.toString(args[i]);
+      if (code != ResultCode.OK) return ERROR("invalid keyword");
       switch (keyword) {
         case "return":
         case "yield":
@@ -607,10 +608,11 @@ class CatchCommand implements Command {
               return ERROR(`wrong #args: missing ${keyword} handler parameter`);
             case 2:
               return ERROR(`wrong #args: missing ${keyword} handler body`);
-            default:
-              if (!args[i + 1].asString?.())
+            default: {
+              if (StringValue.toString(args[i + 1]).code != ResultCode.OK)
                 return ERROR(`invalid ${keyword} handler parameter name`);
               i += 3;
+            }
           }
           break;
         case "break":

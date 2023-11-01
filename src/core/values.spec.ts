@@ -32,9 +32,6 @@ describe("values", () => {
     it("should be displayed as an empty expression", () => {
       expect(NIL.display()).to.eql("[]");
     });
-    it("should have no string representation", () => {
-      expect(NIL).to.not.have.property("asString");
-    });
     it("should not be index-selectable", () => {
       expect(NIL).to.not.have.property("selectIndex");
       expect(new IndexedSelector(new IntegerValue(1)).apply(NIL)).to.eql(
@@ -64,12 +61,6 @@ describe("values", () => {
     it("should be displayed as true or false literals", () => {
       expect(TRUE.display()).to.eql("true");
       expect(FALSE.display()).to.eql("false");
-    });
-    specify("string representation should be true or false", () => {
-      expect(TRUE.asString()).to.eql("true");
-      expect(FALSE.asString()).to.eql("false");
-      expect(new BooleanValue(true).asString()).to.eql("true");
-      expect(new BooleanValue(false).asString()).to.eql("false");
     });
     describe("fromValue()", () => {
       it("should return the passed BooleanValue", () => {
@@ -149,14 +140,6 @@ describe("values", () => {
       const value = new IntegerValue(integer);
       expect(value.display()).to.eql("4660");
     });
-    specify(
-      "string representation should be the decimal representation of its value",
-      () => {
-        const integer = 0x1234;
-        const value = new IntegerValue(integer);
-        expect(value.asString()).to.eql("4660");
-      }
-    );
     describe("fromValue()", () => {
       it("should return the passed IntegerValue", () => {
         const value = new IntegerValue(1234);
@@ -166,9 +149,16 @@ describe("values", () => {
         const value = new StringValue("1234");
         expect(IntegerValue.fromValue(value).data.value).to.eql(1234);
       });
+      it("should accept round reals", () => {
+        const value = new RealValue(1);
+        expect(IntegerValue.fromValue(value).data.value).to.eql(1);
+      });
       it("should reject non-integer strings", () => {
         expect(IntegerValue.fromValue(NIL)).to.eql(
           ERROR("value has no string representation")
+        );
+        expect(IntegerValue.fromValue(new RealValue(1e100))).to.eql(
+          ERROR('invalid integer "1e+100"')
         );
         expect(IntegerValue.fromValue(new RealValue(1.1))).to.eql(
           ERROR('invalid integer "1.1"')
@@ -215,14 +205,6 @@ describe("values", () => {
       const value = new RealValue(real);
       expect(value.display()).to.eql("123.4");
     });
-    specify(
-      "string representation should be the decimal representation of its value",
-      () => {
-        const real = 123.4;
-        const value = new RealValue(real);
-        expect(value.asString()).to.eql("123.4");
-      }
-    );
     describe("fromValue()", () => {
       it("should return the passed RealValue", () => {
         const value = new RealValue(12.34);
@@ -293,10 +275,53 @@ describe("values", () => {
         );
       });
     });
-    specify("string representation should be its value", () => {
-      const string = "some string";
-      const value = new StringValue(string);
-      expect(value.asString()).to.eql(string);
+    describe("fromValue()", () => {
+      it("should return the passed StringValue", () => {
+        const value = new StringValue("some string");
+        expect(StringValue.fromValue(value).value).to.equal(value);
+      });
+      it("should accept booleans as true/false strings", () => {
+        expect(StringValue.fromValue(FALSE).data.value).to.equal("false");
+        expect(StringValue.fromValue(TRUE).data.value).to.equal("true");
+        expect(
+          StringValue.fromValue(new BooleanValue(false)).data.value
+        ).to.equal("false");
+        expect(
+          StringValue.fromValue(new BooleanValue(true)).data.value
+        ).to.equal("true");
+      });
+      it("should accept integers as decimal strings", () => {
+        const value = new IntegerValue(1234);
+        expect(StringValue.fromValue(value).data.value).to.eql("1234");
+      });
+      it("should accept reals as decimal strings", () => {
+        const value = new RealValue(1.1);
+        expect(StringValue.fromValue(value).data.value).to.eql("1.1");
+      });
+      it("should accept scripts with source", () => {
+        const value = new ScriptValue(new Script(), "source");
+        expect(StringValue.fromValue(value).data.value).to.eql("source");
+      });
+      it("should reject other value types", () => {
+        expect(StringValue.fromValue(NIL)).to.eql(
+          ERROR("value has no string representation")
+        );
+        expect(StringValue.fromValue(new ListValue([]))).to.eql(
+          ERROR("value has no string representation")
+        );
+        expect(StringValue.fromValue(new DictionaryValue({}))).to.eql(
+          ERROR("value has no string representation")
+        );
+        expect(StringValue.fromValue(new TupleValue([]))).to.eql(
+          ERROR("value has no string representation")
+        );
+        expect(StringValue.fromValue(new ScriptValue(new Script()))).to.eql(
+          ERROR("value has no string representation")
+        );
+        expect(
+          StringValue.fromValue(new QualifiedValue(new StringValue("name"), []))
+        ).to.eql(ERROR("value has no string representation"));
+      });
     });
     describe("indexed selectors", () => {
       it("should select characters by index", () => {
@@ -358,10 +383,6 @@ describe("values", () => {
     specify("type should be LIST", () => {
       const value = new ListValue([]);
       expect(value.type).to.eql(ValueType.LIST);
-    });
-    it("should have no string representation", () => {
-      const value = new ListValue([]);
-      expect(value).to.not.have.property("asString");
     });
     describe("fromValue()", () => {
       it("should return the passed ListValue", () => {
@@ -458,10 +479,6 @@ describe("values", () => {
       const value = new DictionaryValue({});
       expect(value.type).to.eql(ValueType.DICTIONARY);
     });
-    it("should have no string representation", () => {
-      const value = new DictionaryValue({});
-      expect(value).to.not.have.property("asString");
-    });
     it("should not be index-selectable", () => {
       const value = new DictionaryValue({});
       expect(value).to.not.have.property("selectIndex");
@@ -486,8 +503,8 @@ describe("values", () => {
         });
         specify("unknown key value", () => {
           const value = new DictionaryValue({});
-          const index = new StringValue("foo");
-          expect(value.selectKey(index)).to.eql(ERROR("unknown key"));
+          const key = new StringValue("foo");
+          expect(value.selectKey(key)).to.eql(ERROR("unknown key"));
         });
       });
     });
@@ -541,10 +558,6 @@ describe("values", () => {
         const value = new TupleValue([new TupleValue([new TupleValue([])])]);
         expect(value.display()).to.eql(`((()))`);
       });
-    });
-    it("should have no string representation", () => {
-      const value = new TupleValue([]);
-      expect(value).to.not.have.property("asString");
     });
     describe("indexed selectors", () => {
       it("should apply to elements", () => {
@@ -734,11 +747,6 @@ describe("values", () => {
         expect(value.display(() => "{}")).to.eql(`{}`);
       });
     });
-    specify("script representation should be its value", () => {
-      const script = "cmd arg1 arg2";
-      const value = new ScriptValue(new Script(), script);
-      expect(value.asString()).to.eql(script);
-    });
     it("should not be index-selectable", () => {
       const value = new ScriptValue(new Script(), "");
       expect(value).to.not.have.property("selectIndex");
@@ -834,10 +842,6 @@ describe("values", () => {
           `{some \\# \\\\\\"\\$\\[\\$\\{\\$\\( \\$string}(key1 key2)`
         );
       });
-    });
-    it("should have no string representation", () => {
-      const value = new QualifiedValue(new StringValue("name"), []);
-      expect(value).to.not.have.property("asString");
     });
     describe("indexed selectors", () => {
       it("should return a new qualified value", () => {

@@ -48,13 +48,6 @@ export interface Value extends Displayable {
   /** Type identifier */
   readonly type: ValueType | CustomValueType;
 
-  /**
-   * Convert to string
-   *
-   * Note: Name has been chosen to avoid conflicting with toString()
-   */
-  asString?(): string;
-
   /** Select value at index */
   selectIndex?(index: Value): Result;
 
@@ -175,11 +168,6 @@ export class BooleanValue implements Value {
   display(): string {
     return this.value ? "true" : "false";
   }
-
-  /** @override */
-  asString(): string {
-    return this.value.toString();
-  }
 }
 
 /** Singleton true value */
@@ -238,7 +226,9 @@ export class IntegerValue implements Value {
       case ValueType.REAL:
         return Number.isSafeInteger((value as RealValue).value);
       default: {
-        const n = Number(value.asString?.());
+        const { data, code } = StringValue.toString(value);
+        if (code != ResultCode.OK) return false;
+        const n = Number(data);
         return !isNaN(n) && Number.isSafeInteger(n);
       }
     }
@@ -259,7 +249,7 @@ export class IntegerValue implements Value {
       return OK(NIL, (value as IntegerValue).value);
     if (value.type == ValueType.REAL) {
       if (!Number.isSafeInteger((value as RealValue).value))
-        return ERROR(`invalid integer "${value.asString()}"`);
+        return ERROR(`invalid integer "${(value as RealValue).value}"`);
       return OK(NIL, (value as RealValue).value);
     }
     const { data: s, ...result } = StringValue.toString(value);
@@ -272,11 +262,6 @@ export class IntegerValue implements Value {
 
   /** @override */
   display(): string {
-    return this.asString();
-  }
-
-  /** @override */
-  asString(): string {
     return this.value.toString();
   }
 }
@@ -335,7 +320,9 @@ export class RealValue implements Value {
       case ValueType.REAL:
         return true;
       default: {
-        return !isNaN(Number(value.asString?.()));
+        const { data, code } = StringValue.toString(value);
+        if (code != ResultCode.OK) return false;
+        return !isNaN(Number(data));
       }
     }
   }
@@ -363,11 +350,6 @@ export class RealValue implements Value {
 
   /** @override */
   display(): string {
-    return this.asString();
-  }
-
-  /** @override */
-  asString(): string {
     return this.value.toString();
   }
 }
@@ -398,23 +380,37 @@ export class StringValue implements Value {
    */
   static fromValue(value: Value): Result<StringValue> {
     if (value.type == ValueType.STRING) return OK(value, value as StringValue);
-    const str = value.asString?.();
-    if (str == null) return ERROR("value has no string representation");
-    const s = new StringValue(str);
-    return OK(s, s);
+    const { data, ...result } = this.toString(value);
+    if (result.code != ResultCode.OK) return result;
+    const v = new StringValue(data);
+    return OK(v, v);
   }
 
   /**
    * Convert value to string
    *
    * @param value - Value to convert
+   * @param [def] - Default result if value has no string representation
    *
    * @returns       Conversion result
    */
-  static toString(value: Value): Result<string> {
-    const str = value.asString?.();
-    if (str == null) return ERROR("value has no string representation");
-    return OK(NIL, str);
+  static toString(value: Value, def?: string): Result<string> {
+    switch (value.type) {
+      case ValueType.STRING:
+        return OK(NIL, (value as StringValue).value);
+      case ValueType.BOOLEAN:
+        return OK(NIL, (value as BooleanValue).value.toString());
+      case ValueType.INTEGER:
+        return OK(NIL, (value as IntegerValue).value.toString());
+      case ValueType.REAL:
+        return OK(NIL, (value as RealValue).value.toString());
+      case ValueType.SCRIPT: {
+        const source = (value as ScriptValue).source;
+        if (source) return OK(NIL, source);
+      }
+    }
+    if (def) return OK(NIL, def);
+    return ERROR("value has no string representation");
   }
 
   /**
@@ -438,11 +434,6 @@ export class StringValue implements Value {
   /** @override */
   display(): string {
     return displayLiteralOrString(this.value);
-  }
-
-  /** @override */
-  asString(): string {
-    return this.value;
   }
 
   /** @override */
@@ -550,8 +541,8 @@ export class DictionaryValue implements Value {
 
   /** @override */
   selectKey(key: Value): Result {
-    const k = key.asString?.();
-    if (k == null) return ERROR("invalid key");
+    const { data: k, code } = StringValue.toString(key);
+    if (code != ResultCode.OK) return ERROR("invalid key");
     if (!this.map.has(k)) return ERROR("unknown key");
     return OK(this.map.get(k));
   }
@@ -649,11 +640,6 @@ export class ScriptValue implements Value {
     if (this.source == null) return fn(this);
     return `{${this.source}}`;
   }
-
-  /** @override */
-  asString(): string {
-    return this.source;
-  }
 }
 
 /**
@@ -683,11 +669,18 @@ export class QualifiedValue implements Value {
 
   /** @override */
   display(fn = defaultDisplayFunction): string {
+    let source;
+    if (this.source.type == ValueType.TUPLE) {
+      source = this.source.display(fn);
+    } else {
+      const { data, code } = StringValue.toString(this.source);
+      source =
+        code == ResultCode.OK
+          ? displayLiteralOrBlock(data)
+          : undisplayableValue("source");
+    }
     return (
-      (this.source.type == ValueType.TUPLE
-        ? this.source.display(fn)
-        : displayLiteralOrBlock(this.source.asString?.())) +
-      this.selectors.map((selector) => display(selector, fn)).join("")
+      source + this.selectors.map((selector) => display(selector, fn)).join("")
     );
   }
 

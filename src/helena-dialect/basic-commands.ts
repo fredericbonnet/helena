@@ -9,9 +9,9 @@ import {
   YIELD,
 } from "../core/results";
 import { Command } from "../core/command";
-import { NIL, STR } from "../core/values";
+import { NIL, STR, StringValue } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { CommandValue, commandValueType, DeferredValue, Scope } from "./core";
+import { DeferredValue, Scope } from "./core";
 
 const IDEM_SIGNATURE = "idem value";
 const idemCmd: Command = {
@@ -65,7 +65,9 @@ const ERROR_SIGNATURE = "error message";
 const errorCmd: Command = {
   execute: (args) => {
     if (args.length != 2) return ARITY_ERROR(ERROR_SIGNATURE);
-    if (args[1].asString?.() == null) return ERROR("invalid message");
+    // TODO accept non-string messages?
+    if (StringValue.toString(args[1]).code != ResultCode.OK)
+      return ERROR("invalid message");
     return {
       code: ResultCode.ERROR,
       value: args[1],
@@ -117,19 +119,23 @@ const HELP_SIGNATURE = "help command ?arg ...?";
 const helpCmd: Command = {
   execute: (args, scope: Scope) => {
     if (args.length < 2) return ARITY_ERROR(HELP_SIGNATURE);
-    const cmdname = args[1].asString?.();
-    let command;
-    if (args[1].type == commandValueType) {
-      command = (args[1] as CommandValue).command;
-    } else {
-      if (cmdname == null) return ERROR("invalid command name");
-      command = scope.resolveNamedCommand(cmdname);
-      if (!command) return ERROR(`unknown command "${cmdname}"`);
-    }
-    if (!command.help)
+    const command = scope.resolveCommand(args[1]);
+    if (!command) {
+      const { data: cmdname, code } = StringValue.toString(args[1]);
       return ERROR(
-        cmdname ? `no help for command "${cmdname}"` : "no help for command"
+        code == ResultCode.OK
+          ? `unknown command "${cmdname}"`
+          : "invalid command name"
       );
+    }
+    if (!command.help) {
+      const { data: cmdname, code } = StringValue.toString(args[1]);
+      return ERROR(
+        code == ResultCode.OK
+          ? `no help for command "${cmdname}"`
+          : "no help for command"
+      );
+    }
     return command.help(args.slice(1), {}, scope);
   },
   help: () => {

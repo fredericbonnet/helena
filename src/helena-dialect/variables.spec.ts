@@ -3,10 +3,12 @@ import * as mochadoc from "../../mochadoc";
 import { ERROR, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, LIST, DICT, NIL, STR, TRUE } from "../core/values";
+import { FALSE, LIST, DICT, NIL, STR, TRUE, StringValue } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand } from "./test-helpers";
+
+const asString = (value) => StringValue.toString(value).data;
 
 describe("Helena constants and variables", () => {
   let rootScope: Scope;
@@ -27,7 +29,7 @@ describe("Helena constants and variables", () => {
   };
   const usage = (script: string) => {
     init();
-    return codeBlock(evaluate("help " + script).asString());
+    return codeBlock(asString(evaluate("help " + script)));
   };
 
   beforeEach(init);

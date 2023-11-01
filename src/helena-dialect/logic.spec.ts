@@ -10,11 +10,13 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, TRUE, NIL, STR } from "../core/values";
+import { FALSE, TRUE, NIL, STR, StringValue } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 import { EnsembleMetacommand } from "./ensembles";
+
+const asString = (value) => StringValue.toString(value).data;
 
 describe("Helena logic operations", () => {
   let rootScope: Scope;
@@ -36,7 +38,7 @@ describe("Helena logic operations", () => {
   };
   const usage = (script: string) => {
     init();
-    return codeBlock(evaluate("help " + script).asString());
+    return codeBlock(asString(evaluate("help " + script)));
   };
   const example = specifyExample(({ script }) => execute(script));
 

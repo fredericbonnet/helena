@@ -3,12 +3,23 @@ import * as mochadoc from "../../mochadoc";
 import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, INT, DICT, NIL, STR, TRUE, TUPLE } from "../core/values";
+import {
+  FALSE,
+  INT,
+  DICT,
+  NIL,
+  STR,
+  TRUE,
+  TUPLE,
+  StringValue,
+} from "../core/values";
 import { Scope, commandValueType } from "./core";
 import { initCommands } from "./helena-dialect";
 import { displayDictionaryValue } from "./dicts";
 import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 import { EnsembleMetacommand } from "./ensembles";
+
+const asString = (value) => StringValue.toString(value).data;
 
 describe("Helena dictionaries", () => {
   let rootScope: Scope;
@@ -30,7 +41,7 @@ describe("Helena dictionaries", () => {
   };
   const usage = (script: string) => {
     init();
-    return codeBlock(evaluate("help " + script).asString());
+    return codeBlock(asString(evaluate("help " + script)));
   };
   const example = specifyExample(({ script }) => execute(script));
 

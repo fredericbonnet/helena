@@ -15,6 +15,7 @@ import {
   LIST,
   STR,
   TUPLE,
+  StringValue,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import {
@@ -70,8 +71,8 @@ export class EnsembleMetacommand implements CommandValue, Command {
       call: () => {
         if (args.length < 3)
           return ARITY_ERROR("<ensemble> call cmdname ?arg ...?");
-        const subcommand = args[2].asString?.();
-        if (subcommand == null) return ERROR("invalid command name");
+        const { data: subcommand, code } = StringValue.toString(args[2]);
+        if (code != ResultCode.OK) return ERROR("invalid command name");
         if (!this.scope.hasLocalCommand(subcommand))
           return ERROR(`unknown command "${subcommand}"`);
         const command = this.scope.resolveNamedCommand(subcommand);
@@ -87,7 +88,7 @@ export class EnsembleMetacommand implements CommandValue, Command {
 }
 
 const ENSEMBLE_COMMAND_PREFIX = (name, args) =>
-  `${name.asString?.() ?? "<ensemble>"}${args ? " " + args : ""}`;
+  `${StringValue.toString(name, "<ensemble>").data}${args ? " " + args : ""}`;
 class EnsembleCommand implements Command {
   readonly metacommand: EnsembleMetacommand;
   constructor(metacommand: EnsembleMetacommand) {
@@ -117,8 +118,8 @@ class EnsembleCommand implements Command {
     if (args.length == minArgs) {
       return OK(TUPLE(ensembleArgs));
     }
-    const subcommand = args[minArgs].asString?.();
-    if (subcommand == null) return ERROR("invalid subcommand name");
+    const { data: subcommand, code } = StringValue.toString(args[minArgs]);
+    if (code != ResultCode.OK) return ERROR("invalid subcommand name");
     if (subcommand == "subcommands") {
       if (args.length != minArgs + 1) {
         return ARITY_ERROR(
@@ -152,8 +153,8 @@ class EnsembleCommand implements Command {
     if (args.length <= minArgs) {
       return OK(STR(signature + " ?subcommand? ?arg ...?"));
     }
-    const subcommand = args[minArgs].asString?.();
-    if (subcommand == null) return ERROR("invalid subcommand name");
+    const { data: subcommand, code } = StringValue.toString(args[minArgs]);
+    if (code != ResultCode.OK) return ERROR("invalid subcommand name");
     if (subcommand == "subcommands") {
       if (args.length > minArgs + 1) {
         return ARITY_ERROR(signature + " subcommands");

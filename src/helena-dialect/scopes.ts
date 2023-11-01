@@ -8,7 +8,14 @@ import {
   RESULT_CODE_NAME,
 } from "../core/results";
 import { Command } from "../core/command";
-import { Value, ScriptValue, ValueType, TUPLE, STR } from "../core/values";
+import {
+  Value,
+  ScriptValue,
+  ValueType,
+  TUPLE,
+  STR,
+  StringValue,
+} from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import {
   CommandValue,
@@ -48,8 +55,8 @@ class ScopeValue implements CommandValue, Command {
       call: () => {
         if (args.length < 3)
           return ARITY_ERROR("<scope> call cmdname ?arg ...?");
-        const command = args[2].asString?.();
-        if (command == null) return ERROR("invalid command name");
+        const { data: command, code } = StringValue.toString(args[2]);
+        if (code != ResultCode.OK) return ERROR("invalid command name");
         if (!this.scope.hasLocalCommand(command))
           return ERROR(`unknown command "${command}"`);
         const cmdline = args.slice(2);

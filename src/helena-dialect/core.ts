@@ -26,6 +26,7 @@ import {
   RealValue,
   TupleValue,
   NIL,
+  StringValue,
 } from "../core/values";
 import { numberCmd } from "./numbers";
 
@@ -180,7 +181,9 @@ export class Scope {
     if (value.type == ValueType.TUPLE) return expandPrefixCmd;
     if (value.type == commandValueType) return (value as CommandValue).command;
     if (RealValue.isNumber(value)) return numberCmd;
-    return this.resolveNamedCommand(value.asString?.());
+    const { data: cmdname, code } = StringValue.toString(value);
+    if (code != ResultCode.OK) return null;
+    return this.resolveNamedCommand(cmdname);
   }
   resolveNamedCommand(name: string): Command {
     let context = this.context;
@@ -210,8 +213,8 @@ export class Scope {
     return OK(value);
   }
   setConstant(constant: Value, value: Value, check = false): Result {
-    const name = constant.asString?.();
-    if (name == null) return ERROR("invalid constant name");
+    const { data: name, code } = StringValue.toString(constant);
+    if (code != ResultCode.OK) return ERROR("invalid constant name");
     return this.setNamedConstant(name, value, check);
   }
   setNamedVariable(name: string, value: Value, check = false): Result {
@@ -226,13 +229,13 @@ export class Scope {
     return OK(value);
   }
   setVariable(variable: Value, value: Value, check = false): Result {
-    const name = variable.asString?.();
-    if (name == null) return ERROR("invalid variable name");
+    const { data: name, code } = StringValue.toString(variable);
+    if (code != ResultCode.OK) return ERROR("invalid variable name");
     return this.setNamedVariable(name, value, check);
   }
   unsetVariable(variable: Value, check = false): Result {
-    const name = variable.asString?.();
-    if (name == null) return ERROR("invalid variable name");
+    const { data: name, code } = StringValue.toString(variable);
+    if (code != ResultCode.OK) return ERROR("invalid variable name");
     if (this.locals.has(name)) {
       return ERROR(`cannot unset local "${name}"`);
     }
@@ -247,8 +250,8 @@ export class Scope {
     return OK(NIL);
   }
   getVariable(variable: Value, def?: Value): Result {
-    const name = variable.asString?.();
-    if (name == null) return ERROR("invalid variable name");
+    const { data: name, code } = StringValue.toString(variable);
+    if (code != ResultCode.OK) return ERROR("invalid variable name");
     const value = this.resolveVariable(name);
     if (value) return OK(value);
     if (def) return OK(def);
@@ -263,8 +266,8 @@ export class Scope {
   }
 
   registerCommand(name: Value, command: Command): Result {
-    const cmdname = name.asString?.();
-    if (cmdname == null) return ERROR("invalid command name");
+    const { data: cmdname, code } = StringValue.toString(name);
+    if (code != ResultCode.OK) return ERROR("invalid command name");
     this.context.commands.set(cmdname, command);
     return OK(NIL);
   }
@@ -288,9 +291,9 @@ export const expandPrefixCmd: Command = {
     const [command, args2] = resolveLeadingTuple(args, scope);
     if (!command) {
       if (!args2 || args2.length == 0) return OK(NIL);
-      const cmdname = args2[0].asString?.();
+      const { data: cmdname, code } = StringValue.toString(args2[0]);
       return ERROR(
-        cmdname == null
+        code != ResultCode.OK
           ? `invalid command name`
           : `cannot resolve command "${cmdname}"`
       );

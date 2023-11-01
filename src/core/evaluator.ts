@@ -170,9 +170,10 @@ export class InlineEvaluator implements Evaluator {
       if (!this.commandResolver) throw new Error("no command resolver");
       const command = this.commandResolver.resolve(values[0]);
       if (!command) {
-        const cmdname = values[0].asString?.();
+        const { data: cmdname, code } = StringValue.toString(values[0]);
+        if (code != ResultCode.OK) return ERROR("invalid command name");
         return ERROR(
-          cmdname == null
+          code != ResultCode.OK
             ? `invalid command name`
             : `cannot resolve command "${cmdname}"`
         );
@@ -485,8 +486,8 @@ export class InlineEvaluator implements Evaluator {
         );
       }
       default: {
-        const varname = source.asString?.();
-        if (varname == null)
+        const { data: varname, code } = StringValue.toString(source);
+        if (code != ResultCode.OK)
           throw new Interrupt(ERROR(`invalid variable name`));
         return this.resolveVariable(varname);
       }

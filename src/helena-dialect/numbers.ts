@@ -10,6 +10,7 @@ import {
   LIST,
   STR,
   IntegerValue,
+  StringValue,
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
@@ -68,8 +69,8 @@ const arithmetics = (args: Value[], operand1: number): Result => {
   let total = 0;
   let last = operand1;
   for (let i = 1; i < args.length; i += 2) {
-    const operator = args[i].asString?.();
-    if (operator == null) return ERROR(`invalid operator`);
+    const { data: operator, code } = StringValue.toString(args[i]);
+    if (code != ResultCode.OK) return ERROR(`invalid operator`);
     switch (operator) {
       case "+": {
         const { data: operator2, ...result } = RealValue.toNumber(args[i + 1]);

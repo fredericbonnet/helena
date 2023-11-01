@@ -3,10 +3,12 @@ import * as mochadoc from "../../mochadoc";
 import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, STR, TRUE } from "../core/values";
+import { FALSE, STR, StringValue, TRUE } from "../core/values";
 import { commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand } from "./test-helpers";
+
+const asString = (value) => StringValue.toString(value).data;
 
 describe("Helena coroutines", () => {
   let rootScope: Scope;
@@ -28,7 +30,7 @@ describe("Helena coroutines", () => {
   };
   const usage = (script: string) => {
     init();
-    return codeBlock(evaluate("help " + script).asString());
+    return codeBlock(asString(evaluate("help " + script)));
   };
 
   beforeEach(init);

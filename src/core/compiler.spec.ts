@@ -29,7 +29,10 @@ import {
   TUPLE,
   Value,
   ValueType,
+  StringValue,
 } from "./values";
+
+const asString = (value) => StringValue.toString(value).data;
 
 class MockVariableResolver implements VariableResolver {
   resolve(name: string): Value {
@@ -50,9 +53,9 @@ class IntCommand implements Command {
 const INT_CMD = new IntCommand();
 class MockCommandResolver implements CommandResolver {
   resolve(name: Value): Command {
-    if (name.type == ValueType.INTEGER || !isNaN(parseInt(name.asString?.())))
+    if (name.type == ValueType.INTEGER || !isNaN(parseInt(asString(name))))
       return INT_CMD;
-    return this.commands.get(name.asString?.());
+    return this.commands.get(asString(name));
   }
 
   commands: Map<string, Command> = new Map();
@@ -1523,7 +1526,7 @@ describe("Compilation and execution", () => {
 
                 const called = {};
                 const fn: Command = new FunctionCommand((args) => {
-                  const cmd = args[0].asString();
+                  const cmd = asString(args[0]);
                   called[cmd] = called[cmd] ?? 0 + 1;
                   return args[1];
                 });
@@ -3049,12 +3052,11 @@ describe("Compilation and execution", () => {
               "if",
               new FunctionCommand((args) => {
                 const condition = args[1];
-                const block =
-                  condition.asString() == "true" ? args[2] : args[4];
+                const block = asString(condition) == "true" ? args[2] : args[4];
                 const script =
                   block.type == ValueType.SCRIPT
                     ? (block as ScriptValue).script
-                    : parse(block.asString());
+                    : parse(asString(block));
                 const program = compiler.compileScript(script);
                 return evaluate(program);
               })
@@ -3098,7 +3100,7 @@ describe("Compilation and execution", () => {
                 const script =
                   block.type == ValueType.SCRIPT
                     ? (block as ScriptValue).script
-                    : parse(block.asString());
+                    : parse(asString(block));
                 const program = compiler.compileScript(script);
                 let value: Value = NIL;
                 for (let i = 0; i < nb; i++) {
@@ -3112,7 +3114,7 @@ describe("Compilation and execution", () => {
             commandResolver.register(
               "cmd",
               new FunctionCommand((args) => {
-                const value = args[1].asString();
+                const value = asString(args[1]);
                 acc += value;
                 return INT(counter++);
               })
