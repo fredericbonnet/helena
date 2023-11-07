@@ -9,11 +9,17 @@ import {
   SelectorResolver,
   VariableResolver,
 } from "./resolvers";
-import { IndexedSelector, KeyedSelector, Selector } from "./selectors";
+import {
+  IndexedSelector,
+  KeyedSelector,
+  Selector,
+  SelectorCreationError,
+} from "./selectors";
 import {
   BlockMorpheme,
   ExpressionMorpheme,
   HereStringMorpheme,
+  InvalidWordStructureError,
   LiteralMorpheme,
   Morpheme,
   MorphemeType,
@@ -24,6 +30,7 @@ import {
   SyntaxChecker,
   TaggedStringMorpheme,
   TupleMorpheme,
+  UnexpectedMorphemeError,
   Word,
   WordType,
 } from "./syntax";
@@ -223,7 +230,7 @@ export class Compiler {
       case WordType.IGNORED:
         break;
       case WordType.INVALID:
-        throw new Error("invalid word structure");
+        throw new InvalidWordStructureError("invalid word structure");
       default:
         throw new Error("CANTHAPPEN");
     }
@@ -273,7 +280,7 @@ export class Compiler {
       }
 
       default:
-        throw new Error("unexpected morpheme");
+        throw new UnexpectedMorphemeError("unexpected morpheme");
     }
   }
   private emitCompound(program: Program, morphemes: Morpheme[]) {
@@ -311,7 +318,7 @@ export class Compiler {
       }
 
       default:
-        throw new Error("unexpected morpheme");
+        throw new UnexpectedMorphemeError("unexpected morpheme");
     }
     for (let i = 2; i < morphemes.length; i++) {
       const morpheme = morphemes[i];
@@ -335,7 +342,7 @@ export class Compiler {
         }
 
         default:
-          throw new Error("unexpected morpheme");
+          throw new UnexpectedMorphemeError("unexpected morpheme");
       }
     }
     for (let level = 1; level < substitute.levels; level++) {
@@ -367,7 +374,7 @@ export class Compiler {
       }
 
       default:
-        throw new Error("unexpected morpheme");
+        throw new UnexpectedMorphemeError("unexpected morpheme");
     }
     for (let i = 1; i < morphemes.length; i++) {
       const morpheme = morphemes[i];
@@ -391,7 +398,7 @@ export class Compiler {
         }
 
         default:
-          throw new Error("unexpected morpheme");
+          throw new UnexpectedMorphemeError("unexpected morpheme");
       }
     }
   }
@@ -442,7 +449,7 @@ export class Compiler {
             }
 
             default:
-              throw new Error("unexpected morpheme");
+              throw new UnexpectedMorphemeError("unexpected morpheme");
           }
           mode = "selectable";
           break;
@@ -470,7 +477,7 @@ export class Compiler {
             }
 
             default:
-              throw new Error("unexpected morpheme");
+              throw new UnexpectedMorphemeError("unexpected morpheme");
           }
           break;
         }
@@ -496,7 +503,7 @@ export class Compiler {
             }
 
             default:
-              throw new Error("unexpected morpheme");
+              throw new UnexpectedMorphemeError("unexpected morpheme");
           }
         }
       }
@@ -775,7 +782,9 @@ export class Executor {
           {
             const index = state.pop();
             const value = state.pop();
-            const selector = new IndexedSelector(index);
+            const { data: selector, ...result2 } =
+              IndexedSelector.create(index);
+            if (result2.code != ResultCode.OK) return result2;
             const result = selector.apply(value);
             if (result.code != ResultCode.OK) return result;
             state.push(result.value);
@@ -786,7 +795,10 @@ export class Executor {
           {
             const keys = state.pop() as TupleValue;
             const value = state.pop();
-            const selector = new KeyedSelector(keys.values);
+            const { data: selector, ...result2 } = KeyedSelector.create(
+              keys.values
+            );
+            if (result2.code != ResultCode.OK) return result2;
             const result = selector.apply(value);
             if (result.code != ResultCode.OK) return result;
             state.push(result.value);
@@ -934,7 +946,7 @@ export class Executor {
   /**
    * Resolve tuple values recursively
    *
-   * @param tuple - Tuple to map
+   * @param tuple - Tuple to resolve
    *
    * @returns       Resolved tuple
    */
@@ -970,10 +982,15 @@ export class Executor {
     return OK(NIL, command);
   }
   private resolveSelector(rules: Value[]): Result<Selector> {
-    const selector = this.selectorResolver.resolve(rules);
-    if (!selector)
-      return ERROR(`cannot resolve selector {${displayList(rules)}}`);
-    return OK(NIL, selector);
+    try {
+      const selector = this.selectorResolver.resolve(rules);
+      if (!selector)
+        return ERROR(`cannot resolve selector {${displayList(rules)}}`);
+      return OK(NIL, selector);
+    } catch (e) {
+      if (e instanceof SelectorCreationError) return ERROR(e.message);
+      throw e;
+    }
   }
 }
 
@@ -1087,7 +1104,8 @@ export class Translator {
           {
             const index = state.pop();
             const value = state.pop();
-            const selector = new IndexedSelector(index);
+            const { data: selector, ...result2 } =
+              IndexedSelector.create(index);
             const result = selector.apply(value);
             if (result.code != ResultCode.OK) return result;
             state.push(result.value);
@@ -1100,7 +1118,10 @@ export class Translator {
           {
             const keys = state.pop();
             const value = state.pop();
-            const selector = new KeyedSelector(keys.values);
+            const { data: selector, ...result2 } = KeyedSelector.create(
+              keys.values
+            );
+            if (result2.code != ResultCode.OK) return result2;
             const result = selector.apply(value);
             if (result.code != ResultCode.OK) return result;
             state.push(result.value);

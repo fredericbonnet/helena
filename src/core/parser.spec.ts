@@ -56,7 +56,7 @@ const mapMorpheme = (morpheme: Morpheme) => {
           : "SUBSTITUTE_NEXT"]: (morpheme as SubstituteNextMorpheme).levels,
       };
     default:
-      throw new Error("TODO");
+      throw new Error("CANTHAPPEN");
   }
 };
 const toTree = (script: Script) =>

@@ -5,6 +5,47 @@
 import { Value } from "./values";
 
 /**
+ * Generic syntax error
+ */
+export class SyntaxError extends Error {
+  /**
+   *
+   * @param message - Error message
+   */
+  constructor(message) {
+    super(message);
+    this.name = "CompilationError";
+  }
+}
+
+/**
+ * Thrown when a word has an invalid structure
+ */
+export class InvalidWordStructureError extends SyntaxError {
+  /**
+   *
+   * @param message - Error message
+   */
+  constructor(message) {
+    super(message);
+    this.name = "InvalidWordStructureError";
+  }
+}
+
+/**
+ * Thrown when a word contains an unexpected morpheme
+ */
+export class UnexpectedMorphemeError extends SyntaxError {
+  /**
+   *
+   * @param message - Error message
+   */
+  constructor(message) {
+    super(message);
+    this.name = "UnexpectedMorphemeError";
+  }
+}
+/**
  * Helena script
  *
  * Scripts are lists of sentences

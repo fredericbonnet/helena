@@ -59,6 +59,7 @@ describe("selectors", () => {
     describe("exceptions", () => {
       specify("invalid index", () => {
         expect(() => new IndexedSelector(NIL)).to.throw("invalid index");
+        expect(IndexedSelector.create(NIL)).to.eql(ERROR("invalid index"));
       });
       specify("non-selectable value", () => {
         const selector = new IndexedSelector(INT(1));
@@ -107,6 +108,7 @@ describe("selectors", () => {
     describe("exceptions", () => {
       specify("empty key list", () => {
         expect(() => new KeyedSelector([])).to.throws("empty selector");
+        expect(KeyedSelector.create([])).to.eql(ERROR("empty selector"));
       });
       specify("non-selectable value", () => {
         const selector = new KeyedSelector([INT(1)]);
@@ -169,6 +171,7 @@ describe("selectors", () => {
     describe("exceptions", () => {
       specify("empty rules", () => {
         expect(() => new GenericSelector([])).to.throws("empty selector");
+        expect(GenericSelector.create([])).to.eql(ERROR("empty selector"));
       });
       specify("non-selectable value", () => {
         const selector = new GenericSelector([STR("rule")]);

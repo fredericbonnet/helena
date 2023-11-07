@@ -7,6 +7,49 @@ import { NIL, TupleValue, Value, ValueType, selectGeneric } from "./values";
 import { defaultDisplayFunction, Displayable, displayList } from "./display";
 
 /**
+ * Generic selector creation error
+ */
+export class SelectorCreationError extends Error {
+  /**
+   *
+   * @param message - Error message
+   */
+  constructor(message) {
+    super(message);
+    this.name = "SelectorCreationError";
+  }
+}
+
+/**
+ * Thrown when creating an indexed selector with an invalid index
+ */
+export class InvalidIndexError extends SelectorCreationError {
+  /**
+   *
+   * @param message - Error message
+   */
+  constructor(message) {
+    super(message);
+    this.name = "InvalidIndexError";
+  }
+}
+
+/**
+ * Thrown when creating a keyed selector with no keys, or a generic selector
+ * with no rules.
+ */
+export class EmptySelectorError extends SelectorCreationError {
+  /**
+   *
+   * @param message - Error message
+   */
+  constructor(message) {
+    super(message);
+    this.name = "EmptySelectorError";
+  }
+}
+
+/**
  * Helena selector
  *
  * Selectors apply to values to access their subvalues
@@ -38,8 +81,20 @@ export class IndexedSelector implements Selector {
    * @param index - Index to select
    */
   constructor(index: Value) {
-    if (index == NIL) throw new Error("invalid index");
+    if (index == NIL) throw new InvalidIndexError("invalid index");
     this.index = index;
+  }
+
+  /**
+   * Factory function, returns a result instead of throwing.
+   *
+   * @param index - Index to select
+   *
+   * @returns       New selector or error
+   */
+  static create(index: Value): Result<Selector> {
+    if (index == NIL) return ERROR("invalid index");
+    return OK<Selector>(NIL, new IndexedSelector(index));
   }
 
   /** @override */
@@ -69,8 +124,20 @@ export class KeyedSelector implements Selector {
    * @param keys - Keys to select
    */
   constructor(keys: Value[]) {
-    if (keys.length == 0) throw new Error("empty selector");
+    if (keys.length == 0) throw new EmptySelectorError("empty selector");
     this.keys = keys;
+  }
+
+  /**
+   * Factory function, returns a result instead of throwing.
+   *
+   * @param keys - Keys to select
+   *
+   * @returns      New selector or error
+   */
+  static create(keys: Value[]): Result<Selector> {
+    if (keys.length == 0) return ERROR("empty selector");
+    return OK<Selector>(NIL, new KeyedSelector(keys));
   }
 
   /** @override */
@@ -104,8 +171,20 @@ export class GenericSelector implements Selector {
    * @param rules - Rules to apply
    */
   constructor(rules: Value[]) {
-    if (rules.length == 0) throw new Error("empty selector");
+    if (rules.length == 0) throw new EmptySelectorError("empty selector");
     this.rules = rules;
+  }
+
+  /**
+   * Factory function, returns a result instead of throwing.
+   *
+   * @param rules - Rules to apply
+   *
+   * @returns       New selector or error
+   */
+  static create(rules: Value[]): Result<Selector> {
+    if (rules.length == 0) return ERROR("empty selector");
+    return OK<Selector>(NIL, new GenericSelector(rules));
   }
 
   /** @override */

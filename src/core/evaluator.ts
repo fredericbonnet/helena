@@ -18,8 +18,16 @@ import {
   SubstituteNextMorpheme,
   SyntaxChecker,
   WordType,
+  SyntaxError,
+  InvalidWordStructureError,
+  UnexpectedMorphemeError,
 } from "./syntax";
-import { IndexedSelector, KeyedSelector, Selector } from "./selectors";
+import {
+  IndexedSelector,
+  KeyedSelector,
+  Selector,
+  SelectorCreationError,
+} from "./selectors";
 import {
   StringValue,
   NIL,
@@ -192,7 +200,7 @@ export class InlineEvaluator implements Evaluator {
   /** @override */
   evaluateWord(word: Word): Result {
     const type = this.syntaxChecker.checkWord(word);
-    if (type == WordType.INVALID) throw new Error("invalid word structure");
+    if (type == WordType.INVALID) return ERROR("invalid word structure");
     try {
       return OK(this.getWordValue(word, type));
     } catch (e) {
@@ -232,7 +240,7 @@ export class InlineEvaluator implements Evaluator {
         return NIL;
 
       default:
-        throw new Error("unknown word type");
+        throw new Error("CANTHAPPEN");
     }
   }
   private getWordValues(words: (Word | Value)[]): Value[] {
@@ -240,7 +248,8 @@ export class InlineEvaluator implements Evaluator {
     for (const word of words) {
       if (word instanceof Word) {
         const type = this.syntaxChecker.checkWord(word);
-        if (type == WordType.INVALID) throw new Error("invalid word structure");
+        if (type == WordType.INVALID)
+          throw new InvalidWordStructureError("invalid word structure");
         if (type == WordType.IGNORED) continue;
         const value = this.getWordValue(word, type);
         if (
@@ -287,7 +296,7 @@ export class InlineEvaluator implements Evaluator {
       case MorphemeType.TAGGED_STRING:
         return this.evaluateTaggedString(morpheme as TaggedStringMorpheme);
       default:
-        throw new Error("unexpected morpheme");
+        throw new UnexpectedMorphemeError("unexpected morpheme");
     }
   }
 
@@ -454,7 +463,7 @@ export class InlineEvaluator implements Evaluator {
         break;
 
       default:
-        throw new Error("unexpected morpheme");
+        throw new UnexpectedMorphemeError("unexpected morpheme");
     }
     value = this.applySelectors(value, selectors);
     value = this.resolveLevels(value, levels);
@@ -521,31 +530,47 @@ export class InlineEvaluator implements Evaluator {
     switch (morpheme.type) {
       case MorphemeType.TUPLE: {
         const keys = this.evaluateTuple(morpheme as TupleMorpheme).values;
-        return new KeyedSelector(keys);
+        try {
+          return new KeyedSelector(keys);
+        } catch (e) {
+          if (e instanceof SelectorCreationError)
+            throw new Interrupt(ERROR(e.message));
+          throw e;
+        }
       }
 
       case MorphemeType.BLOCK: {
         const script = this.evaluateBlock(morpheme as BlockMorpheme);
         const rules = this.evaluateSelectorRules(script.script);
-        return this.selectorResolver.resolve(rules);
+        try {
+          return this.selectorResolver.resolve(rules);
+        } catch (e) {
+          if (e instanceof SelectorCreationError)
+            throw new Interrupt(ERROR(e.message));
+          throw e;
+        }
       }
 
       case MorphemeType.EXPRESSION: {
         const index = this.evaluateExpression(morpheme as ExpressionMorpheme);
-        return new IndexedSelector(index);
+        try {
+          return new IndexedSelector(index);
+        } catch (e) {
+          if (e instanceof SelectorCreationError)
+            throw new Interrupt(ERROR(e.message));
+          throw e;
+        }
       }
     }
     return null;
   }
   private evaluateSelectorRules(script: Script) {
-    if (script.sentences.length == 0) throw new Error("empty selector");
     const rules = script.sentences.map((sentence) =>
       this.evaluateSelectorRule(sentence)
     );
     return rules;
   }
   private evaluateSelectorRule(sentence: Sentence): Value {
-    if (sentence.words.length == 0) throw new Error("empty selector rule");
     const words: Value[] = [];
     for (const word of sentence.words) {
       if (word instanceof Word) {
@@ -642,7 +667,12 @@ export class CompilingEvaluator implements Evaluator {
    * @returns      Result of word evaluation
    */
   evaluateWord(word: Word): Result {
-    const program = this.compiler.compileWord(word);
-    return this.executor.execute(program);
+    try {
+      const program = this.compiler.compileWord(word);
+      return this.executor.execute(program);
+    } catch (e) {
+      if (e instanceof SyntaxError) return ERROR(e.message);
+      throw e;
+    }
   }
 }

@@ -68,7 +68,7 @@ const mapValue = (value: Value) => {
       selectors: value.selectors.map(mapSelector),
     };
   }
-  throw new Error("TODO");
+  throw new Error("CANTHAPPEN");
 };
 const mapSelector = (selector: Selector) => {
   if (selector instanceof IndexedSelector) {
@@ -806,27 +806,27 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           describe("exceptions", () => {
             specify("empty indexed selector", () => {
               const word = firstWord(parse("var[1][]"));
-              expect(() => evaluator.evaluateWord(word)).to.throws(
-                "invalid index"
+              expect(evaluator.evaluateWord(word)).to.eql(
+                ERROR("invalid index")
               );
             });
             specify("empty keyed selector", () => {
               const word = firstWord(parse("var(key)()"));
-              expect(() => evaluator.evaluateWord(word)).to.throws(
-                "empty selector"
+              expect(evaluator.evaluateWord(word)).to.eql(
+                ERROR("empty selector")
               );
             });
             specify("empty generic selector", () => {
               selectorResolver.register((rules) => new GenericSelector(rules));
               const word = firstWord(parse("var{rule}{}"));
-              expect(() => evaluator.evaluateWord(word)).to.throws(
-                "empty selector"
+              expect(evaluator.evaluateWord(word)).to.eql(
+                ERROR("empty selector")
               );
             });
             specify("invalid trailing morphemes", () => {
               const word = firstWord(parse("var(key1)2"));
-              expect(() => evaluator.evaluateWord(word)).to.throws(
-                "invalid word structure"
+              expect(evaluator.evaluateWord(word)).to.eql(
+                ERROR("invalid word structure")
               );
             });
           });
@@ -920,27 +920,27 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           describe("exceptions", () => {
             specify("empty indexed selector", () => {
               const word = firstWord(parse("(var1 var2 (var3 var4))[1][]"));
-              expect(() => evaluator.evaluateWord(word)).to.throws(
-                "invalid index"
+              expect(evaluator.evaluateWord(word)).to.eql(
+                ERROR("invalid index")
               );
             });
             specify("empty keyed selector", () => {
               const word = firstWord(parse("(var1 var2 (var3 var4))(key)()"));
-              expect(() => evaluator.evaluateWord(word)).to.throws(
-                "empty selector"
+              expect(evaluator.evaluateWord(word)).to.eql(
+                ERROR("empty selector")
               );
             });
             specify("empty generic selector", () => {
               selectorResolver.register((rules) => new GenericSelector(rules));
               const word = firstWord(parse("(var1 var2 (var3 var4)){rule}{}"));
-              expect(() => evaluator.evaluateWord(word)).to.throws(
-                "empty selector"
+              expect(evaluator.evaluateWord(word)).to.eql(
+                ERROR("empty selector")
               );
             });
             specify("invalid trailing morphemes", () => {
               const word = firstWord(parse("(var1 var2)(key1)2"));
-              expect(() => evaluator.evaluateWord(word)).to.throws(
-                "invalid word structure"
+              expect(evaluator.evaluateWord(word)).to.eql(
+                ERROR("invalid word structure")
               );
             });
           });
@@ -1299,8 +1299,8 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             specify("empty selector", () => {
               variableResolver.register("var", DICT({ key: STR("value") }));
               const word = firstWord(parse("$var()"));
-              expect(() => evaluator.evaluateWord(word)).to.throws(
-                "empty selector"
+              expect(evaluator.evaluateWord(word)).to.eql(
+                ERROR("empty selector")
               );
             });
           });
@@ -1585,17 +1585,6 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           );
           const { value } = evaluator.evaluateSentence(sentence);
           expect(value).to.eql(NIL);
-        });
-        specify("command", () => {
-          commandResolver.register(
-            "cmd",
-            new FunctionCommand((args) => TUPLE(args))
-          );
-          const sentence = firstSentence(
-            parse("cmd #{ this is\na\nblock comment }# arg")
-          );
-          const { value } = evaluator.evaluateSentence(sentence);
-          expect(mapValue(value)).to.eql(["cmd", "arg"]);
         });
         specify("command", () => {
           commandResolver.register(
