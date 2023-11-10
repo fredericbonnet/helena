@@ -5,6 +5,7 @@
 import { Value } from "./values";
 import { Command } from "./command";
 import { Selector } from "./selectors";
+import { Result } from "./results";
 
 /**
  * Variable resolver
@@ -45,5 +46,5 @@ export interface SelectorResolver {
    *
    * @returns       Resolved selector
    */
-  resolve(rules: Value[]): Selector;
+  resolve(rules: Value[]): Result<Selector>;
 }

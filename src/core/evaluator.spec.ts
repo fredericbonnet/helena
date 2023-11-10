@@ -124,11 +124,11 @@ class FunctionCommand implements Command {
 }
 
 class MockSelectorResolver implements SelectorResolver {
-  resolve(rules: Value[]): Selector {
+  resolve(rules: Value[]): Result<Selector> {
     return this.builder(rules);
   }
-  builder: (rules) => Selector;
-  register(builder: (rules) => Selector) {
+  builder: (rules) => Result<Selector> = () => OK(NIL, undefined);
+  register(builder: (rules) => Result<Selector>) {
     this.builder = builder;
   }
 }
@@ -533,7 +533,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
                     return OK(list.values[list.values.length - 1]);
                   },
                 };
-                selectorResolver.register(() => lastSelector);
+                selectorResolver.register(() => OK(NIL, lastSelector));
               });
               specify("simple substitution", () => {
                 variableResolver.register(
@@ -706,7 +706,9 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           });
           describe("generic selectors", () => {
             beforeEach(() => {
-              selectorResolver.register((rules) => new GenericSelector(rules));
+              selectorResolver.register((rules) =>
+                GenericSelector.create(rules)
+              );
             });
             specify("simple rule", () => {
               const word = firstWord(parse("var{rule}"));
@@ -761,7 +763,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
                   return OK(list.values[list.values.length - 1]);
                 },
               };
-              selectorResolver.register(() => lastSelector);
+              selectorResolver.register(() => OK(NIL, lastSelector));
             });
             specify("simple rule", () => {
               const word = firstWord(parse("var{last}"));
@@ -783,7 +785,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           });
 
           specify("multiple selectors", () => {
-            selectorResolver.register((rules) => new GenericSelector(rules));
+            selectorResolver.register((rules) => GenericSelector.create(rules));
             const word = firstWord(
               parse(
                 "var(key1 key2 key3){rule1;rule2}[1]{rule3}{rule4}[2](key4)"
@@ -817,7 +819,9 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               );
             });
             specify("empty generic selector", () => {
-              selectorResolver.register((rules) => new GenericSelector(rules));
+              selectorResolver.register((rules) =>
+                GenericSelector.create(rules)
+              );
               const word = firstWord(parse("var{rule}{}"));
               expect(evaluator.evaluateWord(word)).to.eql(
                 ERROR("empty selector")
@@ -850,7 +854,9 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           });
           describe("generic selectors", () => {
             beforeEach(() => {
-              selectorResolver.register((rules) => new GenericSelector(rules));
+              selectorResolver.register((rules) =>
+                GenericSelector.create(rules)
+              );
             });
             specify("simple rule", () => {
               const word = firstWord(parse("(var1 (var2) var3){rule}"));
@@ -897,7 +903,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
             });
           });
           specify("multiple selectors", () => {
-            selectorResolver.register((rules) => new GenericSelector(rules));
+            selectorResolver.register((rules) => GenericSelector.create(rules));
             const word = firstWord(
               parse(
                 "((var))(key1 key2 key3){rule1;rule2}[1]{rule3}{rule4}[2](key4)"
@@ -931,7 +937,9 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
               );
             });
             specify("empty generic selector", () => {
-              selectorResolver.register((rules) => new GenericSelector(rules));
+              selectorResolver.register((rules) =>
+                GenericSelector.create(rules)
+              );
               const word = firstWord(parse("(var1 var2 (var3 var4)){rule}{}"));
               expect(evaluator.evaluateWord(word)).to.eql(
                 ERROR("empty selector")
@@ -1319,7 +1327,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
                 return OK(list.values[list.values.length - 1]);
               },
             };
-            selectorResolver.register(() => lastSelector);
+            selectorResolver.register(() => OK(NIL, lastSelector));
           });
           specify("simple substitution", () => {
             variableResolver.register(

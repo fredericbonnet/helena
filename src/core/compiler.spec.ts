@@ -75,11 +75,11 @@ class FunctionCommand implements Command {
 }
 
 class MockSelectorResolver implements SelectorResolver {
-  resolve(rules: Value[]): Selector {
-    return this.builder?.(rules);
+  resolve(rules: Value[]): Result<Selector> {
+    return this.builder(rules);
   }
-  builder: (rules) => Selector;
-  register(builder: (rules) => Selector) {
+  builder: (rules) => Result<Selector> = () => OK(NIL, undefined);
+  register(builder: (rules) => Result<Selector>) {
     this.builder = builder;
   }
 }
@@ -902,7 +902,7 @@ describe("Compilation and execution", () => {
                     "varname",
                     LIST([STR("value1"), STR("value2"), STR("is")])
                   );
-                  selectorResolver.register(() => lastSelector);
+                  selectorResolver.register(() => OK(NIL, lastSelector));
                   expect(evaluate(program)).to.eql(STR("this is a string"));
                 });
                 specify("double substitution", () => {
@@ -936,7 +936,7 @@ describe("Compilation and execution", () => {
                     LIST([STR("var2"), STR("var3")])
                   );
                   variableResolver.register("var3", STR("is"));
-                  selectorResolver.register(() => lastSelector);
+                  selectorResolver.register(() => OK(NIL, lastSelector));
                   expect(evaluate(program)).to.eql(STR("this is a string"));
                 });
                 specify("successive selectors", () => {
@@ -975,7 +975,7 @@ describe("Compilation and execution", () => {
                     "var",
                     LIST([STR("value1"), LIST([STR("value2"), STR("is")])])
                   );
-                  selectorResolver.register(() => lastSelector);
+                  selectorResolver.register(() => OK(NIL, lastSelector));
                   expect(evaluate(program)).to.eql(STR("this is a string"));
                 });
                 describe("exceptions", () => {
@@ -2067,7 +2067,7 @@ describe("Compilation and execution", () => {
                   "varname",
                   LIST([STR("value1"), STR("value2"), STR("value3")])
                 );
-                selectorResolver.register(() => lastSelector);
+                selectorResolver.register(() => OK(NIL, lastSelector));
                 expect(evaluate(program)).to.eql(STR("value3"));
               });
               specify("double substitution", () => {
@@ -2091,7 +2091,7 @@ describe("Compilation and execution", () => {
                   LIST([STR("var2"), STR("var3")])
                 );
                 variableResolver.register("var3", STR("value"));
-                selectorResolver.register(() => lastSelector);
+                selectorResolver.register(() => OK(NIL, lastSelector));
                 expect(evaluate(program)).to.eql(STR("value"));
               });
               specify("successive selectors", () => {
@@ -2126,7 +2126,7 @@ describe("Compilation and execution", () => {
                     LIST([STR("value2_1"), STR("value2_2")]),
                   ])
                 );
-                selectorResolver.register(() => lastSelector);
+                selectorResolver.register(() => OK(NIL, lastSelector));
                 expect(evaluate(program)).to.eql(STR("value2_2"));
               });
               specify("indirect selector", () => {
@@ -2150,7 +2150,7 @@ describe("Compilation and execution", () => {
                   LIST([STR("value1"), STR("value2"), STR("value3")])
                 );
                 variableResolver.register("var2", STR("last"));
-                selectorResolver.register(() => lastSelector);
+                selectorResolver.register(() => OK(NIL, lastSelector));
                 expect(evaluate(program)).to.eql(STR("value3"));
               });
               specify("expression", () => {
@@ -2177,7 +2177,7 @@ describe("Compilation and execution", () => {
                     LIST([STR("value1"), STR("value2")])
                   )
                 );
-                selectorResolver.register(() => lastSelector);
+                selectorResolver.register(() => OK(NIL, lastSelector));
                 expect(evaluate(program)).to.eql(STR("value2"));
               });
               describe("exceptions", () => {
@@ -2304,8 +2304,8 @@ describe("Compilation and execution", () => {
                   STR("arg2"),
                 ]);
 
-                selectorResolver.register(
-                  (rules) => new GenericSelector(rules)
+                selectorResolver.register((rules) =>
+                  GenericSelector.create(rules)
                 );
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(STR("varname"), [
@@ -2390,8 +2390,8 @@ describe("Compilation and execution", () => {
                   "cmd3",
                   new FunctionCommand(() => STR("key3"))
                 );
-                selectorResolver.register(
-                  (rules) => new GenericSelector(rules)
+                selectorResolver.register((rules) =>
+                  GenericSelector.create(rules)
                 );
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(STR("varname"), [
@@ -2501,8 +2501,8 @@ describe("Compilation and execution", () => {
                   STR("arg2"),
                 ]);
 
-                selectorResolver.register(
-                  (rules) => new GenericSelector(rules)
+                selectorResolver.register((rules) =>
+                  GenericSelector.create(rules)
                 );
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(
@@ -2602,8 +2602,8 @@ describe("Compilation and execution", () => {
                   "cmd4",
                   new FunctionCommand(() => STR("index2"))
                 );
-                selectorResolver.register(
-                  (rules) => new GenericSelector(rules)
+                selectorResolver.register((rules) =>
+                  GenericSelector.create(rules)
                 );
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(
@@ -2704,8 +2704,8 @@ describe("Compilation and execution", () => {
                   STR("arg2"),
                 ]);
 
-                selectorResolver.register(
-                  (rules) => new GenericSelector(rules)
+                selectorResolver.register((rules) =>
+                  GenericSelector.create(rules)
                 );
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(STR("source name"), [
@@ -2790,8 +2790,8 @@ describe("Compilation and execution", () => {
                   "cmd3",
                   new FunctionCommand(() => STR("key3"))
                 );
-                selectorResolver.register(
-                  (rules) => new GenericSelector(rules)
+                selectorResolver.register((rules) =>
+                  GenericSelector.create(rules)
                 );
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(STR("source name"), [

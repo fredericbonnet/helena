@@ -22,12 +22,7 @@ import {
   InvalidWordStructureError,
   UnexpectedMorphemeError,
 } from "./syntax";
-import {
-  IndexedSelector,
-  KeyedSelector,
-  Selector,
-  SelectorCreationError,
-} from "./selectors";
+import { IndexedSelector, KeyedSelector, Selector } from "./selectors";
 import {
   StringValue,
   NIL,
@@ -530,36 +525,24 @@ export class InlineEvaluator implements Evaluator {
     switch (morpheme.type) {
       case MorphemeType.TUPLE: {
         const keys = this.evaluateTuple(morpheme as TupleMorpheme).values;
-        try {
-          return new KeyedSelector(keys);
-        } catch (e) {
-          if (e instanceof SelectorCreationError)
-            throw new Interrupt(ERROR(e.message));
-          throw e;
-        }
+        const result = KeyedSelector.create(keys);
+        if (result.code != ResultCode.OK) throw new Interrupt(result);
+        return result.data;
       }
 
       case MorphemeType.BLOCK: {
         const script = this.evaluateBlock(morpheme as BlockMorpheme);
         const rules = this.evaluateSelectorRules(script.script);
-        try {
-          return this.selectorResolver.resolve(rules);
-        } catch (e) {
-          if (e instanceof SelectorCreationError)
-            throw new Interrupt(ERROR(e.message));
-          throw e;
-        }
+        const result = this.selectorResolver.resolve(rules);
+        if (result.code != ResultCode.OK) throw new Interrupt(result);
+        return result.data;
       }
 
       case MorphemeType.EXPRESSION: {
         const index = this.evaluateExpression(morpheme as ExpressionMorpheme);
-        try {
-          return new IndexedSelector(index);
-        } catch (e) {
-          if (e instanceof SelectorCreationError)
-            throw new Interrupt(ERROR(e.message));
-          throw e;
-        }
+        const result = IndexedSelector.create(index);
+        if (result.code != ResultCode.OK) throw new Interrupt(result);
+        return result.data;
       }
     }
     return null;

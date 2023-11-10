@@ -9,12 +9,7 @@ import {
   SelectorResolver,
   VariableResolver,
 } from "./resolvers";
-import {
-  IndexedSelector,
-  KeyedSelector,
-  Selector,
-  SelectorCreationError,
-} from "./selectors";
+import { IndexedSelector, KeyedSelector, Selector } from "./selectors";
 import {
   BlockMorpheme,
   ExpressionMorpheme,
@@ -982,15 +977,11 @@ export class Executor {
     return OK(NIL, command);
   }
   private resolveSelector(rules: Value[]): Result<Selector> {
-    try {
-      const selector = this.selectorResolver.resolve(rules);
-      if (!selector)
-        return ERROR(`cannot resolve selector {${displayList(rules)}}`);
-      return OK(NIL, selector);
-    } catch (e) {
-      if (e instanceof SelectorCreationError) return ERROR(e.message);
-      throw e;
-    }
+    const result = this.selectorResolver.resolve(rules);
+    if (result.code != ResultCode.OK) return result;
+    if (!result.data)
+      return ERROR(`cannot resolve selector {${displayList(rules)}}`);
+    return result;
   }
 }
 
