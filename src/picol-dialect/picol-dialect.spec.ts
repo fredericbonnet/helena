@@ -1,14 +1,10 @@
 import { expect } from "chai";
 import { ERROR, ResultCode } from "../core/results";
-import {
-  CompilingEvaluator,
-  Evaluator,
-  InlineEvaluator,
-} from "../core/evaluator";
+import { CompilingEvaluator, InlineEvaluator } from "../core/evaluator";
 import { Parser } from "../core/parser";
 import { PicolScope, initPicolCommands } from "./picol-dialect";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, TRUE, REAL, STR, TUPLE } from "../core/values";
+import { FALSE, TRUE, INT, REAL, STR, TUPLE } from "../core/values";
 
 describe("Picol dialect", () => {
   for (const klass of [InlineEvaluator, CompilingEvaluator]) {
@@ -17,12 +13,11 @@ describe("Picol dialect", () => {
 
       let tokenizer: Tokenizer;
       let parser: Parser;
-      let evaluator: Evaluator;
 
       const parse = (script: string) =>
         parser.parse(tokenizer.tokenize(script)).script;
       const execute = (script: string) =>
-        evaluator.evaluateScript(parse(script));
+        rootScope.evaluator.evaluateScript(parse(script));
       const evaluate = (script: string) => execute(script).value;
 
       beforeEach(() => {
@@ -31,12 +26,6 @@ describe("Picol dialect", () => {
 
         tokenizer = new Tokenizer();
         parser = new Parser();
-        evaluator = new klass(
-          rootScope.variableResolver,
-          rootScope.commandResolver,
-          null,
-          rootScope
-        );
       });
 
       describe("math", () => {
@@ -479,7 +468,7 @@ describe("Picol dialect", () => {
           it("should loop over the body while test is true", () => {
             expect(
               evaluate("for {set i 0} {< $i 10} {incr i} {set var $i}; set var")
-            ).to.eql(REAL(9));
+            ).to.eql(INT(9));
           });
           it("should return empty", () => {
             expect(
@@ -528,7 +517,7 @@ describe("Picol dialect", () => {
           });
           it("should loop over the body while test is true", () => {
             expect(evaluate("set i 0; while {< $i 10} {incr i}; set i")).to.eql(
-              REAL(10)
+              INT(10)
             );
           });
           it("should return empty", () => {
@@ -640,7 +629,7 @@ describe("Picol dialect", () => {
               evaluate(
                 "proc cmd {} {for {set i 0} {< $i 10} {incr i} {continue}; set i}; cmd"
               )
-            ).to.eql(REAL(10));
+            ).to.eql(INT(10));
           });
           describe("exceptions", () => {
             specify("wrong arity", () => {
@@ -716,20 +705,20 @@ describe("Picol dialect", () => {
       describe("incr", () => {
         it("should set new variables to the increment", () => {
           evaluate("incr var 5");
-          expect(rootScope.variables.get("var")).to.eql(REAL(5));
+          expect(rootScope.variables.get("var")).to.eql(INT(5));
         });
         it("should increment existing variables by the increment", () => {
-          rootScope.variables.set("var", REAL(2));
+          rootScope.variables.set("var", INT(2));
           evaluate("incr var 4");
-          expect(rootScope.variables.get("var")).to.eql(REAL(6));
+          expect(rootScope.variables.get("var")).to.eql(INT(6));
         });
         specify("increment should default to 1", () => {
-          rootScope.variables.set("var", REAL(1));
+          rootScope.variables.set("var", INT(1));
           evaluate("incr var");
-          expect(rootScope.variables.get("var")).to.eql(REAL(2));
+          expect(rootScope.variables.get("var")).to.eql(INT(2));
         });
         it("should return the new value", () => {
-          expect(evaluate("set var 1; incr var")).to.eql(REAL(2));
+          expect(evaluate("set var 1; incr var")).to.eql(INT(2));
         });
         describe("exceptions", () => {
           specify("wrong arity", () => {
@@ -742,11 +731,11 @@ describe("Picol dialect", () => {
           });
           specify("invalid variable value", () => {
             expect(execute("set var a; incr var")).to.eql(
-              ERROR('invalid number "a"')
+              ERROR('invalid integer "a"')
             );
           });
           specify("invalid increment", () => {
-            expect(execute("incr var a")).to.eql(ERROR('invalid number "a"'));
+            expect(execute("incr var a")).to.eql(ERROR('invalid integer "a"'));
           });
         });
       });

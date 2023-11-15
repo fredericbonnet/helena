@@ -26,6 +26,7 @@ import {
   TRUE,
   BooleanValue,
   IntegerValue,
+  INT,
   REAL,
   STR,
   TUPLE,
@@ -347,7 +348,7 @@ const incrCmd: Command = {
         break;
       case 3:
         {
-          const result = RealValue.toNumber(args[2]);
+          const result = IntegerValue.toInteger(args[2]);
           if (result.code != ResultCode.OK) return result;
           increment = result.data;
         }
@@ -359,11 +360,11 @@ const incrCmd: Command = {
     const value = scope.variables.get(varName);
     let incremented;
     if (value) {
-      const result = RealValue.toNumber(value);
+      const result = IntegerValue.toInteger(value);
       if (result.code != ResultCode.OK) return result;
-      incremented = REAL(result.data + increment);
+      incremented = INT(result.data + increment);
     } else {
-      incremented = REAL(increment);
+      incremented = INT(increment);
     }
     scope.variables.set(varName, incremented);
     return OK(incremented);
