@@ -22,11 +22,16 @@ import {
   Value,
   ValueType,
   StringValue,
+  ScriptValue,
 } from "./src/core/values";
 import { displayListValue } from "./src/helena-dialect/lists";
 import { displayDictionaryValue } from "./src/helena-dialect/dicts";
 import { Command } from "./src/core/command";
 import { ARITY_ERROR } from "./src/helena-dialect/arguments";
+import {
+  PicolScope,
+  initPicolCommands,
+} from "./src/picol-dialect/picol-dialect";
 
 function sourceFile(path: string, scope: Scope): Result {
   const data = fs.readFileSync(path, "utf-8");
@@ -45,11 +50,29 @@ const sourceCmd: Command = {
     return sourceFile(path, scope);
   },
 };
+const exitCmd: Command = {
+  execute: function (args: Value[]): Result {
+    if (args.length != 1) return ARITY_ERROR("exit");
+    exit(0);
+  },
+};
+const picolCmd: Command = {
+  execute: function (args: Value[]): Result {
+    if (args.length != 2) return ARITY_ERROR("picol script");
+    if (args[1].type != ValueType.SCRIPT) return ERROR("invalid script");
+    const script = (args[1] as ScriptValue).script;
+    const scope = new PicolScope();
+    initPicolCommands(scope);
+    return scope.evaluator.evaluateScript(script);
+  },
+};
 
 function init() {
   const rootScope = new Scope();
   initCommands(rootScope);
   rootScope.registerNamedCommand("source", sourceCmd);
+  rootScope.registerNamedCommand("exit", exitCmd);
+  rootScope.registerNamedCommand("picol", picolCmd);
   return rootScope;
 }
 
