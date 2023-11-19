@@ -455,6 +455,9 @@ describe("Helena basic commands", () => {
         expect(execute("eval a b")).to.eql(
           ERROR('wrong # args: should be "eval body"')
         );
+        expect(execute("help eval a b")).to.eql(
+          ERROR('wrong # args: should be "eval body"')
+        );
       });
       specify("invalid `body`", () => {
         /**

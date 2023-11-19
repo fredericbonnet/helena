@@ -50,22 +50,24 @@ type ProcessContext = {
   scope: Scope;
   program: Program;
   state: ProgramState;
-  parent?: ProcessContext;
 };
 export class Process {
-  private context: ProcessContext;
+  private contextStack: ProcessContext[];
+  private get currentContext(): ProcessContext {
+    return this.contextStack[this.contextStack.length - 1];
+  }
   constructor(scope: Scope, program: Program) {
-    this.context = { scope, program, state: new ProgramState() };
+    this.contextStack = [{ scope, program, state: new ProgramState() }];
   }
   run(): Result {
     for (;;) {
-      const result = this.context.scope.execute(
-        this.context.program,
-        this.context.state
+      const result = this.currentContext.scope.execute(
+        this.currentContext.program,
+        this.currentContext.state
       );
       if (result.value instanceof DeferredValue) {
         const deferred = result.value;
-        let process;
+        let process: Process;
         switch (deferred.value.type) {
           case ValueType.SCRIPT:
             process = deferred.scope.prepareScriptValue(
@@ -80,14 +82,12 @@ export class Process {
           default:
             return ERROR("body must be a script or tuple");
         }
-        const parent = this.context;
-        this.context = process.context;
-        this.context.parent = parent;
+        this.contextStack.push(...process.contextStack);
         continue;
       }
-      if (result.code == ResultCode.OK && this.context.parent) {
-        this.context = this.context.parent;
-        switch (this.context.state.result.code) {
+      if (result.code == ResultCode.OK && this.contextStack.length > 1) {
+        this.contextStack.pop();
+        switch (this.currentContext.state.result.code) {
           case ResultCode.RETURN:
             return RETURN(result.value);
           case ResultCode.YIELD:
@@ -101,7 +101,10 @@ export class Process {
     }
   }
   yieldBack(value: Value) {
-    this.context.state.result = YIELD_BACK(this.context.state.result, value);
+    this.currentContext.state.result = YIELD_BACK(
+      this.currentContext.state.result,
+      value
+    );
   }
 }
 
@@ -268,7 +271,7 @@ export class Scope {
   registerCommand(name: Value, command: Command): Result {
     const { data: cmdname, code } = StringValue.toString(name);
     if (code != ResultCode.OK) return ERROR("invalid command name");
-    this.context.commands.set(cmdname, command);
+    this.registerNamedCommand(cmdname, command);
     return OK(NIL);
   }
   registerNamedCommand(name: string, command: Command) {
