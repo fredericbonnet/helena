@@ -490,7 +490,7 @@ class CatchCommand implements Command {
               const { data: varname } = StringValue.toString(state.args[i + 1]);
               const handler = state.args[i + 2];
               const subscope = new Scope(scope, true);
-              subscope.setLocal(varname, state.result.value);
+              subscope.setNamedLocal(varname, state.result.value);
               state.process = subscope.prepareScriptValue(
                 handler as ScriptValue
               ); // TODO check type

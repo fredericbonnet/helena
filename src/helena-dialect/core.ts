@@ -197,10 +197,30 @@ export class Scope {
     }
   }
 
-  setLocal(name: string, value: Value) {
+  setNamedLocal(name: string, value: Value) {
     this.locals.set(name, value);
   }
-  setNamedConstant(name: string, value: Value, check = false): Result {
+  destructureLocal(constant: Value, value: Value, check: boolean): Result {
+    const { data: name, code } = StringValue.toString(constant);
+    if (code != ResultCode.OK) return ERROR("invalid local name");
+    if (check) return OK(NIL);
+    this.setNamedLocal(name, value);
+    return OK(NIL);
+  }
+  setNamedConstant(name: string, value: Value): Result {
+    const result = this.checkNamedConstant(name);
+    if (result.code != ResultCode.OK) return result;
+    this.context.constants.set(name, value);
+    return OK(value);
+  }
+  destructureConstant(constant: Value, value: Value, check: boolean): Result {
+    const { data: name, code } = StringValue.toString(constant);
+    if (code != ResultCode.OK) return ERROR("invalid constant name");
+    if (check) return this.checkNamedConstant(name);
+    this.context.constants.set(name, value);
+    return OK(NIL);
+  }
+  private checkNamedConstant(name: string): Result {
     if (this.locals.has(name)) {
       return ERROR(`cannot define constant "${name}": local already exists`);
     }
@@ -210,31 +230,29 @@ export class Scope {
     if (this.context.variables.has(name)) {
       return ERROR(`cannot define constant "${name}": variable already exists`);
     }
-
-    if (check) return OK(NIL);
-    this.context.constants.set(name, value);
+    return OK(NIL);
+  }
+  setNamedVariable(name: string, value: Value): Result {
+    const result = this.checkNamedVariable(name);
+    if (result.code != ResultCode.OK) return result;
+    this.context.variables.set(name, value);
     return OK(value);
   }
-  setConstant(constant: Value, value: Value, check = false): Result {
-    const { data: name, code } = StringValue.toString(constant);
-    if (code != ResultCode.OK) return ERROR("invalid constant name");
-    return this.setNamedConstant(name, value, check);
+  destructureVariable(variable: Value, value: Value, check: boolean): Result {
+    const { data: name, code } = StringValue.toString(variable);
+    if (code != ResultCode.OK) return ERROR("invalid variable name");
+    if (check) return this.checkNamedVariable(name);
+    this.context.variables.set(name, value);
+    return OK(NIL);
   }
-  setNamedVariable(name: string, value: Value, check = false): Result {
+  private checkNamedVariable(name: string): Result {
     if (this.locals.has(name)) {
       return ERROR(`cannot redefine local "${name}"`);
     }
     if (this.context.constants.has(name)) {
       return ERROR(`cannot redefine constant "${name}"`);
     }
-    if (check) return OK(NIL);
-    this.context.variables.set(name, value);
-    return OK(value);
-  }
-  setVariable(variable: Value, value: Value, check = false): Result {
-    const { data: name, code } = StringValue.toString(variable);
-    if (code != ResultCode.OK) return ERROR("invalid variable name");
-    return this.setNamedVariable(name, value, check);
+    return OK(NIL);
   }
   unsetVariable(variable: Value, check = false): Result {
     const { data: name, code } = StringValue.toString(variable);
@@ -265,7 +283,7 @@ export class Scope {
     program.pushOpCode(OpCode.PUSH_CONSTANT);
     program.pushOpCode(OpCode.RESOLVE_VALUE);
     program.pushConstant(value);
-    return this.executor.execute(program);
+    return this.execute(program);
   }
 
   registerCommand(name: Value, command: Command): Result {
@@ -333,28 +351,41 @@ function resolveLeadingTuple(args: Value[], scope: Scope): [Command, Value[]] {
 export function destructureValue(
   apply: (name: Value, value: Value, check: boolean) => Result,
   shape: Value,
-  value: Value,
-  check = false
+  value: Value
 ): Result {
-  if (shape.type != ValueType.TUPLE) return apply(shape, value, check);
-  const variables = shape as TupleValue;
+  const result = checkValues(apply, shape, value);
+  if (result.code != ResultCode.OK) return result;
+  applyValues(apply, shape, value);
+  return OK(value);
+}
+function checkValues(
+  apply: (name: Value, value: Value, check: boolean) => Result,
+  shape: Value,
+  value: Value
+): Result {
+  if (shape.type != ValueType.TUPLE) return apply(shape, value, true);
   if (value.type != ValueType.TUPLE) return ERROR("bad value shape");
+  const variables = (shape as TupleValue).values;
   const values = (value as TupleValue).values;
-  if (values.length < variables.values.length) return ERROR("bad value shape");
-  // First pass for error checking
-  for (let i = 0; i < variables.values.length; i++) {
-    const result = destructureValue(
-      apply,
-      variables.values[i],
-      values[i],
-      true
-    );
+  if (values.length < variables.length) return ERROR("bad value shape");
+  for (let i = 0; i < variables.length; i++) {
+    const result = checkValues(apply, variables[i], values[i]);
     if (result.code != ResultCode.OK) return result;
   }
-  if (check) return OK(NIL);
-  // Second pass for actual setting
-  for (let i = 0; i < variables.values.length; i++) {
-    destructureValue(apply, variables.values[i], values[i]);
+  return OK(NIL);
+}
+function applyValues(
+  apply: (name: Value, value: Value, check: boolean) => Result,
+  shape: Value,
+  value: Value
+) {
+  if (shape.type != ValueType.TUPLE) {
+    apply(shape, value, false);
+    return;
   }
-  return OK(value);
+  const variables = (shape as TupleValue).values;
+  const values = (value as TupleValue).values;
+  for (let i = 0; i < variables.length; i++) {
+    applyValues(apply, variables[i], values[i]);
+  }
 }

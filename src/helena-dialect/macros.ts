@@ -65,7 +65,7 @@ class MacroCommand implements CommandValue, Command {
     }
     const subscope = new Scope(scope, true);
     const setarg = (name, value) => {
-      subscope.setLocal(name, value);
+      subscope.setNamedLocal(name, value);
       return OK(value);
     };
     // TODO handle YIELD?

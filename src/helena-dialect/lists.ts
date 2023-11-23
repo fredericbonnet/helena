@@ -15,7 +15,6 @@ import {
   NIL,
   ScriptValue,
   STR,
-  StringValue,
   TupleValue,
   Value,
   ValueType,
@@ -230,13 +229,11 @@ class ListForeachCommand implements Command {
         case "beforeBody": {
           const { value, done } = state.it.next();
           if (done) return state.lastResult;
-          const setLocal = (name, value) => {
-            const { data, ...result } = StringValue.toString(name);
-            if (result.code != ResultCode.OK) return result;
-            state.scope.setLocal(data, value);
-            return OK(value);
-          };
-          destructureValue(setLocal, state.varname, value);
+          destructureValue(
+            state.scope.destructureLocal.bind(state.scope),
+            state.varname,
+            value
+          );
           state.process = state.scope.prepareProcess(state.program);
           state.step = "inBody";
           break;

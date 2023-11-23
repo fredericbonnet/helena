@@ -1,15 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
 import { ERROR, OK, Result, ResultCode } from "../core/results";
-import {
-  BOOL,
-  FALSE,
-  NIL,
-  STR,
-  TupleValue,
-  Value,
-  ValueType,
-} from "../core/values";
+import { BOOL, NIL, STR, TupleValue, Value, ValueType } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { destructureValue, Scope } from "./core";
 
@@ -19,7 +11,7 @@ const letCmd: Command = {
     switch (args.length) {
       case 3:
         return destructureValue(
-          scope.setConstant.bind(scope),
+          scope.destructureConstant.bind(scope),
           args[1],
           args[2]
         );
@@ -39,7 +31,7 @@ const setCmd: Command = {
     switch (args.length) {
       case 3:
         return destructureValue(
-          scope.setVariable.bind(scope),
+          scope.destructureVariable.bind(scope),
           args[1],
           args[2]
         );
@@ -71,8 +63,8 @@ const getCmd: Command = {
             return ERROR("cannot use default with name tuples");
           case ValueType.QUALIFIED: {
             const result = scope.resolveValue(args[1]);
-            if (result.code != ResultCode.OK) return OK(args[2]);
-            return scope.resolveValue(args[1]);
+            if (result.code == ResultCode.OK) return result;
+            return OK(args[2]);
           }
           default:
             return scope.getVariable(args[1], args[2]);
@@ -96,8 +88,6 @@ const existsCmd: Command = {
           case ValueType.TUPLE:
             return ERROR("invalid value");
           case ValueType.QUALIFIED: {
-            const result = scope.resolveValue(args[1]);
-            if (result.code != ResultCode.OK) return OK(FALSE);
             return OK(BOOL(scope.resolveValue(args[1]).code == ResultCode.OK));
           }
           default:

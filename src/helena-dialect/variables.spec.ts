@@ -79,6 +79,13 @@ describe("Helena constants and variables", () => {
           expect(evaluate("get var2")).to.eql(STR("val2"));
           expect(evaluate("get var3")).to.eql(STR("val3"));
         });
+        it("should set duplicate constants to their last value", () => {
+          expect(execute("let (var1 var2 var1) (val1 val2 val3)")).to.eql(
+            execute("idem (val1 val2 val3)")
+          );
+          expect(evaluate("get var1")).to.eql(STR("val3"));
+          expect(evaluate("get var2")).to.eql(STR("val2"));
+        });
         it("should work recursively", () => {
           expect(execute("let (var1 (var2 var3)) (val1 (val2 val3))")).to.eql(
             execute("idem (val1 (val2 val3))")
@@ -223,6 +230,13 @@ describe("Helena constants and variables", () => {
           expect(evaluate("get var2")).to.eql(STR("val2"));
           expect(evaluate("get var3")).to.eql(STR("val3"));
         });
+        it("should set duplicate values to their last value", () => {
+          expect(execute("set (var1 var2 var1) (val1 val2 val3)")).to.eql(
+            execute("idem (val1 val2 val3)")
+          );
+          expect(evaluate("get var1")).to.eql(STR("val3"));
+          expect(evaluate("get var2")).to.eql(STR("val2"));
+        });
         it("should work recursively", () => {
           expect(execute("set (var1 (var2 var3)) (val1 (val2 val3))")).to.eql(
             execute("idem (val1 (val2 val3))")
@@ -301,13 +315,13 @@ describe("Helena constants and variables", () => {
         expect(execute("set (a) ()")).to.eql(ERROR("bad value shape"));
       });
       specify("existing constant", () => {
+        /**
+         * The command cannot redefine an existing constant.
+         */
         rootScope.context.constants.set("cst", STR("old"));
         expect(execute("set cst val")).to.eql(
           ERROR('cannot redefine constant "cst"')
         );
-        /**
-         * The command cannot redefine an existing constant.
-         */
       });
     });
   });

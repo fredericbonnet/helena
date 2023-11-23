@@ -268,11 +268,11 @@ class DictForeachCommand implements Command {
           const { value: entry, done } = state.it.next();
           if (done) return state.lastResult;
           const [key, value] = entry;
-          const setLocal = (name, value) => {
-            state.scope.setLocal(StringValue.toString(name).data, value);
-            return OK(value);
-          };
-          destructureValue(setLocal, state.varname, TUPLE([STR(key), value]));
+          destructureValue(
+            state.scope.destructureLocal.bind(state.scope),
+            state.varname,
+            TUPLE([STR(key), value])
+          );
           state.process = state.scope.prepareProcess(state.program);
           state.step = "inBody";
           break;

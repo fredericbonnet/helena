@@ -72,7 +72,7 @@ class ClosureCommand implements CommandValue, Command {
     }
     const subscope = new Scope(this.metacommand.scope, true);
     const setarg = (name, value) => {
-      subscope.setLocal(name, value);
+      subscope.setNamedLocal(name, value);
       return OK(value);
     };
     // TODO handle YIELD?
