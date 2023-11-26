@@ -28,6 +28,7 @@ You can set several variables at once by passing name and value
 tuples. This also works recursively.
 
 - ✅ should set several variables at once
+- ✅ should set duplicate values to their last value
 - ✅ should work recursively
 - ✅ should support setting a variable to a tuple value
 - ✅ should not set variables in case of missing value

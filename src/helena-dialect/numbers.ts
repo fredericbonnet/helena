@@ -73,29 +73,29 @@ const arithmetics = (args: Value[], operand1: number): Result => {
     if (code != ResultCode.OK) return ERROR(`invalid operator`);
     switch (operator) {
       case "+": {
-        const { data: operator2, ...result } = RealValue.toNumber(args[i + 1]);
+        const { data: operand2, ...result } = RealValue.toNumber(args[i + 1]);
         if (result.code != ResultCode.OK) return result;
         total += last;
-        last = operator2;
+        last = operand2;
         break;
       }
       case "-": {
-        const { data: operator2, ...result } = RealValue.toNumber(args[i + 1]);
+        const { data: operand2, ...result } = RealValue.toNumber(args[i + 1]);
         if (result.code != ResultCode.OK) return result;
         total += last;
-        last = -operator2;
+        last = -operand2;
         break;
       }
       case "*": {
-        const { data: operator2, ...result } = RealValue.toNumber(args[i + 1]);
+        const { data: operand2, ...result } = RealValue.toNumber(args[i + 1]);
         if (result.code != ResultCode.OK) return result;
-        last *= operator2;
+        last *= operand2;
         break;
       }
       case "/": {
-        const { data: operator2, ...result } = RealValue.toNumber(args[i + 1]);
+        const { data: operand2, ...result } = RealValue.toNumber(args[i + 1]);
         if (result.code != ResultCode.OK) return result;
-        last /= operator2;
+        last /= operand2;
         break;
       }
       default:

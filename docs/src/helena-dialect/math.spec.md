@@ -61,7 +61,7 @@ Helena supports the standard arithmetic operators in prefix notation.
 - ✅ usage
 - ✅ should accept one number
 - ✅ should multiply two numbers
-- ✅ should add several numbers
+- ✅ should multiply several numbers
 
 - Exceptions
 

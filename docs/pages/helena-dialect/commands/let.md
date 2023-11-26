@@ -27,6 +27,7 @@ You can define several constants at once by passing name and value
 tuples. This also works recursively.
 
 - ✅ should define several constants at once
+- ✅ should set duplicate constants to their last value
 - ✅ should work recursively
 - ✅ should support setting a constant to a tuple value
 - ✅ should not define constants in case of missing value
