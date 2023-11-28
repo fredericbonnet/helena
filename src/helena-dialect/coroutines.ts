@@ -9,18 +9,17 @@ import {
 import { Command } from "../core/command";
 import { Value, ScriptValue, ValueType, BOOL, STR } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { CommandValue, commandValueType, Process, Scope } from "./core";
+import { CommandValue, Process, Scope } from "./core";
 import { Subcommands } from "./subcommands";
 
-class CoroutineValue implements CommandValue, Command {
-  readonly type = commandValueType;
-  readonly command: Command;
+class CoroutineCommand implements Command {
+  readonly value: Value;
   readonly scope: Scope;
   readonly body: ScriptValue;
   state: "inactive" | "active" | "done";
   process: Process;
   constructor(scope: Scope, body: ScriptValue) {
-    this.command = this;
+    this.value = new CommandValue(this);
     this.scope = scope;
     this.body = body;
     this.state = "inactive";
@@ -34,11 +33,11 @@ class CoroutineValue implements CommandValue, Command {
     "yield",
   ]);
   execute(args: Value[]): Result {
-    if (args.length == 1) return OK(this);
-    return CoroutineValue.subcommands.dispatch(args[1], {
+    if (args.length == 1) return OK(this.value);
+    return CoroutineCommand.subcommands.dispatch(args[1], {
       subcommands: () => {
         if (args.length != 2) return ARITY_ERROR("<coroutine> subcommands");
-        return OK(CoroutineValue.subcommands.list);
+        return OK(CoroutineCommand.subcommands.list);
       },
       wait: () => {
         if (args.length != 2) return ARITY_ERROR("<coroutine> wait");
@@ -99,8 +98,8 @@ export const coroutineCmd: Command = {
     }
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
-    const value = new CoroutineValue(scope, body as ScriptValue);
-    return OK(value);
+    const value = new CoroutineCommand(scope, body as ScriptValue);
+    return OK(value.value);
   },
   help(args) {
     if (args.length > 2) return ARITY_ERROR(COROUTINE_SIGNATURE);

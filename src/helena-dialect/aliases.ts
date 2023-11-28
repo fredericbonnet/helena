@@ -3,23 +3,22 @@ import { Result, OK, ResultCode } from "../core/results";
 import { Command } from "../core/command";
 import { STR, Value } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, CommandValue, commandValueType, expandPrefixCmd } from "./core";
+import { Scope, expandPrefixCmd, CommandValue } from "./core";
 import { Subcommands } from "./subcommands";
 
-class AliasMetacommand implements CommandValue, Command {
-  readonly type = commandValueType;
-  readonly command: Command;
+class AliasMetacommand implements Command {
+  readonly value: Value;
   readonly cmd: Value;
   readonly alias: AliasCommand;
   constructor(cmd: Value) {
-    this.command = this;
+    this.value = new CommandValue(this);
     this.cmd = cmd;
     this.alias = new AliasCommand(this);
   }
 
   static readonly subcommands = new Subcommands(["subcommands", "command"]);
   execute(args: Value[]): Result {
-    if (args.length == 1) return OK(this.alias);
+    if (args.length == 1) return OK(this.alias.value);
     return AliasMetacommand.subcommands.dispatch(args[1], {
       subcommands: () => {
         if (args.length != 2) return ARITY_ERROR("<alias> subcommands");
@@ -36,12 +35,11 @@ class AliasMetacommand implements CommandValue, Command {
   }
 }
 
-class AliasCommand implements CommandValue, Command {
-  readonly type = commandValueType;
-  readonly command: Command;
+class AliasCommand implements Command {
+  readonly value: Value;
   readonly metacommand: AliasMetacommand;
   constructor(metacommand: AliasMetacommand) {
-    this.command = this;
+    this.value = new CommandValue(this);
     this.metacommand = metacommand;
   }
 
@@ -63,7 +61,7 @@ export const aliasCmd: Command = {
     const metacommand = new AliasMetacommand(cmd);
     const result = scope.registerCommand(name, metacommand.alias);
     if (result.code != ResultCode.OK) return result;
-    return OK(metacommand);
+    return OK(metacommand.value);
   },
   help: (args) => {
     if (args.length > 3) return ARITY_ERROR(ALIAS_SIGNATURE);

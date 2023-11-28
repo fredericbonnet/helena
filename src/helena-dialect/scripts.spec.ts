@@ -11,10 +11,9 @@ import {
   StringValue,
   TUPLE,
 } from "../core/values";
-import { commandValueType, Scope } from "./core";
+import { CommandValue, commandValueType, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
-import { EnsembleMetacommand } from "./ensembles";
 
 const asString = (value) => StringValue.toString(value).data;
 
@@ -446,7 +445,7 @@ describe("Helena scripts", () => {
          * metacommand by wrapping the command within brackets, i.e. `[script]`.
          */
         expect(evaluate("script").type).to.eql(commandValueType);
-        expect(evaluate("script")).to.be.instanceOf(EnsembleMetacommand);
+        expect(evaluate("script")).to.be.instanceOf(CommandValue);
       });
       it("should be extensible", () => {
         /**

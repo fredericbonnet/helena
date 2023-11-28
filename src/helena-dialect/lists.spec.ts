@@ -4,11 +4,10 @@ import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { FALSE, INT, LIST, NIL, STR, StringValue, TRUE } from "../core/values";
-import { Scope, commandValueType } from "./core";
+import { CommandValue, Scope, commandValueType } from "./core";
 import { initCommands } from "./helena-dialect";
 import { displayListValue } from "./lists";
 import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
-import { EnsembleMetacommand } from "./ensembles";
 
 const asString = (value) => StringValue.toString(value).data;
 
@@ -855,7 +854,7 @@ describe("Helena lists", () => {
          * metacommand by wrapping the command within brackets, i.e. `[list]`.
          */
         expect(evaluate("list").type).to.eql(commandValueType);
-        expect(evaluate("list")).to.be.instanceOf(EnsembleMetacommand);
+        expect(evaluate("list")).to.be.instanceOf(CommandValue);
       });
       it("should be extensible", () => {
         /**

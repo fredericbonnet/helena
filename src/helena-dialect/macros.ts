@@ -12,18 +12,17 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, CommandValue, DeferredValue, commandValueType } from "./core";
+import { Scope, DeferredValue, CommandValue } from "./core";
 import { Subcommands } from "./subcommands";
 
-class MacroMetacommand implements CommandValue, Command {
-  readonly type = commandValueType;
-  readonly command: Command;
+class MacroMetacommand implements Command {
+  readonly value: Value;
   readonly argspec: ArgspecValue;
   readonly body: ScriptValue;
   readonly guard: Value;
   readonly macro: MacroCommand;
   constructor(argspec: ArgspecValue, body: ScriptValue, guard: Value) {
-    this.command = this;
+    this.value = new CommandValue(this);
     this.argspec = argspec;
     this.body = body;
     this.guard = guard;
@@ -32,7 +31,7 @@ class MacroMetacommand implements CommandValue, Command {
 
   static readonly subcommands = new Subcommands(["subcommands", "argspec"]);
   execute(args: Value[]): Result {
-    if (args.length == 1) return OK(this.macro);
+    if (args.length == 1) return OK(this.macro.value);
     return MacroMetacommand.subcommands.dispatch(args[1], {
       subcommands: () => {
         if (args.length != 2) return ARITY_ERROR("<macro> subcommands");
@@ -48,12 +47,11 @@ class MacroMetacommand implements CommandValue, Command {
 
 const MACRO_COMMAND_SIGNATURE = (name, help) =>
   `${StringValue.toString(name, "<macro>").data}${help ? " " + help : ""}`;
-class MacroCommand implements CommandValue, Command {
-  readonly type = commandValueType;
-  readonly command: Command;
+class MacroCommand implements Command {
+  readonly value: Value;
   readonly metacommand: MacroMetacommand;
   constructor(metacommand: MacroMetacommand) {
-    this.command = this;
+    this.value = new CommandValue(this);
     this.metacommand = metacommand;
   }
 
@@ -152,7 +150,7 @@ export const macroCmd: Command = {
       const result = scope.registerCommand(name, metacommand.macro);
       if (result.code != ResultCode.OK) return result;
     }
-    return OK(metacommand);
+    return OK(metacommand.value);
   },
   help: (args) => {
     if (args.length > 4) return ARITY_ERROR(MACRO_SIGNATURE);

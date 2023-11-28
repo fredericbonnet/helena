@@ -3,7 +3,7 @@ import { Result, OK, ERROR, ResultCode } from "../core/results";
 import { Command } from "../core/command";
 import { Value, ValueType, ScriptValue, NIL, STR, TUPLE } from "../core/values";
 import { Argument, ARITY_ERROR, buildArguments, buildUsage } from "./arguments";
-import { CommandValue, commandValueType, Scope } from "./core";
+import { Scope, commandValueType } from "./core";
 import { valueToArray } from "./lists";
 import { Subcommands } from "./subcommands";
 
@@ -33,9 +33,9 @@ export class Argspec {
   }
 }
 
-export class ArgspecValue implements CommandValue, Command {
+export class ArgspecValue implements Value, Command {
+  readonly command;
   readonly type = commandValueType;
-  readonly command: Command;
   readonly argspec: Argspec;
   constructor(argspec: Argspec) {
     this.command = this;

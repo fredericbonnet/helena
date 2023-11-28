@@ -20,7 +20,7 @@ import {
   StringValue,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { CommandValue, commandValueType, Scope } from "./core";
+import { CommandValue, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { Subcommands } from "./subcommands";
 import { Tokenizer } from "../core/tokenizer";
@@ -48,13 +48,12 @@ class ExportCommand implements Command {
   }
 }
 
-export class ModuleValue implements CommandValue, Command {
-  readonly type = commandValueType;
-  readonly command: Command;
+export class Module implements Command {
+  readonly value: Value;
   readonly scope: Scope;
   readonly exports: Exports;
   constructor(scope: Scope, exports: Exports) {
-    this.command = this;
+    this.value = new CommandValue(this);
     this.scope = scope;
     this.exports = exports;
   }
@@ -65,11 +64,11 @@ export class ModuleValue implements CommandValue, Command {
     "import",
   ]);
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this);
-    return ModuleValue.subcommands.dispatch(args[1], {
+    if (args.length == 1) return OK(this.value);
+    return Module.subcommands.dispatch(args[1], {
       subcommands: () => {
         if (args.length != 2) return ARITY_ERROR("<module> subcommands");
-        return OK(ModuleValue.subcommands.list);
+        return OK(Module.subcommands.list);
       },
       exports: () => {
         if (args.length != 2) return ARITY_ERROR("<module> exports");
@@ -140,12 +139,12 @@ class ModuleCommand implements Command {
     if (result.code != ResultCode.OK)
       return ERROR("unexpected " + RESULT_CODE_NAME(result.code));
 
-    const value = new ModuleValue(rootScope, exports);
+    const module = new Module(rootScope, exports);
     if (name) {
-      const result = scope.registerCommand(name, value);
+      const result = scope.registerCommand(name, module);
       if (result.code != ResultCode.OK) return result;
     }
-    return OK(value);
+    return OK(module.value);
   }
   help(args) {
     if (args.length > 3) return ARITY_ERROR(MODULE_SIGNATURE);
@@ -154,7 +153,7 @@ class ModuleCommand implements Command {
 }
 
 class ModuleRegistry {
-  private readonly modules: Map<string, ModuleValue> = new Map();
+  private readonly modules: Map<string, Module> = new Map();
 
   isReserved(name: string) {
     return this.modules.has(name) && !this.modules.get(name);
@@ -165,10 +164,10 @@ class ModuleRegistry {
   reserve(name) {
     this.modules.set(name, null);
   }
-  register(name: string, module: ModuleValue) {
+  register(name: string, module: Module) {
     this.modules.set(name, module);
   }
-  get(name: string): ModuleValue {
+  get(name: string): Module {
     return this.modules.get(name);
   }
   release(name) {
@@ -177,17 +176,14 @@ class ModuleRegistry {
 }
 const moduleRegistry = new ModuleRegistry();
 
-function resolveModule(
-  nameOrPath: string,
-  rootDir: string
-): Result<ModuleValue> {
+function resolveModule(nameOrPath: string, rootDir: string): Result<Module> {
   const modulePath = path.resolve(rootDir, nameOrPath);
   if (moduleRegistry.isReserved(modulePath)) {
     return ERROR("circular imports are forbidden");
   }
   if (moduleRegistry.isRegistered(modulePath)) {
     const module = moduleRegistry.get(modulePath);
-    return OK(module, module);
+    return OK(module.value, module);
   }
 
   let data: string;
@@ -211,16 +207,16 @@ function resolveModule(
   const result = rootScope.executeScript(script);
   if (result.code == ResultCode.ERROR) {
     moduleRegistry.release(modulePath);
-    return result as Result<ModuleValue>;
+    return result as Result<Module>;
   }
   if (result.code != ResultCode.OK) {
     moduleRegistry.release(modulePath);
     return ERROR("unexpected " + RESULT_CODE_NAME(result.code));
   }
 
-  const module = new ModuleValue(rootScope, exports);
+  const module = new Module(rootScope, exports);
   moduleRegistry.register(modulePath, module);
-  return OK(module, module);
+  return OK(module.value, module);
 }
 
 const IMPORT_SIGNATURE = "import path ?name|imports?";
@@ -237,7 +233,7 @@ class ImportCommand implements Command {
     const { data: path, code } = StringValue.toString(args[1]);
     if (code != ResultCode.OK) return ERROR("invalid path");
 
-    const { data: value, ...result } = resolveModule(path, this.rootDir);
+    const { data: module, ...result } = resolveModule(path, this.rootDir);
     if (result.code != ResultCode.OK) return result;
 
     if (args.length >= 3) {
@@ -256,8 +252,8 @@ class ImportCommand implements Command {
               const result = importCommand(
                 values[0],
                 values[1],
-                value.exports,
-                value.scope,
+                module.exports,
+                module.scope,
                 scope
               );
               if (result.code != ResultCode.OK) return result;
@@ -265,8 +261,8 @@ class ImportCommand implements Command {
               const result = importCommand(
                 name,
                 name,
-                value.exports,
-                value.scope,
+                module.exports,
+                module.scope,
                 scope
               );
               if (result.code != ResultCode.OK) return result;
@@ -276,12 +272,12 @@ class ImportCommand implements Command {
         }
         default: {
           // Module command name
-          const result = scope.registerCommand(args[2], value);
+          const result = scope.registerCommand(args[2], module);
           if (result.code != ResultCode.OK) return result;
         }
       }
     }
-    return OK(value);
+    return OK(module.value);
   }
   help(args) {
     if (args.length > 3) return ARITY_ERROR(IMPORT_SIGNATURE);

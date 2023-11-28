@@ -4,10 +4,9 @@ import { ERROR } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { FALSE, INT, REAL, STR, StringValue, TRUE } from "../core/values";
-import { Scope, commandValueType } from "./core";
+import { CommandValue, Scope, commandValueType } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
-import { EnsembleMetacommand } from "./ensembles";
 
 const asString = (value) => StringValue.toString(value).data;
 
@@ -531,7 +530,7 @@ describe("Helena numbers", () => {
          * metacommand by wrapping the command within brackets, i.e. `[int]`.
          */
         expect(evaluate("int").type).to.eql(commandValueType);
-        expect(evaluate("int")).to.be.instanceOf(EnsembleMetacommand);
+        expect(evaluate("int")).to.be.instanceOf(CommandValue);
       });
       it("should be extensible", () => {
         /**
@@ -715,7 +714,7 @@ describe("Helena numbers", () => {
          * `[real]`.
          */
         expect(evaluate("real").type).to.eql(commandValueType);
-        expect(evaluate("real")).to.be.instanceOf(EnsembleMetacommand);
+        expect(evaluate("real")).to.be.instanceOf(CommandValue);
       });
       it("should be extensible", () => {
         /**

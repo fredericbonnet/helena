@@ -27,12 +27,20 @@ import {
   TupleValue,
   NIL,
   StringValue,
+  isCustomValueType,
 } from "../core/values";
 import { numberCmd } from "./numbers";
 
 export const commandValueType: CustomValueType = { name: "command" };
-export interface CommandValue extends Value {
+export class CommandValue implements Value {
+  readonly type = commandValueType;
   readonly command: Command;
+  constructor(command: Command) {
+    this.command = command;
+  }
+}
+export function isCommandValue(value: Value) {
+  return isCustomValueType(value.type) && value.type == commandValueType;
 }
 
 const deferredValueType: CustomValueType = { name: "deferred" };
@@ -182,7 +190,7 @@ export class Scope {
   }
   resolveCommand(value: Value): Command {
     if (value.type == ValueType.TUPLE) return expandPrefixCmd;
-    if (value.type == commandValueType) return (value as CommandValue).command;
+    if (isCommandValue(value)) return (value as CommandValue).command;
     if (RealValue.isNumber(value)) return numberCmd;
     const { data: cmdname, code } = StringValue.toString(value);
     if (code != ResultCode.OK) return null;

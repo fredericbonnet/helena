@@ -20,12 +20,11 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, CommandValue, commandValueType, Process } from "./core";
+import { Scope, Process, CommandValue } from "./core";
 import { Subcommands } from "./subcommands";
 
-class ProcMetacommand implements CommandValue, Command {
-  readonly type = commandValueType;
-  readonly command: Command;
+class ProcMetacommand implements Command {
+  readonly value: Value;
   readonly scope: Scope;
   readonly argspec: ArgspecValue;
   readonly body: ScriptValue;
@@ -39,7 +38,7 @@ class ProcMetacommand implements CommandValue, Command {
     guard: Value,
     program: Program
   ) {
-    this.command = this;
+    this.value = new CommandValue(this);
     this.scope = scope;
     this.argspec = argspec;
     this.body = body;
@@ -50,7 +49,7 @@ class ProcMetacommand implements CommandValue, Command {
 
   static readonly subcommands = new Subcommands(["subcommands", "argspec"]);
   execute(args: Value[]): Result {
-    if (args.length == 1) return OK(this.proc);
+    if (args.length == 1) return OK(this.proc.value);
     return ProcMetacommand.subcommands.dispatch(args[1], {
       subcommands: () => {
         if (args.length != 2) return ARITY_ERROR("<proc> subcommands");
@@ -73,12 +72,11 @@ type ProcState = {
   scope: Scope;
   process: Process;
 };
-class ProcCommand implements CommandValue, Command {
-  readonly type = commandValueType;
-  readonly command: Command;
+class ProcCommand implements Command {
+  readonly value: Value;
   readonly metacommand: ProcMetacommand;
   constructor(metacommand: ProcMetacommand) {
-    this.command = this;
+    this.value = new CommandValue(this);
     this.metacommand = metacommand;
   }
 
@@ -196,7 +194,7 @@ export const procCmd: Command = {
       const result = scope.registerCommand(name, metacommand.proc);
       if (result.code != ResultCode.OK) return result;
     }
-    return OK(metacommand);
+    return OK(metacommand.value);
   },
   help: (args) => {
     if (args.length > 4) return ARITY_ERROR(PROC_SIGNATURE);

@@ -13,11 +13,10 @@ import {
   TUPLE,
   StringValue,
 } from "../core/values";
-import { Scope, commandValueType } from "./core";
+import { CommandValue, Scope, commandValueType } from "./core";
 import { initCommands } from "./helena-dialect";
 import { displayDictionaryValue } from "./dicts";
 import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
-import { EnsembleMetacommand } from "./ensembles";
 
 const asString = (value) => StringValue.toString(value).data;
 
@@ -923,7 +922,7 @@ describe("Helena dictionaries", () => {
          * metacommand by wrapping the command within brackets, i.e. `[dict]`.
          */
         expect(evaluate("dict").type).to.eql(commandValueType);
-        expect(evaluate("dict")).to.be.instanceOf(EnsembleMetacommand);
+        expect(evaluate("dict")).to.be.instanceOf(CommandValue);
       });
       it("should be extensible", () => {
         /**

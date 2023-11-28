@@ -19,22 +19,16 @@ import {
   StringValue,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import {
-  CommandValue,
-  commandValueType,
-  DeferredValue,
-  Process,
-  Scope,
-} from "./core";
+import { CommandValue, DeferredValue, Process, Scope } from "./core";
 import { Subcommands } from "./subcommands";
 
-class NamespaceMetacommand implements CommandValue, Command {
-  readonly type = commandValueType;
-  readonly command: Command;
+class NamespaceMetacommand implements Command {
+  readonly value: Value;
   readonly scope: Scope;
   readonly namespace: Command;
   constructor(scope: Scope) {
-    this.command = this;
+    this.value = new CommandValue(this);
+    this.value.selectKey = (key: Value) => this.selectKey(key);
     this.scope = scope;
     this.namespace = new NamespaceCommand(this);
   }
@@ -50,7 +44,7 @@ class NamespaceMetacommand implements CommandValue, Command {
     "import",
   ]);
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this);
+    if (args.length == 1) return OK(this.value);
     return NamespaceMetacommand.subcommands.dispatch(args[1], {
       subcommands: () => {
         if (args.length != 2) return ARITY_ERROR("<namespace> subcommands");
@@ -101,7 +95,7 @@ class NamespaceCommand implements Command {
   }
 
   execute(args: Value[]): Result {
-    if (args.length == 1) return OK(this.metacommand);
+    if (args.length == 1) return OK(this.metacommand.value);
     const { data: subcommand, code } = StringValue.toString(args[1]);
     if (code != ResultCode.OK) return ERROR("invalid subcommand name");
     if (subcommand == "subcommands") {
@@ -194,7 +188,9 @@ const executeNamespaceBody = (state: NamespaceBodyState): Result => {
         );
         if (result.code != ResultCode.OK) return result;
       }
-      return OK(result.code == ResultCode.RETURN ? result.value : metacommand);
+      return OK(
+        result.code == ResultCode.RETURN ? result.value : metacommand.value
+      );
     }
     case ResultCode.YIELD:
       return YIELD(result.value, state);

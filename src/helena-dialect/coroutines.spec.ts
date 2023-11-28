@@ -4,7 +4,7 @@ import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { FALSE, STR, StringValue, TRUE } from "../core/values";
-import { commandValueType, Scope } from "./core";
+import { Scope, commandValueType } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand } from "./test-helpers";
 

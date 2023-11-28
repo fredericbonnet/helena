@@ -17,22 +17,15 @@ import {
   StringValue,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import {
-  CommandValue,
-  commandValueType,
-  DeferredValue,
-  Process,
-  Scope,
-} from "./core";
+import { CommandValue, DeferredValue, Process, Scope } from "./core";
 import { Subcommands } from "./subcommands";
 
 const SCOPE_SIGNATURE = "scope ?name? body";
-class ScopeValue implements CommandValue, Command {
-  readonly type = commandValueType;
-  readonly command: Command;
+class ScopeCommand implements Command {
+  readonly value: Value;
   readonly scope: Scope;
   constructor(scope: Scope) {
-    this.command = this;
+    this.value = new CommandValue(this);
     this.scope = scope;
   }
 
@@ -42,11 +35,11 @@ class ScopeValue implements CommandValue, Command {
     "call",
   ]);
   execute(args: Value[]): Result {
-    if (args.length == 1) return OK(this);
-    return ScopeValue.subcommands.dispatch(args[1], {
+    if (args.length == 1) return OK(this.value);
+    return ScopeCommand.subcommands.dispatch(args[1], {
       subcommands: () => {
         if (args.length != 2) return ARITY_ERROR("<scope> subcommands");
-        return OK(ScopeValue.subcommands.list);
+        return OK(ScopeCommand.subcommands.list);
       },
       eval: () => {
         if (args.length != 3) return ARITY_ERROR("<scope> eval body");
@@ -105,12 +98,14 @@ const executeScopeBody = (state: ScopeBodyState): Result => {
   switch (result.code) {
     case ResultCode.OK:
     case ResultCode.RETURN: {
-      const value = new ScopeValue(state.subscope);
+      const command = new ScopeCommand(state.subscope);
       if (state.name) {
-        const result = state.scope.registerCommand(state.name, value);
+        const result = state.scope.registerCommand(state.name, command);
         if (result.code != ResultCode.OK) return result;
       }
-      return OK(result.code == ResultCode.RETURN ? result.value : value);
+      return OK(
+        result.code == ResultCode.RETURN ? result.value : command.value
+      );
     }
     case ResultCode.YIELD:
       return YIELD(result.value, state);

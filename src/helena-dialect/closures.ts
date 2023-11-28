@@ -12,12 +12,11 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, CommandValue, DeferredValue, commandValueType } from "./core";
+import { Scope, DeferredValue, CommandValue } from "./core";
 import { Subcommands } from "./subcommands";
 
-class ClosureMetacommand implements CommandValue, Command {
-  readonly type = commandValueType;
-  readonly command: Command;
+class ClosureMetacommand implements Command {
+  readonly value: Value;
   readonly scope: Scope;
   readonly argspec: ArgspecValue;
   readonly body: ScriptValue;
@@ -29,7 +28,7 @@ class ClosureMetacommand implements CommandValue, Command {
     body: ScriptValue,
     guard: Value
   ) {
-    this.command = this;
+    this.value = new CommandValue(this);
     this.scope = scope;
     this.argspec = argspec;
     this.body = body;
@@ -39,7 +38,7 @@ class ClosureMetacommand implements CommandValue, Command {
 
   static readonly subcommands = new Subcommands(["subcommands", "argspec"]);
   execute(args: Value[]): Result {
-    if (args.length == 1) return OK(this.closure);
+    if (args.length == 1) return OK(this.closure.value);
     return ClosureMetacommand.subcommands.dispatch(args[1], {
       subcommands: () => {
         if (args.length != 2) return ARITY_ERROR("<closure> subcommands");
@@ -55,12 +54,11 @@ class ClosureMetacommand implements CommandValue, Command {
 
 const CLOSURE_COMMAND_SIGNATURE = (name, help) =>
   `${StringValue.toString(name, "<closure>").data}${help ? " " + help : ""}`;
-class ClosureCommand implements CommandValue, Command {
-  readonly type = commandValueType;
-  readonly command: Command;
+class ClosureCommand implements Command {
+  readonly value: Value;
   readonly metacommand: ClosureMetacommand;
   constructor(metacommand: ClosureMetacommand) {
-    this.command = this;
+    this.value = new CommandValue(this);
     this.metacommand = metacommand;
   }
 
@@ -161,7 +159,7 @@ export const closureCmd: Command = {
       const result = scope.registerCommand(name, metacommand.closure);
       if (result.code != ResultCode.OK) return result;
     }
-    return OK(metacommand);
+    return OK(metacommand.value);
   },
   help: (args) => {
     if (args.length > 4) return ARITY_ERROR(CLOSURE_SIGNATURE);

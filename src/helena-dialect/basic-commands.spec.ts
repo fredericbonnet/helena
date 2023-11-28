@@ -11,7 +11,7 @@ import {
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
 import { NIL, STR, StringValue, TUPLE } from "../core/values";
-import { CommandValue, commandValueType, Scope } from "./core";
+import { CommandValue, Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand } from "./test-helpers";
 import { Command } from "../core/command";
@@ -581,10 +581,7 @@ describe("Helena basic commands", () => {
             return OK(STR("this is a help string"));
           },
         };
-        rootScope.setNamedConstant("cmd", {
-          type: commandValueType,
-          command,
-        } as CommandValue);
+        rootScope.setNamedConstant("cmd", new CommandValue(command));
         rootScope.registerNamedCommand("cmd", command);
         expect(evaluate("help cmd")).to.eql(STR("this is a help string"));
         expect(evaluate("help $cmd")).to.eql(STR("this is a help string"));
@@ -625,10 +622,7 @@ describe("Helena basic commands", () => {
             return OK(NIL);
           },
         };
-        rootScope.setNamedConstant("cmd", {
-          type: commandValueType,
-          command,
-        } as CommandValue);
+        rootScope.setNamedConstant("cmd", new CommandValue(command));
         rootScope.registerNamedCommand("cmd", command);
         expect(execute("help $cmd")).to.eql(ERROR("no help for command"));
         expect(execute("help cmd")).to.eql(ERROR('no help for command "cmd"'));

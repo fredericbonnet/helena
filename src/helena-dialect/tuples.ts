@@ -25,7 +25,7 @@ class TupleCommand implements Command {
     this.metacommand = new EnsembleMetacommand(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this.metacommand);
+    if (args.length == 1) return OK(this.metacommand.value);
     if (args.length == 2) return valueToTuple(args[1]);
     return this.metacommand.ensemble.execute(args, scope);
   }

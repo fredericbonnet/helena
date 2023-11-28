@@ -18,34 +18,17 @@ import {
   StringValue,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import {
-  CommandValue,
-  commandValueType,
-  DeferredValue,
-  Process,
-  Scope,
-} from "./core";
+import { CommandValue, DeferredValue, Process, Scope } from "./core";
 import { ArgspecValue } from "./argspecs";
 import { Subcommands } from "./subcommands";
 
-export class EnsembleCommandValue implements CommandValue {
-  readonly type = commandValueType;
-  readonly command: Command;
-
-  constructor(command: Command) {
-    this.command = command;
-  }
-}
-
-export class EnsembleMetacommand implements CommandValue, Command {
-  readonly type = commandValueType;
-  readonly command: Command;
+export class EnsembleMetacommand implements Command {
+  readonly value: Value;
   readonly scope: Scope;
   readonly argspec: ArgspecValue;
   readonly ensemble: Command;
-  EnsembleCommandValue;
   constructor(scope: Scope, argspec: ArgspecValue) {
-    this.command = this;
+    this.value = new CommandValue(this);
     this.scope = scope;
     this.argspec = argspec;
     this.ensemble = new EnsembleCommand(this);
@@ -58,7 +41,7 @@ export class EnsembleMetacommand implements CommandValue, Command {
     "argspec",
   ]);
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this);
+    if (args.length == 1) return OK(this.value);
     return EnsembleMetacommand.subcommands.dispatch(args[1], {
       subcommands: () => {
         if (args.length != 2) return ARITY_ERROR("<ensemble> subcommands");
@@ -76,7 +59,7 @@ export class EnsembleMetacommand implements CommandValue, Command {
         if (!this.scope.hasLocalCommand(subcommand))
           return ERROR(`unknown command "${subcommand}"`);
         const command = this.scope.resolveNamedCommand(subcommand);
-        const cmdline = [new EnsembleCommandValue(command), ...args.slice(3)];
+        const cmdline = [new CommandValue(command), ...args.slice(3)];
         return YIELD(new DeferredValue(TUPLE(cmdline), scope));
       },
       argspec: () => {
@@ -96,7 +79,7 @@ class EnsembleCommand implements Command {
   }
 
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this.metacommand);
+    if (args.length == 1) return OK(this.metacommand.value);
     const minArgs = this.metacommand.argspec.argspec.nbRequired + 1;
     if (args.length < minArgs)
       return ARITY_ERROR(
@@ -138,7 +121,7 @@ class EnsembleCommand implements Command {
       return ERROR(`unknown subcommand "${subcommand}"`);
     const command = this.metacommand.scope.resolveNamedCommand(subcommand);
     const cmdline = [
-      new EnsembleCommandValue(command),
+      new CommandValue(command),
       ...ensembleArgs,
       ...args.slice(minArgs + 1),
     ];
@@ -234,7 +217,9 @@ const executeEnsembleBody = (state: EnsembleBodyState): Result => {
         );
         if (result.code != ResultCode.OK) return result;
       }
-      return OK(result.code == ResultCode.RETURN ? result.value : metacommand);
+      return OK(
+        result.code == ResultCode.RETURN ? result.value : metacommand.value
+      );
     }
     case ResultCode.YIELD:
       return YIELD(result.value, state);
