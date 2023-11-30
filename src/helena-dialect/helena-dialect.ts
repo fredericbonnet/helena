@@ -4,7 +4,7 @@ import { Scope } from "./core";
 import { scopeCmd } from "./scopes";
 import { closureCmd } from "./closures";
 import { coroutineCmd } from "./coroutines";
-import { argspecCmd } from "./argspecs";
+import { registerArgspecCommands } from "./argspecs";
 import { aliasCmd } from "./aliases";
 import { procCmd } from "./procs";
 import { namespaceCmd } from "./namespaces";
@@ -38,8 +38,7 @@ export function initCommands(scope: Scope, rootDir?: string) {
   registerDictCommands(scope);
   registerTupleCommands(scope);
   registerScriptCommands(scope);
-
-  scope.registerNamedCommand("argspec", argspecCmd);
+  registerArgspecCommands(scope);
 
   scope.registerNamedCommand("scope", scopeCmd);
   scope.registerNamedCommand("namespace", namespaceCmd);

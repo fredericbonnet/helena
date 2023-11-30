@@ -1,11 +1,19 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Result, OK, ERROR, ResultCode } from "../core/results";
 import { Command } from "../core/command";
-import { Value, ValueType, ScriptValue, NIL, STR, TUPLE } from "../core/values";
+import {
+  Value,
+  ValueType,
+  ScriptValue,
+  NIL,
+  STR,
+  TUPLE,
+  LIST,
+} from "../core/values";
 import { Argument, ARITY_ERROR, buildArguments, buildUsage } from "./arguments";
-import { Scope, commandValueType } from "./core";
+import { Scope } from "./core";
 import { valueToArray } from "./lists";
-import { Subcommands } from "./subcommands";
+import { EnsembleMetacommand } from "./ensembles";
 
 export class Argspec {
   readonly args: Argument[];
@@ -33,12 +41,10 @@ export class Argspec {
   }
 }
 
-export class ArgspecValue implements Value, Command {
-  readonly command;
-  readonly type = commandValueType;
+export class ArgspecValue implements Value {
+  readonly type = { name: "argspec" };
   readonly argspec: Argspec;
   constructor(argspec: Argspec) {
-    this.command = this;
     this.argspec = argspec;
   }
 
@@ -46,9 +52,8 @@ export class ArgspecValue implements Value, Command {
     if (value instanceof ArgspecValue) return OK(value, value);
     const { data: args, ...result } = buildArguments(value);
     if (result.code != ResultCode.OK) return result;
-    const argspec = new Argspec(args);
-    const command = new ArgspecValue(argspec);
-    return OK(command, command);
+    const v = new ArgspecValue(new Argspec(args));
+    return OK(v, v);
   }
 
   usage(skip = 0): string {
@@ -113,33 +118,7 @@ export class ArgspecValue implements Value, Command {
     return OK(NIL);
   }
 
-  static readonly subcommands = new Subcommands([
-    "subcommands",
-    "usage",
-    "set",
-  ]);
-  execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this);
-    return ArgspecValue.subcommands.dispatch(args[1], {
-      subcommands: () => {
-        if (args.length != 2) return ARITY_ERROR("<argspec> subcommands");
-        return OK(ArgspecValue.subcommands.list);
-      },
-      usage: () => {
-        if (args.length != 2) return ARITY_ERROR("<argspec> usage");
-        return OK(STR(this.usage()));
-      },
-      set: () => {
-        if (args.length != 3) return ARITY_ERROR("<argspec> set values");
-        const { data: values, ...result } = valueToArray(args[2]);
-        if (result.code != ResultCode.OK) return result;
-        // TODO handle YIELD?
-        return this.setArguments(values, scope);
-      },
-    });
-  }
-
-  private setArguments(values: Value[], scope: Scope): Result {
+  setArguments(values: Value[], scope: Scope): Result {
     if (!this.checkArity(values, 0))
       return ERROR(`wrong # values: should be "${this.usage()}"`);
     return this.applyArguments(scope, values, 0, (name, value) =>
@@ -148,32 +127,57 @@ export class ArgspecValue implements Value, Command {
   }
 }
 
-const ARGSPEC_SIGNATURE = "argspec ?name? specs";
-export const argspecCmd: Command = {
-  execute: (args, scope: Scope) => {
-    let name, specs;
-    switch (args.length) {
-      case 2:
-        [, specs] = args;
-        break;
-      case 3:
-        [, name, specs] = args;
-        break;
-      default:
-        return ARITY_ERROR(ARGSPEC_SIGNATURE);
-    }
+class ArgspecCommand implements Command {
+  scope: Scope;
+  metacommand: EnsembleMetacommand;
+  constructor(scope: Scope) {
+    this.scope = new Scope(scope);
+    const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
+    this.metacommand = new EnsembleMetacommand(this.scope, argspec);
+  }
+  execute(args: Value[], scope: Scope): Result {
+    if (args.length == 1) return OK(this.metacommand.value);
+    if (args.length == 2) return ArgspecValue.fromValue(args[1]);
+    return this.metacommand.ensemble.execute(args, scope);
+  }
+  help(args) {
+    return this.metacommand.ensemble.help(args, {});
+  }
+}
 
-    const result = ArgspecValue.fromValue(specs);
+const ARGSPEC_USAGE_SIGNATURE = "argspec value usage";
+const argspecUsageCmd: Command = {
+  execute(args) {
+    if (args.length != 2) return ARITY_ERROR(ARGSPEC_USAGE_SIGNATURE);
+    const { data: value, ...result } = ArgspecValue.fromValue(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const argspec = result.data;
-    if (name) {
-      const result = scope.registerCommand(name, argspec);
-      if (result.code != ResultCode.OK) return result;
-    }
-    return OK(argspec);
+    return OK(STR(value.usage()));
   },
-  help: (args) => {
-    if (args.length > 3) return ARITY_ERROR(ARGSPEC_SIGNATURE);
-    return OK(STR(ARGSPEC_SIGNATURE));
+  help(args) {
+    if (args.length > 2) return ARITY_ERROR(ARGSPEC_USAGE_SIGNATURE);
+    return OK(STR(ARGSPEC_USAGE_SIGNATURE));
   },
 };
+
+const ARGSPEC_SET_SIGNATURE = "argspec value set values";
+const argspecSetCmd: Command = {
+  execute(args, scope: Scope) {
+    if (args.length != 3) return ARITY_ERROR(ARGSPEC_SET_SIGNATURE);
+    const { data: value, ...result } = ArgspecValue.fromValue(args[1]);
+    if (result.code != ResultCode.OK) return result;
+    const { data: values, ...result2 } = valueToArray(args[2]);
+    if (result2.code != ResultCode.OK) return result2;
+    return value.setArguments(values, scope);
+  },
+  help(args) {
+    if (args.length > 2) return ARITY_ERROR(ARGSPEC_SET_SIGNATURE);
+    return OK(STR(ARGSPEC_SET_SIGNATURE));
+  },
+};
+
+export function registerArgspecCommands(scope: Scope) {
+  const command = new ArgspecCommand(scope);
+  scope.registerNamedCommand("argspec", command);
+  command.scope.registerNamedCommand("usage", argspecUsageCmd);
+  command.scope.registerNamedCommand("set", argspecSetCmd);
+}
