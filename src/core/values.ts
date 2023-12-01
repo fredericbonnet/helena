@@ -406,7 +406,7 @@ export class StringValue implements Value {
         return OK(NIL, (value as RealValue).value.toString());
       case ValueType.SCRIPT: {
         const source = (value as ScriptValue).source;
-        if (source) return OK(NIL, source);
+        if (source != undefined && source != null) return OK(NIL, source);
       }
     }
     if (def) return OK(NIL, def);
