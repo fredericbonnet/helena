@@ -17,7 +17,7 @@ import {
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { Scope } from "./core";
-import { EnsembleMetacommand } from "./ensembles";
+import { EnsembleCommand } from "./ensembles";
 
 const PARSE_SIGNATURE = "parse source";
 const parseCmd: Command = {
@@ -41,19 +41,19 @@ const parseCmd: Command = {
 
 class ScriptCommand implements Command {
   scope: Scope;
-  metacommand: EnsembleMetacommand;
+  ensemble: EnsembleCommand;
   constructor(scope: Scope) {
     this.scope = new Scope(scope);
     const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
-    this.metacommand = new EnsembleMetacommand(this.scope, argspec);
+    this.ensemble = new EnsembleCommand(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 1) return OK(this.metacommand.value);
+    if (args.length == 1) return OK(this.ensemble.metacommand.value);
     if (args.length == 2) return valueToScript(args[1]);
-    return this.metacommand.ensemble.execute(args, scope);
+    return this.ensemble.execute(args, scope);
   }
   help(args) {
-    return this.metacommand.ensemble.help(args, {});
+    return this.ensemble.help(args);
   }
 }
 

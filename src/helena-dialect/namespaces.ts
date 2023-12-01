@@ -24,17 +24,15 @@ import { Subcommands } from "./subcommands";
 
 class NamespaceMetacommand implements Command {
   readonly value: Value;
-  readonly scope: Scope;
-  readonly namespace: Command;
-  constructor(scope: Scope) {
+  readonly namespace: NamespaceCommand;
+  constructor(namespace: NamespaceCommand) {
     this.value = new CommandValue(this);
     this.value.selectKey = (key: Value) => this.selectKey(key);
-    this.scope = scope;
-    this.namespace = new NamespaceCommand(this);
+    this.namespace = namespace;
   }
 
   selectKey(key: Value): Result {
-    return this.scope.getVariable(key);
+    return this.namespace.scope.getVariable(key);
   }
 
   static readonly subcommands = new Subcommands([
@@ -52,17 +50,17 @@ class NamespaceMetacommand implements Command {
       },
       eval: () => {
         if (args.length != 3) return ARITY_ERROR("<namespace> eval body");
-        return YIELD(new DeferredValue(args[2], this.scope));
+        return YIELD(new DeferredValue(args[2], this.namespace.scope));
       },
       call: () => {
         if (args.length < 3)
           return ARITY_ERROR("<namespace> call cmdname ?arg ...?");
         const { data: command, code } = StringValue.toString(args[2]);
         if (code != ResultCode.OK) return ERROR("invalid command name");
-        if (!this.scope.hasLocalCommand(command))
+        if (!this.namespace.scope.hasLocalCommand(command))
           return ERROR(`unknown command "${command}"`);
         const cmdline = args.slice(2);
-        return YIELD(new DeferredValue(TUPLE(cmdline), this.scope));
+        return YIELD(new DeferredValue(TUPLE(cmdline), this.namespace.scope));
       },
       import: () => {
         if (args.length != 3 && args.length != 4)
@@ -77,7 +75,7 @@ class NamespaceMetacommand implements Command {
         } else {
           alias = name;
         }
-        const command = this.scope.resolveNamedCommand(name);
+        const command = this.namespace.scope.resolveNamedCommand(name);
         if (!command) return ERROR(`cannot resolve imported command "${name}"`);
         scope.registerNamedCommand(alias, command);
         return OK(NIL);
@@ -90,8 +88,10 @@ const NAMESPACE_COMMAND_PREFIX = (name) =>
   StringValue.toString(name, "<namespace>").data;
 class NamespaceCommand implements Command {
   readonly metacommand: NamespaceMetacommand;
-  constructor(metacommand: NamespaceMetacommand) {
-    this.metacommand = metacommand;
+  readonly scope: Scope;
+  constructor(scope: Scope) {
+    this.scope = scope;
+    this.metacommand = new NamespaceMetacommand(this);
   }
 
   execute(args: Value[]): Result {
@@ -105,14 +105,14 @@ class NamespaceCommand implements Command {
       return OK(
         LIST([
           args[1],
-          ...this.metacommand.scope.getLocalCommands().map((name) => STR(name)),
+          ...this.scope.getLocalCommands().map((name) => STR(name)),
         ])
       );
     }
-    if (!this.metacommand.scope.hasLocalCommand(subcommand))
+    if (!this.scope.hasLocalCommand(subcommand))
       return ERROR(`unknown subcommand "${subcommand}"`);
     const cmdline = args.slice(1);
-    return YIELD(new DeferredValue(TUPLE(cmdline), this.metacommand.scope));
+    return YIELD(new DeferredValue(TUPLE(cmdline), this.scope));
   }
   help(args: Value[], { prefix, skip }) {
     const usage = skip ? "" : NAMESPACE_COMMAND_PREFIX(args[0]);
@@ -128,9 +128,9 @@ class NamespaceCommand implements Command {
       }
       return OK(STR(signature + " subcommands"));
     }
-    if (!this.metacommand.scope.hasLocalCommand(subcommand))
+    if (!this.scope.hasLocalCommand(subcommand))
       return ERROR(`unknown subcommand "${subcommand}"`);
-    const command = this.metacommand.scope.resolveNamedCommand(subcommand);
+    const command = this.scope.resolveNamedCommand(subcommand);
     if (!command.help) return ERROR(`no help for subcommand "${subcommand}"`);
     return command.help(args.slice(1), {
       prefix: signature + " " + subcommand,
@@ -180,16 +180,15 @@ const executeNamespaceBody = (state: NamespaceBodyState): Result => {
   switch (result.code) {
     case ResultCode.OK:
     case ResultCode.RETURN: {
-      const metacommand = new NamespaceMetacommand(state.subscope);
+      const namespace = new NamespaceCommand(state.subscope);
       if (state.name) {
-        const result = state.scope.registerCommand(
-          state.name,
-          metacommand.namespace
-        );
+        const result = state.scope.registerCommand(state.name, namespace);
         if (result.code != ResultCode.OK) return result;
       }
       return OK(
-        result.code == ResultCode.RETURN ? result.value : metacommand.value
+        result.code == ResultCode.RETURN
+          ? result.value
+          : namespace.metacommand.value
       );
     }
     case ResultCode.YIELD:

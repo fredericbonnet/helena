@@ -17,16 +17,10 @@ import { Subcommands } from "./subcommands";
 
 class MacroMetacommand implements Command {
   readonly value: Value;
-  readonly argspec: ArgspecValue;
-  readonly body: ScriptValue;
-  readonly guard: Value;
   readonly macro: MacroCommand;
-  constructor(argspec: ArgspecValue, body: ScriptValue, guard: Value) {
+  constructor(macro: MacroCommand) {
     this.value = new CommandValue(this);
-    this.argspec = argspec;
-    this.body = body;
-    this.guard = guard;
-    this.macro = new MacroCommand(this);
+    this.macro = macro;
   }
 
   static readonly subcommands = new Subcommands(["subcommands", "argspec"]);
@@ -39,7 +33,7 @@ class MacroMetacommand implements Command {
       },
       argspec: () => {
         if (args.length != 2) return ARITY_ERROR("<macro> argspec");
-        return OK(this.argspec);
+        return OK(this.macro.argspec);
       },
     });
   }
@@ -50,15 +44,21 @@ const MACRO_COMMAND_SIGNATURE = (name, help) =>
 class MacroCommand implements Command {
   readonly value: Value;
   readonly metacommand: MacroMetacommand;
-  constructor(metacommand: MacroMetacommand) {
+  readonly argspec: ArgspecValue;
+  readonly body: ScriptValue;
+  readonly guard: Value;
+  constructor(argspec: ArgspecValue, body: ScriptValue, guard: Value) {
     this.value = new CommandValue(this);
-    this.metacommand = metacommand;
+    this.argspec = argspec;
+    this.body = body;
+    this.guard = guard;
+    this.metacommand = new MacroMetacommand(this);
   }
 
   execute(args: Value[], scope: Scope): Result {
-    if (!this.metacommand.argspec.checkArity(args, 1)) {
+    if (!this.argspec.checkArity(args, 1)) {
       return ARITY_ERROR(
-        MACRO_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage())
+        MACRO_COMMAND_SIGNATURE(args[0], this.argspec.usage())
       );
     }
     const subscope = new Scope(scope, true);
@@ -67,19 +67,14 @@ class MacroCommand implements Command {
       return OK(value);
     };
     // TODO handle YIELD?
-    const result = this.metacommand.argspec.applyArguments(
-      scope,
-      args,
-      1,
-      setarg
-    );
+    const result = this.argspec.applyArguments(scope, args, 1, setarg);
     if (result.code != ResultCode.OK) return result;
-    return YIELD(new DeferredValue(this.metacommand.body, subscope));
+    return YIELD(new DeferredValue(this.body, subscope));
   }
   resume(result: Result, scope: Scope): Result {
-    if (this.metacommand.guard) {
+    if (this.guard) {
       const process = scope.prepareTupleValue(
-        TUPLE([this.metacommand.guard, result.value])
+        TUPLE([this.guard, result.value])
       );
       // TODO handle YIELD?
       return process.run();
@@ -88,12 +83,12 @@ class MacroCommand implements Command {
   }
   help(args: Value[], { prefix, skip }) {
     const usage = skip
-      ? this.metacommand.argspec.usage(skip - 1)
-      : MACRO_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage());
+      ? this.argspec.usage(skip - 1)
+      : MACRO_COMMAND_SIGNATURE(args[0], this.argspec.usage());
     const signature = [prefix, usage].filter(Boolean).join(" ");
     if (
-      !this.metacommand.argspec.checkArity(args, 1) &&
-      args.length > this.metacommand.argspec.argspec.nbRequired
+      !this.argspec.checkArity(args, 1) &&
+      args.length > this.argspec.argspec.nbRequired
     ) {
       return ARITY_ERROR(signature);
     }
@@ -141,16 +136,12 @@ export const macroCmd: Command = {
     const result = ArgspecValue.fromValue(specs);
     if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
-    const metacommand = new MacroMetacommand(
-      argspec,
-      body as ScriptValue,
-      guard
-    );
+    const macro = new MacroCommand(argspec, body as ScriptValue, guard);
     if (name) {
-      const result = scope.registerCommand(name, metacommand.macro);
+      const result = scope.registerCommand(name, macro);
       if (result.code != ResultCode.OK) return result;
     }
-    return OK(metacommand.value);
+    return OK(macro.metacommand.value);
   },
   help: (args) => {
     if (args.length > 4) return ARITY_ERROR(MACRO_SIGNATURE);

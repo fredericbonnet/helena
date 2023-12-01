@@ -25,26 +25,10 @@ import { Subcommands } from "./subcommands";
 
 class ProcMetacommand implements Command {
   readonly value: Value;
-  readonly scope: Scope;
-  readonly argspec: ArgspecValue;
-  readonly body: ScriptValue;
-  readonly guard: Value;
-  readonly program: Program;
   readonly proc: ProcCommand;
-  constructor(
-    scope: Scope,
-    argspec: ArgspecValue,
-    body: ScriptValue,
-    guard: Value,
-    program: Program
-  ) {
+  constructor(proc: ProcCommand) {
     this.value = new CommandValue(this);
-    this.scope = scope;
-    this.argspec = argspec;
-    this.body = body;
-    this.guard = guard;
-    this.program = program;
-    this.proc = new ProcCommand(this);
+    this.proc = proc;
   }
 
   static readonly subcommands = new Subcommands(["subcommands", "argspec"]);
@@ -57,7 +41,7 @@ class ProcMetacommand implements Command {
       },
       argspec: () => {
         if (args.length != 2) return ARITY_ERROR("<proc> argspec");
-        return OK(this.argspec);
+        return OK(this.proc.argspec);
       },
     });
   }
@@ -75,30 +59,39 @@ type ProcState = {
 class ProcCommand implements Command {
   readonly value: Value;
   readonly metacommand: ProcMetacommand;
-  constructor(metacommand: ProcMetacommand) {
+  readonly scope: Scope;
+  readonly argspec: ArgspecValue;
+  readonly body: ScriptValue;
+  readonly guard: Value;
+  readonly program: Program;
+  constructor(
+    scope: Scope,
+    argspec: ArgspecValue,
+    body: ScriptValue,
+    guard: Value,
+    program: Program
+  ) {
     this.value = new CommandValue(this);
-    this.metacommand = metacommand;
+    this.scope = scope;
+    this.argspec = argspec;
+    this.body = body;
+    this.guard = guard;
+    this.program = program;
+    this.metacommand = new ProcMetacommand(this);
   }
 
   execute(args: Value[]): Result {
-    if (!this.metacommand.argspec.checkArity(args, 1)) {
-      return ARITY_ERROR(
-        PROC_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage())
-      );
+    if (!this.argspec.checkArity(args, 1)) {
+      return ARITY_ERROR(PROC_COMMAND_SIGNATURE(args[0], this.argspec.usage()));
     }
-    const subscope = new Scope(this.metacommand.scope);
+    const subscope = new Scope(this.scope);
     const setarg = (name, value) => {
       subscope.setNamedVariable(name, value);
       return OK(value);
     };
-    const result = this.metacommand.argspec.applyArguments(
-      this.metacommand.scope,
-      args,
-      1,
-      setarg
-    );
+    const result = this.argspec.applyArguments(this.scope, args, 1, setarg);
     if (result.code != ResultCode.OK) return result;
-    const process = subscope.prepareProcess(this.metacommand.program);
+    const process = subscope.prepareProcess(this.program);
     return this.run({ scope: subscope, process });
   }
   resume(result: Result): Result {
@@ -112,9 +105,9 @@ class ProcCommand implements Command {
     switch (result.code) {
       case ResultCode.OK:
       case ResultCode.RETURN:
-        if (this.metacommand.guard) {
-          const process = this.metacommand.scope.prepareTupleValue(
-            TUPLE([this.metacommand.guard, result.value])
+        if (this.guard) {
+          const process = this.scope.prepareTupleValue(
+            TUPLE([this.guard, result.value])
           );
           // TODO handle YIELD?
           return process.run();
@@ -128,16 +121,12 @@ class ProcCommand implements Command {
   }
   help(args: Value[]): Result {
     if (
-      !this.metacommand.argspec.checkArity(args, 1) &&
-      args.length > this.metacommand.argspec.argspec.nbRequired
+      !this.argspec.checkArity(args, 1) &&
+      args.length > this.argspec.argspec.nbRequired
     ) {
-      return ARITY_ERROR(
-        PROC_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage())
-      );
+      return ARITY_ERROR(PROC_COMMAND_SIGNATURE(args[0], this.argspec.usage()));
     }
-    return OK(
-      STR(PROC_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage()))
-    );
+    return OK(STR(PROC_COMMAND_SIGNATURE(args[0], this.argspec.usage())));
   }
 }
 
@@ -183,7 +172,7 @@ export const procCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
     const program = scope.compile((body as ScriptValue).script);
-    const metacommand = new ProcMetacommand(
+    const proc = new ProcCommand(
       scope,
       argspec,
       body as ScriptValue,
@@ -191,10 +180,10 @@ export const procCmd: Command = {
       program
     );
     if (name) {
-      const result = scope.registerCommand(name, metacommand.proc);
+      const result = scope.registerCommand(name, proc);
       if (result.code != ResultCode.OK) return result;
     }
-    return OK(metacommand.value);
+    return OK(proc.metacommand.value);
   },
   help: (args) => {
     if (args.length > 4) return ARITY_ERROR(PROC_SIGNATURE);

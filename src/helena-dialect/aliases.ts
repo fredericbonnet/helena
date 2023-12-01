@@ -8,12 +8,10 @@ import { Subcommands } from "./subcommands";
 
 class AliasMetacommand implements Command {
   readonly value: Value;
-  readonly cmd: Value;
   readonly alias: AliasCommand;
-  constructor(cmd: Value) {
+  constructor(alias: AliasCommand) {
     this.value = new CommandValue(this);
-    this.cmd = cmd;
-    this.alias = new AliasCommand(this);
+    this.alias = alias;
   }
 
   static readonly subcommands = new Subcommands(["subcommands", "command"]);
@@ -26,7 +24,7 @@ class AliasMetacommand implements Command {
       },
       command: () => {
         if (args.length != 2) return ARITY_ERROR("<alias> command");
-        return OK(this.cmd);
+        return OK(this.alias.cmd);
       },
     });
   }
@@ -37,14 +35,16 @@ class AliasMetacommand implements Command {
 
 class AliasCommand implements Command {
   readonly value: Value;
+  readonly cmd: Value;
   readonly metacommand: AliasMetacommand;
-  constructor(metacommand: AliasMetacommand) {
+  constructor(cmd: Value) {
     this.value = new CommandValue(this);
-    this.metacommand = metacommand;
+    this.cmd = cmd;
+    this.metacommand = new AliasMetacommand(this);
   }
 
   execute(args: Value[], scope: Scope): Result {
-    const cmdline = [this.metacommand.cmd, ...args.slice(1)];
+    const cmdline = [this.cmd, ...args.slice(1)];
     return expandPrefixCmd.execute(cmdline, scope);
   }
   resume(result: Result, scope: Scope): Result {
@@ -58,10 +58,10 @@ export const aliasCmd: Command = {
     if (args.length != 3) return ARITY_ERROR(ALIAS_SIGNATURE);
     const [, name, cmd] = args;
 
-    const metacommand = new AliasMetacommand(cmd);
-    const result = scope.registerCommand(name, metacommand.alias);
+    const alias = new AliasCommand(cmd);
+    const result = scope.registerCommand(name, alias);
     if (result.code != ResultCode.OK) return result;
-    return OK(metacommand.value);
+    return OK(alias.metacommand.value);
   },
   help: (args) => {
     if (args.length > 3) return ARITY_ERROR(ALIAS_SIGNATURE);

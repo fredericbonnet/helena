@@ -17,23 +17,10 @@ import { Subcommands } from "./subcommands";
 
 class ClosureMetacommand implements Command {
   readonly value: Value;
-  readonly scope: Scope;
-  readonly argspec: ArgspecValue;
-  readonly body: ScriptValue;
-  readonly guard: Value;
   readonly closure: ClosureCommand;
-  constructor(
-    scope: Scope,
-    argspec: ArgspecValue,
-    body: ScriptValue,
-    guard: Value
-  ) {
+  constructor(closure: ClosureCommand) {
     this.value = new CommandValue(this);
-    this.scope = scope;
-    this.argspec = argspec;
-    this.body = body;
-    this.guard = guard;
-    this.closure = new ClosureCommand(this);
+    this.closure = closure;
   }
 
   static readonly subcommands = new Subcommands(["subcommands", "argspec"]);
@@ -46,7 +33,7 @@ class ClosureMetacommand implements Command {
       },
       argspec: () => {
         if (args.length != 2) return ARITY_ERROR("<closure> argspec");
-        return OK(this.argspec);
+        return OK(this.closure.argspec);
       },
     });
   }
@@ -57,36 +44,44 @@ const CLOSURE_COMMAND_SIGNATURE = (name, help) =>
 class ClosureCommand implements Command {
   readonly value: Value;
   readonly metacommand: ClosureMetacommand;
-  constructor(metacommand: ClosureMetacommand) {
+  readonly scope: Scope;
+  readonly argspec: ArgspecValue;
+  readonly body: ScriptValue;
+  readonly guard: Value;
+  constructor(
+    scope: Scope,
+    argspec: ArgspecValue,
+    body: ScriptValue,
+    guard: Value
+  ) {
     this.value = new CommandValue(this);
-    this.metacommand = metacommand;
+    this.scope = scope;
+    this.argspec = argspec;
+    this.body = body;
+    this.guard = guard;
+    this.metacommand = new ClosureMetacommand(this);
   }
 
   execute(args: Value[]): Result {
-    if (!this.metacommand.argspec.checkArity(args, 1)) {
+    if (!this.argspec.checkArity(args, 1)) {
       return ARITY_ERROR(
-        CLOSURE_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage())
+        CLOSURE_COMMAND_SIGNATURE(args[0], this.argspec.usage())
       );
     }
-    const subscope = new Scope(this.metacommand.scope, true);
+    const subscope = new Scope(this.scope, true);
     const setarg = (name, value) => {
       subscope.setNamedLocal(name, value);
       return OK(value);
     };
     // TODO handle YIELD?
-    const result = this.metacommand.argspec.applyArguments(
-      this.metacommand.scope,
-      args,
-      1,
-      setarg
-    );
+    const result = this.argspec.applyArguments(this.scope, args, 1, setarg);
     if (result.code != ResultCode.OK) return result;
-    return YIELD(new DeferredValue(this.metacommand.body, subscope));
+    return YIELD(new DeferredValue(this.body, subscope));
   }
   resume(result: Result): Result {
-    if (this.metacommand.guard) {
-      const process = this.metacommand.scope.prepareTupleValue(
-        TUPLE([this.metacommand.guard, result.value])
+    if (this.guard) {
+      const process = this.scope.prepareTupleValue(
+        TUPLE([this.guard, result.value])
       );
       // TODO handle YIELD?
       return process.run();
@@ -95,12 +90,12 @@ class ClosureCommand implements Command {
   }
   help(args: Value[], { prefix, skip }) {
     const usage = skip
-      ? this.metacommand.argspec.usage(skip - 1)
-      : CLOSURE_COMMAND_SIGNATURE(args[0], this.metacommand.argspec.usage());
+      ? this.argspec.usage(skip - 1)
+      : CLOSURE_COMMAND_SIGNATURE(args[0], this.argspec.usage());
     const signature = [prefix, usage].filter(Boolean).join(" ");
     if (
-      !this.metacommand.argspec.checkArity(args, 1) &&
-      args.length > this.metacommand.argspec.argspec.nbRequired
+      !this.argspec.checkArity(args, 1) &&
+      args.length > this.argspec.argspec.nbRequired
     ) {
       return ARITY_ERROR(signature);
     }
@@ -149,17 +144,17 @@ export const closureCmd: Command = {
     const result = ArgspecValue.fromValue(specs);
     if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
-    const metacommand = new ClosureMetacommand(
+    const closure = new ClosureCommand(
       scope,
       argspec,
       body as ScriptValue,
       guard
     );
     if (name) {
-      const result = scope.registerCommand(name, metacommand.closure);
+      const result = scope.registerCommand(name, closure);
       if (result.code != ResultCode.OK) return result;
     }
-    return OK(metacommand.value);
+    return OK(closure.metacommand.value);
   },
   help: (args) => {
     if (args.length > 4) return ARITY_ERROR(CLOSURE_SIGNATURE);
