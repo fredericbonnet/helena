@@ -101,6 +101,7 @@ describe("Helena dialect", () => {
       expect(execute("(a)")).to.eql(ERROR('cannot resolve command "a"'));
       expect(execute("() a")).to.eql(ERROR('cannot resolve command "a"'));
       expect(execute("(()) a")).to.eql(ERROR('cannot resolve command "a"'));
+      expect(execute("([]) a")).to.eql(ERROR("invalid command name"));
     });
   });
 

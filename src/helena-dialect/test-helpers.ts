@@ -57,7 +57,10 @@ const exampleCode = (spec: ExampleSpec) => {
 };
 const executeExample = (executor: ExampleExecutor, spec: ExampleSpec) => {
   const result = executor(spec);
-  if (!spec.result) return;
+  if (!spec.result) {
+    expect(result.code).to.eql(ResultCode.OK);
+    return;
+  }
 
   if ("code" in spec.result) {
     expect(result).to.eql(spec.result);
