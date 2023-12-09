@@ -132,6 +132,7 @@ export const macroCmd: Command = {
       default:
         return ERROR("body must be a script");
     }
+    if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
     const result = ArgspecValue.fromValue(specs);
     if (result.code != ResultCode.OK) return result;

@@ -17,7 +17,7 @@ The `macro` command creates a new macro command.
 ## <a id="macro-specifications"></a>Specifications
 
 - ✅ usage
-- ✅ should define a new command 
+- ✅ should define a new command
 - ✅ should replace existing commands
 
 ## <a id="macro-exceptions"></a>Exceptions

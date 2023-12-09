@@ -172,13 +172,13 @@ type EnsembleBodyState = {
 };
 export const ensembleCmd: Command = {
   execute: (args, scope: Scope) => {
-    let name, spec, body;
+    let name, specs, body;
     switch (args.length) {
       case 3:
-        [, spec, body] = args;
+        [, specs, body] = args;
         break;
       case 4:
-        [, name, spec, body] = args;
+        [, name, specs, body] = args;
         break;
       default:
         return ARITY_ERROR(ENSEMBLE_SIGNATURE);
@@ -186,7 +186,7 @@ export const ensembleCmd: Command = {
 
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
-    const { data: argspec, ...result } = ArgspecValue.fromValue(spec);
+    const { data: argspec, ...result } = ArgspecValue.fromValue(specs);
     if (result.code != ResultCode.OK) return result;
     if (argspec.argspec.isVariadic())
       return ERROR("ensemble arguments cannot be variadic");

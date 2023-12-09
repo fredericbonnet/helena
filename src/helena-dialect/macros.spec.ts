@@ -71,7 +71,7 @@ describe("Helena macros", () => {
         );
       });
 
-      it("should define a new command ", () => {
+      it("should define a new command", () => {
         evaluate("macro cmd {} {}");
         expect(rootScope.context.commands.has("cmd")).to.be.true;
       });

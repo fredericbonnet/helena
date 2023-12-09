@@ -66,7 +66,7 @@ function buildArgument(value: Value): Result<Argument> {
             (nameOrDefault == "" || nameOrDefault == "?")
           )
             return ERROR("empty argument name");
-          if (nameOrGuard && nameOrGuard[0] == "?") {
+          if (code1 == ResultCode.OK && nameOrGuard[0] == "?") {
             return OK(NIL, {
               name: nameOrGuard.substring(1),
               type: "optional",

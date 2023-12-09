@@ -131,8 +131,8 @@ export class Scope {
   private readonly compiler: Compiler;
   private readonly executor: Executor;
 
-  constructor(parent?: Scope, local = false) {
-    this.context = local ? parent.context : new ScopeContext(parent?.context);
+  constructor(parent?: Scope, shared = false) {
+    this.context = shared ? parent.context : new ScopeContext(parent?.context);
     this.compiler = new Compiler();
     const variableResolver: VariableResolver = {
       resolve: (name) => this.resolveVariable(name),
