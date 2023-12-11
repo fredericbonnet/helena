@@ -3,8 +3,8 @@ import * as mochadoc from "../../mochadoc";
 import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, STR, StringValue, TRUE } from "../core/values";
-import { Scope, commandValueType } from "./core";
+import { FALSE, STR, StringValue, TRUE, ValueType } from "../core/values";
+import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand } from "./test-helpers";
 
@@ -55,7 +55,7 @@ describe("Helena coroutines", () => {
       });
 
       it("should return a coroutine object", () => {
-        expect(evaluate("coroutine {}").type).to.eql(commandValueType);
+        expect(evaluate("coroutine {}").type).to.eql(ValueType.COMMAND);
       });
     });
 

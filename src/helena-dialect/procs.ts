@@ -10,6 +10,7 @@ import {
 import { Command } from "../core/command";
 import { Program } from "../core/compiler";
 import {
+  CommandValue,
   STR,
   ScriptValue,
   StringValue,
@@ -20,7 +21,7 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, Process, CommandValue } from "./core";
+import { Scope, Process } from "./core";
 import { Subcommands } from "./subcommands";
 
 class ProcMetacommand implements Command {

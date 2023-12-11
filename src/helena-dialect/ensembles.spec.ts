@@ -10,8 +10,16 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { INT, LIST, NIL, STR, StringValue, TUPLE } from "../core/values";
-import { commandValueType, Scope } from "./core";
+import {
+  INT,
+  LIST,
+  NIL,
+  STR,
+  StringValue,
+  TUPLE,
+  ValueType,
+} from "../core/values";
+import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 
@@ -224,7 +232,7 @@ describe("Helena ensembles", () => {
             process.yieldBack(STR("val3"));
             result = process.run();
             expect(result.code).to.eql(ResultCode.OK);
-            expect(result.value.type).to.eql(commandValueType);
+            expect(result.value.type).to.eql(ValueType.COMMAND);
             expect(evaluate("get var")).to.eql(STR("_val3_"));
           });
           it("should delay the definition of ensemble command until resumed", () => {
@@ -295,8 +303,8 @@ describe("Helena ensembles", () => {
       });
 
       it("should return a metacommand", () => {
-        expect(evaluate("ensemble {} {}").type).to.eql(commandValueType);
-        expect(evaluate("ensemble cmd {} {}").type).to.eql(commandValueType);
+        expect(evaluate("ensemble {} {}").type).to.eql(ValueType.COMMAND);
+        expect(evaluate("ensemble cmd {} {}").type).to.eql(ValueType.COMMAND);
       });
       specify("the metacommand should return itself", () => {
         const value = evaluate("set cmd [ensemble {} {}]");

@@ -10,8 +10,8 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, INT, NIL, STR, StringValue } from "../core/values";
-import { commandValueType, Scope } from "./core";
+import { FALSE, INT, NIL, STR, StringValue, ValueType } from "../core/values";
+import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 
@@ -130,8 +130,8 @@ describe("Helena macros", () => {
       });
 
       it("should return a metacommand", () => {
-        expect(evaluate("macro {} {}").type).to.eql(commandValueType);
-        expect(evaluate("macro cmd {} {}").type).to.eql(commandValueType);
+        expect(evaluate("macro {} {}").type).to.eql(ValueType.COMMAND);
+        expect(evaluate("macro cmd {} {}").type).to.eql(ValueType.COMMAND);
       });
       specify("the metacommand should return the macro", () => {
         /**
@@ -139,7 +139,7 @@ describe("Helena macros", () => {
          * wrapping its metacommand within brackets, e.g. `[$metacommand]`.
          */
         const value = evaluate("set cmd [macro {val} {idem _${val}_}]");
-        expect(evaluate("$cmd").type).to.eql(commandValueType);
+        expect(evaluate("$cmd").type).to.eql(ValueType.COMMAND);
         expect(evaluate("$cmd")).to.not.eql(value);
         expect(evaluate("[$cmd] arg")).to.eql(STR("_arg_"));
       });

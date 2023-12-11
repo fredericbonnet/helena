@@ -4,8 +4,15 @@ import { expect } from "chai";
 import { ERROR, OK, ResultCode } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { LIST, NIL, STR, StringValue } from "../core/values";
-import { CommandValue, commandValueType, Scope } from "./core";
+import {
+  CommandValue,
+  LIST,
+  NIL,
+  STR,
+  StringValue,
+  ValueType,
+} from "../core/values";
+import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { Module, registerNamedModule } from "./modules";
 import { codeBlock, describeCommand } from "./test-helpers";
@@ -67,8 +74,8 @@ describe("Helena modules", () => {
         expect(execute("module cmd {}").code).to.eql(ResultCode.OK);
       });
       it("should return a command object", () => {
-        expect(evaluate("module {}").type).to.eql(commandValueType);
-        expect(evaluate("module cmd  {}").type).to.eql(commandValueType);
+        expect(evaluate("module {}").type).to.eql(ValueType.COMMAND);
+        expect(evaluate("module cmd  {}").type).to.eql(ValueType.COMMAND);
       });
       specify("the named command should return its command object", () => {
         const value = evaluate("module cmd {}");
@@ -495,7 +502,7 @@ describe("Helena modules", () => {
 
       it("should return a module object", () => {
         const value = evaluate(`set cmd [import ${moduleAPathAbs}]`);
-        expect(value.type).to.eql(commandValueType);
+        expect(value.type).to.eql(ValueType.COMMAND);
         expect(evaluate("$cmd exports")).to.eql(LIST([STR("name")]));
       });
       specify(
@@ -619,7 +626,7 @@ describe("Helena modules", () => {
       const foo = evaluate(
         'module {macro name {} {idem "foo module"}; export name}'
       );
-      expect(foo).to.be.instanceOf(CommandValue);
+      expect(foo.type).to.eql(ValueType.COMMAND);
       registerNamedModule("foo", (foo as CommandValue).command as Module);
       expect(evaluate("import foo")).to.eql(foo);
       expect(evaluate("import foo (name); name")).to.eql(STR("foo module"));

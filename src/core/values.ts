@@ -20,6 +20,7 @@ import {
   undisplayableValue,
   display,
 } from "./display";
+import { Command } from "./command";
 
 /** Helena standard value types */
 export enum ValueType {
@@ -32,6 +33,7 @@ export enum ValueType {
   DICTIONARY,
   TUPLE,
   SCRIPT,
+  COMMAND,
   QUALIFIED,
 }
 
@@ -639,6 +641,27 @@ export class ScriptValue implements Value {
   ): string {
     if (this.source == null) return fn(this);
     return `{${this.source}}`;
+  }
+}
+
+/**
+ * Command value
+ *
+ * Command values encapsulate commands. They cannot be created directly from
+ * source.
+ */
+export class CommandValue implements Value {
+  /** @override */
+  readonly type = ValueType.COMMAND;
+
+  /** Encapsulated command */
+  readonly command: Command;
+
+  /**
+   * @param command - Command to encapsulate
+   */
+  constructor(command: Command) {
+    this.command = command;
   }
 }
 

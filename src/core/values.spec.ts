@@ -22,6 +22,7 @@ import {
   FALSE,
   TRUE,
   ValueType,
+  CommandValue,
 } from "./values";
 
 describe("values", () => {
@@ -763,6 +764,35 @@ describe("values", () => {
     });
     it("should not be selectable", () => {
       const value = new ScriptValue(new Script(), "");
+      expect(value).to.not.have.property("select");
+      expect(value).to.not.have.property("selectRules");
+      expect(
+        new GenericSelector([new StringValue("rule")]).apply(value)
+      ).to.eql(ERROR("value is not selectable"));
+    });
+  });
+
+  describe("CommandValue", () => {
+    specify("type should be COMMAND", () => {
+      const value = new CommandValue({ execute: () => OK(NIL) });
+      expect(value.type).to.eql(ValueType.COMMAND);
+    });
+    it("should not be index-selectable", () => {
+      const value = new CommandValue({ execute: () => OK(NIL) });
+      expect(value).to.not.have.property("selectIndex");
+      expect(new IndexedSelector(new IntegerValue(1)).apply(value)).to.eql(
+        ERROR("value is not index-selectable")
+      );
+    });
+    it("should not be key-selectable", () => {
+      const value = new CommandValue({ execute: () => OK(NIL) });
+      expect(value).to.not.have.property("selectKey");
+      expect(new KeyedSelector([new StringValue("key")]).apply(value)).to.eql(
+        ERROR("value is not key-selectable")
+      );
+    });
+    it("should not be selectable", () => {
+      const value = new CommandValue({ execute: () => OK(NIL) });
       expect(value).to.not.have.property("select");
       expect(value).to.not.have.property("selectRules");
       expect(

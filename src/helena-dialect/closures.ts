@@ -2,6 +2,7 @@
 import { Result, ResultCode, YIELD, OK, ERROR } from "../core/results";
 import { Command } from "../core/command";
 import {
+  CommandValue,
   STR,
   ScriptValue,
   StringValue,
@@ -12,7 +13,7 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, DeferredValue, CommandValue } from "./core";
+import { Scope, DeferredValue } from "./core";
 import { Subcommands } from "./subcommands";
 
 class ClosureMetacommand implements Command {

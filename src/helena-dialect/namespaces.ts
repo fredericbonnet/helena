@@ -17,9 +17,10 @@ import {
   STR,
   TUPLE,
   StringValue,
+  CommandValue,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { CommandValue, DeferredValue, Process, Scope } from "./core";
+import { DeferredValue, Process, Scope } from "./core";
 import { Subcommands } from "./subcommands";
 
 class NamespaceMetacommand implements Command {

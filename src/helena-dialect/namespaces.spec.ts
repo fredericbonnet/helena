@@ -10,8 +10,8 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { NIL, STR, StringValue } from "../core/values";
-import { commandValueType, Scope } from "./core";
+import { NIL, STR, StringValue, ValueType } from "../core/values";
+import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand } from "./test-helpers";
 
@@ -201,7 +201,7 @@ describe("Helena namespaces", () => {
             process.yieldBack(STR("val3"));
             result = process.run();
             expect(result.code).to.eql(ResultCode.OK);
-            expect(result.value.type).to.eql(commandValueType);
+            expect(result.value.type).to.eql(ValueType.COMMAND);
             expect(evaluate("get var")).to.eql(STR("_val3_"));
           });
           it("should delay the definition of namespace command until resumed", () => {
@@ -272,8 +272,8 @@ describe("Helena namespaces", () => {
       });
 
       it("should return a metacommand", () => {
-        expect(evaluate("namespace {}").type).to.eql(commandValueType);
-        expect(evaluate("namespace cmd {}").type).to.eql(commandValueType);
+        expect(evaluate("namespace {}").type).to.eql(ValueType.COMMAND);
+        expect(evaluate("namespace cmd {}").type).to.eql(ValueType.COMMAND);
       });
       specify("the metacommand should return itself", () => {
         const value = evaluate("set cmd [namespace {}]");
