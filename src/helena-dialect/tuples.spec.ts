@@ -3,8 +3,8 @@ import * as mochadoc from "../../mochadoc";
 import { ERROR } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { INT, STR, StringValue, TUPLE } from "../core/values";
-import { CommandValue, Scope, commandValueType } from "./core";
+import { INT, STR, StringValue, TUPLE, ValueType } from "../core/values";
+import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 
@@ -363,8 +363,7 @@ describe("Helena tuples", () => {
          * The typical application of this property is to access the ensemble
          * metacommand by wrapping the command within brackets, i.e. `[tuple]`.
          */
-        expect(evaluate("tuple").type).to.eql(commandValueType);
-        expect(evaluate("tuple")).to.be.instanceOf(CommandValue);
+        expect(evaluate("tuple").type).to.eql(ValueType.COMMAND);
       });
       it("should be extensible", () => {
         /**

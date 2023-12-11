@@ -10,8 +10,8 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { NIL, STR, StringValue, TUPLE } from "../core/values";
-import { CommandValue, Scope } from "./core";
+import { CommandValue, NIL, STR, StringValue, TUPLE } from "../core/values";
+import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand } from "./test-helpers";
 import { Command } from "../core/command";

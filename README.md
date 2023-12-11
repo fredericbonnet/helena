@@ -60,6 +60,7 @@ The Helena runtime supports the following built-in value types:
 - **Dictionary**: an associative array with string keys and arbitrary values
 - **Tuple**: a syntactic groups of values; tuples are structurally identical to lists but their semantics is different
 - **Script**: a parsed script and its source
+- **Command**: a command
 - **Qualified value**: a source value and a sequence of selectors (for example, list index or dictionary keys)
 
 Dialects can also define their own custom types.

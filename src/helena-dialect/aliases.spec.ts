@@ -10,8 +10,8 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { INT, LIST, NIL, STR, StringValue, TUPLE } from "../core/values";
-import { commandValueType, Scope } from "./core";
+import { INT, LIST, NIL, STR, StringValue, TUPLE, ValueType } from "../core/values";
+import {  Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 
@@ -319,7 +319,7 @@ describe("Helena aliases", () => {
       });
 
       it("should return a metacommand", () => {
-        expect(evaluate("alias cmd idem").type).to.eql(commandValueType);
+        expect(evaluate("alias cmd idem").type).to.eql(ValueType.COMMAND);
       });
       specify("the metacommand should return the aliased command", () => {
         /**
@@ -327,7 +327,7 @@ describe("Helena aliases", () => {
          * wrapping its metacommand within brackets, e.g. `[$metacommand]`.
          */
         const value = evaluate("set cmd [alias cmd set]");
-        expect(evaluate("$cmd").type).to.eql(commandValueType);
+        expect(evaluate("$cmd").type).to.eql(ValueType.COMMAND);
         expect(evaluate("$cmd")).to.not.eql(value);
         expect(evaluate("[$cmd] var val")).to.eql(STR("val"));
         expect(evaluate("get var")).to.eql(STR("val"));

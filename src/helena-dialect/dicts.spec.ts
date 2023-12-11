@@ -12,8 +12,9 @@ import {
   TRUE,
   TUPLE,
   StringValue,
+  ValueType,
 } from "../core/values";
-import { CommandValue, Scope, commandValueType } from "./core";
+import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { displayDictionaryValue } from "./dicts";
 import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
@@ -921,8 +922,7 @@ describe("Helena dictionaries", () => {
          * The typical application of this property is to access the ensemble
          * metacommand by wrapping the command within brackets, i.e. `[dict]`.
          */
-        expect(evaluate("dict").type).to.eql(commandValueType);
-        expect(evaluate("dict")).to.be.instanceOf(CommandValue);
+        expect(evaluate("dict").type).to.eql(ValueType.COMMAND);
       });
       it("should be extensible", () => {
         /**

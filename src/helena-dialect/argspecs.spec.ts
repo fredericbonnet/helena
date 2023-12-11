@@ -3,9 +3,18 @@ import * as mochadoc from "../../mochadoc";
 import { ERROR, OK } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { NIL, TRUE, FALSE, INT, STR, TUPLE, StringValue } from "../core/values";
+import {
+  NIL,
+  TRUE,
+  FALSE,
+  INT,
+  STR,
+  TUPLE,
+  StringValue,
+  ValueType,
+} from "../core/values";
 import { ArgspecValue } from "./argspecs";
-import { CommandValue, commandValueType, Scope } from "./core";
+import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 
@@ -934,8 +943,7 @@ describe("Helena argument handling", () => {
          * metacommand by wrapping the command within brackets, i.e.
          * `[argspec]`.
          */
-        expect(evaluate("argspec").type).to.eql(commandValueType);
-        expect(evaluate("argspec")).to.be.instanceOf(CommandValue);
+        expect(evaluate("argspec").type).to.eql(ValueType.COMMAND);
       });
       it("should be extensible", () => {
         /**

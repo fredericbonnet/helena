@@ -10,8 +10,8 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { STR, StringValue } from "../core/values";
-import { commandValueType, Scope } from "./core";
+import { STR, StringValue, ValueType } from "../core/values";
+import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand } from "./test-helpers";
 
@@ -70,8 +70,8 @@ describe("Helena scopes", () => {
         expect(execute("scope cmd {}").code).to.eql(ResultCode.OK);
       });
       it("should return a command object", () => {
-        expect(evaluate("scope {}").type).to.eql(commandValueType);
-        expect(evaluate("scope cmd  {}").type).to.eql(commandValueType);
+        expect(evaluate("scope {}").type).to.eql(ValueType.COMMAND);
+        expect(evaluate("scope cmd  {}").type).to.eql(ValueType.COMMAND);
       });
       specify("the named command should return its command object", () => {
         const value = evaluate("scope cmd {}");
@@ -208,7 +208,7 @@ describe("Helena scopes", () => {
             process.yieldBack(STR("val3"));
             result = process.run();
             expect(result.code).to.eql(ResultCode.OK);
-            expect(result.value.type).to.eql(commandValueType);
+            expect(result.value.type).to.eql(ValueType.COMMAND);
             expect(evaluate("get var")).to.eql(STR("_val3_"));
           });
           it("should delay the definition of scope command until resumed", () => {

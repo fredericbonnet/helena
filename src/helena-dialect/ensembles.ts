@@ -16,9 +16,10 @@ import {
   STR,
   TUPLE,
   StringValue,
+  CommandValue,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { CommandValue, DeferredValue, Process, Scope } from "./core";
+import {  DeferredValue, Process, Scope } from "./core";
 import { ArgspecValue } from "./argspecs";
 import { Subcommands } from "./subcommands";
 

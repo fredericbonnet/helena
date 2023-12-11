@@ -3,8 +3,16 @@ import * as mochadoc from "../../mochadoc";
 import { ERROR } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { FALSE, INT, REAL, STR, StringValue, TRUE } from "../core/values";
-import { CommandValue, Scope, commandValueType } from "./core";
+import {
+  FALSE,
+  INT,
+  REAL,
+  STR,
+  StringValue,
+  TRUE,
+  ValueType,
+} from "../core/values";
+import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 
@@ -529,8 +537,7 @@ describe("Helena numbers", () => {
          * The typical application of this property is to access the ensemble
          * metacommand by wrapping the command within brackets, i.e. `[int]`.
          */
-        expect(evaluate("int").type).to.eql(commandValueType);
-        expect(evaluate("int")).to.be.instanceOf(CommandValue);
+        expect(evaluate("int").type).to.eql(ValueType.COMMAND);
       });
       it("should be extensible", () => {
         /**
@@ -713,8 +720,7 @@ describe("Helena numbers", () => {
          * metacommand by wrapping the command within brackets, i.e.
          * `[real]`.
          */
-        expect(evaluate("real").type).to.eql(commandValueType);
-        expect(evaluate("real")).to.be.instanceOf(CommandValue);
+        expect(evaluate("real").type).to.eql(ValueType.COMMAND);
       });
       it("should be extensible", () => {
         /**

@@ -18,9 +18,10 @@ import {
   STR,
   TupleValue,
   StringValue,
+  CommandValue,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { CommandValue, Scope } from "./core";
+import {  Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { Subcommands } from "./subcommands";
 import { Tokenizer } from "../core/tokenizer";

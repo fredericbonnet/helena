@@ -1,9 +1,9 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Result, OK, ResultCode } from "../core/results";
 import { Command } from "../core/command";
-import { STR, Value } from "../core/values";
+import { CommandValue, STR, Value } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, expandPrefixCmd, CommandValue } from "./core";
+import { Scope, expandPrefixCmd } from "./core";
 import { Subcommands } from "./subcommands";
 
 class AliasMetacommand implements Command {
