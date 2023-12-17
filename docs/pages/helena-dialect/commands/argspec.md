@@ -154,7 +154,7 @@ guard in argspecs.
 
       - ✅ zero
       - ✅ one
-      - ✅ one two
+      - ✅ two
 
   - prefix
 
@@ -236,7 +236,7 @@ This subcommand is useful for introspection and interactive
 calls.
 
 - ✅ usage
-- ✅ should return argspec of subcommands
+- ✅ should return list of subcommands
 
 - Exceptions
 

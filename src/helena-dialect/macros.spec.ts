@@ -60,9 +60,6 @@ describe("Helena macros", () => {
         expect(evaluate("help macro args")).to.eql(
           STR("macro ?name? argspec body")
         );
-        expect(evaluate("help macro args")).to.eql(
-          STR("macro ?name? argspec body")
-        );
         expect(evaluate("help macro args {}")).to.eql(
           STR("macro ?name? argspec body")
         );

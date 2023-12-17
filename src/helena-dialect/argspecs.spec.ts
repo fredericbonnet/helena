@@ -405,7 +405,7 @@ describe("Helena argument handling", () => {
                 ERROR(`cannot get "b": no such variable`)
               );
             });
-            specify("one two", () => {
+            specify("two", () => {
               evaluate("argspec (?a ?b) set (val1 val2)");
               expect(evaluate("get a")).to.eql(STR("val1"));
               expect(evaluate("get b")).to.eql(STR("val2"));
@@ -695,7 +695,7 @@ describe("Helena argument handling", () => {
           );
         });
 
-        it("should return argspec of subcommands", () => {
+        it("should return list of subcommands", () => {
           expect(evaluate("argspec {} subcommands")).to.eql(
             evaluate("list (subcommands usage set)")
           );

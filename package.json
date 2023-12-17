@@ -20,7 +20,8 @@
     "lint": "eslint src",
     "test": "mocha",
     "test:watch": "mocha -w",
-    "test:doc": "mocha --config .mocharc.docs.json"
+    "test:doc": "mocha --config .mocharc.docs.json",
+    "test:doc:watch": "mocha --config .mocharc.docs.json -w"
   },
   "private": true,
   "devDependencies": {
