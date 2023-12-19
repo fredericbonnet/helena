@@ -51,10 +51,6 @@ export const YIELD = (value: Value = NIL, state?): Result => ({
   value,
   data: state,
 });
-export const YIELD_BACK = (result: Result, value: Value): Result => ({
-  ...result,
-  value,
-});
 export const ERROR = (message: string): Result<never> => ({
   code: ResultCode.ERROR,
   value: STR(message),

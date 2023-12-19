@@ -187,7 +187,8 @@ const listReplaceCmd: Command = {
 const LIST_FOREACH_SIGNATURE = "list value foreach element body";
 type ListForeachState = {
   varname: Value;
-  it: IterableIterator<Value>;
+  list: ListValue;
+  i: number;
   step: "beforeBody" | "inBody";
   program: Program;
   scope: Scope;
@@ -197,7 +198,7 @@ type ListForeachState = {
 class ListForeachCommand implements Command {
   execute(args, scope: Scope) {
     if (args.length != 4) return ARITY_ERROR(LIST_FOREACH_SIGNATURE);
-    const { data: values, ...result } = valueToArray(args[1]);
+    const { data: list, ...result } = valueToList(args[1]);
     if (result.code != ResultCode.OK) return result;
     const varname = args[2];
     const body = args[3];
@@ -206,7 +207,8 @@ class ListForeachCommand implements Command {
     const subscope = new Scope(scope, true);
     return this.run({
       varname,
-      it: values.values(),
+      list: list as ListValue,
+      i: 0,
       step: "beforeBody",
       program,
       scope: subscope,
@@ -226,8 +228,8 @@ class ListForeachCommand implements Command {
     for (;;) {
       switch (state.step) {
         case "beforeBody": {
-          const { value, done } = state.it.next();
-          if (done) return state.lastResult;
+          if (state.i == state.list.values.length) return state.lastResult;
+          const value = state.list.values[state.i++];
           destructureValue(
             state.scope.destructureLocal.bind(state.scope),
             state.varname,

@@ -1,13 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import {
-  ERROR,
-  OK,
-  Result,
-  ResultCode,
-  RETURN,
-  YIELD,
-  YIELD_BACK,
-} from "../core/results";
+import { ERROR, OK, Result, ResultCode, RETURN, YIELD } from "../core/results";
 import { Command } from "../core/command";
 import {
   Compiler,
@@ -97,10 +89,10 @@ export class Process {
     }
   }
   yieldBack(value: Value) {
-    this.currentContext.state.result = YIELD_BACK(
-      this.currentContext.state.result,
-      value
-    );
+    this.currentContext.state.result = {
+      ...this.currentContext.state.result,
+      value,
+    };
   }
 }
 
@@ -324,7 +316,7 @@ export const expandPrefixCmd: Command = {
     const { command, result: commandResult } = result.data as ExpandPrefixState;
     if (!command.resume) return OK(result.value);
     const result2 = command.resume(
-      YIELD_BACK(commandResult, result.value),
+      { ...commandResult, value: result.value },
       scope
     );
     if (result2.code == ResultCode.YIELD)

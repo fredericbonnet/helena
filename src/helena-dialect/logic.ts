@@ -1,5 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Result, OK, ResultCode, YIELD, YIELD_BACK } from "../core/results";
+import { Result, OK, ResultCode, YIELD } from "../core/results";
 import { Command } from "../core/command";
 import {
   BooleanValue,
@@ -146,7 +146,7 @@ class AndCommand implements Command {
   }
   resume(result: Result, scope: Scope): Result {
     const state = result.data as AndCommandState;
-    state.result = YIELD_BACK(state.result, result.value);
+    state.result = { ...state.result, value: result.value };
     return this.run(result.data as AndCommandState, scope);
   }
   help() {
@@ -188,7 +188,7 @@ class OrCommand implements Command {
   }
   resume(result: Result, scope: Scope): Result {
     const state = result.data as OrCommandState;
-    state.result = YIELD_BACK(state.result, result.value);
+    state.result = { ...state.result, value: result.value };
     return this.run(result.data as OrCommandState, scope);
   }
   help() {
