@@ -40,42 +40,48 @@ type ProcessContext = {
   state: ProgramState;
 };
 export class Process {
-  private contextStack: ProcessContext[];
-  private get currentContext(): ProcessContext {
+  private contextStack: ProcessContext[] = [];
+  constructor(scope: Scope, program: Program) {
+    this.pushContext(scope, program);
+  }
+  private currentContext(): ProcessContext {
     return this.contextStack[this.contextStack.length - 1];
   }
-  constructor(scope: Scope, program: Program) {
-    this.contextStack = [{ scope, program, state: new ProgramState() }];
+  private pushContext(scope: Scope, program: Program) {
+    this.contextStack.push({ scope, program, state: new ProgramState() });
+  }
+  private popContext() {
+    this.contextStack.pop();
   }
   run(): Result {
     for (;;) {
-      const result = this.currentContext.scope.execute(
-        this.currentContext.program,
-        this.currentContext.state
-      );
+      const context = this.currentContext();
+      const result = context.scope.execute(context.program, context.state);
       if (result.value instanceof DeferredValue) {
         const deferred = result.value;
-        let process: Process;
         switch (deferred.value.type) {
-          case ValueType.SCRIPT:
-            process = deferred.scope.prepareScriptValue(
+          case ValueType.SCRIPT: {
+            const program = deferred.scope.compileScriptValue(
               deferred.value as ScriptValue
             );
+            this.pushContext(deferred.scope, program);
             break;
-          case ValueType.TUPLE:
-            process = deferred.scope.prepareTupleValue(
+          }
+          case ValueType.TUPLE: {
+            const program = deferred.scope.compileTupleValue(
               deferred.value as TupleValue
             );
+            this.pushContext(deferred.scope, program);
             break;
+          }
           default:
             return ERROR("body must be a script or tuple");
         }
-        this.contextStack.push(...process.contextStack);
         continue;
       }
       if (result.code == ResultCode.OK && this.contextStack.length > 1) {
-        this.contextStack.pop();
-        switch (this.currentContext.state.result.code) {
+        this.popContext();
+        switch (this.currentContext().state.result.code) {
           case ResultCode.RETURN:
             return RETURN(result.value);
           case ResultCode.YIELD:
@@ -89,8 +95,9 @@ export class Process {
     }
   }
   yieldBack(value: Value) {
-    this.currentContext.state.result = {
-      ...this.currentContext.state.result,
+    const context = this.currentContext();
+    context.state.result = {
+      ...context.state.result,
       value,
     };
   }
@@ -123,11 +130,6 @@ export class Scope {
     this.executor = new Executor(variableResolver, commandResolver, null, this);
   }
 
-  evaluateSentences(script: ScriptValue): Result {
-    const program = this.compiler.compileSentences(script.script.sentences);
-    return this.execute(program);
-  }
-
   executeScriptValue(script: ScriptValue): Result {
     return this.executeScript(script.script);
   }
@@ -135,6 +137,17 @@ export class Scope {
     return this.prepareScript(script).run();
   }
 
+  compileScriptValue(script: ScriptValue): Program {
+    return this.compile(script.script);
+  }
+  compileTupleValue(tuple: TupleValue): Program {
+    const program = new Program();
+    program.pushOpCode(OpCode.PUSH_CONSTANT);
+    program.pushOpCode(OpCode.EVALUATE_SENTENCE);
+    program.pushOpCode(OpCode.PUSH_RESULT);
+    program.pushConstant(tuple);
+    return program;
+  }
   compile(script: Script): Program {
     return this.compiler.compileScript(script);
   }
@@ -143,18 +156,13 @@ export class Scope {
   }
 
   prepareScriptValue(script: ScriptValue): Process {
-    return this.prepareScript(script.script);
+    return this.prepareProcess(this.compileScriptValue(script));
+  }
+  prepareTupleValue(tuple: TupleValue): Process {
+    return this.prepareProcess(this.compileTupleValue(tuple));
   }
   prepareScript(script: Script): Process {
     return this.prepareProcess(this.compile(script));
-  }
-  prepareTupleValue(tuple: TupleValue): Process {
-    const program = new Program();
-    program.pushOpCode(OpCode.PUSH_CONSTANT);
-    program.pushOpCode(OpCode.EVALUATE_SENTENCE);
-    program.pushOpCode(OpCode.PUSH_RESULT);
-    program.pushConstant(tuple);
-    return this.prepareProcess(program);
   }
   prepareProcess(program: Program): Process {
     return new Process(this, program);
@@ -308,8 +316,10 @@ export const expandPrefixCmd: Command = {
       );
     }
     const result = command.execute(args2, scope);
-    if (result.code == ResultCode.YIELD)
-      return YIELD(result.value, { command, result });
+    if (result.code == ResultCode.YIELD) {
+      const state = { command, result } as ExpandPrefixState;
+      return YIELD(state.result.value, state);
+    }
     return result;
   },
   resume(result: Result, scope: Scope): Result {
