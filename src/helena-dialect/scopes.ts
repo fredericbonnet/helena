@@ -18,7 +18,7 @@ import {
   CommandValue,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import {  DeferredValue, Process, Scope } from "./core";
+import { DeferredValue, Process, Scope } from "./core";
 import { Subcommands } from "./subcommands";
 
 const SCOPE_SIGNATURE = "scope ?name? body";
@@ -44,7 +44,7 @@ class ScopeCommand implements Command {
       },
       eval: () => {
         if (args.length != 3) return ARITY_ERROR("<scope> eval body");
-        return YIELD(new DeferredValue(args[2], this.scope));
+        return DeferredValue.create(ResultCode.YIELD, args[2], this.scope);
       },
       call: () => {
         if (args.length < 3)
@@ -54,7 +54,11 @@ class ScopeCommand implements Command {
         if (!this.scope.hasLocalCommand(command))
           return ERROR(`unknown command "${command}"`);
         const cmdline = args.slice(2);
-        return YIELD(new DeferredValue(TUPLE(cmdline), this.scope));
+        return DeferredValue.create(
+          ResultCode.YIELD,
+          TUPLE(cmdline),
+          this.scope
+        );
       },
     });
   }

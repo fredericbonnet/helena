@@ -19,7 +19,7 @@ import {
   CommandValue,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import {  DeferredValue, Process, Scope } from "./core";
+import { DeferredValue, Process, Scope } from "./core";
 import { ArgspecValue } from "./argspecs";
 import { Subcommands } from "./subcommands";
 
@@ -46,7 +46,11 @@ export class EnsembleMetacommand implements Command {
       },
       eval: () => {
         if (args.length != 3) return ARITY_ERROR("<ensemble> eval body");
-        return YIELD(new DeferredValue(args[2], this.ensemble.scope));
+        return DeferredValue.create(
+          ResultCode.YIELD,
+          args[2],
+          this.ensemble.scope
+        );
       },
       call: () => {
         if (args.length < 3)
@@ -57,7 +61,7 @@ export class EnsembleMetacommand implements Command {
           return ERROR(`unknown command "${subcommand}"`);
         const command = this.ensemble.scope.resolveNamedCommand(subcommand);
         const cmdline = [new CommandValue(command), ...args.slice(3)];
-        return YIELD(new DeferredValue(TUPLE(cmdline), scope));
+        return DeferredValue.create(ResultCode.YIELD, TUPLE(cmdline), scope);
       },
       argspec: () => {
         if (args.length != 2) return ARITY_ERROR("<ensemble> argspec");
@@ -126,7 +130,7 @@ export class EnsembleCommand implements Command {
       ...ensembleArgs,
       ...args.slice(minArgs + 1),
     ];
-    return YIELD(new DeferredValue(TUPLE(cmdline), scope));
+    return DeferredValue.create(ResultCode.YIELD, TUPLE(cmdline), scope);
   }
   /** @override */
   help(

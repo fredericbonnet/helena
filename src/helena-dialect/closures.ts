@@ -1,5 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Result, ResultCode, YIELD, OK, ERROR } from "../core/results";
+import { Result, ResultCode, OK, ERROR } from "../core/results";
 import { Command } from "../core/command";
 import {
   CommandValue,
@@ -77,15 +77,15 @@ class ClosureCommand implements Command {
     // TODO handle YIELD?
     const result = this.argspec.applyArguments(this.scope, args, 1, setarg);
     if (result.code != ResultCode.OK) return result;
-    return YIELD(new DeferredValue(this.body, subscope));
+    return DeferredValue.create(ResultCode.YIELD, this.body, subscope);
   }
   resume(result: Result): Result {
     if (this.guard) {
-      const process = this.scope.prepareTupleValue(
-        TUPLE([this.guard, result.value])
+      return DeferredValue.create(
+        ResultCode.OK,
+        TUPLE([this.guard, result.value]),
+        this.scope
       );
-      // TODO handle YIELD?
-      return process.run();
     }
     return OK(result.value);
   }
@@ -119,26 +119,17 @@ export const closureCmd: Command = {
         return ARITY_ERROR(CLOSURE_SIGNATURE);
     }
     let guard;
-    switch (body.type) {
-      case ValueType.SCRIPT:
-        break;
-      case ValueType.TUPLE: {
-        const bodySpec = (body as TupleValue).values;
-        switch (bodySpec.length) {
-          case 0:
-            return ERROR("empty body specifier");
-          case 2:
-            [guard, body] = bodySpec;
-            break;
-          default:
-            return ERROR(`invalid body specifier`);
-        }
-        if (body.type != ValueType.SCRIPT)
-          return ERROR("body must be a script");
-        break;
+    if (body.type == ValueType.TUPLE) {
+      const bodySpec = (body as TupleValue).values;
+      switch (bodySpec.length) {
+        case 0:
+          return ERROR("empty body specifier");
+        case 2:
+          [guard, body] = bodySpec;
+          break;
+        default:
+          return ERROR(`invalid body specifier`);
       }
-      default:
-        return ERROR("body must be a script");
     }
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 

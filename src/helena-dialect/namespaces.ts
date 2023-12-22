@@ -51,7 +51,11 @@ class NamespaceMetacommand implements Command {
       },
       eval: () => {
         if (args.length != 3) return ARITY_ERROR("<namespace> eval body");
-        return YIELD(new DeferredValue(args[2], this.namespace.scope));
+        return DeferredValue.create(
+          ResultCode.YIELD,
+          args[2],
+          this.namespace.scope
+        );
       },
       call: () => {
         if (args.length < 3)
@@ -61,7 +65,11 @@ class NamespaceMetacommand implements Command {
         if (!this.namespace.scope.hasLocalCommand(command))
           return ERROR(`unknown command "${command}"`);
         const cmdline = args.slice(2);
-        return YIELD(new DeferredValue(TUPLE(cmdline), this.namespace.scope));
+        return DeferredValue.create(
+          ResultCode.YIELD,
+          TUPLE(cmdline),
+          this.namespace.scope
+        );
       },
       import: () => {
         if (args.length != 3 && args.length != 4)
@@ -113,7 +121,7 @@ class NamespaceCommand implements Command {
     if (!this.scope.hasLocalCommand(subcommand))
       return ERROR(`unknown subcommand "${subcommand}"`);
     const cmdline = args.slice(1);
-    return YIELD(new DeferredValue(TUPLE(cmdline), this.scope));
+    return DeferredValue.create(ResultCode.YIELD, TUPLE(cmdline), this.scope);
   }
   help(args: Value[], { prefix, skip }) {
     const usage = skip ? "" : NAMESPACE_COMMAND_PREFIX(args[0]);

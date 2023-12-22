@@ -53,7 +53,7 @@ const TAILCALL_SIGNATURE = "tailcall body";
 const tailcallCmd: Command = {
   execute: (args, scope: Scope) => {
     if (args.length != 2) return ARITY_ERROR(TAILCALL_SIGNATURE);
-    return RETURN(new DeferredValue(args[1], scope));
+    return DeferredValue.create(ResultCode.RETURN, args[1], scope);
   },
   help: (args) => {
     if (args.length > 2) return ARITY_ERROR(TAILCALL_SIGNATURE);
@@ -107,7 +107,7 @@ const EVAL_SIGNATURE = "eval body";
 const evalCmd: Command = {
   execute: (args, scope: Scope) => {
     if (args.length != 2) return ARITY_ERROR(EVAL_SIGNATURE);
-    return YIELD(new DeferredValue(args[1], scope));
+    return DeferredValue.create(ResultCode.YIELD, args[1], scope);
   },
   help: (args) => {
     if (args.length > 2) return ARITY_ERROR(EVAL_SIGNATURE);

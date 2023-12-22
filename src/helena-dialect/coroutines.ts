@@ -7,9 +7,16 @@ import {
   ResultCode,
 } from "../core/results";
 import { Command } from "../core/command";
-import { Value, ScriptValue, ValueType, BOOL, STR, CommandValue } from "../core/values";
+import {
+  Value,
+  ScriptValue,
+  ValueType,
+  BOOL,
+  STR,
+  CommandValue,
+} from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import {  Process, Scope } from "./core";
+import { Process, Scope } from "./core";
 import { Subcommands } from "./subcommands";
 
 class CoroutineCommand implements Command {

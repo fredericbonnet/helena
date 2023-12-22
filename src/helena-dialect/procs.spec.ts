@@ -399,8 +399,8 @@ describe("Helena procedures", () => {
         evaluate('macro guard {result} {idem "guarded:$result"}');
         evaluate("proc cmd1 {var} {return $var}");
         evaluate("proc cmd2 {var} (guard {return $var})");
-        expect(evaluate("cmd1 value")).to.eql(STR("value"));
-        expect(evaluate("cmd2 value")).to.eql(STR("guarded:value"));
+        expect(execute("cmd1 value")).to.eql(OK(STR("value")));
+        expect(execute("cmd2 value")).to.eql(OK(STR("guarded:value")));
       });
       it("should let body errors pass through", () => {
         evaluate("macro guard {result} {unreachable}");
@@ -418,7 +418,7 @@ describe("Helena procedures", () => {
         evaluate("scope scp {macro guard {result} {idem scp}}");
         expect(evaluate("scp eval {cmd}")).to.eql(STR("root"));
       });
-      describe("exceptions", () => {
+      describe("Exceptions", () => {
         specify("empty body specifier", () => {
           expect(execute("proc a ()")).to.eql(ERROR("empty body specifier"));
           expect(execute("proc a b ()")).to.eql(ERROR("empty body specifier"));

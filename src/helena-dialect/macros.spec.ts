@@ -427,8 +427,8 @@ describe("Helena macros", () => {
         evaluate('macro guard {result} {idem "guarded:$result"}');
         evaluate("macro cmd1 {var} {idem $var}");
         evaluate("macro cmd2 {var} (guard {idem $var})");
-        expect(evaluate("cmd1 value")).to.eql(STR("value"));
-        expect(evaluate("cmd2 value")).to.eql(STR("guarded:value"));
+        expect(execute("cmd1 value")).to.eql(OK(STR("value")));
+        expect(execute("cmd2 value")).to.eql(OK(STR("guarded:value")));
       });
       it("should let body errors pass through", () => {
         evaluate("macro guard {result} {unreachable}");

@@ -26,11 +26,28 @@ import { numberCmd } from "./numbers";
 const deferredValueType: CustomValueType = { name: "deferred" };
 export class DeferredValue implements Value {
   type = deferredValueType;
-  value: Value;
   scope: Scope;
-  constructor(value: Value, scope: Scope) {
-    this.value = value;
+  program: Program;
+  constructor(scope: Scope, program: Program) {
     this.scope = scope;
+    this.program = program;
+  }
+  static create(code: ResultCode, value: Value, scope: Scope): Result {
+    let program;
+    switch (value.type) {
+      case ValueType.SCRIPT:
+        program = scope.compileScriptValue(value as ScriptValue);
+        break;
+      case ValueType.TUPLE:
+        program = scope.compileTupleValue(value as TupleValue);
+        break;
+      default:
+        return ERROR("body must be a script or tuple");
+    }
+    return {
+      code,
+      value: new DeferredValue(scope, program),
+    };
   }
 }
 
@@ -59,29 +76,15 @@ export class Process {
       const result = context.scope.execute(context.program, context.state);
       if (result.value instanceof DeferredValue) {
         const deferred = result.value;
-        switch (deferred.value.type) {
-          case ValueType.SCRIPT: {
-            const program = deferred.scope.compileScriptValue(
-              deferred.value as ScriptValue
-            );
-            this.pushContext(deferred.scope, program);
-            break;
-          }
-          case ValueType.TUPLE: {
-            const program = deferred.scope.compileTupleValue(
-              deferred.value as TupleValue
-            );
-            this.pushContext(deferred.scope, program);
-            break;
-          }
-          default:
-            return ERROR("body must be a script or tuple");
-        }
+        this.pushContext(deferred.scope, deferred.program);
         continue;
       }
       if (result.code == ResultCode.OK && this.contextStack.length > 1) {
         this.popContext();
-        switch (this.currentContext().state.result.code) {
+        const previousResult = this.currentContext();
+        switch (previousResult.state.result.code) {
+          case ResultCode.OK:
+            return OK(result.value);
           case ResultCode.RETURN:
             return RETURN(result.value);
           case ResultCode.YIELD:

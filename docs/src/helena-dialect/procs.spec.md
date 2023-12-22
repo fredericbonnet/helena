@@ -58,7 +58,7 @@ value of the procedure.
 - ✅ should not access proc arguments
 - ✅ should evaluate in the proc parent scope
 
-- exceptions
+- Exceptions
 
   - ✅ empty body specifier
   - ✅ invalid body specifier

@@ -21,7 +21,7 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, Process } from "./core";
+import { Scope, Process, DeferredValue } from "./core";
 import { Subcommands } from "./subcommands";
 
 class ProcMetacommand implements Command {
@@ -45,9 +45,6 @@ class ProcMetacommand implements Command {
         return OK(this.proc.argspec);
       },
     });
-  }
-  resume(result: Result): Result {
-    return this.proc.resume(result);
   }
 }
 
@@ -86,10 +83,8 @@ class ProcCommand implements Command {
       return ARITY_ERROR(PROC_COMMAND_SIGNATURE(args[0], this.argspec.usage()));
     }
     const subscope = new Scope(this.scope);
-    const setarg = (name, value) => {
-      subscope.setNamedVariable(name, value);
-      return OK(value);
-    };
+    const setarg = (name, value) => subscope.setNamedVariable(name, value);
+    // TODO handle YIELD?
     const result = this.argspec.applyArguments(this.scope, args, 1, setarg);
     if (result.code != ResultCode.OK) return result;
     const process = subscope.prepareProcess(this.program);
@@ -102,18 +97,19 @@ class ProcCommand implements Command {
   }
   private run(state: ProcState) {
     const result = state.process.run();
-    if (result.code == ResultCode.YIELD) return YIELD(result.value, state);
     switch (result.code) {
       case ResultCode.OK:
       case ResultCode.RETURN:
         if (this.guard) {
-          const process = this.scope.prepareTupleValue(
-            TUPLE([this.guard, result.value])
+          return DeferredValue.create(
+            ResultCode.OK,
+            TUPLE([this.guard, result.value]),
+            this.scope
           );
-          // TODO handle YIELD?
-          return process.run();
         }
         return OK(result.value);
+      case ResultCode.YIELD:
+        return YIELD(result.value, state);
       case ResultCode.ERROR:
         return result;
       default:
@@ -146,33 +142,24 @@ export const procCmd: Command = {
         return ARITY_ERROR(PROC_SIGNATURE);
     }
     let guard;
-    switch (body.type) {
-      case ValueType.SCRIPT:
-        break;
-      case ValueType.TUPLE: {
-        const bodySpec = (body as TupleValue).values;
-        switch (bodySpec.length) {
-          case 0:
-            return ERROR("empty body specifier");
-          case 2:
-            [guard, body] = bodySpec;
-            break;
-          default:
-            return ERROR(`invalid body specifier`);
-        }
-        if (body.type != ValueType.SCRIPT)
-          return ERROR("body must be a script");
-        break;
+    if (body.type == ValueType.TUPLE) {
+      const bodySpec = (body as TupleValue).values;
+      switch (bodySpec.length) {
+        case 0:
+          return ERROR("empty body specifier");
+        case 2:
+          [guard, body] = bodySpec;
+          break;
+        default:
+          return ERROR(`invalid body specifier`);
       }
-      default:
-        return ERROR("body must be a script");
     }
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
     const result = ArgspecValue.fromValue(specs);
     if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
-    const program = scope.compile((body as ScriptValue).script);
+    const program = scope.compileScriptValue(body as ScriptValue);
     const proc = new ProcCommand(
       scope,
       argspec,
