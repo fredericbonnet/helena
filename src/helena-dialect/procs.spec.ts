@@ -123,6 +123,10 @@ describe("Helena procedures", () => {
         expect(evaluate("proc cmd {} {}").type).to.eql(ValueType.COMMAND);
       });
       specify("the metacommand should return the procedure", () => {
+        /**
+         * The typical application of this property is to call the procedure by
+         * wrapping its metacommand within brackets, e.g. `[$metacommand]`.
+         */
         const value = evaluate("set cmd [proc {val} {idem _${val}_}]");
         expect(evaluate("$cmd").type).to.eql(ValueType.COMMAND);
         expect(evaluate("$cmd")).to.not.eql(value);

@@ -47,6 +47,10 @@ the newly created command.
 - ✅ should return a metacommand
 - ✅ the metacommand should return the procedure
 
+  The typical application of this property is to call the procedure by
+  wrapping its metacommand within brackets, e.g. `[$metacommand]`.
+
+
 ### <a id="proc-metacommand-examples"></a>Examples
 
 - ✅ Calling procedure through its wrapped metacommand
