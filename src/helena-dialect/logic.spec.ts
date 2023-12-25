@@ -310,7 +310,7 @@ describe("Helena logic operations", () => {
 
       mochadoc.section("Introspection", () => {
         describe("`subcommands`", () => {
-          mochadoc.description(usage("bool 0 subcommands"));
+          mochadoc.description(usage("bool true subcommands"));
           mochadoc.description(() => {
             /**
              * This subcommand is useful for introspection and interactive
@@ -319,13 +319,13 @@ describe("Helena logic operations", () => {
           });
 
           specify("usage", () => {
-            expect(evaluate("help bool 0 subcommands")).to.eql(
+            expect(evaluate("help bool true subcommands")).to.eql(
               STR("bool value subcommands")
             );
           });
 
           it("should return list of subcommands", () => {
-            expect(evaluate("bool 0 subcommands")).to.eql(
+            expect(evaluate("bool true subcommands")).to.eql(
               evaluate("list (subcommands)")
             );
           });
@@ -336,10 +336,10 @@ describe("Helena logic operations", () => {
                * The subcommand will return an error message with usage when
                * given the wrong number of arguments.
                */
-              expect(execute("bool 0 subcommands a")).to.eql(
+              expect(execute("bool true subcommands a")).to.eql(
                 ERROR('wrong # args: should be "bool value subcommands"')
               );
-              expect(execute("help bool 0 subcommands a")).to.eql(
+              expect(execute("help bool true subcommands a")).to.eql(
                 ERROR('wrong # args: should be "bool value subcommands"')
               );
             });
@@ -349,12 +349,14 @@ describe("Helena logic operations", () => {
 
       mochadoc.section("Exceptions", () => {
         specify("unknown subcommand", () => {
-          expect(execute("bool 0 unknownSubcommand")).to.eql(
+          expect(execute("bool true unknownSubcommand")).to.eql(
             ERROR('unknown subcommand "unknownSubcommand"')
           );
         });
         specify("invalid subcommand name", () => {
-          expect(execute("bool 0 []")).to.eql(ERROR("invalid subcommand name"));
+          expect(execute("bool true []")).to.eql(
+            ERROR("invalid subcommand name")
+          );
         });
       });
     });
@@ -396,8 +398,10 @@ describe("Helena logic operations", () => {
             macro foo {value a b} {idem bar}
           }
         `);
-        expect(evaluate("help bool 0 foo")).to.eql(STR("bool value foo a b"));
-        expect(execute("help bool 0 foo 1 2 3")).to.eql(
+        expect(evaluate("help bool true foo")).to.eql(
+          STR("bool value foo a b")
+        );
+        expect(execute("help bool true foo 1 2 3")).to.eql(
           ERROR('wrong # args: should be "bool value foo a b"')
         );
       });
@@ -637,7 +641,7 @@ describe("Helena logic operations", () => {
           });
           it("should provide a resumable state", () => {
             const process = rootScope.prepareScript(
-              parse("&& {yield val1} {yield val2} ")
+              parse("&& {yield val1} {yield val2}")
             );
 
             let result = process.run();
@@ -760,7 +764,7 @@ describe("Helena logic operations", () => {
           });
           it("should provide a resumable state", () => {
             const process = rootScope.prepareScript(
-              parse("|| {yield val1} {yield val2} ")
+              parse("|| {yield val1} {yield val2}")
             );
 
             let result = process.run();
