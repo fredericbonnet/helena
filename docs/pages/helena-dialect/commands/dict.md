@@ -243,6 +243,9 @@ dict value entries
 
 ### <a id="dict-subcommands-operations"></a>Operations
 
+
+#### <a id="dict-subcommands-operations-add"></a>`add`
+
 Add entry to dictionary
 
 ```lna
@@ -250,20 +253,17 @@ dict value add key value
 ```
 
 - ✅ usage
+- ✅ should add `value` for a new `key`
+- ✅ should replace the value for an existing `key`
 
-- `add`
+- Exceptions
 
-  - ✅ should add `value` for a new `key`
-  - ✅ should replace the value for an existing `key`
+  - ✅ wrong arity
 
-  - Exceptions
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-    - ✅ invalid key
+  - ✅ invalid key
 
 #### <a id="dict-subcommands-operations-remove"></a>`remove`
 

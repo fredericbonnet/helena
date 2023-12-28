@@ -228,24 +228,24 @@ string value replace first last value2
 
 ### <a id="string-subcommands-string-comparisons"></a>String comparisons
 
+
+#### <a id="string-subcommands-string-comparisons-"></a>`==`
+
 ```lna
 string value1 == value2
 ```
 
 - ✅ usage
+- ✅ should compare two strings
 
-- `==`
+- Exceptions
 
-  - ✅ should compare two strings
+  - ✅ wrong arity
 
-  - Exceptions
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
 
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-    - ✅ values with no string representation
+  - ✅ values with no string representation
 
 #### <a id="string-subcommands-string-comparisons-"></a>`!=`
 

@@ -556,15 +556,15 @@ describe("Helena strings", () => {
       });
 
       mochadoc.section("String comparisons", () => {
-        mochadoc.description(usage('string "" =='));
-
-        specify("usage", () => {
-          expect(evaluate('help string "" ==')).to.eql(
-            STR("string value1 == value2")
-          );
-        });
-
         describe("`==`", () => {
+          mochadoc.description(usage('string "" =='));
+
+          specify("usage", () => {
+            expect(evaluate('help string "" ==')).to.eql(
+              STR("string value1 == value2")
+            );
+          });
+
           it("should compare two strings", () => {
             expect(evaluate("string example == foo")).to.equal(FALSE);
             expect(evaluate("string example == example")).to.equal(TRUE);

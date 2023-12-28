@@ -487,16 +487,16 @@ describe("Helena dictionaries", () => {
       });
 
       mochadoc.section("Operations", () => {
-        mochadoc.summary("Add entry to dictionary");
-        mochadoc.description(usage("dict () add"));
-
-        specify("usage", () => {
-          expect(evaluate("help dict () add")).to.eql(
-            STR("dict value add key value")
-          );
-        });
-
         describe("`add`", () => {
+          mochadoc.summary("Add entry to dictionary");
+          mochadoc.description(usage("dict () add"));
+
+          specify("usage", () => {
+            expect(evaluate("help dict () add")).to.eql(
+              STR("dict value add key value")
+            );
+          });
+
           it("should add `value` for a new `key`", () => {
             expect(evaluate("dict (a b c d) add e f")).to.eql(
               evaluate("dict (a b c d e f)")
