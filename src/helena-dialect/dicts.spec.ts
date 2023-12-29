@@ -636,55 +636,46 @@ describe("Helena dictionaries", () => {
 
           it("should iterate over entries", () => {
             evaluate(`
-            set entries [list ()]
-            set d [dict (a b c d e f)]
-            dict $d foreach entry {
-              set entries [list $entries append ($entry)]
-            }
+              set entries [list ()]
+              set d [dict (a b c d e f)]
+              dict $d foreach entry {
+                set entries [list $entries append ($entry)]
+              }
             `);
             expect(evaluate("get entries")).to.eql(evaluate("dict $d entries"));
           });
           describe("entry parameter tuples", () => {
             it("should be supported", () => {
               evaluate(`
-            set keys [list ()]
-            set values [list ()]
-            set d [dict (a b c d e f)]
-            dict $d foreach (key value) {
-              set keys [list $keys append ($key)]
-              set values [list $values append ($value)]
-            }
+                set keys [list ()]
+                set values [list ()]
+                set d [dict (a b c d e f)]
+                dict $d foreach (key value) {
+                  set keys [list $keys append ($key)]
+                  set values [list $values append ($value)]
+                }
             `);
               expect(evaluate("get keys")).to.eql(evaluate("dict $d keys"));
               expect(evaluate("get values")).to.eql(evaluate("dict $d values"));
             });
             it("should accept empty tuple", () => {
               evaluate(`
-              set i 0
-              dict (a b c d e f) foreach () {
-                set i [+ $i 1]
-              }
+                set i 0
+                dict (a b c d e f) foreach () {
+                  set i [+ $i 1]
+                }
               `);
               expect(evaluate("get i")).to.eql(INT(3));
             });
             it("should accept `(key)` tuple", () => {
               evaluate(`
-              set keys [list ()]
-              set d [dict (a b c d e f)]
-              dict (a b c d e f) foreach (key) {
-                set keys [list $keys append ($key)]
-              }
+                set keys [list ()]
+                set d [dict (a b c d e f)]
+                dict (a b c d e f) foreach (key) {
+                  set keys [list $keys append ($key)]
+                }
               `);
               expect(evaluate("get keys")).to.eql(evaluate("dict $d keys"));
-            });
-            it("should ignore extra elements", () => {
-              expect(
-                execute(`
-                dict (a b c d e f) foreach (key value foo) {
-                  if [exists foo] {unreachable}
-                }
-              `)
-              ).to.eql(OK(NIL));
             });
           });
           it("should return the result of the last command", () => {
@@ -807,6 +798,20 @@ describe("Helena dictionaries", () => {
               expect(execute("dict (a b c d) foreach a b")).to.eql(
                 ERROR("body must be a script")
               );
+            });
+            specify("bad value shape", () => {
+              /**
+               * Parameter and dict element shapes must match.
+               */
+              expect(
+                execute("dict (a b c d e f) foreach ((key) value) {}")
+              ).to.eql(ERROR("bad value shape"));
+              expect(
+                execute("dict (a b c d e f) foreach (key (value)) {}")
+              ).to.eql(ERROR("bad value shape"));
+              expect(
+                execute("dict (a b c d e f) foreach (key value foo) {}")
+              ).to.eql(ERROR("bad value shape"));
             });
           });
         });

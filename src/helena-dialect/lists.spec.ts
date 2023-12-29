@@ -617,13 +617,34 @@ describe("Helena lists", () => {
 
           it("should iterate over elements", () => {
             evaluate(`
-            set elements [list ()]
-            set l [list (a b c)]
-            list $l foreach element {
-              set elements [list $elements append ($element)]
-            }
+              set elements [list ()]
+              set l [list (a b c)]
+              list $l foreach element {
+                set elements [list $elements append ($element)]
+              }
             `);
             expect(evaluate("get elements")).to.eql(evaluate("get l"));
+          });
+          describe("parameter tuples", () => {
+            it("should be supported", () => {
+              evaluate(`
+                set elements [list ()]
+                set l [list ((a b) (c d))]
+                list $l foreach (i j) {
+                  set elements [list $elements append (($i $j))]
+                }
+              `);
+              expect(evaluate("get elements")).to.eql(evaluate("get l"));
+            });
+            it("should accept empty tuple", () => {
+              evaluate(`
+                set i 0
+                list ((a b) (c d) (e f)) foreach () {
+                  set i [+ $i 1]
+                }
+              `);
+              expect(evaluate("get i")).to.eql(INT(3));
+            });
           });
           it("should return the result of the last command", () => {
             expect(execute("list () foreach element {}")).to.eql(OK(NIL));
@@ -748,6 +769,17 @@ describe("Helena lists", () => {
               expect(execute("list (a b c) foreach a b")).to.eql(
                 ERROR("body must be a script")
               );
+            });
+            specify("bad value shape", () => {
+              /**
+               * Parameter and list element shapes must match.
+               */
+              expect(execute("list (a b c) foreach () {}")).to.eql(
+                ERROR("bad value shape")
+              );
+              expect(
+                execute("list ((a b) (c d) (e f)) foreach (i j k) {}")
+              ).to.eql(ERROR("bad value shape"));
             });
           });
         });

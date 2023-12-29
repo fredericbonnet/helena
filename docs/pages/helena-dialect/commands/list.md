@@ -265,6 +265,11 @@ list value foreach element body
 - ✅ should iterate over elements
 - ✅ should return the result of the last command
 
+- parameter tuples
+
+  - ✅ should be supported
+  - ✅ should accept empty tuple
+
 - Control flow
 
 
@@ -301,6 +306,10 @@ list value foreach element body
     given the wrong number of arguments.
 
   - ✅ non-script body
+  - ✅ bad value shape
+
+    Parameter and list element shapes must match.
+
 
 ### <a id="list-subcommands-exceptions"></a>Exceptions
 

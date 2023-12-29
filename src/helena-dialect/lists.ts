@@ -230,11 +230,12 @@ class ListForeachCommand implements Command {
         case "beforeBody": {
           if (state.i == state.list.values.length) return state.lastResult;
           const value = state.list.values[state.i++];
-          destructureValue(
+          const result = destructureValue(
             state.scope.destructureLocal.bind(state.scope),
             state.varname,
             value
           );
+          if (result.code != ResultCode.OK) return result;
           state.process = state.scope.prepareProcess(state.program);
           state.step = "inBody";
           break;

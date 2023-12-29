@@ -320,7 +320,6 @@ dict value foreach entry body
   - ✅ should be supported
   - ✅ should accept empty tuple
   - ✅ should accept `(key)` tuple
-  - ✅ should ignore extra elements
 
 - Control flow
 
@@ -358,6 +357,10 @@ dict value foreach entry body
     given the wrong number of arguments.
 
   - ✅ non-script body
+  - ✅ bad value shape
+
+    Parameter and dict element shapes must match.
+
 
 ### <a id="dict-subcommands-exceptions"></a>Exceptions
 
