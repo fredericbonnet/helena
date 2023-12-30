@@ -434,15 +434,13 @@ describe("Helena control flow commands", () => {
       });
       describe("`yield`", () => {
         it("should interrupt tests with `YIELD` code", () => {
-          it("should interrupt tests with `ERROR` code", () => {
-            expect(
-              execute("if {yield; unreachable} {unreachable}").code
-            ).to.eql(ResultCode.YIELD);
-            expect(
-              execute("if false {} elseif {yield; unreachable} {unreachable}")
-                .code
-            ).to.eql(ResultCode.YIELD);
-          });
+          expect(execute("if {yield; unreachable} {unreachable}").code).to.eql(
+            ResultCode.YIELD
+          );
+          expect(
+            execute("if false {} elseif {yield; unreachable} {unreachable}")
+              .code
+          ).to.eql(ResultCode.YIELD);
         });
         it("should interrupt bodies with `YIELD` code", () => {
           expect(execute("if true {yield; unreachable}").code).to.eql(
@@ -1390,6 +1388,7 @@ describe("Helena control flow commands", () => {
         });
       });
     });
+
     describe("`yield` handler", () => {
       it("should catch `YIELD` code", () => {
         evaluate("catch {yield} yield res {set var handler}");
@@ -1721,6 +1720,7 @@ describe("Helena control flow commands", () => {
         });
       });
     });
+
     describe("`break` handler", () => {
       it("should catch `BREAK` code", () => {
         evaluate("catch {break} break {set var handler}");
@@ -2178,8 +2178,23 @@ describe("Helena control flow commands", () => {
         expect(evaluate("help pass")).to.eql(STR("pass"));
       });
 
+      specify("result code should be the custom code `pass`", () => {
+        expect(execute("pass").code).to.eql({ name: "pass" });
+      });
       specify("`catch` should return `(pass)` tuple", () => {
         expect(execute("catch {pass}")).to.eql(execute("tuple (pass)"));
+      });
+      specify("`catch` handlers should not handle it", () => {
+        expect(
+          execute(`
+                  catch {pass} \\
+                    return value {unreachable} \\
+                    yield value {unreachable} \\
+                    error message {unreachable} \\
+                    break {unreachable} \\
+                    continue {unreachable} \\
+                `).code
+        ).to.eql({ name: "pass" });
       });
       describe("should interrupt `catch` handlers and let original result pass through", () => {
         specify("`RETURN`", () => {

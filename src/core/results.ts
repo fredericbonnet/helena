@@ -80,7 +80,7 @@ export const RESULT_CODE_NAME = (code: ResultCode | CustomResultCode) => {
     case ResultCode.YIELD:
       return "yield";
     case ResultCode.ERROR:
-      return "break";
+      return "error";
     case ResultCode.BREAK:
       return "break";
     case ResultCode.CONTINUE:

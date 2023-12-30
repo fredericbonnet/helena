@@ -6,6 +6,7 @@ import {
   CustomResultCode,
   ERROR,
   OK,
+  RESULT_CODE_NAME,
   Result,
   ResultCode,
   YIELD,
@@ -46,11 +47,11 @@ class WhileCommand implements Command {
       default:
         return ARITY_ERROR(WHILE_SIGNATURE);
     }
+    if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
     let testProgram;
     if (test.type == ValueType.SCRIPT) {
       testProgram = scope.compile((test as ScriptValue).script);
     }
-    if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
     const program = scope.compile((body as ScriptValue).script);
     return this.run(
       { step: "beforeTest", test, testProgram, program, lastResult: OK(NIL) },
@@ -109,18 +110,17 @@ class WhileCommand implements Command {
     }
   }
   private executeTest(state: WhileState, scope: Scope) {
-    let test = state.test;
-    if (test.type == ValueType.SCRIPT) {
+    if (state.test.type == ValueType.SCRIPT) {
       state.process = scope.prepareProcess(state.testProgram);
       const result = state.process.run();
       if (result.code != ResultCode.OK) return result;
-      test = result.value;
+      return BooleanValue.fromValue(result.value);
     }
-    return BooleanValue.fromValue(test);
+    return BooleanValue.fromValue(state.test);
   }
   private resumeTest(state: WhileState) {
     const result = state.process.run();
-    if (result.code != ResultCode.OK) return;
+    if (result.code != ResultCode.OK) return result;
     return BooleanValue.fromValue(result.value);
   }
 }
@@ -199,12 +199,12 @@ class IfCommand implements Command {
     return OK(NIL);
   }
   private executeTest(state: IfState, scope: Scope) {
-    let test = state.args[state.i + 1];
+    const test = state.args[state.i + 1];
     if (test.type == ValueType.SCRIPT) {
       state.process = scope.prepareScriptValue(test as ScriptValue);
       const result = state.process.run();
       if (result.code != ResultCode.OK) return result;
-      test = result.value;
+      return BooleanValue.fromValue(result.value);
     }
     return BooleanValue.fromValue(test);
   }
@@ -413,7 +413,6 @@ type CatchState = {
     | "inBody"
     | "beforeHandler"
     | "inHandler"
-    | "afterHandler"
     | "beforeFinally"
     | "inFinally";
   bodyResult?: Result;
@@ -429,28 +428,26 @@ class CatchCommand implements Command {
       const body = args[1];
       if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
       const result = scope.executeScriptValue(body as ScriptValue);
+      const codeName = STR(RESULT_CODE_NAME(result.code));
       switch (result.code) {
         case ResultCode.OK:
-          return OK(TUPLE([STR("ok"), result.value]));
         case ResultCode.RETURN:
-          return OK(TUPLE([STR("return"), result.value]));
         case ResultCode.YIELD:
-          return OK(TUPLE([STR("yield"), result.value]));
         case ResultCode.ERROR:
-          return OK(TUPLE([STR("error"), result.value]));
-        case ResultCode.BREAK:
-          return OK(TUPLE([STR("break")]));
-        case ResultCode.CONTINUE:
-          return OK(TUPLE([STR("continue")]));
+          return OK(TUPLE([codeName, result.value]));
         default:
-          return OK(TUPLE([STR((result.code as CustomResultCode).name)]));
+          return OK(TUPLE([STR(RESULT_CODE_NAME(result.code))]));
       }
     }
     return this.run({ step: "beforeBody", args }, scope);
   }
   resume(result: Result, scope: Scope): Result {
     const state = result.data as CatchState;
-    state.process.yieldBack(result.value);
+    if (state.step == "inBody") {
+      state.bodyProcess.yieldBack(result.value);
+    } else {
+      state.process.yieldBack(result.value);
+    }
     return this.run(state, scope);
   }
   help() {
@@ -462,35 +459,35 @@ class CatchCommand implements Command {
         case "beforeBody": {
           const body = state.args[1];
           // TODO check type
-          state.process = scope.prepareScriptValue(body as ScriptValue); // TODO check type
-          state.bodyProcess = state.process;
+          state.bodyProcess = scope.prepareScriptValue(body as ScriptValue); // TODO check type
           state.step = "inBody";
           break;
         }
         case "inBody": {
-          state.result = state.process.run();
-          state.bodyResult = state.result;
+          state.bodyResult = state.bodyProcess.run();
           state.step = "beforeHandler";
           break;
         }
         case "beforeHandler": {
-          if (state.result.code == ResultCode.OK) {
+          if (state.bodyResult.code == ResultCode.OK) {
+            state.result = state.bodyResult;
             state.step = "beforeFinally";
-            break;
+            continue;
           }
-          const i = this.findHandlerIndex(state.result.code, state.args);
-          if (i < 0) {
+          const i = this.findHandlerIndex(state.bodyResult.code, state.args);
+          if (i >= state.args.length - 1) {
+            state.result = state.bodyResult;
             state.step = "beforeFinally";
-            break;
+            continue;
           }
-          switch (state.result.code) {
+          switch (state.bodyResult.code) {
             case ResultCode.RETURN:
             case ResultCode.YIELD:
             case ResultCode.ERROR: {
               const { data: varname } = StringValue.toString(state.args[i + 1]);
               const handler = state.args[i + 2];
               const subscope = new Scope(scope, true);
-              subscope.setNamedLocal(varname, state.result.value);
+              subscope.setNamedLocal(varname, state.bodyResult.value);
               state.process = subscope.prepareScriptValue(
                 handler as ScriptValue
               ); // TODO check type
@@ -502,6 +499,8 @@ class CatchCommand implements Command {
               state.process = scope.prepareScriptValue(handler as ScriptValue); // TODO check type
               break;
             }
+            default:
+              throw new Error("CANTHAPPEN");
           }
           state.step = "inHandler";
           break;
@@ -511,19 +510,21 @@ class CatchCommand implements Command {
           if (state.result.code == ResultCode.YIELD)
             return YIELD(state.result.value, state);
           if (state.result.code == passResultCode) {
-            state.result = state.bodyResult;
-            if (state.result.code == ResultCode.YIELD) {
-              state.process = state.bodyProcess;
+            if (state.bodyResult.code == ResultCode.YIELD) {
               state.step = "inBody";
-              return YIELD(state.result.value, state);
+              return YIELD(state.bodyResult.value, state);
             }
-          } else if (state.result.code != ResultCode.OK) return state.result;
+            state.result = state.bodyResult;
+            state.step = "beforeFinally";
+            continue;
+          }
+          if (state.result.code != ResultCode.OK) return state.result;
           state.step = "beforeFinally";
           break;
         }
         case "beforeFinally": {
           const i = this.findFinallyIndex(state.args);
-          if (i < 0) return state.result;
+          if (i >= state.args.length - 1) return state.result;
           const handler = state.args[i + 1];
           state.process = scope.prepareScriptValue(handler as ScriptValue); // TODO check type
           state.step = "inFinally";
@@ -572,7 +573,7 @@ class CatchCommand implements Command {
           break;
       }
     }
-    return -1;
+    return i;
   }
   private findFinallyIndex(args: Value[]): number {
     let i = 2;
@@ -592,7 +593,7 @@ class CatchCommand implements Command {
           return i;
       }
     }
-    return -1;
+    return i;
   }
   private checkArgs(args: Value[]): Result {
     let i = 2;

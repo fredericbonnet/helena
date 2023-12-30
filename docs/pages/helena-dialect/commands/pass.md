@@ -18,7 +18,9 @@ through to the caller.
 ## <a id="pass-specifications"></a>Specifications
 
 - ✅ usage
+- ✅ result code should be the custom code `pass`
 - ✅ `catch` should return `(pass)` tuple
+- ✅ `catch` handlers should not handle it
 - ✅ should resume yielded body
 
 - should interrupt `catch` handlers and let original result pass through
