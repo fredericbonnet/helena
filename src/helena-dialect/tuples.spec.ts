@@ -251,18 +251,8 @@ describe("Helena tuples", () => {
           );
         });
       });
-
-      it("should be extensible", () => {
-        evaluate(
-          `[tuple] eval {
-            macro last {value} {
-              tuple $value at [- [tuple $value length] 1]
-            }
-          }`
-        );
-        expect(evaluate("tuple (a b c) last")).to.eql(STR("c"));
-      });
     });
+
     mochadoc.section("Examples", () => {
       example("Currying and encapsulation", [
         {

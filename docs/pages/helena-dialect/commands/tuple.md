@@ -55,7 +55,6 @@ argspecs.
 The `tuple` ensemble comes with a number of predefined subcommands
 listed here.
 
-- ✅ should be extensible
 
 ### <a id="tuple-subcommands-introspection"></a>Introspection
 
