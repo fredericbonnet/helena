@@ -105,7 +105,10 @@ export const coroutineCmd: Command = {
     }
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
-    const value = new CoroutineCommand(scope, body as ScriptValue);
+    const value = new CoroutineCommand(
+      new Scope(scope, true),
+      body as ScriptValue
+    );
     return OK(value.value);
   },
   help(args) {

@@ -137,7 +137,7 @@ export const closureCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
     const closure = new ClosureCommand(
-      scope,
+      new Scope(scope, true),
       argspec,
       body as ScriptValue,
       guard

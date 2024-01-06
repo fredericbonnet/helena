@@ -161,7 +161,7 @@ export const procCmd: Command = {
     const argspec = result.data;
     const program = scope.compileScriptValue(body as ScriptValue);
     const proc = new ProcCommand(
-      scope,
+      new Scope(scope, true),
       argspec,
       body as ScriptValue,
       guard,
