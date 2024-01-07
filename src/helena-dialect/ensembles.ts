@@ -188,7 +188,6 @@ export const ensembleCmd: Command = {
       default:
         return ARITY_ERROR(ENSEMBLE_SIGNATURE);
     }
-
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
     const { data: argspec, ...result } = ArgspecValue.fromValue(specs);

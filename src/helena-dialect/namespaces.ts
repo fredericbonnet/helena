@@ -60,11 +60,12 @@ class NamespaceMetacommand implements Command {
       call: () => {
         if (args.length < 3)
           return ARITY_ERROR("<namespace> call cmdname ?arg ...?");
-        const { data: command, code } = StringValue.toString(args[2]);
+        const { data: subcommand, code } = StringValue.toString(args[2]);
         if (code != ResultCode.OK) return ERROR("invalid command name");
-        if (!this.namespace.scope.hasLocalCommand(command))
-          return ERROR(`unknown command "${command}"`);
-        const cmdline = args.slice(2);
+        if (!this.namespace.scope.hasLocalCommand(subcommand))
+          return ERROR(`unknown command "${subcommand}"`);
+        const command = this.namespace.scope.resolveNamedCommand(subcommand);
+        const cmdline = [new CommandValue(command), ...args.slice(3)];
         return DeferredValue.create(
           ResultCode.YIELD,
           TUPLE(cmdline),
@@ -120,7 +121,8 @@ class NamespaceCommand implements Command {
     }
     if (!this.scope.hasLocalCommand(subcommand))
       return ERROR(`unknown subcommand "${subcommand}"`);
-    const cmdline = args.slice(1);
+    const command = this.scope.resolveNamedCommand(subcommand);
+    const cmdline = [new CommandValue(command), ...args.slice(2)];
     return DeferredValue.create(ResultCode.YIELD, TUPLE(cmdline), this.scope);
   }
   help(args: Value[], { prefix, skip }) {
