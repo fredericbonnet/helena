@@ -356,18 +356,18 @@ describe("Helena coroutines", () => {
             });
           });
         });
-      });
 
-      mochadoc.section("Exceptions", () => {
-        specify("unknown subcommand", () => {
-          expect(execute("[coroutine {}] unknownSubcommand")).to.eql(
-            ERROR('unknown subcommand "unknownSubcommand"')
-          );
-        });
-        specify("invalid subcommand name", () => {
-          expect(execute("[coroutine {}] []")).to.eql(
-            ERROR("invalid subcommand name")
-          );
+        mochadoc.section("Exceptions", () => {
+          specify("unknown subcommand", () => {
+            expect(execute("[coroutine {}] unknownSubcommand")).to.eql(
+              ERROR('unknown subcommand "unknownSubcommand"')
+            );
+          });
+          specify("invalid subcommand name", () => {
+            expect(execute("[coroutine {}] []")).to.eql(
+              ERROR("invalid subcommand name")
+            );
+          });
         });
       });
     });

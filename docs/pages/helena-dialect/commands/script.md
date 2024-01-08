@@ -17,7 +17,6 @@ access, and operations.
 
 Script values are Helena values whose internal type is `SCRIPT`.
 
-- ✅ should be extensible
 
 ## <a id="script-script-creation-and-conversion"></a>Script creation and conversion
 
@@ -232,7 +231,9 @@ of subcommands defined in an ensemble scope.
   subcommands:
 
   ```lna
-  script {a b c; d e; f} last
+  set s [script {error a; return b; idem c} last]
+  eval $s
+  # => c
   ```
 
 

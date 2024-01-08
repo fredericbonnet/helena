@@ -501,23 +501,14 @@ describe("Helena scripts", () => {
                * subcommands:
                */
             },
-            script: "script {a b c; d e; f} last",
+            script: `
+              set s [script {error a; return b; idem c} last]
+              eval $s
+            `,
+            result: STR("c"),
           },
         ]);
       });
-    });
-
-    it("should be extensible", () => {
-      evaluate(
-        `[script] eval {
-            macro last {value} {
-              list [script $value split] at [- [script $value length] 1]
-            }
-          }`
-      );
-      expect(evaluate("script {cmd1 a b; cmd2 c d; cmd3 e f} last")).to.eql(
-        new ScriptValue(parse("cmd3 e f"), undefined)
-      );
     });
   });
 });

@@ -152,7 +152,7 @@ control the execution of the coroutine.
     - ✅ inactive coroutine
     - ✅ completed coroutine
 
-### <a id="coroutine-coroutine-object-exceptions"></a>Exceptions
+#### <a id="coroutine-coroutine-object-subcommands-exceptions"></a>Exceptions
 
 - ✅ unknown subcommand
 - ✅ invalid subcommand name
