@@ -26,6 +26,7 @@ import { initCommands } from "./helena-dialect";
 import { Subcommands } from "./subcommands";
 import { Tokenizer } from "../core/tokenizer";
 import { Parser } from "../core/parser";
+import { Script } from "../core/syntax";
 import { valueToArray } from "./lists";
 
 type Exports = Map<string, Value>;
@@ -108,10 +109,36 @@ function importCommand(
   return OK(NIL);
 }
 
+export class ModuleRegistry {
+  private readonly modules: Map<string, Module> = new Map();
+  private readonly reservedNames: Set<string> = new Set();
+
+  isReserved(name: string) {
+    return this.reservedNames.has(name);
+  }
+  reserve(name: string) {
+    this.reservedNames.add(name);
+  }
+  release(name: string) {
+    this.reservedNames.delete(name);
+  }
+  isRegistered(name: string) {
+    return this.modules.has(name);
+  }
+  register(name: string, module: Module) {
+    this.modules.set(name, module);
+  }
+  get(name: string): Module {
+    return this.modules.get(name);
+  }
+}
+
 const MODULE_SIGNATURE = "module ?name? body";
 class ModuleCommand implements Command {
+  readonly moduleRegistry: ModuleRegistry;
   readonly rootDir: string;
-  constructor(rootDir: string) {
+  constructor(moduleRegistry: ModuleRegistry, rootDir: string) {
+    this.moduleRegistry = moduleRegistry;
     this.rootDir = rootDir;
   }
 
@@ -129,18 +156,12 @@ class ModuleCommand implements Command {
     }
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
-    const rootScope = new Scope();
-    initCommands(rootScope, this.rootDir);
-    const exports = new Map();
-    rootScope.registerNamedCommand("export", new ExportCommand(exports));
-
-    const process = rootScope.prepareScriptValue(body as ScriptValue);
-    const result = process.run();
-    if (result.code == ResultCode.ERROR) return result;
-    if (result.code != ResultCode.OK)
-      return ERROR("unexpected " + RESULT_CODE_NAME(result.code));
-
-    const module = new Module(rootScope, exports);
+    const { data: module, ...result } = createModule(
+      this.moduleRegistry,
+      this.rootDir,
+      (body as ScriptValue).script
+    );
+    if (result.code != ResultCode.OK) return result;
     if (name) {
       const result = scope.registerCommand(name, module);
       if (result.code != ResultCode.OK) return result;
@@ -153,57 +174,42 @@ class ModuleCommand implements Command {
   }
 }
 
-class ModuleRegistry {
-  private readonly modules: Map<string, Module> = new Map();
-  private readonly reservedNames: Set<string> = new Set();
-
-  isReserved(name: string) {
-    return this.reservedNames.has(name);
-  }
-  reserve(name: string) {
-    this.reservedNames.add(name);
-  }
-  release(name: string) {
-    this.reservedNames.delete(name);
-  }
-  isRegistered(name: string) {
-    return !!this.modules.get(name);
-  }
-  register(name: string, module: Module) {
-    this.modules.set(name, module);
-  }
-  get(name: string): Module {
-    return this.modules.get(name);
-  }
-}
-const moduleRegistry = new ModuleRegistry();
-
-export function registerNamedModule(name: string, module: Module) {
-  moduleRegistry.register(name, module);
-}
-
-function resolveModule(nameOrPath: string, rootDir: string): Result<Module> {
+function resolveModule(
+  moduleRegistry: ModuleRegistry,
+  rootDir: string,
+  nameOrPath: string
+): Result<Module> {
   if (moduleRegistry.isRegistered(nameOrPath)) {
     const module = moduleRegistry.get(nameOrPath);
     return OK(module.value, module);
   }
-  return resolveFileBasedModule(nameOrPath, rootDir);
+  return resolveFileBasedModule(moduleRegistry, rootDir, nameOrPath);
 }
 
-function resolveFileBasedModule(filePath: string, rootDir: string) {
+function resolveFileBasedModule(
+  moduleRegistry: ModuleRegistry,
+  rootDir: string,
+  filePath: string
+) {
   const modulePath = path.resolve(rootDir, filePath);
   if (moduleRegistry.isRegistered(modulePath)) {
     const module = moduleRegistry.get(modulePath);
     return OK(module.value, module);
   }
 
-  const { data: module, ...result } = loadFileBasedModule(modulePath);
+  const { data: module, ...result } = loadFileBasedModule(
+    moduleRegistry,
+    modulePath
+  );
   if (result.code != ResultCode.OK) return result;
   moduleRegistry.register(modulePath, module);
   return OK(module.value, module);
 }
 
-function loadFileBasedModule(modulePath: string): Result<Module> {
+function loadFileBasedModule(
+  moduleRegistry: ModuleRegistry,
+  modulePath: string
+): Result<Module> {
   if (moduleRegistry.isReserved(modulePath)) {
     return ERROR("circular imports are forbidden");
   }
@@ -213,23 +219,33 @@ function loadFileBasedModule(modulePath: string): Result<Module> {
   try {
     data = fs.readFileSync(modulePath, "utf-8");
   } catch (e) {
-    return ERROR(e.message);
+    moduleRegistry.release(modulePath);
+    return ERROR("error reading module: " + e.message);
   }
   const tokens = new Tokenizer().tokenize(data);
   const { success, script, message } = new Parser().parse(tokens);
   if (!success) {
+    moduleRegistry.release(modulePath);
     return ERROR(message);
   }
 
+  const result = createModule(moduleRegistry, path.dirname(modulePath), script);
+  moduleRegistry.release(modulePath);
+  return result;
+}
+
+function createModule(
+  moduleRegistry: ModuleRegistry,
+  rootDir: string,
+  script: Script
+): Result<Module> {
   const rootScope = new Scope();
-  initCommands(rootScope, path.dirname(modulePath));
+  initCommands(rootScope, moduleRegistry, rootDir);
+
   const exports = new Map();
   rootScope.registerNamedCommand("export", new ExportCommand(exports));
 
   const result = rootScope.executeScript(script);
-
-  moduleRegistry.release(modulePath);
-
   if (result.code == ResultCode.ERROR) {
     return result as Result<Module>;
   }
@@ -243,8 +259,10 @@ function loadFileBasedModule(modulePath: string): Result<Module> {
 
 const IMPORT_SIGNATURE = "import path ?name|imports?";
 class ImportCommand implements Command {
+  readonly moduleRegistry: ModuleRegistry;
   readonly rootDir: string;
-  constructor(rootDir: string) {
+  constructor(moduleRegistry: ModuleRegistry, rootDir: string) {
+    this.moduleRegistry = moduleRegistry;
     this.rootDir = rootDir;
   }
 
@@ -255,7 +273,11 @@ class ImportCommand implements Command {
     const { data: path, code } = StringValue.toString(args[1]);
     if (code != ResultCode.OK) return ERROR("invalid path");
 
-    const { data: module, ...result } = resolveModule(path, this.rootDir);
+    const { data: module, ...result } = resolveModule(
+      this.moduleRegistry,
+      this.rootDir,
+      path
+    );
     if (result.code != ResultCode.OK) return result;
 
     if (args.length >= 3) {
@@ -307,7 +329,17 @@ class ImportCommand implements Command {
   }
 }
 
-export function registerModuleCommands(scope: Scope, rootDir: string) {
-  scope.registerNamedCommand("module", new ModuleCommand(rootDir));
-  scope.registerNamedCommand("import", new ImportCommand(rootDir));
+export function registerModuleCommands(
+  scope: Scope,
+  moduleRegistry: ModuleRegistry,
+  rootDir: string
+) {
+  scope.registerNamedCommand(
+    "module",
+    new ModuleCommand(moduleRegistry, rootDir)
+  );
+  scope.registerNamedCommand(
+    "import",
+    new ImportCommand(moduleRegistry, rootDir)
+  );
 }

@@ -19,12 +19,18 @@ import { registerDictCommands } from "./dicts";
 import { registerTupleCommands } from "./tuples";
 import { registerScriptCommands } from "./scripts";
 import { ensembleCmd } from "./ensembles";
-import { registerModuleCommands } from "./modules";
+import { ModuleRegistry, registerModuleCommands } from "./modules";
 import { registerNumberCommands } from "./numbers";
 
 export { Scope } from "./core";
 
-export function initCommands(scope: Scope, rootDir?: string) {
+const globalModuleRegistry = new ModuleRegistry();
+
+export function initCommands(
+  scope: Scope,
+  moduleRegistry?: ModuleRegistry,
+  rootDir?: string
+) {
   registerBasicCommands(scope);
   registerVariableCommands(scope);
 
@@ -44,7 +50,11 @@ export function initCommands(scope: Scope, rootDir?: string) {
   scope.registerNamedCommand("namespace", namespaceCmd);
   scope.registerNamedCommand("ensemble", ensembleCmd);
 
-  registerModuleCommands(scope, rootDir || process.cwd());
+  registerModuleCommands(
+    scope,
+    moduleRegistry ?? globalModuleRegistry,
+    rootDir ?? process.cwd()
+  );
 
   scope.registerNamedCommand("macro", macroCmd);
   scope.registerNamedCommand("closure", closureCmd);

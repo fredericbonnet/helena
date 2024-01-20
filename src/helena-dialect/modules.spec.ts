@@ -14,13 +14,14 @@ import {
 } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { Module, registerNamedModule } from "./modules";
+import { Module, ModuleRegistry } from "./modules";
 import { codeBlock, describeCommand } from "./test-helpers";
 
 const asString = (value) => StringValue.toString(value).data;
 
 describe("Helena modules", () => {
   let rootScope: Scope;
+  let moduleRegistry: ModuleRegistry;
 
   let tokenizer: Tokenizer;
   let parser: Parser;
@@ -32,7 +33,8 @@ describe("Helena modules", () => {
 
   const init = () => {
     rootScope = new Scope();
-    initCommands(rootScope, __dirname);
+    moduleRegistry = new ModuleRegistry();
+    initCommands(rootScope, moduleRegistry, __dirname);
 
     tokenizer = new Tokenizer();
     parser = new Parser();
@@ -476,6 +478,7 @@ describe("Helena modules", () => {
     const moduleBPath = `"tests/module-b.lna"`;
     const moduleCPath = `"tests/module-c.lna"`;
     const moduleDPath = `"tests/module-d.lna"`;
+    const errorPath = `"tests/error.txt"`;
 
     mochadoc.summary("Load a module");
     mochadoc.usage(usage("import"));
@@ -529,49 +532,60 @@ describe("Helena modules", () => {
           ERROR("circular imports are forbidden")
         );
       });
+      it("should support named modules", () => {
+        const foo = evaluate(
+          'module {macro name {} {idem "foo module"}; export name}'
+        );
+        expect(foo.type).to.eql(ValueType.COMMAND);
+        moduleRegistry.register("foo", (foo as CommandValue).command as Module);
+        expect(evaluate("import foo")).to.eql(foo);
+        expect(evaluate("import foo (name); name")).to.eql(STR("foo module"));
+      });
 
       describe("`name`", () => {
         it("should define a new command", () => {
-          evaluate(`import ${moduleAPathAbs} cmd`);
+          evaluate(`import ${moduleAPathRel} cmd`);
           expect(rootScope.context.commands.has("cmd")).to.be.true;
         });
         it("should replace existing commands", () => {
           evaluate("macro cmd {}");
-          evaluate(`import ${moduleAPathAbs} cmd`);
+          expect(execute(`import ${moduleAPathRel} cmd`).code).to.eql(
+            ResultCode.OK
+          );
         });
         specify("the named command should return its command object", () => {
-          const value = evaluate(`import ${moduleAPathAbs} cmd`);
+          const value = evaluate(`import ${moduleAPathRel} cmd`);
           expect(evaluate("cmd")).to.eql(value);
         });
       });
 
       describe("`imports`", () => {
         it("should declare imported commands in the calling scope", () => {
-          evaluate(`import ${moduleAPathAbs} (name)`);
+          evaluate(`import ${moduleAPathRel} (name)`);
           expect(evaluate("name")).to.eql(STR("module-a"));
         });
         it("should accept tuples", () => {
-          evaluate(`import ${moduleAPathAbs} (name)`);
+          evaluate(`import ${moduleAPathRel} (name)`);
           expect(evaluate("name")).to.eql(STR("module-a"));
         });
         it("should accept lists", () => {
-          evaluate(`import ${moduleAPathAbs} [list (name)]`);
+          evaluate(`import ${moduleAPathRel} [list (name)]`);
           expect(evaluate("name")).to.eql(STR("module-a"));
         });
         it("should accept blocks", () => {
-          evaluate(`import ${moduleAPathAbs} {name}`);
+          evaluate(`import ${moduleAPathRel} {name}`);
           expect(evaluate("name")).to.eql(STR("module-a"));
         });
         it("should accept (name alias) tuples", () => {
           evaluate("macro name {} {idem original}");
-          evaluate(`import ${moduleAPathAbs} ( (name name2) )`);
+          evaluate(`import ${moduleAPathRel} ( (name name2) )`);
           expect(evaluate("name")).to.eql(STR("original"));
           expect(evaluate("name2")).to.eql(STR("module-a"));
         });
 
         describe("Exceptions", () => {
           specify("unknown export", () => {
-            expect(execute(`import ${moduleAPathAbs} (a)`)).to.eql(
+            expect(execute(`import ${moduleAPathRel} (a)`)).to.eql(
               ERROR('unknown export "a"')
             );
           });
@@ -621,15 +635,24 @@ describe("Helena modules", () => {
           ERROR('wrong # args: should be "import path ?name|imports?"')
         );
       });
-    });
-    specify("named modules", () => {
-      const foo = evaluate(
-        'module {macro name {} {idem "foo module"}; export name}'
-      );
-      expect(foo.type).to.eql(ValueType.COMMAND);
-      registerNamedModule("foo", (foo as CommandValue).command as Module);
-      expect(evaluate("import foo")).to.eql(foo);
-      expect(evaluate("import foo (name); name")).to.eql(STR("foo module"));
+      specify("invalid path", () => {
+        expect(execute(`import []`)).to.eql(ERROR("invalid path"));
+      });
+      specify("unknown file", () => {
+        const result = execute(`import /unknownFile`);
+        expect(result.code).to.eql(ResultCode.ERROR);
+        expect(asString(result.value)).to.include("error reading module");
+      });
+      specify("invalid file", () => {
+        const result = execute(`import /`);
+        expect(result.code).to.eql(ResultCode.ERROR);
+        expect(asString(result.value)).to.include("error reading module");
+      });
+      specify("parsing error", () => {
+        expect(execute(`import ${errorPath}`)).to.eql(
+          ERROR("unmatched left brace")
+        );
+      });
     });
   });
 });

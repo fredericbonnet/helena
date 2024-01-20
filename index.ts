@@ -38,7 +38,9 @@ import { regexpCmd } from "./src/native/javascript-regexp";
 import { childProcessCmd } from "./src/native/node-child_process";
 import { consoleCmd } from "./src/native/javascript-console";
 import { CallbackContext, fsCmd } from "./src/native/node-fs";
-import { Module, registerNamedModule } from "./src/helena-dialect/modules";
+import { Module, ModuleRegistry } from "./src/helena-dialect/modules";
+
+const moduleRegistry = new ModuleRegistry();
 
 function sourceFile(path: string, scope: Scope): Result {
   const data = fs.readFileSync(path, "utf-8");
@@ -76,7 +78,7 @@ const picolCmd: Command = {
 
 function init() {
   const rootScope = new Scope();
-  initCommands(rootScope);
+  initCommands(rootScope, moduleRegistry);
   rootScope.registerNamedCommand("source", sourceCmd);
   rootScope.registerNamedCommand("exit", exitCmd);
   rootScope.registerNamedCommand("picol", picolCmd);
@@ -108,12 +110,12 @@ function registerNativeModule(
   const exports = new Map();
   scope.registerNamedCommand(exportName, command);
   exports.set(exportName, STR(exportName));
-  registerNamedModule(moduleName, new Module(scope, exports));
+  moduleRegistry.register(moduleName, new Module(scope, exports));
 }
 
 function prompt() {
   const rootScope = init();
-  initCommands(rootScope);
+  initCommands(rootScope, moduleRegistry);
   registerNativeModule("javascript:RegExp", "RegExp", regexpCmd);
   registerNativeModule("javascript:console", "console", consoleCmd);
   registerNativeModule("node:child_process", "child_process", childProcessCmd);
