@@ -14,7 +14,7 @@ export class SyntaxError extends Error {
    */
   constructor(message) {
     super(message);
-    this.name = "CompilationError";
+    this.name = "SyntaxError";
   }
 }
 
@@ -45,6 +45,7 @@ export class UnexpectedMorphemeError extends SyntaxError {
     this.name = "UnexpectedMorphemeError";
   }
 }
+
 /**
  * Helena script
  *

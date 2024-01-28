@@ -30,7 +30,7 @@ export interface Command {
   /**
    * Return help for the command and a list of arguments
    *
-   * Provided arguments will be validated
+   * Provided arguments will be validated against the command signature
    *
    * @param args      - Argument values (can be partial)
    * @param [options] - Help formating options

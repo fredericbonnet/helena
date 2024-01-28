@@ -99,7 +99,7 @@ describe("Picol dialect", () => {
             expect(evaluate("* 45 67")).to.eql(REAL(45 * 67));
             expect(evaluate("* 1.23e-4 -56")).to.eql(REAL(1.23e-4 * -56));
           });
-          it("should add several numbers", () => {
+          it("should multiply several numbers", () => {
             const numbers = [];
             let total = 1;
             for (let i = 0; i < 10; i++) {

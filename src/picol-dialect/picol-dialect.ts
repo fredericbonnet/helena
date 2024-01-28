@@ -50,10 +50,10 @@ export class PicolScope {
     );
   }
 
-  variableResolver: VariableResolver = {
+  private variableResolver: VariableResolver = {
     resolve: (name) => this.resolveVariable(name),
   };
-  commandResolver: CommandResolver = {
+  private commandResolver: CommandResolver = {
     resolve: (name) => this.resolveCommand(name),
   };
 
@@ -327,7 +327,7 @@ const setCmd: Command = {
     switch (args.length) {
       case 2: {
         const name = asString(args[1]);
-        const value = scope.variableResolver.resolve(name);
+        const value = scope.resolveVariable(name);
         if (value) return OK(value);
         return ERROR(`can't read "${name}": no such variable`);
       }
