@@ -1868,6 +1868,30 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
           ERROR("value has no string representation")
         );
       });
+      specify("no variable resolver", () => {
+        const script = parse("$varname");
+
+        evaluator = new klass(null, null, null);
+        expect(evaluator.evaluateScript(script)).to.eql(
+          ERROR("no variable resolver")
+        );
+      });
+      specify("no command resolver", () => {
+        const script = parse("cmd");
+
+        evaluator = new klass(null, null, null);
+        expect(evaluator.evaluateScript(script)).to.eql(
+          ERROR("no command resolver")
+        );
+      });
+      specify("no selector resolver", () => {
+        const script = parse("varname{last}");
+
+        evaluator = new klass(null, null, null);
+        expect(evaluator.evaluateScript(script)).to.eql(
+          ERROR("no selector resolver")
+        );
+      });
     });
   });
 }

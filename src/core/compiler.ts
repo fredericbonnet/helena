@@ -963,11 +963,13 @@ export class Executor {
   }
 
   private resolveVariable(varname: string): Result {
+    if (!this.variableResolver) return ERROR("no variable resolver");
     const value = this.variableResolver.resolve(varname);
     if (!value) return ERROR(`cannot resolve variable "${varname}"`);
     return OK(value);
   }
   private resolveCommand(cmdname: Value): Result<Command> {
+    if (!this.commandResolver) return ERROR("no command resolver");
     const command = this.commandResolver.resolve(cmdname);
     if (!command) {
       const { data: name, code } = StringValue.toString(cmdname);
@@ -977,6 +979,7 @@ export class Executor {
     return OK(NIL, command);
   }
   private resolveSelector(rules: Value[]): Result<Selector> {
+    if (!this.selectorResolver) return ERROR("no selector resolver");
     const result = this.selectorResolver.resolve(rules);
     if (result.code != ResultCode.OK) return result;
     if (!result.data)

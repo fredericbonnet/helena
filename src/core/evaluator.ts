@@ -170,7 +170,8 @@ export class InlineEvaluator implements Evaluator {
     try {
       const values = this.getWordValues(sentence.words);
       if (values.length == 0) return OK(NIL);
-      if (!this.commandResolver) throw new Error("no command resolver");
+      if (!this.commandResolver)
+        throw new Interrupt(ERROR("no command resolver"));
       const command = this.commandResolver.resolve(values[0]);
       if (!command) {
         const { data: cmdname, code } = StringValue.toString(values[0]);
@@ -429,7 +430,6 @@ export class InlineEvaluator implements Evaluator {
     morphemes: Morpheme[],
     first: number
   ): [Value, number] {
-    if (!this.variableResolver) throw new Error("no variable resolver");
     const levels = (morphemes[first] as SubstituteNextMorpheme).levels;
     const source = morphemes[first + 1];
     const [selectors, last] = this.getSelectors(morphemes, first + 1);
@@ -470,6 +470,8 @@ export class InlineEvaluator implements Evaluator {
    */
 
   private resolveVariable(varname: string): Value {
+    if (!this.variableResolver)
+      throw new Interrupt(ERROR("no variable resolver"));
     const value = this.variableResolver.resolve(varname);
     if (!value)
       throw new Interrupt(ERROR(`cannot resolve variable "${varname}"`));
@@ -533,6 +535,8 @@ export class InlineEvaluator implements Evaluator {
       case MorphemeType.BLOCK: {
         const script = this.evaluateBlock(morpheme as BlockMorpheme);
         const rules = this.evaluateSelectorRules(script.script);
+        if (!this.selectorResolver)
+          throw new Interrupt(ERROR("no selector resolver"));
         const result = this.selectorResolver.resolve(rules);
         if (result.code != ResultCode.OK) throw new Interrupt(result);
         return result.data;

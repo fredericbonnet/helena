@@ -3239,6 +3239,27 @@ describe("Compilation and execution", () => {
               ERROR("value has no string representation")
             );
           });
+          specify("no variable resolver", () => {
+            const script = parse("$varname");
+            const program = compiler.compileScript(script);
+
+            executor = new Executor(null, null, null);
+            expect(execute(program)).to.eql(ERROR("no variable resolver"));
+          });
+          specify("no command resolver", () => {
+            const script = parse("cmd");
+            const program = compiler.compileScript(script);
+
+            executor = new Executor(null, null, null);
+            expect(execute(program)).to.eql(ERROR("no command resolver"));
+          });
+          specify("no selector resolver", () => {
+            const script = parse("varname{last}");
+            const program = compiler.compileScript(script);
+
+            executor = new Executor(null, null, null);
+            expect(execute(program)).to.eql(ERROR("no selector resolver"));
+          });
         });
       });
 
@@ -3266,7 +3287,7 @@ describe("Compilation and execution", () => {
           expect(executor.execute(program, state)).to.eql(BREAK(STR("6")));
           expect(executor.execute(program, state)).to.eql(OK(STR("6")));
         });
-        it("result should be settable", () => {
+        specify("result should be settable", () => {
           const script = parse("ok [break 1]");
           const program = compiler.compileScript(script);
 
