@@ -207,7 +207,7 @@ class ListForeachCommand implements Command {
     const subscope = new Scope(scope, true);
     return this.run({
       varname,
-      list: list as ListValue,
+      list,
       i: 0,
       step: "beforeBody",
       program,
@@ -257,11 +257,12 @@ class ListForeachCommand implements Command {
 }
 const listForeachCmd = new ListForeachCommand();
 
-export function valueToList(value: Value): Result {
+export function valueToList(value: Value): Result<ListValue> {
   if (value.type == ValueType.SCRIPT) {
     const { data, ...result } = valueToArray(value);
     if (result.code != ResultCode.OK) return result;
-    return OK(LIST(data));
+    const list = LIST(data);
+    return OK(list, list);
   }
   return ListValue.fromValue(value);
 }
