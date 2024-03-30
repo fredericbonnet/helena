@@ -199,8 +199,8 @@ export class Scope {
   setNamedLocal(name: string, value: Value) {
     this.locals.set(name, value);
   }
-  destructureLocal(constant: Value, value: Value, check: boolean): Result {
-    const { data: name, code } = StringValue.toString(constant);
+  destructureLocal(local: Value, value: Value, check: boolean): Result {
+    const { data: name, code } = StringValue.toString(local);
     if (code != ResultCode.OK) return ERROR("invalid local name");
     if (check) return OK(NIL);
     this.setNamedLocal(name, value);
