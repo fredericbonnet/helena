@@ -210,7 +210,7 @@ class IfCommand implements Command {
   }
   private resumeTest(state: IfState) {
     const result = state.process.run();
-    if (result.code != ResultCode.OK) return;
+    if (result.code != ResultCode.OK) return result;
     return BooleanValue.fromValue(result.value);
   }
   private checkArgs(args: Value[]): Result {
