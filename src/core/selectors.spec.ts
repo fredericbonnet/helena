@@ -6,10 +6,11 @@ import {
   KeyedSelector,
   Selector,
 } from "./selectors";
-import { NIL, Value, INT, STR, TUPLE } from "./values";
+import { NIL, Value, INT, STR, TUPLE, CustomValue, ValueType } from "./values";
 
-class MockValue implements Value {
-  type = { name: "mock" };
+class MockValue implements CustomValue {
+  readonly type = ValueType.CUSTOM;
+  readonly customType = { name: "mock" };
   selectedIndex: Value;
   selectedKeys: Value[] = [];
   selectedRules: Value[];
@@ -27,8 +28,9 @@ class MockValue implements Value {
   }
 }
 
-class UnselectableValue implements Value {
-  type = { name: "unselectable" };
+class UnselectableValue implements CustomValue {
+  readonly type = ValueType.CUSTOM;
+  readonly customType = { name: "unselectable" };
 }
 
 describe("selectors", () => {

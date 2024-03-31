@@ -13,13 +13,18 @@ import {
   STR,
   StringValue,
   Value,
+  CustomValue,
+  ValueType,
+  isCustomValue,
 } from "../core/values";
 
 const asString = (value) => StringValue.toString(value).data;
 
 export const regexpValueType: CustomValueType = { name: "javascript:RegExp" };
-export class RegExpValue implements Value {
-  readonly type = regexpValueType;
+export class RegExpValue implements CustomValue {
+  readonly type = ValueType.CUSTOM;
+  readonly customType = regexpValueType;
+
   readonly regexp: RegExp;
   constructor(value: RegExp) {
     this.regexp = value;
@@ -58,7 +63,7 @@ export const regexpCmd: Command = {
       case "exec": {
         if (args.length != 4)
           return ERROR('wrong # args: should be "RegExp exec regexp str"');
-        if (args[2].type != regexpValueType)
+        if (!isCustomValue(args[2], regexpValueType))
           return ERROR("invalid regexp value");
         const { data: str, ...result } = StringValue.toString(args[3]);
         if (result.code != ResultCode.OK) return result;
@@ -82,7 +87,7 @@ export const regexpCmd: Command = {
       case "test": {
         if (args.length != 4)
           return ERROR('wrong # args: should be "RegExp test regexp str"');
-        if (args[2].type != regexpValueType)
+        if (!isCustomValue(args[2], regexpValueType))
           return ERROR("invalid regexp value");
         const { data: str, ...result } = StringValue.toString(args[3]);
         if (result.code != ResultCode.OK) return result;
@@ -95,7 +100,7 @@ export const regexpCmd: Command = {
           return ERROR(
             'wrong # args: should be "RegExp lastIndex regexp ?value?"'
           );
-        if (args[2].type != regexpValueType)
+        if (!isCustomValue(args[2], regexpValueType))
           return ERROR("invalid regexp value");
         const regexp = args[2] as RegExpValue;
         if (args.length == 4) {

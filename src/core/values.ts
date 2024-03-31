@@ -35,12 +35,7 @@ export enum ValueType {
   SCRIPT,
   COMMAND,
   QUALIFIED,
-}
-
-/** Helena custom value types */
-export interface CustomValueType {
-  /** Custom value name */
-  readonly name: string;
+  CUSTOM,
 }
 
 /**
@@ -48,7 +43,7 @@ export interface CustomValueType {
  */
 export interface Value extends Displayable {
   /** Type identifier */
-  readonly type: ValueType | CustomValueType;
+  readonly type: ValueType;
 
   /** Select value at index */
   selectIndex?(index: Value): Result;
@@ -741,6 +736,20 @@ export class QualifiedValue implements Value {
   }
 }
 
+/** Custom value type */
+export interface CustomValueType {
+  /** Custom value name */
+  readonly name: string;
+}
+
+/**
+ * Custom values
+ */
+export interface CustomValue extends Value {
+  /** Custom type info */
+  customType: CustomValueType;
+}
+
 /*
  * Type predicates
  *
@@ -754,19 +763,24 @@ export class QualifiedValue implements Value {
  * @returns       Whether value is a Value
  */
 export function isValue(value: Displayable): value is Value {
-  return !!value["type"];
+  return !!value["type"] && value["type"] in ValueType;
 }
 
 /**
- * Type predicate for CustomValueType
+ * Type predicate for CustomValue
  *
- * @param type - Type to test
- * @returns      Whether type is a CustomValueType
+ * @param value      - Object to test
+ * @param customType - Custom value type to match
+ * @returns            Whether value is a custom value of the given type
  */
-export function isCustomValueType(
-  type: ValueType | CustomValueType
-): type is CustomValueType {
-  return !!type["name"];
+export function isCustomValue(
+  value: Value,
+  customType: CustomValueType
+): value is CustomValue {
+  return (
+    value.type == ValueType.CUSTOM &&
+    (value as CustomValue).customType == customType
+  );
 }
 
 /*

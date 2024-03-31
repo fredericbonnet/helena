@@ -9,6 +9,7 @@ import {
   STR,
   TUPLE,
   LIST,
+  CustomValue,
 } from "../core/values";
 import { Argument, ARITY_ERROR, buildArguments, buildUsage } from "./arguments";
 import { Scope } from "./core";
@@ -41,8 +42,10 @@ export class Argspec {
   }
 }
 
-export class ArgspecValue implements Value {
-  readonly type = { name: "argspec" };
+export class ArgspecValue implements CustomValue {
+  readonly type = ValueType.CUSTOM;
+  readonly customType = { name: "argspec" };
+
   readonly argspec: Argspec;
   constructor(argspec: Argspec) {
     this.argspec = argspec;

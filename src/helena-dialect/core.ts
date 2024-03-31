@@ -13,7 +13,7 @@ import { Script } from "../core/syntax";
 import {
   Value,
   ValueType,
-  CustomValueType,
+  CustomValue,
   ScriptValue,
   RealValue,
   TupleValue,
@@ -23,9 +23,10 @@ import {
 } from "../core/values";
 import { numberCmd } from "./numbers";
 
-const deferredValueType: CustomValueType = { name: "deferred" };
-export class DeferredValue implements Value {
-  type = deferredValueType;
+export class DeferredValue implements CustomValue {
+  readonly type = ValueType.CUSTOM;
+  readonly customType = { name: "deferred" };
+
   scope: Scope;
   program: Program;
   constructor(scope: Scope, program: Program) {

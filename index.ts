@@ -15,7 +15,6 @@ import {
 import { Tokenizer, TokenType } from "./src/core/tokenizer";
 import { initCommands, Scope } from "./src/helena-dialect/helena-dialect";
 import {
-  isCustomValueType,
   isValue,
   ListValue,
   DictionaryValue,
@@ -25,6 +24,7 @@ import {
   ValueType,
   StringValue,
   ScriptValue,
+  CustomValue,
 } from "./src/core/values";
 import { displayListValue } from "./src/helena-dialect/lists";
 import { displayDictionaryValue } from "./src/helena-dialect/dicts";
@@ -115,7 +115,6 @@ function registerNativeModule(
 
 function prompt() {
   const rootScope = init();
-  initCommands(rootScope, moduleRegistry);
   registerNativeModule("javascript:RegExp", "RegExp", regexpCmd);
   registerNativeModule("javascript:console", "console", consoleCmd);
   registerNativeModule("node:child_process", "child_process", childProcessCmd);
@@ -196,8 +195,8 @@ function resultWriter(output) {
   });
   let type;
   if (isValue(output)) {
-    if (isCustomValueType(output.type)) {
-      type = output.type["name"];
+    if (output.type == ValueType.CUSTOM) {
+      type = `CUSTOM[` + (output as CustomValue).customType.name + `]`;
     } else {
       type = ValueType[output.type];
     }

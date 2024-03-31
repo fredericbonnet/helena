@@ -16,6 +16,7 @@ import {
   TRUE,
   Value,
   StringValue,
+  isCustomValue,
 } from "../core/values";
 import { regexpCmd, RegExpValue, regexpValueType } from "./javascript-regexp";
 
@@ -68,7 +69,7 @@ describe("Javascript RegExp", () => {
   describe("javascript:RegExpValue", () => {
     specify("type should be custom", () => {
       const value = new RegExpValue(/./);
-      expect(value.type).to.eql(regexpValueType);
+      expect(isCustomValue(value, regexpValueType)).to.be.true;
     });
     specify("display", () => {
       const re = new RegExp("");
@@ -88,12 +89,15 @@ describe("Javascript RegExp", () => {
     describe("methods", () => {
       describe("new", () => {
         it("should return a RegexpValue", () => {
-          expect(evaluate('javascript:RegExp new ""').type).to.eql(
-            regexpValueType
-          );
-          expect(evaluate('javascript:RegExp new "" ""').type).to.eql(
-            regexpValueType
-          );
+          expect(
+            isCustomValue(evaluate('javascript:RegExp new ""'), regexpValueType)
+          ).to.be.true;
+          expect(
+            isCustomValue(
+              evaluate('javascript:RegExp new "" ""'),
+              regexpValueType
+            )
+          ).to.be.true;
         });
         specify("wrong arity", () => {
           expect(execute("javascript:RegExp new")).to.eql(
