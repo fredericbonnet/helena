@@ -12,6 +12,7 @@ export enum ResultCode {
   ERROR,
   BREAK,
   CONTINUE,
+  CUSTOM,
 }
 
 /** Helena custom result code */
@@ -23,7 +24,7 @@ export interface CustomResultCode {
 /** Helena result */
 export type Result<T = unknown> = {
   /** Result code */
-  readonly code: ResultCode | CustomResultCode;
+  readonly code: ResultCode;
 
   /** Result value */
   readonly value: Value;
@@ -67,12 +68,13 @@ export const CUSTOM_RESULT = (
   code: CustomResultCode,
   value: Value = NIL
 ): Result => ({
-  code,
+  code: ResultCode.CUSTOM,
   value,
+  data: code,
 });
 
-export const RESULT_CODE_NAME = (code: ResultCode | CustomResultCode) => {
-  switch (code) {
+export const RESULT_CODE_NAME = (result: Result) => {
+  switch (result.code) {
     case ResultCode.OK:
       return "ok";
     case ResultCode.RETURN:
@@ -85,8 +87,28 @@ export const RESULT_CODE_NAME = (code: ResultCode | CustomResultCode) => {
       return "break";
     case ResultCode.CONTINUE:
       return "continue";
+    case ResultCode.CUSTOM:
+      return (result.data as CustomResultCode).name;
+
     default:
-      return (code as CustomResultCode).name;
+      throw new Error("CANTHAPPEN");
   }
 };
 /* eslint-enable jsdoc/require-jsdoc */
+
+/**
+ * Predicate for CustomResultCode
+ *
+ * @param result     - Object to test
+ * @param customType - Custom result code to match
+ * @returns            Whether result code is a custom code of the given type
+ */
+export function isCustomResult(
+  result: Result,
+  customType: CustomResultCode
+): boolean {
+  return (
+    result.code == ResultCode.CUSTOM &&
+    (result.data as CustomResultCode) == customType
+  );
+}

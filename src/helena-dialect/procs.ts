@@ -113,7 +113,7 @@ class ProcCommand implements Command {
       case ResultCode.ERROR:
         return result;
       default:
-        return ERROR("unexpected " + RESULT_CODE_NAME(result.code));
+        return ERROR("unexpected " + RESULT_CODE_NAME(result));
     }
   }
   help(args: Value[]): Result {

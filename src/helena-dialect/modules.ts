@@ -250,7 +250,7 @@ function createModule(
     return result as Result<Module>;
   }
   if (result.code != ResultCode.OK) {
-    return ERROR("unexpected " + RESULT_CODE_NAME(result.code));
+    return ERROR("unexpected " + RESULT_CODE_NAME(result));
   }
 
   const module = new Module(rootScope, exports);

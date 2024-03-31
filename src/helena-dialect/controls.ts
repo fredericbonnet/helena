@@ -10,6 +10,7 @@ import {
   Result,
   ResultCode,
   YIELD,
+  isCustomResult,
 } from "../core/results";
 import {
   BooleanValue,
@@ -428,7 +429,7 @@ class CatchCommand implements Command {
       const body = args[1];
       if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
       const result = scope.executeScriptValue(body as ScriptValue);
-      const codeName = STR(RESULT_CODE_NAME(result.code));
+      const codeName = STR(RESULT_CODE_NAME(result));
       switch (result.code) {
         case ResultCode.OK:
         case ResultCode.RETURN:
@@ -436,7 +437,7 @@ class CatchCommand implements Command {
         case ResultCode.ERROR:
           return OK(TUPLE([codeName, result.value]));
         default:
-          return OK(TUPLE([STR(RESULT_CODE_NAME(result.code))]));
+          return OK(TUPLE([STR(RESULT_CODE_NAME(result))]));
       }
     }
     return this.run({ step: "beforeBody", args }, scope);
@@ -509,7 +510,7 @@ class CatchCommand implements Command {
           state.result = state.process.run();
           if (state.result.code == ResultCode.YIELD)
             return YIELD(state.result.value, state);
-          if (state.result.code == passResultCode) {
+          if (isCustomResult(state.result, passResultCode)) {
             if (state.bodyResult.code == ResultCode.YIELD) {
               state.step = "inBody";
               return YIELD(state.bodyResult.value, state);

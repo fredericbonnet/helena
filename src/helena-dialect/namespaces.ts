@@ -207,6 +207,6 @@ const executeNamespaceBody = (state: NamespaceBodyState): Result => {
     case ResultCode.ERROR:
       return result;
     default:
-      return ERROR("unexpected " + RESULT_CODE_NAME(result.code));
+      return ERROR("unexpected " + RESULT_CODE_NAME(result));
   }
 };

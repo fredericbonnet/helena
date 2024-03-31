@@ -5,6 +5,7 @@ import {
   CONTINUE,
   ERROR,
   OK,
+  RESULT_CODE_NAME,
   ResultCode,
   RETURN,
   YIELD,
@@ -2179,22 +2180,24 @@ describe("Helena control flow commands", () => {
       });
 
       specify("result code should be the custom code `pass`", () => {
-        expect(execute("pass").code).to.eql({ name: "pass" });
+        expect(RESULT_CODE_NAME(execute("pass"))).to.eql("pass");
       });
       specify("`catch` should return `(pass)` tuple", () => {
         expect(execute("catch {pass}")).to.eql(execute("tuple (pass)"));
       });
       specify("`catch` handlers should not handle it", () => {
         expect(
-          execute(`
-                  catch {pass} \\
-                    return value {unreachable} \\
-                    yield value {unreachable} \\
-                    error message {unreachable} \\
-                    break {unreachable} \\
-                    continue {unreachable} \\
-                `).code
-        ).to.eql({ name: "pass" });
+          RESULT_CODE_NAME(
+            execute(`
+              catch {pass} \\
+                return value {unreachable} \\
+                yield value {unreachable} \\
+                error message {unreachable} \\
+                break {unreachable} \\
+                continue {unreachable} \\
+            `)
+          )
+        ).to.eql("pass");
       });
       describe("should interrupt `catch` handlers and let original result pass through", () => {
         specify("`RETURN`", () => {

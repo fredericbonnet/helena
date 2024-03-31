@@ -181,7 +181,7 @@ function processResult(result, onSuccess, onError) {
       break;
     }
     default: {
-      onError(new Error("unexpected " + RESULT_CODE_NAME(result.code)));
+      onError(new Error("unexpected " + RESULT_CODE_NAME(result)));
     }
   }
 }
