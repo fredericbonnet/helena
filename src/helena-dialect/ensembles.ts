@@ -21,7 +21,11 @@ import {
 import { ARITY_ERROR } from "./arguments";
 import { DeferredValue, Process, Scope } from "./core";
 import { ArgspecValue } from "./argspecs";
-import { Subcommands } from "./subcommands";
+import {
+  INVALID_SUBCOMMAND_ERROR,
+  Subcommands,
+  UNKNOWN_SUBCOMMAND_ERROR,
+} from "./subcommands";
 
 export class EnsembleMetacommand implements Command {
   readonly value: Value;
@@ -107,7 +111,7 @@ export class EnsembleCommand implements Command {
       return OK(TUPLE(ensembleArgs));
     }
     const { data: subcommand, code } = StringValue.toString(args[minArgs]);
-    if (code != ResultCode.OK) return ERROR("invalid subcommand name");
+    if (code != ResultCode.OK) return INVALID_SUBCOMMAND_ERROR();
     if (subcommand == "subcommands") {
       if (args.length != minArgs + 1) {
         return ARITY_ERROR(
@@ -123,7 +127,7 @@ export class EnsembleCommand implements Command {
       );
     }
     if (!this.scope.hasLocalCommand(subcommand))
-      return ERROR(`unknown subcommand "${subcommand}"`);
+      return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
     const command = this.scope.resolveNamedCommand(subcommand);
     const cmdline = [
       new CommandValue(command),
@@ -146,7 +150,7 @@ export class EnsembleCommand implements Command {
       return OK(STR(signature + " ?subcommand? ?arg ...?"));
     }
     const { data: subcommand, code } = StringValue.toString(args[minArgs]);
-    if (code != ResultCode.OK) return ERROR("invalid subcommand name");
+    if (code != ResultCode.OK) return INVALID_SUBCOMMAND_ERROR();
     if (subcommand == "subcommands") {
       if (args.length > minArgs + 1) {
         return ARITY_ERROR(signature + " subcommands");
@@ -154,7 +158,7 @@ export class EnsembleCommand implements Command {
       return OK(STR(signature + " subcommands"));
     }
     if (!this.scope.hasLocalCommand(subcommand))
-      return ERROR(`unknown subcommand "${subcommand}"`);
+      return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
     const command = this.scope.resolveNamedCommand(subcommand);
     if (!command.help) return ERROR(`no help for subcommand "${subcommand}"`);
     return command.help(

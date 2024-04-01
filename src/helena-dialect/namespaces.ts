@@ -21,7 +21,11 @@ import {
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { DeferredValue, Process, Scope } from "./core";
-import { Subcommands } from "./subcommands";
+import {
+  INVALID_SUBCOMMAND_ERROR,
+  Subcommands,
+  UNKNOWN_SUBCOMMAND_ERROR,
+} from "./subcommands";
 
 class NamespaceMetacommand implements Command {
   readonly value: Value;
@@ -107,7 +111,7 @@ class NamespaceCommand implements Command {
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.metacommand.value);
     const { data: subcommand, code } = StringValue.toString(args[1]);
-    if (code != ResultCode.OK) return ERROR("invalid subcommand name");
+    if (code != ResultCode.OK) return INVALID_SUBCOMMAND_ERROR();
     if (subcommand == "subcommands") {
       if (args.length != 2) {
         return ARITY_ERROR(NAMESPACE_COMMAND_PREFIX(args[0]) + " subcommands");
@@ -120,7 +124,7 @@ class NamespaceCommand implements Command {
       );
     }
     if (!this.scope.hasLocalCommand(subcommand))
-      return ERROR(`unknown subcommand "${subcommand}"`);
+      return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
     const command = this.scope.resolveNamedCommand(subcommand);
     const cmdline = [new CommandValue(command), ...args.slice(2)];
     return DeferredValue.create(ResultCode.YIELD, TUPLE(cmdline), this.scope);
@@ -132,7 +136,7 @@ class NamespaceCommand implements Command {
       return OK(STR(signature + " ?subcommand? ?arg ...?"));
     }
     const { data: subcommand, code } = StringValue.toString(args[1]);
-    if (code != ResultCode.OK) return ERROR("invalid subcommand name");
+    if (code != ResultCode.OK) return INVALID_SUBCOMMAND_ERROR();
     if (subcommand == "subcommands") {
       if (args.length > 2) {
         return ARITY_ERROR(signature + " subcommands");
@@ -140,7 +144,7 @@ class NamespaceCommand implements Command {
       return OK(STR(signature + " subcommands"));
     }
     if (!this.scope.hasLocalCommand(subcommand))
-      return ERROR(`unknown subcommand "${subcommand}"`);
+      return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
     const command = this.scope.resolveNamedCommand(subcommand);
     if (!command.help) return ERROR(`no help for subcommand "${subcommand}"`);
     return command.help(args.slice(1), {
