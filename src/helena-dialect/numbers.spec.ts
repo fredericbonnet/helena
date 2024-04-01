@@ -71,6 +71,10 @@ describe("Helena numbers", () => {
       it("can be expressed as strings", () => {
         expect(evaluate('"123"')).to.eql(INT(123));
       });
+      it("should not take precedence over named commands", () => {
+        expect(evaluate("123")).to.eql(INT(123));
+        expect(evaluate("macro 123 {} {idem value}; 123")).to.eql(STR("value"));
+      });
 
       describe("Exceptions", () => {
         specify("unknown subcommand", () => {
@@ -107,6 +111,12 @@ describe("Helena numbers", () => {
       });
       it("can be expressed as strings", () => {
         expect(evaluate('"0.5"')).to.eql(REAL(0.5));
+      });
+      it("should not take precedence over named commands", () => {
+        expect(evaluate("12.3")).to.eql(REAL(12.3));
+        expect(evaluate("macro 12.3 {} {idem value}; 12.3")).to.eql(
+          STR("value")
+        );
       });
 
       describe("Exceptions", () => {

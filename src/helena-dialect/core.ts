@@ -181,12 +181,21 @@ export class Scope {
     return null;
   }
   resolveCommand(value: Value): Command {
-    if (value.type == ValueType.TUPLE) return expandPrefixCmd;
-    if (value.type == ValueType.COMMAND) return (value as CommandValue).command;
-    if (RealValue.isNumber(value)) return numberCmd;
+    switch (value.type) {
+      case ValueType.TUPLE:
+        return expandPrefixCmd;
+      case ValueType.COMMAND:
+        return (value as CommandValue).command;
+      case ValueType.INTEGER:
+      case ValueType.REAL:
+        return numberCmd;
+    }
     const { data: cmdname, code } = StringValue.toString(value);
     if (code != ResultCode.OK) return null;
-    return this.resolveNamedCommand(cmdname);
+    const command = this.resolveNamedCommand(cmdname);
+    if (command) return command;
+    if (RealValue.isNumber(cmdname)) return numberCmd;
+    return null;
   }
   resolveNamedCommand(name: string): Command {
     let context = this.context;

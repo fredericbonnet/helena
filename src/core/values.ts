@@ -207,28 +207,15 @@ export class IntegerValue implements Value {
   }
 
   /**
-   * Test if value is convertible to number
-   * - Reals
-   * - Integers
-   * - Strings: any Number()-accepted string
+   * Test if string is convertible to integer
    *
-   * @param value - Value to convert
+   * @param value - String to convert
    *
    * @returns       True if value is convertible
    */
-  static isInteger(value: Value): boolean {
-    switch (value.type) {
-      case ValueType.INTEGER:
-        return true;
-      case ValueType.REAL:
-        return Number.isSafeInteger((value as RealValue).value);
-      default: {
-        const { data, code } = StringValue.toString(value);
-        if (code != ResultCode.OK) return false;
-        const n = Number(data);
-        return !isNaN(n) && Number.isSafeInteger(n);
-      }
-    }
+  static isInteger(value: string): boolean {
+    const n = Number(value);
+    return !isNaN(n) && Number.isSafeInteger(n);
   }
 
   /**
@@ -287,7 +274,7 @@ export class RealValue implements Value {
    *
    * @returns       Converted value
    *
-   * @see {@link isNumber}
+   * @see {@link toNumber}
    */
   static fromValue(value: Value): Result<RealValue> {
     if (value.type == ValueType.REAL) return OK(value, value as RealValue);
@@ -302,26 +289,14 @@ export class RealValue implements Value {
   }
 
   /**
-   * Test if value is convertible to number
-   * - Reals
-   * - Integers
-   * - Strings: any Number()-accepted string
+   * Test if string value is convertible to number
    *
-   * @param value - Value to convert
+   * @param value - String to convert
    *
    * @returns       True if value is convertible
    */
-  static isNumber(value: Value): boolean {
-    switch (value.type) {
-      case ValueType.INTEGER:
-      case ValueType.REAL:
-        return true;
-      default: {
-        const { data, code } = StringValue.toString(value);
-        if (code != ResultCode.OK) return false;
-        return !isNaN(Number(data));
-      }
-    }
+  static isNumber(value: string): boolean {
+    return !isNaN(Number(value));
   }
 
   /**
