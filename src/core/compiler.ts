@@ -609,8 +609,11 @@ export class Compiler {
  * reentrancy and parallelism of executors
  */
 export class ProgramState {
-  /** Execution frames; each frame is a stack of values */
-  private readonly frames: Value[][] = [[]];
+  /** Execution stack */
+  private readonly stack: Value[] = [];
+
+  /** Execution frame start indexes; each frame is a slice of the stack */
+  private readonly frames: number[] = [0];
 
   /** Program counter */
   pc = 0;
@@ -626,7 +629,7 @@ export class ProgramState {
 
   /** Open a new frame */
   openFrame() {
-    this.frames.push([]);
+    this.frames.push(this.stack.length);
   }
 
   /**
@@ -635,12 +638,13 @@ export class ProgramState {
    * @returns The closed frame
    */
   closeFrame() {
-    return this.frames.pop();
+    const length = this.frames.pop();
+    return this.stack.splice(length);
   }
 
-  /** @returns Current frame */
-  frame() {
-    return this.frames[this.frames.length - 1];
+  /** @returns Whether current frame is empty */
+  empty(): boolean {
+    return this.frames[this.frames.length - 1] == this.stack.length;
   }
 
   /**
@@ -649,7 +653,7 @@ export class ProgramState {
    * @param value - Value to push
    */
   push(value: Value) {
-    this.frame().push(value);
+    this.stack.push(value);
   }
 
   /**
@@ -658,20 +662,20 @@ export class ProgramState {
    * @returns Popped value
    */
   pop() {
-    return this.frame().pop();
+    return this.stack.pop();
   }
 
   /** @returns Last value on current frame */
   private last() {
-    return this.frame()[this.frame().length - 1];
+    return this.stack[this.stack.length - 1];
   }
 
   /** Expand last value in current frame */
   expand() {
     const last = this.last();
     if (last && last.type == ValueType.TUPLE) {
-      this.frame().pop();
-      this.frame().push(...(last as TupleValue).values);
+      this.stack.pop();
+      this.stack.push(...(last as TupleValue).values);
     }
   }
 }
@@ -849,7 +853,7 @@ export class Executor {
           throw new Error("CANTHAPPEN");
       }
     }
-    if (state.frame().length) state.result = OK(state.pop());
+    if (!state.empty()) state.result = OK(state.pop());
     return state.result;
   }
 
@@ -1182,7 +1186,7 @@ export class Translator {
     }
     sections.push(`
     }
-    if (state.frame().length) state.result = OK(state.pop());
+    if (!state.empty()) state.result = OK(state.pop());
     return state.result;
     `);
     return sections.join("\n");
