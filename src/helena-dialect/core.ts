@@ -147,6 +147,8 @@ export class Scope {
   compileTupleValue(tuple: TupleValue): Program {
     const program = new Program();
     program.pushOpCode(OpCode.PUSH_CONSTANT);
+    program.pushOpCode(OpCode.EXPAND_VALUE);
+    program.pushOpCode(OpCode.CLOSE_FRAME);
     program.pushOpCode(OpCode.EVALUATE_SENTENCE);
     program.pushOpCode(OpCode.PUSH_RESULT);
     program.pushConstant(tuple);

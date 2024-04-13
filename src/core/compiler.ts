@@ -56,6 +56,7 @@ export enum OpCode {
   EVALUATE_SENTENCE,
   PUSH_RESULT,
   JOIN_STRINGS,
+  MAKE_TUPLE,
 }
 
 /**
@@ -148,12 +149,16 @@ export class Compiler {
    */
   compileSentences(sentences: Sentence[]): Program {
     const program: Program = new Program();
+    this.emitSentences(program, sentences);
+    program.pushOpCode(OpCode.MAKE_TUPLE);
+    return program;
+  }
+  private emitSentences(program: Program, sentences: Sentence[]) {
     program.pushOpCode(OpCode.OPEN_FRAME);
     for (const sentence of sentences) {
       this.emitSentence(program, sentence);
     }
     program.pushOpCode(OpCode.CLOSE_FRAME);
-    return program;
   }
 
   /**
@@ -521,11 +526,8 @@ export class Compiler {
     this.emitConstant(program, value);
   }
   private emitTuple(program: Program, tuple: TupleMorpheme) {
-    program.pushOpCode(OpCode.OPEN_FRAME);
-    for (const sentence of tuple.subscript.sentences) {
-      this.emitSentence(program, sentence);
-    }
-    program.pushOpCode(OpCode.CLOSE_FRAME);
+    this.emitSentences(program, tuple.subscript.sentences);
+    program.pushOpCode(OpCode.MAKE_TUPLE);
   }
   private emitBlock(program: Program, block: BlockMorpheme) {
     const value = new ScriptValue(block.subscript, block.value);
@@ -575,7 +577,7 @@ export class Compiler {
     program.pushOpCode(OpCode.SET_SOURCE);
   }
   private emitKeyedSelector(program: Program, tuple: TupleMorpheme) {
-    this.emitTuple(program, tuple);
+    this.emitSentences(program, tuple.subscript.sentences);
     program.pushOpCode(OpCode.SELECT_KEYS);
   }
   private emitIndexedSelector(
@@ -591,6 +593,7 @@ export class Compiler {
       program.pushOpCode(OpCode.OPEN_FRAME);
       this.emitSentence(program, sentence);
       program.pushOpCode(OpCode.CLOSE_FRAME);
+      program.pushOpCode(OpCode.MAKE_TUPLE);
     }
     program.pushOpCode(OpCode.CLOSE_FRAME);
     program.pushOpCode(OpCode.SELECT_RULES);
@@ -615,6 +618,9 @@ export class ProgramState {
   /** Execution frame start indexes; each frame is a slice of the stack */
   private readonly frames: number[] = [0];
 
+  /** Last closed frame */
+  lastFrame: Value[] = undefined;
+
   /** Program counter */
   pc = 0;
 
@@ -634,12 +640,10 @@ export class ProgramState {
 
   /**
    * Close the current frame
-   *
-   * @returns The closed frame
    */
   closeFrame() {
     const length = this.frames.pop();
-    return this.stack.splice(length);
+    this.lastFrame = this.stack.splice(length);
   }
 
   /** @returns Whether current frame is empty */
@@ -751,10 +755,7 @@ export class Executor {
           break;
 
         case OpCode.CLOSE_FRAME:
-          {
-            const values = state.closeFrame();
-            state.push(new TupleValue(values));
-          }
+          state.closeFrame();
           break;
 
         case OpCode.RESOLVE_VALUE:
@@ -792,11 +793,9 @@ export class Executor {
 
         case OpCode.SELECT_KEYS:
           {
-            const keys = state.pop() as TupleValue;
+            const keys = state.lastFrame;
             const value = state.pop();
-            const { data: selector, ...result2 } = KeyedSelector.create(
-              keys.values
-            );
+            const { data: selector, ...result2 } = KeyedSelector.create(keys);
             if (result2.code != ResultCode.OK) return result2;
             const result = selector.apply(value);
             if (result.code != ResultCode.OK) return result;
@@ -806,11 +805,9 @@ export class Executor {
 
         case OpCode.SELECT_RULES:
           {
-            const rules = state.pop() as TupleValue;
+            const rules = state.lastFrame;
             const value = state.pop();
-            const { data: selector, ...result } = this.resolveSelector(
-              rules.values
-            );
+            const { data: selector, ...result } = this.resolveSelector(rules);
             if (result.code != ResultCode.OK) return result;
             const result2 = applySelector(value, selector);
             if (result2.code != ResultCode.OK) return result2;
@@ -820,13 +817,13 @@ export class Executor {
 
         case OpCode.EVALUATE_SENTENCE:
           {
-            const args = state.pop() as TupleValue;
-            if (args.values.length) {
-              const cmdname = args.values[0];
+            const args = state.lastFrame;
+            if (args.length) {
+              const cmdname = args[0];
               const { data: command, ...result } = this.resolveCommand(cmdname);
               if (result.code != ResultCode.OK) return result;
               state.command = command;
-              state.result = state.command.execute(args.values, this.context);
+              state.result = state.command.execute(args, this.context);
               if (state.result.code != ResultCode.OK) return state.result;
             }
           }
@@ -838,15 +835,19 @@ export class Executor {
 
         case OpCode.JOIN_STRINGS:
           {
-            const tuple = state.pop() as TupleValue;
+            const values = state.lastFrame;
             let s = "";
-            for (const value of tuple.values) {
+            for (const value of values) {
               const { data, ...result } = StringValue.toString(value);
               if (result.code != ResultCode.OK) return result;
               s += data;
             }
             state.push(new StringValue(s));
           }
+          break;
+
+        case OpCode.MAKE_TUPLE:
+          state.push(new TupleValue(state.lastFrame));
           break;
 
         default:
@@ -1064,10 +1065,7 @@ export class Translator {
 
         case OpCode.CLOSE_FRAME:
           sections.push(`
-          {
-            const values = state.closeFrame();
-            state.push(new TupleValue(values));
-          }
+          state.closeFrame();
           `);
           break;
 
@@ -1114,11 +1112,9 @@ export class Translator {
         case OpCode.SELECT_KEYS:
           sections.push(`
           {
-            const keys = state.pop();
+            const keys = state.lastFrame;
             const value = state.pop();
-            const { data: selector, ...result2 } = KeyedSelector.create(
-              keys.values
-            );
+            const { data: selector, ...result2 } = KeyedSelector.create(keys);
             if (result2.code != ResultCode.OK) return result2;
             const result = selector.apply(value);
             if (result.code != ResultCode.OK) return result;
@@ -1130,11 +1126,9 @@ export class Translator {
         case OpCode.SELECT_RULES:
           sections.push(`
           {
-            const rules = state.pop();
+            const rules = state.lastFrame;
             const value = state.pop();
-            const { data: selector, ...result } = resolver.resolveSelector(
-              rules.values
-            );
+            const { data: selector, ...result } = resolver.resolveSelector(rules);
             if (result.code != ResultCode.OK) return result;
             const result2 = applySelector(value, selector);
             if (result2.code != ResultCode.OK) return result2;
@@ -1146,13 +1140,13 @@ export class Translator {
         case OpCode.EVALUATE_SENTENCE:
           sections.push(`
           {
-            const args = state.pop();
-            if (args.values.length) {
-              const cmdname = args.values[0];
+            const args = state.lastFrame;
+            if (args.length) {
+              const cmdname = args[0];
               const { data: command, ...result } = resolver.resolveCommand(cmdname);
               if (result.code != ResultCode.OK) return result;
               state.command = command;
-              state.result = state.command.execute(args.values, context);
+              state.result = state.command.execute(args, context);
               if (state.result.code != ResultCode.OK) return state.result;
             }
           }
@@ -1168,9 +1162,9 @@ export class Translator {
         case OpCode.JOIN_STRINGS:
           sections.push(`
           {
-            const tuple = state.pop();
+            const values = state.lastFrame;
             let s = "";
-            for (const value of tuple.values) {
+            for (const value of values) {
               const { data, ...result } = StringValue.toString(value);
               if (result.code != ResultCode.OK) return result;
               s += data;
@@ -1178,6 +1172,12 @@ export class Translator {
             state.push(new StringValue(s));
           }
           `);
+          break;
+
+        case OpCode.MAKE_TUPLE:
+          sections.push(`
+            state.push(new TupleValue(state.lastFrame));
+            `);
           break;
 
         default:

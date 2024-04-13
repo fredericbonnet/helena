@@ -151,6 +151,7 @@ describe("Compilation and execution", () => {
                 expect(program.opCodes).to.eql([
                   OpCode.OPEN_FRAME,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                 ]);
 
                 expect(evaluate(program)).to.eql(TUPLE([]));
@@ -163,6 +164,7 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                 ]);
                 expect(program.constants).to.eql([STR("lit1"), STR("lit2")]);
 
@@ -196,6 +198,7 @@ describe("Compilation and execution", () => {
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_KEYS,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                 ]);
                 expect(program.constants).to.eql([
                   STR("this"),
@@ -885,6 +888,7 @@ describe("Compilation and execution", () => {
                     OpCode.OPEN_FRAME,
                     OpCode.PUSH_CONSTANT,
                     OpCode.CLOSE_FRAME,
+                    OpCode.MAKE_TUPLE,
                     OpCode.CLOSE_FRAME,
                     OpCode.SELECT_RULES,
                     OpCode.PUSH_CONSTANT,
@@ -917,6 +921,7 @@ describe("Compilation and execution", () => {
                     OpCode.OPEN_FRAME,
                     OpCode.PUSH_CONSTANT,
                     OpCode.CLOSE_FRAME,
+                    OpCode.MAKE_TUPLE,
                     OpCode.CLOSE_FRAME,
                     OpCode.SELECT_RULES,
                     OpCode.RESOLVE_VALUE,
@@ -951,12 +956,14 @@ describe("Compilation and execution", () => {
                     OpCode.OPEN_FRAME,
                     OpCode.PUSH_CONSTANT,
                     OpCode.CLOSE_FRAME,
+                    OpCode.MAKE_TUPLE,
                     OpCode.CLOSE_FRAME,
                     OpCode.SELECT_RULES,
                     OpCode.OPEN_FRAME,
                     OpCode.OPEN_FRAME,
                     OpCode.PUSH_CONSTANT,
                     OpCode.CLOSE_FRAME,
+                    OpCode.MAKE_TUPLE,
                     OpCode.CLOSE_FRAME,
                     OpCode.SELECT_RULES,
                     OpCode.PUSH_CONSTANT,
@@ -991,6 +998,7 @@ describe("Compilation and execution", () => {
                       OpCode.OPEN_FRAME,
                       OpCode.PUSH_CONSTANT,
                       OpCode.CLOSE_FRAME,
+                      OpCode.MAKE_TUPLE,
                       OpCode.CLOSE_FRAME,
                       OpCode.SELECT_RULES,
                       OpCode.PUSH_CONSTANT,
@@ -1312,6 +1320,7 @@ describe("Compilation and execution", () => {
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.RESOLVE_VALUE,
                 ]);
                 expect(program.constants).to.eql([STR("varname")]);
@@ -1327,6 +1336,7 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.RESOLVE_VALUE,
                 ]);
                 expect(program.constants).to.eql([STR("var1"), STR("var2")]);
@@ -1344,6 +1354,7 @@ describe("Compilation and execution", () => {
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.RESOLVE_VALUE,
                   OpCode.RESOLVE_VALUE,
                 ]);
@@ -1362,7 +1373,9 @@ describe("Compilation and execution", () => {
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.RESOLVE_VALUE,
                 ]);
                 expect(program.constants).to.eql([STR("var1"), STR("var2")]);
@@ -1381,7 +1394,9 @@ describe("Compilation and execution", () => {
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.RESOLVE_VALUE,
                   OpCode.RESOLVE_VALUE,
                 ]);
@@ -1912,6 +1927,7 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.RESOLVE_VALUE,
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
@@ -1939,7 +1955,9 @@ describe("Compilation and execution", () => {
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.RESOLVE_VALUE,
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
@@ -1966,6 +1984,7 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.RESOLVE_VALUE,
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
@@ -2058,6 +2077,7 @@ describe("Compilation and execution", () => {
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_RULES,
                 ]);
@@ -2080,6 +2100,7 @@ describe("Compilation and execution", () => {
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_RULES,
                   OpCode.RESOLVE_VALUE,
@@ -2104,12 +2125,14 @@ describe("Compilation and execution", () => {
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_RULES,
                   OpCode.OPEN_FRAME,
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_RULES,
                 ]);
@@ -2140,6 +2163,7 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.RESOLVE_VALUE,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_RULES,
                 ]);
@@ -2166,6 +2190,7 @@ describe("Compilation and execution", () => {
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_RULES,
                 ]);
@@ -2191,6 +2216,7 @@ describe("Compilation and execution", () => {
                     OpCode.OPEN_FRAME,
                     OpCode.PUSH_CONSTANT,
                     OpCode.CLOSE_FRAME,
+                    OpCode.MAKE_TUPLE,
                     OpCode.CLOSE_FRAME,
                     OpCode.SELECT_RULES,
                   ]);
@@ -2289,10 +2315,12 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_RULES,
                 ]);
@@ -2335,6 +2363,7 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.RESOLVE_VALUE,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.OPEN_FRAME,
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
@@ -2342,6 +2371,7 @@ describe("Compilation and execution", () => {
                   OpCode.EVALUATE_SENTENCE,
                   OpCode.PUSH_RESULT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_RULES,
                   OpCode.OPEN_FRAME,
@@ -2415,6 +2445,7 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.SET_SOURCE,
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
@@ -2448,6 +2479,7 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.SET_SOURCE,
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
@@ -2479,16 +2511,19 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.SET_SOURCE,
                   OpCode.OPEN_FRAME,
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_RULES,
                 ]);
@@ -2527,6 +2562,7 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.RESOLVE_VALUE,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.SET_SOURCE,
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
@@ -2554,6 +2590,7 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.RESOLVE_VALUE,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.OPEN_FRAME,
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
@@ -2561,6 +2598,7 @@ describe("Compilation and execution", () => {
                   OpCode.EVALUATE_SENTENCE,
                   OpCode.PUSH_RESULT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_RULES,
                   OpCode.OPEN_FRAME,
@@ -2689,10 +2727,12 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
                   OpCode.PUSH_CONSTANT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_RULES,
                 ]);
@@ -2735,6 +2775,7 @@ describe("Compilation and execution", () => {
                   OpCode.PUSH_CONSTANT,
                   OpCode.RESOLVE_VALUE,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.OPEN_FRAME,
                   OpCode.OPEN_FRAME,
                   OpCode.PUSH_CONSTANT,
@@ -2742,6 +2783,7 @@ describe("Compilation and execution", () => {
                   OpCode.EVALUATE_SENTENCE,
                   OpCode.PUSH_RESULT,
                   OpCode.CLOSE_FRAME,
+                  OpCode.MAKE_TUPLE,
                   OpCode.CLOSE_FRAME,
                   OpCode.SELECT_RULES,
                   OpCode.OPEN_FRAME,
@@ -2844,6 +2886,7 @@ describe("Compilation and execution", () => {
               OpCode.EXPAND_VALUE,
               OpCode.PUSH_CONSTANT,
               OpCode.CLOSE_FRAME,
+              OpCode.MAKE_TUPLE,
             ]);
             expect(program.constants).to.eql([
               STR("prefix"),
@@ -2878,6 +2921,7 @@ describe("Compilation and execution", () => {
               OpCode.EXPAND_VALUE,
               OpCode.PUSH_CONSTANT,
               OpCode.CLOSE_FRAME,
+              OpCode.MAKE_TUPLE,
             ]);
             expect(program.constants).to.eql([
               STR("prefix"),
@@ -2943,6 +2987,7 @@ describe("Compilation and execution", () => {
                 OpCode.PUSH_CONSTANT,
                 OpCode.PUSH_CONSTANT,
                 OpCode.CLOSE_FRAME,
+                OpCode.MAKE_TUPLE,
                 OpCode.RESOLVE_VALUE,
                 OpCode.EXPAND_VALUE,
                 OpCode.PUSH_CONSTANT,
@@ -3169,6 +3214,7 @@ describe("Compilation and execution", () => {
               OpCode.RESOLVE_VALUE,
               OpCode.PUSH_CONSTANT,
               OpCode.CLOSE_FRAME,
+              OpCode.MAKE_TUPLE,
             ]);
             expect(program.constants).to.eql([
               STR("cmd1"),
