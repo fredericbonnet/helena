@@ -31,6 +31,7 @@ type WhileState = {
   step: "beforeTest" | "inTest" | "afterTest" | "beforeBody" | "inBody";
   test: Value;
   testProgram?: Program;
+  testProcess?: Process;
   result?: Result;
   program: Program;
   process?: Process;
@@ -61,7 +62,17 @@ class WhileCommand implements Command {
   }
   resume(result: Result, scope: Scope) {
     const state = result.data as WhileState;
-    state.process.yieldBack(result.value);
+    switch (state.step) {
+      case "beforeTest":
+      case "inTest": {
+        state.testProcess.yieldBack(result.value);
+        break;
+      }
+      case "inBody": {
+        state.process.yieldBack(result.value);
+        break;
+      }
+    }
     return this.run(state, scope);
   }
   help(args) {
@@ -112,15 +123,15 @@ class WhileCommand implements Command {
   }
   private executeTest(state: WhileState, scope: Scope) {
     if (state.test.type == ValueType.SCRIPT) {
-      state.process = scope.prepareProcess(state.testProgram);
-      const result = state.process.run();
+      state.testProcess = scope.prepareProcess(state.testProgram);
+      const result = state.testProcess.run();
       if (result.code != ResultCode.OK) return result;
       return BooleanValue.fromValue(result.value);
     }
     return BooleanValue.fromValue(state.test);
   }
   private resumeTest(state: WhileState) {
-    const result = state.process.run();
+    const result = state.testProcess.run();
     if (result.code != ResultCode.OK) return result;
     return BooleanValue.fromValue(result.value);
   }
