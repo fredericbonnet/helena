@@ -17,9 +17,10 @@ import {
   TUPLE,
   StringValue,
   CommandValue,
+  TupleValue,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { DeferredValue, Process, Scope } from "./core";
+import { Process, Scope } from "./core";
 import { ArgspecValue } from "./argspecs";
 import {
   INVALID_SUBCOMMAND_ERROR,
@@ -50,11 +51,22 @@ export class EnsembleMetacommand implements Command {
       },
       eval: () => {
         if (args.length != 3) return ARITY_ERROR("<ensemble> eval body");
-        return DeferredValue.create(
-          ResultCode.YIELD,
-          args[2],
-          this.ensemble.scope
-        );
+        const body = args[2];
+        let program;
+        switch (body.type) {
+          case ValueType.SCRIPT:
+            program = this.ensemble.scope.compileScriptValue(
+              body as ScriptValue
+            );
+            break;
+          case ValueType.TUPLE:
+            program = this.ensemble.scope.compileTupleValue(body as TupleValue);
+            break;
+          default:
+            return ERROR("body must be a script or tuple");
+        }
+        const process = this.ensemble.scope.prepareProcess(program);
+        return this.run({ process });
       },
       call: () => {
         if (args.length < 3)
@@ -65,13 +77,28 @@ export class EnsembleMetacommand implements Command {
           return ERROR(`unknown command "${subcommand}"`);
         const command = this.ensemble.scope.resolveNamedCommand(subcommand);
         const cmdline = [new CommandValue(command), ...args.slice(3)];
-        return DeferredValue.create(ResultCode.YIELD, TUPLE(cmdline), scope);
+        const program = scope.compileTupleValue(TUPLE(cmdline));
+        const process = scope.prepareProcess(program);
+        return this.run({ process });
       },
       argspec: () => {
         if (args.length != 2) return ARITY_ERROR("<ensemble> argspec");
         return OK(this.ensemble.argspec);
       },
     });
+  }
+  resume(result: Result) {
+    const state = result.data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (state as any).process.yieldBack(result.value);
+    return this.run(state);
+  }
+  private run(state) {
+    const result = state.process.run();
+    if (result.code == ResultCode.YIELD) {
+      return YIELD(result.value, state);
+    }
+    return result;
   }
 }
 
@@ -134,7 +161,22 @@ export class EnsembleCommand implements Command {
       ...ensembleArgs,
       ...args.slice(minArgs + 1),
     ];
-    return DeferredValue.create(ResultCode.YIELD, TUPLE(cmdline), scope);
+    const program = scope.compileTupleValue(TUPLE(cmdline));
+    const process = scope.prepareProcess(program);
+    return this.run({ process });
+  }
+  resume(result: Result) {
+    const state = result.data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (state as any).process.yieldBack(result.value);
+    return this.run(state);
+  }
+  private run(state) {
+    const result = state.process.run();
+    if (result.code == ResultCode.YIELD) {
+      return YIELD(result.value, state);
+    }
+    return result;
   }
   /** @override */
   help(

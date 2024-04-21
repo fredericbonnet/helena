@@ -1,5 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { ERROR, OK, Result, ResultCode, RETURN, YIELD } from "../core/results";
+import { ERROR, OK, Result, ResultCode, YIELD } from "../core/results";
 import { Command } from "../core/command";
 import {
   Compiler,
@@ -13,7 +13,6 @@ import { Script } from "../core/syntax";
 import {
   Value,
   ValueType,
-  CustomValue,
   ScriptValue,
   RealValue,
   TupleValue,
@@ -22,35 +21,6 @@ import {
   CommandValue,
 } from "../core/values";
 import { numberCmd } from "./numbers";
-
-export class DeferredValue implements CustomValue {
-  readonly type = ValueType.CUSTOM;
-  readonly customType = { name: "deferred" };
-
-  scope: Scope;
-  program: Program;
-  constructor(scope: Scope, program: Program) {
-    this.scope = scope;
-    this.program = program;
-  }
-  static create(code: ResultCode, value: Value, scope: Scope): Result {
-    let program;
-    switch (value.type) {
-      case ValueType.SCRIPT:
-        program = scope.compileScriptValue(value as ScriptValue);
-        break;
-      case ValueType.TUPLE:
-        program = scope.compileTupleValue(value as TupleValue);
-        break;
-      default:
-        return ERROR("body must be a script or tuple");
-    }
-    return {
-      code,
-      value: new DeferredValue(scope, program),
-    };
-  }
-}
 
 type ProcessContext = {
   scope: Scope;
@@ -75,26 +45,6 @@ export class Process {
     for (;;) {
       const context = this.currentContext();
       const result = context.scope.execute(context.program, context.state);
-      if (result.value instanceof DeferredValue) {
-        const deferred = result.value;
-        this.pushContext(deferred.scope, deferred.program);
-        continue;
-      }
-      if (result.code == ResultCode.OK && this.contextStack.length > 1) {
-        this.popContext();
-        const previousResult = this.currentContext();
-        switch (previousResult.state.result.code) {
-          case ResultCode.OK:
-            return OK(result.value);
-          case ResultCode.RETURN:
-            return RETURN(result.value);
-          case ResultCode.YIELD:
-            this.yieldBack(result.value);
-            continue;
-          default:
-            return ERROR("unexpected deferred result");
-        }
-      }
       return result;
     }
   }

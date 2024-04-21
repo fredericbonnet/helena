@@ -16,9 +16,10 @@ import {
   STR,
   StringValue,
   CommandValue,
+  TupleValue,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { DeferredValue, Process, Scope } from "./core";
+import { Process, Scope } from "./core";
 import { Subcommands } from "./subcommands";
 
 const SCOPE_SIGNATURE = "scope ?name? body";
@@ -44,7 +45,20 @@ class ScopeCommand implements Command {
       },
       eval: () => {
         if (args.length != 3) return ARITY_ERROR("<scope> eval body");
-        return DeferredValue.create(ResultCode.YIELD, args[2], this.scope);
+        const body = args[2];
+        let program;
+        switch (body.type) {
+          case ValueType.SCRIPT:
+            program = this.scope.compileScriptValue(body as ScriptValue);
+            break;
+          case ValueType.TUPLE:
+            program = this.scope.compileTupleValue(body as TupleValue);
+            break;
+          default:
+            return ERROR("body must be a script or tuple");
+        }
+        const process = this.scope.prepareProcess(program);
+        return runScopeBody({ process });
       },
       call: () => {
         if (args.length < 3)
@@ -54,15 +68,27 @@ class ScopeCommand implements Command {
         if (!this.scope.hasLocalCommand(command))
           return ERROR(`unknown command "${command}"`);
         const cmdline = args.slice(2);
-        return DeferredValue.create(
-          ResultCode.YIELD,
-          TUPLE(cmdline),
-          this.scope
-        );
+        const program = this.scope.compileTupleValue(TUPLE(cmdline));
+        const process = this.scope.prepareProcess(program);
+        return runScopeBody({ process });
       },
     });
   }
+  resume(result: Result) {
+    const state = result.data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (state as any).process.yieldBack(result.value);
+    return runScopeBody(state);
+  }
 }
+function runScopeBody(state) {
+  const result = state.process.run();
+  if (result.code == ResultCode.YIELD) {
+    return YIELD(result.value, state);
+  }
+  return result;
+}
+
 type ScopeBodyState = {
   scope: Scope;
   subscope: Scope;

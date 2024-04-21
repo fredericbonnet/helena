@@ -21,7 +21,7 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, Process, DeferredValue } from "./core";
+import { Scope, Process } from "./core";
 import { Subcommands } from "./subcommands";
 
 class ProcMetacommand implements Command {
@@ -51,8 +51,8 @@ class ProcMetacommand implements Command {
 const PROC_COMMAND_SIGNATURE = (name, help) =>
   `${StringValue.toString(name, "<proc>").data}${help ? " " + help : ""}`;
 type ProcState = {
-  scope: Scope;
   process: Process;
+  done: boolean;
 };
 class ProcCommand implements Command {
   readonly value: Value;
@@ -88,7 +88,7 @@ class ProcCommand implements Command {
     const result = this.argspec.applyArguments(this.scope, args, 1, setarg);
     if (result.code != ResultCode.OK) return result;
     const process = subscope.prepareProcess(this.program);
-    return this.run({ scope: subscope, process });
+    return this.run({ process, done: false });
   }
   resume(result: Result): Result {
     const state = result.data as ProcState;
@@ -100,12 +100,17 @@ class ProcCommand implements Command {
     switch (result.code) {
       case ResultCode.OK:
       case ResultCode.RETURN:
-        if (this.guard) {
-          return DeferredValue.create(
-            ResultCode.OK,
-            TUPLE([this.guard, result.value]),
-            this.scope
+        if (!state.done && this.guard) {
+          state.done = true;
+          const program = this.scope.compileTupleValue(
+            TUPLE([this.guard, result.value])
           );
+          state.process = this.scope.prepareProcess(program);
+          const result2 = state.process.run();
+          if (result2.code == ResultCode.YIELD) {
+            return YIELD(result2.value, state);
+          }
+          return result2;
         }
         return OK(result.value);
       case ResultCode.YIELD:

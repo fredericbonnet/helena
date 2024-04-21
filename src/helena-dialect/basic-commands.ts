@@ -4,14 +4,22 @@ import {
   CONTINUE,
   ERROR,
   OK,
+  Result,
   ResultCode,
   RETURN,
   YIELD,
 } from "../core/results";
 import { Command } from "../core/command";
-import { NIL, STR, StringValue } from "../core/values";
+import {
+  NIL,
+  ScriptValue,
+  STR,
+  StringValue,
+  TupleValue,
+  ValueType,
+} from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { DeferredValue, Scope } from "./core";
+import { Scope } from "./core";
 
 const IDEM_SIGNATURE = "idem value";
 const idemCmd: Command = {
@@ -53,13 +61,42 @@ const TAILCALL_SIGNATURE = "tailcall body";
 const tailcallCmd: Command = {
   execute: (args, scope: Scope) => {
     if (args.length != 2) return ARITY_ERROR(TAILCALL_SIGNATURE);
-    return DeferredValue.create(ResultCode.RETURN, args[1], scope);
+    const body = args[1];
+    let program;
+    switch (body.type) {
+      case ValueType.SCRIPT:
+        program = scope.compileScriptValue(body as ScriptValue);
+        break;
+      case ValueType.TUPLE:
+        program = scope.compileTupleValue(body as TupleValue);
+        break;
+      default:
+        return ERROR("body must be a script or tuple");
+    }
+    const process = scope.prepareProcess(program);
+    return runTailcallProcess({ process });
+  },
+  resume: (result: Result) => {
+    const state = result.data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (state as any).process.yieldBack(result.value);
+    return runTailcallProcess(state);
   },
   help: (args) => {
     if (args.length > 2) return ARITY_ERROR(TAILCALL_SIGNATURE);
     return OK(STR(TAILCALL_SIGNATURE));
   },
 };
+function runTailcallProcess(state) {
+  const result = state.process.run();
+  if (result.code == ResultCode.YIELD) {
+    return YIELD(result.value, state);
+  }
+  if (result.code != ResultCode.OK) {
+    return result;
+  }
+  return RETURN(result.value);
+}
 
 const ERROR_SIGNATURE = "error message";
 const errorCmd: Command = {
@@ -107,13 +144,39 @@ const EVAL_SIGNATURE = "eval body";
 const evalCmd: Command = {
   execute: (args, scope: Scope) => {
     if (args.length != 2) return ARITY_ERROR(EVAL_SIGNATURE);
-    return DeferredValue.create(ResultCode.YIELD, args[1], scope);
+    const body = args[1];
+    let program;
+    switch (body.type) {
+      case ValueType.SCRIPT:
+        program = scope.compileScriptValue(body as ScriptValue);
+        break;
+      case ValueType.TUPLE:
+        program = scope.compileTupleValue(body as TupleValue);
+        break;
+      default:
+        return ERROR("body must be a script or tuple");
+    }
+    const process = scope.prepareProcess(program);
+    return runProcess({ process });
+  },
+  resume: (result: Result) => {
+    const state = result.data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (state as any).process.yieldBack(result.value);
+    return runProcess(state);
   },
   help: (args) => {
     if (args.length > 2) return ARITY_ERROR(EVAL_SIGNATURE);
     return OK(STR(EVAL_SIGNATURE));
   },
 };
+function runProcess(state) {
+  const result = state.process.run();
+  if (result.code == ResultCode.YIELD) {
+    return YIELD(result.value, state);
+  }
+  return result;
+}
 
 const HELP_SIGNATURE = "help command ?arg ...?";
 const helpCmd: Command = {

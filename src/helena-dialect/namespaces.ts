@@ -18,9 +18,10 @@ import {
   TUPLE,
   StringValue,
   CommandValue,
+  TupleValue,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { DeferredValue, Process, Scope } from "./core";
+import { Process, Scope } from "./core";
 import {
   INVALID_SUBCOMMAND_ERROR,
   Subcommands,
@@ -55,11 +56,24 @@ class NamespaceMetacommand implements Command {
       },
       eval: () => {
         if (args.length != 3) return ARITY_ERROR("<namespace> eval body");
-        return DeferredValue.create(
-          ResultCode.YIELD,
-          args[2],
-          this.namespace.scope
-        );
+        const body = args[2];
+        let program;
+        switch (body.type) {
+          case ValueType.SCRIPT:
+            program = this.namespace.scope.compileScriptValue(
+              body as ScriptValue
+            );
+            break;
+          case ValueType.TUPLE:
+            program = this.namespace.scope.compileTupleValue(
+              body as TupleValue
+            );
+            break;
+          default:
+            return ERROR("body must be a script or tuple");
+        }
+        const process = this.namespace.scope.prepareProcess(program);
+        return this.run({ process });
       },
       call: () => {
         if (args.length < 3)
@@ -70,11 +84,9 @@ class NamespaceMetacommand implements Command {
           return ERROR(`unknown command "${subcommand}"`);
         const command = this.namespace.scope.resolveNamedCommand(subcommand);
         const cmdline = [new CommandValue(command), ...args.slice(3)];
-        return DeferredValue.create(
-          ResultCode.YIELD,
-          TUPLE(cmdline),
-          this.namespace.scope
-        );
+        const program = this.namespace.scope.compileTupleValue(TUPLE(cmdline));
+        const process = this.namespace.scope.prepareProcess(program);
+        return this.run({ process });
       },
       import: () => {
         if (args.length != 3 && args.length != 4)
@@ -95,6 +107,19 @@ class NamespaceMetacommand implements Command {
         return OK(NIL);
       },
     });
+  }
+  resume(result: Result) {
+    const state = result.data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (state as any).process.yieldBack(result.value);
+    return this.run(state);
+  }
+  private run(state) {
+    const result = state.process.run();
+    if (result.code == ResultCode.YIELD) {
+      return YIELD(result.value, state);
+    }
+    return result;
   }
 }
 
@@ -127,7 +152,22 @@ class NamespaceCommand implements Command {
       return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
     const command = this.scope.resolveNamedCommand(subcommand);
     const cmdline = [new CommandValue(command), ...args.slice(2)];
-    return DeferredValue.create(ResultCode.YIELD, TUPLE(cmdline), this.scope);
+    const program = this.scope.compileTupleValue(TUPLE(cmdline));
+    const process = this.scope.prepareProcess(program);
+    return this.run({ process });
+  }
+  resume(result: Result) {
+    const state = result.data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (state as any).process.yieldBack(result.value);
+    return this.run(state);
+  }
+  private run(state) {
+    const result = state.process.run();
+    if (result.code == ResultCode.YIELD) {
+      return YIELD(result.value, state);
+    }
+    return result;
   }
   help(args: Value[], { prefix, skip }) {
     const usage = skip ? "" : NAMESPACE_COMMAND_PREFIX(args[0]);

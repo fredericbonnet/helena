@@ -142,6 +142,9 @@ class IntCommand implements Command {
     if (args.length == 2) return IntegerValue.fromValue(args[1]);
     return this.ensemble.execute(args, scope);
   }
+  resume(result: Result): Result {
+    return this.ensemble.resume(result);
+  }
   help(args) {
     return this.ensemble.help(args);
   }
@@ -158,6 +161,9 @@ class RealCommand implements Command {
   execute(args: Value[], scope: Scope): Result {
     if (args.length == 2) return RealValue.fromValue(args[1]);
     return this.ensemble.execute(args, scope);
+  }
+  resume(result: Result): Result {
+    return this.ensemble.resume(result);
   }
   help(args) {
     return this.ensemble.help(args);
