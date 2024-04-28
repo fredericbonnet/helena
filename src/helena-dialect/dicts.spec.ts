@@ -727,19 +727,16 @@ describe("Helena dictionaries", () => {
                 let result = process.run();
                 expect(result.code).to.eql(ResultCode.YIELD);
                 expect(result.value).to.eql(STR("a"));
-                expect(result.data).to.exist;
 
                 process.yieldBack(STR("step 1"));
                 result = process.run();
                 expect(result.code).to.eql(ResultCode.YIELD);
                 expect(result.value).to.eql(STR("c"));
-                expect(result.data).to.exist;
 
                 process.yieldBack(STR("step 2"));
                 result = process.run();
                 expect(result.code).to.eql(ResultCode.YIELD);
                 expect(result.value).to.eql(STR("e"));
-                expect(result.data).to.exist;
 
                 process.yieldBack(STR("step 3"));
                 result = process.run();

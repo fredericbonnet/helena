@@ -1,12 +1,11 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
-import { Program } from "../core/compiler";
 import {
   defaultDisplayFunction,
   DisplayFunction,
   displayList,
 } from "../core/display";
-import { Result, OK, ERROR, ResultCode, YIELD } from "../core/results";
+import { Result, OK, ERROR, ResultCode } from "../core/results";
 import {
   Value,
   TupleValue,
@@ -24,7 +23,7 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { destructureValue, Process, Scope } from "./core";
+import { ContinuationValue, destructureValue, Scope } from "./core";
 import { EnsembleCommand } from "./ensembles";
 import { valueToArray } from "./lists";
 
@@ -223,16 +222,7 @@ const dictEntriesCmd: Command = {
 };
 
 const DICT_FOREACH_SIGNATURE = "dict value foreach entry body";
-type DictForeachState = {
-  varname: Value;
-  it: IterableIterator<[string, Value]>;
-  step: "beforeBody" | "inBody";
-  program: Program;
-  scope: Scope;
-  process?: Process;
-  lastResult: Result;
-};
-class DictForeachCommand implements Command {
+const dictForeachCmd: Command = {
   execute(args, scope: Scope) {
     if (args.length != 4) return ARITY_ERROR(DICT_FOREACH_SIGNATURE);
     const { data: map, ...result } = valueToMap(args[1]);
@@ -242,57 +232,40 @@ class DictForeachCommand implements Command {
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
     const program = scope.compile((body as ScriptValue).script);
     const subscope = new Scope(scope, true);
-    return this.run({
-      varname,
-      it: map.entries(),
-      step: "beforeBody",
-      program,
-      scope: subscope,
-      lastResult: OK(NIL),
-    });
-  }
-  resume(result: Result): Result {
-    const state = result.data as DictForeachState;
-    state.process.yieldBack(result.value);
-    return this.run(state);
-  }
+    const it = map.entries();
+    let lastResult = OK(NIL);
+    const next = () => {
+      const { value: entry, done } = it.next();
+      if (done) return lastResult;
+      const [key, value] = entry;
+      const result = destructureValue(
+        subscope.destructureLocal.bind(subscope),
+        varname,
+        TUPLE([STR(key), value])
+      );
+      if (result.code != ResultCode.OK) return result;
+      return ContinuationValue.create(subscope, program, (result) => {
+        switch (result.code) {
+          case ResultCode.BREAK:
+            return lastResult;
+          case ResultCode.CONTINUE:
+            break;
+          case ResultCode.OK:
+            lastResult = result;
+            break;
+          default:
+            return result;
+        }
+        return next();
+      });
+    };
+    return next();
+  },
   help(args) {
     if (args.length > 4) return ARITY_ERROR(DICT_FOREACH_SIGNATURE);
     return OK(STR(DICT_FOREACH_SIGNATURE));
-  }
-  private run(state: DictForeachState) {
-    for (;;) {
-      switch (state.step) {
-        case "beforeBody": {
-          const { value: entry, done } = state.it.next();
-          if (done) return state.lastResult;
-          const [key, value] = entry;
-          const result = destructureValue(
-            state.scope.destructureLocal.bind(state.scope),
-            state.varname,
-            TUPLE([STR(key), value])
-          );
-          if (result.code != ResultCode.OK) return result;
-          state.process = state.scope.prepareProcess(state.program);
-          state.step = "inBody";
-          break;
-        }
-        case "inBody": {
-          const result = state.process.run();
-          if (result.code == ResultCode.YIELD)
-            return YIELD(result.value, state);
-          state.step = "beforeBody";
-          if (result.code == ResultCode.BREAK) return state.lastResult;
-          if (result.code == ResultCode.CONTINUE) continue;
-          if (result.code != ResultCode.OK) return result;
-          state.lastResult = result;
-          break;
-        }
-      }
-    }
-  }
-}
-const dictForeachCmd = new DictForeachCommand();
+  },
+};
 
 function valueToDictionaryValue(value: Value): Result {
   switch (value.type) {
