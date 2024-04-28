@@ -1,12 +1,12 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
-import { Compiler, Executor, Program } from "../core/compiler";
+import { Compiler, Executor } from "../core/compiler";
 import {
   defaultDisplayFunction,
   DisplayFunction,
   displayList,
 } from "../core/display";
-import { ERROR, OK, Result, ResultCode, YIELD } from "../core/results";
+import { ERROR, OK, Result, ResultCode } from "../core/results";
 import {
   INT,
   IntegerValue,
@@ -21,7 +21,7 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { destructureValue, Process, Scope } from "./core";
+import { ContinuationValue, destructureValue, Scope } from "./core";
 import { EnsembleCommand } from "./ensembles";
 
 class ListCommand implements Command {
@@ -185,17 +185,7 @@ const listReplaceCmd: Command = {
 };
 
 const LIST_FOREACH_SIGNATURE = "list value foreach element body";
-type ListForeachState = {
-  varname: Value;
-  list: ListValue;
-  i: number;
-  step: "beforeBody" | "inBody";
-  program: Program;
-  scope: Scope;
-  process?: Process;
-  lastResult: Result;
-};
-class ListForeachCommand implements Command {
+const listForeachCmd: Command = {
   execute(args, scope: Scope) {
     if (args.length != 4) return ARITY_ERROR(LIST_FOREACH_SIGNATURE);
     const { data: list, ...result } = valueToList(args[1]);
@@ -205,57 +195,39 @@ class ListForeachCommand implements Command {
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
     const program = scope.compile((body as ScriptValue).script);
     const subscope = new Scope(scope, true);
-    return this.run({
-      varname,
-      list,
-      i: 0,
-      step: "beforeBody",
-      program,
-      scope: subscope,
-      lastResult: OK(NIL),
-    });
-  }
-  resume(result: Result): Result {
-    const state = result.data as ListForeachState;
-    state.process.yieldBack(result.value);
-    return this.run(state);
-  }
+    let i = 0;
+    let lastResult = OK(NIL);
+    const next = () => {
+      if (i >= list.values.length) return lastResult;
+      const value = list.values[i++];
+      const result = destructureValue(
+        subscope.destructureLocal.bind(subscope),
+        varname,
+        value
+      );
+      if (result.code != ResultCode.OK) return result;
+      return ContinuationValue.create(subscope, program, (result) => {
+        switch (result.code) {
+          case ResultCode.BREAK:
+            return lastResult;
+          case ResultCode.CONTINUE:
+            break;
+          case ResultCode.OK:
+            lastResult = result;
+            break;
+          default:
+            return result;
+        }
+        return next();
+      });
+    };
+    return next();
+  },
   help(args) {
     if (args.length > 4) return ARITY_ERROR(LIST_FOREACH_SIGNATURE);
     return OK(STR(LIST_FOREACH_SIGNATURE));
-  }
-  private run(state: ListForeachState) {
-    for (;;) {
-      switch (state.step) {
-        case "beforeBody": {
-          if (state.i == state.list.values.length) return state.lastResult;
-          const value = state.list.values[state.i++];
-          const result = destructureValue(
-            state.scope.destructureLocal.bind(state.scope),
-            state.varname,
-            value
-          );
-          if (result.code != ResultCode.OK) return result;
-          state.process = state.scope.prepareProcess(state.program);
-          state.step = "inBody";
-          break;
-        }
-        case "inBody": {
-          const result = state.process.run();
-          if (result.code == ResultCode.YIELD)
-            return YIELD(result.value, state);
-          state.step = "beforeBody";
-          if (result.code == ResultCode.BREAK) return state.lastResult;
-          if (result.code == ResultCode.CONTINUE) continue;
-          if (result.code != ResultCode.OK) return result;
-          state.lastResult = result;
-          break;
-        }
-      }
-    }
-  }
-}
-const listForeachCmd = new ListForeachCommand();
+  },
+};
 
 export function valueToList(value: Value): Result<ListValue> {
   if (value.type == ValueType.SCRIPT) {
