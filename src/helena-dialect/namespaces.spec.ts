@@ -196,7 +196,6 @@ describe("Helena namespaces", () => {
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(STR("val2"));
-            expect(result.data).to.exist;
 
             process.yieldBack(STR("val3"));
             result = process.run();

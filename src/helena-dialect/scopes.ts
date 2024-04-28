@@ -4,7 +4,6 @@ import {
   OK,
   ERROR,
   ResultCode,
-  YIELD,
   RESULT_CODE_NAME,
 } from "../core/results";
 import { Command } from "../core/command";
@@ -19,7 +18,7 @@ import {
   TupleValue,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { Process, Scope } from "./core";
+import { ContinuationValue, Scope } from "./core";
 import { Subcommands } from "./subcommands";
 
 const SCOPE_SIGNATURE = "scope ?name? body";
@@ -57,8 +56,7 @@ class ScopeCommand implements Command {
           default:
             return ERROR("body must be a script or tuple");
         }
-        const process = this.scope.prepareProcess(program);
-        return runScopeBody({ process });
+        return ContinuationValue.create(this.scope, program);
       },
       call: () => {
         if (args.length < 3)
@@ -69,32 +67,12 @@ class ScopeCommand implements Command {
           return ERROR(`unknown command "${command}"`);
         const cmdline = args.slice(2);
         const program = this.scope.compileTupleValue(TUPLE(cmdline));
-        const process = this.scope.prepareProcess(program);
-        return runScopeBody({ process });
+        return ContinuationValue.create(this.scope, program);
       },
     });
   }
-  resume(result: Result) {
-    const state = result.data;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (state as any).process.yieldBack(result.value);
-    return runScopeBody(state);
-  }
-}
-function runScopeBody(state) {
-  const result = state.process.run();
-  if (result.code == ResultCode.YIELD) {
-    return YIELD(result.value, state);
-  }
-  return result;
 }
 
-type ScopeBodyState = {
-  scope: Scope;
-  subscope: Scope;
-  process: Process;
-  name?: Value;
-};
 export const scopeCmd: Command = {
   execute: (args, scope: Scope) => {
     let name, body;
@@ -111,38 +89,29 @@ export const scopeCmd: Command = {
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
     const subscope = new Scope(scope);
-    const process = subscope.prepareScriptValue(body as ScriptValue);
-    return executeScopeBody({ scope, subscope, process, name });
-  },
-  resume(result: Result): Result {
-    const state = result.data as ScopeBodyState;
-    state.process.yieldBack(result.value);
-    return executeScopeBody(state);
+    const program = subscope.compileScriptValue(body as ScriptValue);
+    return ContinuationValue.create(subscope, program, (result) => {
+      switch (result.code) {
+        case ResultCode.OK:
+        case ResultCode.RETURN: {
+          const command = new ScopeCommand(subscope);
+          if (name) {
+            const result = scope.registerCommand(name, command);
+            if (result.code != ResultCode.OK) return result;
+          }
+          return OK(
+            result.code == ResultCode.RETURN ? result.value : command.value
+          );
+        }
+        case ResultCode.ERROR:
+          return result;
+        default:
+          return ERROR("unexpected " + RESULT_CODE_NAME(result));
+      }
+    });
   },
   help: (args) => {
     if (args.length > 3) return ARITY_ERROR(SCOPE_SIGNATURE);
     return OK(STR(SCOPE_SIGNATURE));
   },
-};
-const executeScopeBody = (state: ScopeBodyState): Result => {
-  const result = state.process.run();
-  switch (result.code) {
-    case ResultCode.OK:
-    case ResultCode.RETURN: {
-      const command = new ScopeCommand(state.subscope);
-      if (state.name) {
-        const result = state.scope.registerCommand(state.name, command);
-        if (result.code != ResultCode.OK) return result;
-      }
-      return OK(
-        result.code == ResultCode.RETURN ? result.value : command.value
-      );
-    }
-    case ResultCode.YIELD:
-      return YIELD(result.value, state);
-    case ResultCode.ERROR:
-      return result;
-    default:
-      return ERROR("unexpected " + RESULT_CODE_NAME(result));
-  }
 };
