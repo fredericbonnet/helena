@@ -2,7 +2,6 @@
 import {
   Result,
   ResultCode,
-  YIELD,
   OK,
   ERROR,
   RESULT_CODE_NAME,
@@ -21,7 +20,7 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope, Process } from "./core";
+import { Scope, ContinuationValue } from "./core";
 import { Subcommands } from "./subcommands";
 
 class ProcMetacommand implements Command {
@@ -50,10 +49,6 @@ class ProcMetacommand implements Command {
 
 const PROC_COMMAND_SIGNATURE = (name, help) =>
   `${StringValue.toString(name, "<proc>").data}${help ? " " + help : ""}`;
-type ProcState = {
-  process: Process;
-  done: boolean;
-};
 class ProcCommand implements Command {
   readonly value: Value;
   readonly metacommand: ProcMetacommand;
@@ -87,39 +82,23 @@ class ProcCommand implements Command {
     // TODO handle YIELD?
     const result = this.argspec.applyArguments(this.scope, args, 1, setarg);
     if (result.code != ResultCode.OK) return result;
-    const process = subscope.prepareProcess(this.program);
-    return this.run({ process, done: false });
-  }
-  resume(result: Result): Result {
-    const state = result.data as ProcState;
-    state.process.yieldBack(result.value);
-    return this.run(state);
-  }
-  private run(state: ProcState) {
-    const result = state.process.run();
-    switch (result.code) {
-      case ResultCode.OK:
-      case ResultCode.RETURN:
-        if (!state.done && this.guard) {
-          state.done = true;
-          const program = this.scope.compileTupleValue(
-            TUPLE([this.guard, result.value])
-          );
-          state.process = this.scope.prepareProcess(program);
-          const result2 = state.process.run();
-          if (result2.code == ResultCode.YIELD) {
-            return YIELD(result2.value, state);
+    return ContinuationValue.create(subscope, this.program, (result) => {
+      switch (result.code) {
+        case ResultCode.OK:
+        case ResultCode.RETURN:
+          if (this.guard) {
+            const program = this.scope.compileTupleValue(
+              TUPLE([this.guard, result.value])
+            );
+            return ContinuationValue.create(this.scope, program);
           }
-          return result2;
-        }
-        return OK(result.value);
-      case ResultCode.YIELD:
-        return YIELD(result.value, state);
-      case ResultCode.ERROR:
-        return result;
-      default:
-        return ERROR("unexpected " + RESULT_CODE_NAME(result));
-    }
+          return OK(result.value);
+        case ResultCode.ERROR:
+          return result;
+        default:
+          return ERROR("unexpected " + RESULT_CODE_NAME(result));
+      }
+    });
   }
   help(args: Value[]): Result {
     if (

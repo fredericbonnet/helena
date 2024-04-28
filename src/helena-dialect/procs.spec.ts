@@ -476,7 +476,6 @@ describe("Helena procedures", () => {
           let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(STR("val1"));
-          expect(result.data).to.exist;
 
           process.yieldBack(STR("val2"));
           result = process.run();

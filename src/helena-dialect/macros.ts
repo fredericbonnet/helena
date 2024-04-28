@@ -1,5 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Result, ResultCode, OK, ERROR, YIELD } from "../core/results";
+import { Result, ResultCode, OK, ERROR } from "../core/results";
 import { Command } from "../core/command";
 import {
   CommandValue,
@@ -13,7 +13,7 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { Scope } from "./core";
+import { ContinuationValue, Scope } from "./core";
 import { Subcommands } from "./subcommands";
 
 class MacroMetacommand implements Command {
@@ -71,36 +71,16 @@ class MacroCommand implements Command {
     const result = this.argspec.applyArguments(scope, args, 1, setarg);
     if (result.code != ResultCode.OK) return result;
     const program = subscope.compileScriptValue(this.body as ScriptValue);
-    const process = subscope.prepareProcess(program);
-    return this.run({ process, done: false }, scope);
-  }
-  resume(result: Result, scope: Scope): Result {
-    const state = result.data;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (state as any).process.yieldBack(result.value);
-    return this.run(state, scope);
-  }
-  private run(state, scope) {
-    const result = state.process.run();
-    if (result.code == ResultCode.YIELD) {
-      return YIELD(result.value, state);
-    }
-    if (result.code == ResultCode.OK) {
-      if (!state.done && this.guard) {
-        state.done = true;
+    return ContinuationValue.create(subscope, program, (result) => {
+      if (result.code != ResultCode.OK) return result;
+      if (this.guard) {
         const program = scope.compileTupleValue(
           TUPLE([this.guard, result.value])
         );
-        state.process = scope.prepareProcess(program);
-        const result2 = state.process.run();
-        if (result2.code == ResultCode.YIELD) {
-          return YIELD(result2.value, state);
-        }
-        return result2;
+        return ContinuationValue.create(scope, program);
       }
-      return OK(result.value);
-    }
-    return result;
+      return result;
+    });
   }
   help(args: Value[], { prefix, skip }) {
     const usage = skip
