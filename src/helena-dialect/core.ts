@@ -19,37 +19,118 @@ import {
   NIL,
   StringValue,
   CommandValue,
+  CustomValue,
 } from "../core/values";
 import { numberCmd } from "./numbers";
 
-type ProcessContext = {
+export class ContinuationValue implements CustomValue {
+  readonly type = ValueType.CUSTOM;
+  readonly customType = { name: "continuation" };
+
+  readonly scope: Scope;
+  readonly program: Program;
+  readonly callback?: (result: Result) => Result;
+
+  constructor(
+    scope: Scope,
+    program: Program,
+    callback?: (result: Result) => Result
+  ) {
+    this.scope = scope;
+    this.program = program;
+    this.callback = callback;
+  }
+  static create(
+    scope: Scope,
+    program: Program,
+    callback?: (result: Result) => Result
+  ): Result {
+    return YIELD(new ContinuationValue(scope, program, callback));
+  }
+}
+
+export type ProcessContext = {
   scope: Scope;
   program: Program;
   state: ProgramState;
+  callback?: (result: Result) => Result;
 };
+
+export class ProcessStack {
+  private stack: ProcessContext[] = [];
+
+  depth() {
+    return this.stack.length;
+  }
+  currentContext(): ProcessContext {
+    return this.stack[this.stack.length - 1];
+  }
+  pushProgram(scope: Scope, program: Program): ProcessContext {
+    const context = {
+      scope,
+      program,
+      state: new ProgramState(),
+    };
+    this.stack.push(context);
+    return context;
+  }
+  pushContinuation(continuation: ContinuationValue): ProcessContext {
+    const context = {
+      scope: continuation.scope,
+      program: continuation.program,
+      state: new ProgramState(),
+      callback: continuation.callback,
+    };
+    this.stack.push(context);
+    return context;
+  }
+  pop() {
+    this.stack.pop();
+  }
+  clear() {
+    this.stack = [];
+  }
+}
+
 export class Process {
-  private contextStack: ProcessContext[] = [];
+  private stack: ProcessStack = new ProcessStack();
+
   constructor(scope: Scope, program: Program) {
-    this.pushContext(scope, program);
+    this.stack.pushProgram(scope, program);
   }
-  private currentContext(): ProcessContext {
-    return this.contextStack[this.contextStack.length - 1];
-  }
-  private pushContext(scope: Scope, program: Program) {
-    this.contextStack.push({ scope, program, state: new ProgramState() });
-  }
-  private popContext() {
-    this.contextStack.pop();
-  }
-  run(): Result {
-    for (;;) {
-      const context = this.currentContext();
-      const result = context.scope.execute(context.program, context.state);
-      return result;
+
+  run() {
+    let context = this.stack.currentContext();
+    let result = context.scope.execute(context.program, context.state);
+    while (this.stack.depth() > 0) {
+      if (result.value instanceof ContinuationValue) {
+        if (result.code != ResultCode.YIELD) {
+          // End and replace current context
+          this.stack.pop();
+        }
+        context = this.stack.pushContinuation(result.value);
+        result = context.scope.execute(context.program, context.state);
+        continue;
+      }
+      if (result.code == ResultCode.YIELD) {
+        // Yield to caller
+        break;
+      }
+      if (context.callback) result = context.callback(result);
+      if (this.stack.depth() == 1) break;
+      this.stack.pop();
+      if (result.value instanceof ContinuationValue) continue;
+      context = this.stack.currentContext();
+      if (result.code == ResultCode.OK) {
+        // Yield back and resume current context
+        context.state.result = result;
+        result = context.scope.execute(context.program, context.state);
+      }
     }
+    return result;
   }
   yieldBack(value: Value) {
-    const context = this.currentContext();
+    const context = this.stack.currentContext();
     context.state.result = {
       ...context.state.result,
       value,
