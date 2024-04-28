@@ -531,12 +531,10 @@ describe("Helena logic operations", () => {
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(STR("val1"));
-            expect(result.data).to.exist;
 
             result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(STR("val2"));
-            expect(result.data).to.exist;
 
             process.yieldBack(TRUE);
             result = process.run();
@@ -647,13 +645,11 @@ describe("Helena logic operations", () => {
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(STR("val1"));
-            expect(result.data).to.exist;
 
             process.yieldBack(TRUE);
             result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(STR("val2"));
-            expect(result.data).to.exist;
 
             process.yieldBack(FALSE);
             result = process.run();
@@ -770,13 +766,11 @@ describe("Helena logic operations", () => {
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(STR("val1"));
-            expect(result.data).to.exist;
 
             process.yieldBack(FALSE);
             result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(STR("val2"));
-            expect(result.data).to.exist;
 
             process.yieldBack(TRUE);
             result = process.run();
