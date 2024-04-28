@@ -27,9 +27,6 @@ class StringCommand implements Command {
     if (args.length == 2) return StringValue.fromValue(args[1]);
     return this.ensemble.execute(args, scope);
   }
-  resume(result: Result): Result {
-    return this.ensemble.resume(result);
-  }
   help(args) {
     return this.ensemble.help(args);
   }

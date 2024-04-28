@@ -4,7 +4,6 @@ import {
   OK,
   ERROR,
   ResultCode,
-  YIELD,
   RESULT_CODE_NAME,
 } from "../core/results";
 import { Command } from "../core/command";
@@ -20,7 +19,7 @@ import {
   TupleValue,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { Process, Scope } from "./core";
+import { ContinuationValue, Scope } from "./core";
 import { ArgspecValue } from "./argspecs";
 import {
   INVALID_SUBCOMMAND_ERROR,
@@ -65,8 +64,7 @@ export class EnsembleMetacommand implements Command {
           default:
             return ERROR("body must be a script or tuple");
         }
-        const process = this.ensemble.scope.prepareProcess(program);
-        return this.run({ process });
+        return ContinuationValue.create(this.ensemble.scope, program);
       },
       call: () => {
         if (args.length < 3)
@@ -78,27 +76,13 @@ export class EnsembleMetacommand implements Command {
         const command = this.ensemble.scope.resolveNamedCommand(subcommand);
         const cmdline = [new CommandValue(command), ...args.slice(3)];
         const program = scope.compileTupleValue(TUPLE(cmdline));
-        const process = scope.prepareProcess(program);
-        return this.run({ process });
+        return ContinuationValue.create(scope, program);
       },
       argspec: () => {
         if (args.length != 2) return ARITY_ERROR("<ensemble> argspec");
         return OK(this.ensemble.argspec);
       },
     });
-  }
-  resume(result: Result) {
-    const state = result.data;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (state as any).process.yieldBack(result.value);
-    return this.run(state);
-  }
-  private run(state) {
-    const result = state.process.run();
-    if (result.code == ResultCode.YIELD) {
-      return YIELD(result.value, state);
-    }
-    return result;
   }
 }
 
@@ -162,21 +146,7 @@ export class EnsembleCommand implements Command {
       ...args.slice(minArgs + 1),
     ];
     const program = scope.compileTupleValue(TUPLE(cmdline));
-    const process = scope.prepareProcess(program);
-    return this.run({ process });
-  }
-  resume(result: Result) {
-    const state = result.data;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (state as any).process.yieldBack(result.value);
-    return this.run(state);
-  }
-  private run(state) {
-    const result = state.process.run();
-    if (result.code == ResultCode.YIELD) {
-      return YIELD(result.value, state);
-    }
-    return result;
+    return ContinuationValue.create(scope, program);
   }
   /** @override */
   help(
@@ -214,13 +184,6 @@ export class EnsembleCommand implements Command {
 }
 
 const ENSEMBLE_SIGNATURE = "ensemble ?name? argspec body";
-type EnsembleBodyState = {
-  scope: Scope;
-  subscope: Scope;
-  process: Process;
-  argspec: ArgspecValue;
-  name?: Value;
-};
 export const ensembleCmd: Command = {
   execute: (args, scope: Scope) => {
     let name, specs, body;
@@ -242,40 +205,31 @@ export const ensembleCmd: Command = {
       return ERROR("ensemble arguments cannot be variadic");
 
     const subscope = new Scope(scope);
-    const process = subscope.prepareScriptValue(body as ScriptValue);
-    return executeEnsembleBody({ scope, subscope, process, argspec, name });
-  },
-  resume(result: Result): Result {
-    const state = result.data as EnsembleBodyState;
-    state.process.yieldBack(result.value);
-    return executeEnsembleBody(state);
+    const program = subscope.compileScriptValue(body as ScriptValue);
+    return ContinuationValue.create(subscope, program, (result) => {
+      switch (result.code) {
+        case ResultCode.OK:
+        case ResultCode.RETURN: {
+          const ensemble = new EnsembleCommand(subscope, argspec);
+          if (name) {
+            const result = scope.registerCommand(name, ensemble);
+            if (result.code != ResultCode.OK) return result;
+          }
+          return OK(
+            result.code == ResultCode.RETURN
+              ? result.value
+              : ensemble.metacommand.value
+          );
+        }
+        case ResultCode.ERROR:
+          return result;
+        default:
+          return ERROR("unexpected " + RESULT_CODE_NAME(result));
+      }
+    });
   },
   help(args) {
     if (args.length > 4) return ARITY_ERROR(ENSEMBLE_SIGNATURE);
     return OK(STR(ENSEMBLE_SIGNATURE));
   },
-};
-const executeEnsembleBody = (state: EnsembleBodyState): Result => {
-  const result = state.process.run();
-  switch (result.code) {
-    case ResultCode.OK:
-    case ResultCode.RETURN: {
-      const ensemble = new EnsembleCommand(state.subscope, state.argspec);
-      if (state.name) {
-        const result = state.scope.registerCommand(state.name, ensemble);
-        if (result.code != ResultCode.OK) return result;
-      }
-      return OK(
-        result.code == ResultCode.RETURN
-          ? result.value
-          : ensemble.metacommand.value
-      );
-    }
-    case ResultCode.YIELD:
-      return YIELD(result.value, state);
-    case ResultCode.ERROR:
-      return result;
-    default:
-      return ERROR("unexpected " + RESULT_CODE_NAME(result));
-  }
 };
