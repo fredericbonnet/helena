@@ -120,7 +120,7 @@ const notCmd: Command = {
     if (args.length != 2) return ARITY_ERROR(NOT_SIGNATURE);
     return executeCondition(scope, args[1], (result) => {
       if (result.code != ResultCode.OK) return result;
-      return (result.value as BooleanValue).value ? OK(FALSE) : OK(TRUE);
+      return result.data ? OK(FALSE) : OK(TRUE);
     });
   },
   help(args: Value[]): Result {
@@ -136,7 +136,7 @@ const andCmd: Command = {
     let i = 1;
     const callback = (result) => {
       if (result.code != ResultCode.OK) return result;
-      if (!(result.value as BooleanValue).value) return OK(FALSE);
+      if (!result.data) return OK(FALSE);
       if (++i >= args.length) return OK(TRUE);
       return executeCondition(scope, args[i], callback);
     };
@@ -152,9 +152,9 @@ const orCmd: Command = {
   execute(args, scope: Scope) {
     if (args.length < 2) return ARITY_ERROR(OR_SIGNATURE);
     let i = 1;
-    const callback = (result) => {
+    const callback = (result: Result<boolean>) => {
       if (result.code != ResultCode.OK) return result;
-      if ((result.value as BooleanValue).value) return OK(TRUE);
+      if (result.data) return OK(TRUE);
       if (++i >= args.length) return OK(FALSE);
       return executeCondition(scope, args[i], callback);
     };
@@ -168,17 +168,17 @@ const orCmd: Command = {
 export function executeCondition(
   scope: Scope,
   value: Value,
-  callback: (result: Result<BooleanValue>) => Result
+  callback: (result: Result<boolean>) => Result
 ): Result {
   if (value.type == ValueType.SCRIPT) {
     const program = scope.compileScriptValue(value as ScriptValue);
     return ContinuationValue.create(scope, program, (result) => {
       if (result.code != ResultCode.OK) return result;
-      return callback(BooleanValue.fromValue(result.value));
+      return callback(BooleanValue.toBoolean(result.value));
     });
   }
   // TODO ensure tail call in trampoline, or unroll in caller
-  return callback(BooleanValue.fromValue(value));
+  return callback(BooleanValue.toBoolean(value));
 }
 
 export function registerLogicCommands(scope: Scope) {

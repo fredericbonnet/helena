@@ -90,3 +90,17 @@ export const describeCommand = (
     return fn.call(this);
   });
 };
+// eslint-disable-next-line jsdoc/require-jsdoc
+describeCommand.only = (name: string, fn: (this: Mocha.Suite) => void) => {
+  return describe.only("`" + name + "`", function (this: Mocha.Suite) {
+    mochadoc.meta({ page: "helena-dialect/commands/" + name });
+    return fn.call(this);
+  });
+};
+// eslint-disable-next-line jsdoc/require-jsdoc
+describeCommand.skip = (name: string, fn: (this: Mocha.Suite) => void) => {
+  return describe.skip("`" + name + "`", function (this: Mocha.Suite) {
+    mochadoc.meta({ page: "helena-dialect/commands/" + name });
+    return fn.call(this);
+  });
+};
