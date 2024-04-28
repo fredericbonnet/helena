@@ -19,7 +19,7 @@ import {
   ValueType,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { Scope } from "./core";
+import { ContinuationValue, Scope } from "./core";
 
 const IDEM_SIGNATURE = "idem value";
 const idemCmd: Command = {
@@ -156,27 +156,13 @@ const evalCmd: Command = {
       default:
         return ERROR("body must be a script or tuple");
     }
-    const process = scope.prepareProcess(program);
-    return runProcess({ process });
-  },
-  resume: (result: Result) => {
-    const state = result.data;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (state as any).process.yieldBack(result.value);
-    return runProcess(state);
+    return ContinuationValue.create(scope, program);
   },
   help: (args) => {
     if (args.length > 2) return ARITY_ERROR(EVAL_SIGNATURE);
     return OK(STR(EVAL_SIGNATURE));
   },
 };
-function runProcess(state) {
-  const result = state.process.run();
-  if (result.code == ResultCode.YIELD) {
-    return YIELD(result.value, state);
-  }
-  return result;
-}
 
 const HELP_SIGNATURE = "help command ?arg ...?";
 const helpCmd: Command = {
