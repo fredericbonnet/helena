@@ -1,6 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/command";
-import { Program } from "../core/compiler";
 import {
   CUSTOM_RESULT,
   CustomResultCode,
@@ -24,22 +23,11 @@ import {
   ValueType,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { Process, Scope } from "./core";
+import { ContinuationValue, Process, Scope } from "./core";
 import { valueToArray } from "./lists";
 
-type WhileState = {
-  step: "beforeTest" | "inTest" | "afterTest" | "beforeBody" | "inBody";
-  test: Value;
-  testProgram?: Program;
-  testProcess?: Process;
-  result?: Result;
-  program: Program;
-  process?: Process;
-  lastResult: Result;
-};
-
 const WHILE_SIGNATURE = "while test body";
-class WhileCommand implements Command {
+const whileCmd: Command = {
   execute(args, scope: Scope) {
     let test, body: Value;
     switch (args.length) {
@@ -50,180 +38,95 @@ class WhileCommand implements Command {
         return ARITY_ERROR(WHILE_SIGNATURE);
     }
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
-    let testProgram;
+
+    let lastResult = OK(NIL);
+    let callTest: () => Result;
     if (test.type == ValueType.SCRIPT) {
-      testProgram = scope.compile((test as ScriptValue).script);
+      const testProgram = scope.compile((test as ScriptValue).script);
+      callTest = () => {
+        return ContinuationValue.create(scope, testProgram, (result) => {
+          if (result.code != ResultCode.OK) return result;
+          const result2 = BooleanValue.toBoolean(result.value);
+          if (result2.code != ResultCode.OK) return result2;
+          if (!result2.data) return lastResult;
+          return callBody();
+        });
+      };
+    } else {
+      const result = BooleanValue.toBoolean(test);
+      if (result.code != ResultCode.OK) return result;
+      if (!result.data) return lastResult;
+      callTest = () => callBody();
     }
     const program = scope.compile((body as ScriptValue).script);
-    return this.run(
-      { step: "beforeTest", test, testProgram, program, lastResult: OK(NIL) },
-      scope
-    );
-  }
-  resume(result: Result, scope: Scope) {
-    const state = result.data as WhileState;
-    switch (state.step) {
-      case "beforeTest":
-      case "inTest": {
-        state.testProcess.yieldBack(result.value);
-        break;
-      }
-      case "inBody": {
-        state.process.yieldBack(result.value);
-        break;
-      }
-    }
-    return this.run(state, scope);
-  }
+    const callBody = () => {
+      return ContinuationValue.create(scope, program, (result) => {
+        switch (result.code) {
+          case ResultCode.BREAK:
+            return lastResult;
+          case ResultCode.CONTINUE:
+            break;
+          case ResultCode.OK:
+            lastResult = result;
+            break;
+          default:
+            return result;
+        }
+        return callTest();
+      });
+    };
+    return callTest();
+  },
   help(args) {
     if (args.length > 3) return ARITY_ERROR(WHILE_SIGNATURE);
     return OK(STR(WHILE_SIGNATURE));
-  }
-  private run(state: WhileState, scope: Scope) {
-    for (;;) {
-      switch (state.step) {
-        case "beforeTest": {
-          state.result = this.executeTest(state, scope);
-          state.step = "inTest";
-          if (state.result.code == ResultCode.YIELD)
-            return YIELD(state.result.value, state);
-          state.step = "afterTest";
-          break;
-        }
-        case "inTest": {
-          state.result = this.resumeTest(state);
-          if (state.result.code == ResultCode.YIELD)
-            return YIELD(state.result.value, state);
-          state.step = "afterTest";
-          break;
-        }
-        case "afterTest":
-          if (state.result.code != ResultCode.OK) return state.result;
-          if (!(state.result.value as BooleanValue).value)
-            return state.lastResult;
-          state.step = "beforeBody";
-          break;
-        case "beforeBody":
-          state.process = scope.prepareProcess(state.program);
-          state.step = "inBody";
-          break;
-        case "inBody": {
-          const result = state.process.run();
-          if (result.code == ResultCode.YIELD)
-            return YIELD(result.value, state);
-          state.step = "beforeTest";
-          if (result.code == ResultCode.BREAK) return state.lastResult;
-          if (result.code == ResultCode.CONTINUE) continue;
-          if (result.code != ResultCode.OK) return result;
-          state.lastResult = result;
-          break;
-        }
-      }
-    }
-  }
-  private executeTest(state: WhileState, scope: Scope) {
-    if (state.test.type == ValueType.SCRIPT) {
-      state.testProcess = scope.prepareProcess(state.testProgram);
-      const result = state.testProcess.run();
-      if (result.code != ResultCode.OK) return result;
-      return BooleanValue.fromValue(result.value);
-    }
-    return BooleanValue.fromValue(state.test);
-  }
-  private resumeTest(state: WhileState) {
-    const result = state.testProcess.run();
-    if (result.code != ResultCode.OK) return result;
-    return BooleanValue.fromValue(result.value);
-  }
-}
-const whileCmd = new WhileCommand();
+  },
+};
 
 const IF_SIGNATURE = "if test body ?elseif test body ...? ?else? ?body?";
-class IfState {
-  args: Value[];
-  i: number;
-  step: "beforeTest" | "inTest" | "afterTest" | "beforeBody" | "inBody";
-  result?: Result;
-  process?: Process;
-}
 class IfCommand implements Command {
   execute(args, scope: Scope) {
     const checkResult = this.checkArgs(args);
     if (checkResult.code != ResultCode.OK) return checkResult;
-    return this.run({ args, i: 0, step: "beforeTest" }, scope);
-  }
-  resume(result: Result, scope: Scope): Result {
-    const state = result.data as IfState;
-    state.process.yieldBack(result.value);
-    return this.run(state, scope);
+    let i = 0;
+    const callTest = () => {
+      if (i >= args.length) return OK(NIL);
+      const keyword = StringValue.toString(args[i]).data;
+      if (keyword == "else") {
+        return callBody();
+      }
+      const test = args[i + 1];
+      if (test.type == ValueType.SCRIPT) {
+        const program = scope.compileScriptValue(test as ScriptValue);
+        return ContinuationValue.create(scope, program, (result) => {
+          if (result.code != ResultCode.OK) return result;
+          const result2 = BooleanValue.toBoolean(result.value);
+          if (result2.code != ResultCode.OK) return result2;
+          if (result2.data) return callBody();
+          i += 3;
+          return callTest();
+        });
+      } else {
+        const result = BooleanValue.toBoolean(test);
+        if (result.code != ResultCode.OK) return result;
+        if (result.data) return callBody();
+        i += 3;
+        return callTest();
+      }
+    };
+    const callBody = () => {
+      const body =
+        StringValue.toString(args[i]).data == "else"
+          ? args[i + 1]
+          : args[i + 2];
+      if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
+      const program = scope.compileScriptValue(body as ScriptValue);
+      return ContinuationValue.create(scope, program);
+    };
+    return callTest();
   }
   help() {
     return OK(STR(IF_SIGNATURE));
-  }
-  private run(state: IfState, scope: Scope): Result {
-    while (state.i < state.args.length) {
-      switch (state.step) {
-        case "beforeTest":
-          if (StringValue.toString(state.args[state.i]).data == "else") {
-            state.step = "beforeBody";
-          } else {
-            state.result = this.executeTest(state, scope);
-            state.step = "inTest";
-            if (state.result.code == ResultCode.YIELD)
-              return YIELD(state.result.value, state);
-            state.step = "afterTest";
-          }
-          break;
-        case "inTest":
-          state.result = this.resumeTest(state);
-          if (state.result.code == ResultCode.YIELD)
-            return YIELD(state.result.value, state);
-          state.step = "afterTest";
-          break;
-        case "afterTest":
-          if (state.result.code != ResultCode.OK) return state.result;
-          if (!(state.result.value as BooleanValue).value) {
-            state.step = "beforeTest";
-            state.i += 3;
-            continue;
-          }
-          state.step = "beforeBody";
-          break;
-        case "beforeBody": {
-          const body =
-            StringValue.toString(state.args[state.i]).data == "else"
-              ? state.args[state.i + 1]
-              : state.args[state.i + 2];
-          if (body.type != ValueType.SCRIPT)
-            return ERROR("body must be a script");
-          state.process = scope.prepareScriptValue(body as ScriptValue);
-          state.step = "inBody";
-          break;
-        }
-        case "inBody": {
-          const result = state.process.run();
-          if (result.code == ResultCode.YIELD)
-            return YIELD(result.value, state);
-          return result;
-        }
-      }
-    }
-    return OK(NIL);
-  }
-  private executeTest(state: IfState, scope: Scope) {
-    const test = state.args[state.i + 1];
-    if (test.type == ValueType.SCRIPT) {
-      state.process = scope.prepareScriptValue(test as ScriptValue);
-      const result = state.process.run();
-      if (result.code != ResultCode.OK) return result;
-      return BooleanValue.fromValue(result.value);
-    }
-    return BooleanValue.fromValue(test);
-  }
-  private resumeTest(state: IfState) {
-    const result = state.process.run();
-    if (result.code != ResultCode.OK) return result;
-    return BooleanValue.fromValue(result.value);
   }
   private checkArgs(args: Value[]): Result {
     if (args.length == 2) return ERROR("wrong # args: missing if body");
@@ -261,23 +164,7 @@ class IfCommand implements Command {
 const ifCmd = new IfCommand();
 
 const WHEN_SIGNATURE = "when ?command? {?test body ...? ?default?}";
-class WhenState {
-  command?: Value;
-  cases: Value[];
-  i: number;
-  step:
-    | "beforeCommand"
-    | "inCommand"
-    | "afterCommand"
-    | "beforeTest"
-    | "inTest"
-    | "afterTest"
-    | "beforeBody"
-    | "inBody";
-  process?: Process;
-  result?: Result;
-}
-class WhenCommand implements Command {
+const whenCmd: Command = {
   execute(args, scope: Scope) {
     let command, casesBody;
     switch (args.length) {
@@ -293,128 +180,74 @@ class WhenCommand implements Command {
     const { data: cases, ...result } = valueToArray(casesBody);
     if (result.code != ResultCode.OK) return result;
     if (cases.length == 0) return OK(NIL);
-    return this.run({ command, cases, i: 0, step: "beforeCommand" }, scope);
-  }
-  resume(result: Result, scope: Scope): Result {
-    const state = result.data as WhenState;
-    state.process.yieldBack(result.value);
-    return this.run(state, scope);
-  }
+    let i = 0;
+    const callCommand = (): Result => {
+      if (i >= cases.length) return OK(NIL);
+      if (i == cases.length - 1) {
+        return callBody();
+      }
+      if (!command) return callTest(NIL);
+      if (command.type == ValueType.SCRIPT) {
+        const program = scope.compileScriptValue(command as ScriptValue);
+        return ContinuationValue.create(scope, program, (result) => {
+          if (result.code != ResultCode.OK) return result;
+          return callTest(result.value);
+        });
+      } else {
+        return callTest(command);
+      }
+    };
+    const callTest = (command: Value): Result => {
+      let test = cases[i];
+      if (command != NIL) {
+        switch (test.type) {
+          case ValueType.TUPLE:
+            test = TUPLE([command, ...(test as TupleValue).values]);
+            break;
+          default:
+            test = TUPLE([command, test]);
+        }
+      }
+      let program;
+      switch (test.type) {
+        case ValueType.SCRIPT: {
+          program = scope.compileScriptValue(test as ScriptValue);
+          break;
+        }
+        case ValueType.TUPLE: {
+          program = scope.compileTupleValue(test as TupleValue);
+          break;
+        }
+        default: {
+          const result = BooleanValue.toBoolean(test);
+          if (result.code != ResultCode.OK) return result;
+          if (result.data) return callBody();
+          i += 2;
+          return callCommand();
+        }
+      }
+      return ContinuationValue.create(scope, program, (result) => {
+        if (result.code != ResultCode.OK) return result;
+        const result2 = BooleanValue.toBoolean(result.value);
+        if (result2.code != ResultCode.OK) return result2;
+        if (result2.data) return callBody();
+        i += 2;
+        return callCommand();
+      });
+    };
+    const callBody = (): Result => {
+      const body = i == cases.length - 1 ? cases[i] : cases[i + 1];
+      if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
+      const program = scope.compileScriptValue(body as ScriptValue);
+      return ContinuationValue.create(scope, program);
+    };
+    return callCommand();
+  },
   help(args) {
     if (args.length > 3) return ARITY_ERROR(WHEN_SIGNATURE);
     return OK(STR(WHEN_SIGNATURE));
-  }
-  private run(state: WhenState, scope: Scope): Result {
-    while (state.i < state.cases.length) {
-      switch (state.step) {
-        case "beforeCommand":
-          if (state.i == state.cases.length - 1) {
-            state.step = "beforeBody";
-          } else {
-            state.result = this.getCommand(state, scope);
-            state.step = "inCommand";
-            if (state.result.code == ResultCode.YIELD)
-              return YIELD(state.result.value, state);
-            state.step = "afterCommand";
-          }
-          break;
-        case "inCommand":
-          state.result = state.process.run();
-          if (state.result.code == ResultCode.YIELD)
-            return YIELD(state.result.value, state);
-          state.step = "afterCommand";
-          break;
-        case "afterCommand":
-          if (state.result.code != ResultCode.OK) return state.result;
-          state.result = this.getTest(state, state.result.value);
-          state.step = "beforeTest";
-          break;
-        case "beforeTest":
-          state.result = this.executeTest(state.result.value, state, scope);
-          state.step = "inTest";
-          if (state.result.code == ResultCode.YIELD)
-            return YIELD(state.result.value, state);
-          state.step = "afterTest";
-          break;
-        case "inTest":
-          state.result = this.resumeTest(state);
-          if (state.result.code == ResultCode.YIELD)
-            return YIELD(state.result.value, state);
-          state.step = "afterTest";
-          break;
-        case "afterTest":
-          if (state.result.code != ResultCode.OK) return state.result;
-          if (!(state.result.value as BooleanValue).value) {
-            state.step = "beforeCommand";
-            state.i += 2;
-            continue;
-          }
-          state.step = "beforeBody";
-          break;
-        case "beforeBody": {
-          const body =
-            state.i == state.cases.length - 1
-              ? state.cases[state.i]
-              : state.cases[state.i + 1];
-          if (body.type != ValueType.SCRIPT)
-            return ERROR("body must be a script");
-          state.process = scope.prepareScriptValue(body as ScriptValue);
-          state.step = "inBody";
-          break;
-        }
-        case "inBody": {
-          const result = state.process.run();
-          if (result.code == ResultCode.YIELD)
-            return YIELD(result.value, state);
-          return result;
-        }
-      }
-    }
-    return OK(NIL);
-  }
-  private getCommand(state: WhenState, scope): Result {
-    if (!state.command) return OK(NIL);
-    if (state.command.type == ValueType.SCRIPT) {
-      state.process = scope.prepareScriptValue(state.command as ScriptValue);
-      return state.process.run();
-    }
-    return OK(state.command);
-  }
-  private getTest(state: WhenState, command: Value) {
-    const test = state.cases[state.i];
-    if (command == NIL) return OK(test);
-    switch (test.type) {
-      case ValueType.TUPLE:
-        return OK(TUPLE([command, ...(test as TupleValue).values]));
-      default:
-        return OK(TUPLE([command, test]));
-    }
-  }
-  private executeTest(test: Value, state: WhenState, scope: Scope) {
-    switch (test.type) {
-      case ValueType.SCRIPT: {
-        state.process = scope.prepareScriptValue(test as ScriptValue);
-        const result = state.process.run();
-        if (result.code != ResultCode.OK) return result;
-        return BooleanValue.fromValue(result.value);
-      }
-      case ValueType.TUPLE: {
-        state.process = scope.prepareTupleValue(test as TupleValue);
-        const result = state.process.run();
-        if (result.code != ResultCode.OK) return result;
-        return BooleanValue.fromValue(result.value);
-      }
-      default:
-        return BooleanValue.fromValue(test);
-    }
-  }
-  private resumeTest(state: WhenState) {
-    const result = state.process.run();
-    if (result.code != ResultCode.OK) return result;
-    return BooleanValue.fromValue(result.value);
-  }
-}
-const whenCmd = new WhenCommand();
+  },
+};
 
 const CATCH_SIGNATURE =
   "catch body ?return value handler? ?yield value handler? ?error message handler? ?break handler? ?continue handler? ?finally handler?";

@@ -159,31 +159,26 @@ describe("Helena control flow commands", () => {
           let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(STR("test"));
-          expect(result.data).to.exist;
 
           process.yieldBack(TRUE);
           result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(STR("body"));
-          expect(result.data).to.exist;
 
           process.yieldBack(STR("step 1"));
           result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(STR("test"));
-          expect(result.data).to.exist;
 
           process.yieldBack(TRUE);
           result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(STR("body"));
-          expect(result.data).to.exist;
 
           process.yieldBack(STR("step 2"));
           result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
           expect(result.value).to.eql(STR("test"));
-          expect(result.data).to.exist;
 
           process.yieldBack(FALSE);
           result = process.run();
@@ -352,7 +347,7 @@ describe("Helena control flow commands", () => {
          * Tests must be booleans or script expressions.
          */
         expect(execute("if a b")).to.eql(ERROR('invalid boolean "a"'));
-        expect(execute("if false a elseif b c")).to.eql(
+        expect(execute("if false {a} elseif b {c}")).to.eql(
           ERROR('invalid boolean "b"')
         );
         expect(execute("if false a elseif false b elseif c d")).to.eql(
@@ -468,13 +463,11 @@ describe("Helena control flow commands", () => {
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(STR("test1"));
-            expect(result.data).to.exist;
 
             process.yieldBack(TRUE);
             result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(STR("body1"));
-            expect(result.data).to.exist;
 
             process.yieldBack(STR("result"));
             result = process.run();
@@ -484,19 +477,16 @@ describe("Helena control flow commands", () => {
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(STR("test1"));
-            expect(result.data).to.exist;
 
             process.yieldBack(FALSE);
             result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(STR("test2"));
-            expect(result.data).to.exist;
 
             process.yieldBack(TRUE);
             result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(STR("body2"));
-            expect(result.data).to.exist;
 
             process.yieldBack(STR("result"));
             result = process.run();
@@ -506,19 +496,16 @@ describe("Helena control flow commands", () => {
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(STR("test1"));
-            expect(result.data).to.exist;
 
             process.yieldBack(FALSE);
             result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(STR("test2"));
-            expect(result.data).to.exist;
 
             process.yieldBack(FALSE);
             result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
             expect(result.value).to.eql(STR("body3"));
-            expect(result.data).to.exist;
 
             process.yieldBack(STR("result"));
             result = process.run();
@@ -902,13 +889,11 @@ describe("Helena control flow commands", () => {
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("test1"));
-              expect(result.data).to.exist;
 
               process.yieldBack(TRUE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("body1"));
-              expect(result.data).to.exist;
 
               process.yieldBack(STR("result"));
               result = process.run();
@@ -918,19 +903,16 @@ describe("Helena control flow commands", () => {
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("test1"));
-              expect(result.data).to.exist;
 
               process.yieldBack(FALSE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("test2"));
-              expect(result.data).to.exist;
 
               process.yieldBack(TRUE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("body2"));
-              expect(result.data).to.exist;
 
               process.yieldBack(STR("result"));
               result = process.run();
@@ -940,19 +922,16 @@ describe("Helena control flow commands", () => {
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("test1"));
-              expect(result.data).to.exist;
 
               process.yieldBack(FALSE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("test2"));
-              expect(result.data).to.exist;
 
               process.yieldBack(FALSE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("body3"));
-              expect(result.data).to.exist;
 
               process.yieldBack(STR("result"));
               result = process.run();
@@ -973,19 +952,16 @@ describe("Helena control flow commands", () => {
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("command"));
-              expect(result.data).to.exist;
 
               process.yieldBack(STR("test"));
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("test1"));
-              expect(result.data).to.exist;
 
               process.yieldBack(TRUE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("body1"));
-              expect(result.data).to.exist;
 
               process.yieldBack(STR("result"));
               result = process.run();
@@ -995,31 +971,26 @@ describe("Helena control flow commands", () => {
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("command"));
-              expect(result.data).to.exist;
 
               process.yieldBack(STR("test"));
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("test1"));
-              expect(result.data).to.exist;
 
               process.yieldBack(FALSE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("command"));
-              expect(result.data).to.exist;
 
               process.yieldBack(STR("test"));
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("test2"));
-              expect(result.data).to.exist;
 
               process.yieldBack(TRUE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("body2"));
-              expect(result.data).to.exist;
 
               process.yieldBack(STR("result"));
               result = process.run();
@@ -1029,31 +1000,26 @@ describe("Helena control flow commands", () => {
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("command"));
-              expect(result.data).to.exist;
 
               process.yieldBack(STR("test"));
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("test1"));
-              expect(result.data).to.exist;
 
               process.yieldBack(FALSE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("command"));
-              expect(result.data).to.exist;
 
               process.yieldBack(STR("test"));
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("test2"));
-              expect(result.data).to.exist;
 
               process.yieldBack(FALSE);
               result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);
               expect(result.value).to.eql(STR("body3"));
-              expect(result.data).to.exist;
 
               process.yieldBack(STR("result"));
               result = process.run();
