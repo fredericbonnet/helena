@@ -920,9 +920,7 @@ describe("Helena core internals", () => {
         execute: () => {
           return ContinuationValue.create(
             rootScope,
-            rootScope.compile(parse("idem [cmd2]/[cmd2]")),
-            (result) =>
-              OK(STR(RESULT_CODE_NAME(result) + ":" + asString(result.value)))
+            rootScope.compile(parse("idem [cmd2]/[cmd2]"))
           );
         },
       });

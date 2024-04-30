@@ -82,23 +82,35 @@ class ProcCommand implements Command {
     // TODO handle YIELD?
     const result = this.argspec.applyArguments(this.scope, args, 1, setarg);
     if (result.code != ResultCode.OK) return result;
-    return ContinuationValue.create(subscope, this.program, (result) => {
-      switch (result.code) {
-        case ResultCode.OK:
-        case ResultCode.RETURN:
-          if (this.guard) {
+    if (this.guard) {
+      return ContinuationValue.create(subscope, this.program, (result) => {
+        switch (result.code) {
+          case ResultCode.OK:
+          case ResultCode.RETURN: {
             const program = this.scope.compileTupleValue(
               TUPLE([this.guard, result.value])
             );
             return ContinuationValue.create(this.scope, program);
           }
-          return OK(result.value);
-        case ResultCode.ERROR:
-          return result;
-        default:
-          return ERROR("unexpected " + RESULT_CODE_NAME(result));
-      }
-    });
+          case ResultCode.ERROR:
+            return result;
+          default:
+            return ERROR("unexpected " + RESULT_CODE_NAME(result));
+        }
+      });
+    } else {
+      return ContinuationValue.create(subscope, this.program, (result) => {
+        switch (result.code) {
+          case ResultCode.OK:
+          case ResultCode.RETURN:
+            return OK(result.value);
+          case ResultCode.ERROR:
+            return result;
+          default:
+            return ERROR("unexpected " + RESULT_CODE_NAME(result));
+        }
+      });
+    }
   }
   help(args: Value[]): Result {
     if (

@@ -104,7 +104,7 @@ export class Process {
     let result = context.scope.execute(context.program, context.state);
     while (this.stack.depth() > 0) {
       if (result.value instanceof ContinuationValue) {
-        if (result.code != ResultCode.YIELD) {
+        if (result.code != ResultCode.YIELD && !context.callback) {
           // End and replace current context
           this.stack.pop();
         }

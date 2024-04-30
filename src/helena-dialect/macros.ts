@@ -71,16 +71,17 @@ class MacroCommand implements Command {
     const result = this.argspec.applyArguments(scope, args, 1, setarg);
     if (result.code != ResultCode.OK) return result;
     const program = subscope.compileScriptValue(this.body as ScriptValue);
-    return ContinuationValue.create(subscope, program, (result) => {
-      if (result.code != ResultCode.OK) return result;
-      if (this.guard) {
+    if (this.guard) {
+      return ContinuationValue.create(subscope, program, (result) => {
+        if (result.code != ResultCode.OK) return result;
         const program = scope.compileTupleValue(
           TUPLE([this.guard, result.value])
         );
         return ContinuationValue.create(scope, program);
-      }
-      return result;
-    });
+      });
+    } else {
+      return ContinuationValue.create(subscope, program);
+    }
   }
   help(args: Value[], { prefix, skip }) {
     const usage = skip

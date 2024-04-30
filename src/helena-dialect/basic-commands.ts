@@ -4,7 +4,6 @@ import {
   CONTINUE,
   ERROR,
   OK,
-  Result,
   ResultCode,
   RETURN,
   YIELD,
@@ -73,30 +72,20 @@ const tailcallCmd: Command = {
       default:
         return ERROR("body must be a script or tuple");
     }
-    const process = scope.prepareProcess(program);
-    return runTailcallProcess({ process });
-  },
-  resume: (result: Result) => {
-    const state = result.data;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (state as any).process.yieldBack(result.value);
-    return runTailcallProcess(state);
+    return RETURN(
+      new ContinuationValue(scope, program, (result) => {
+        if (result.code != ResultCode.OK) {
+          return result;
+        }
+        return RETURN(result.value);
+      })
+    );
   },
   help: (args) => {
     if (args.length > 2) return ARITY_ERROR(TAILCALL_SIGNATURE);
     return OK(STR(TAILCALL_SIGNATURE));
   },
 };
-function runTailcallProcess(state) {
-  const result = state.process.run();
-  if (result.code == ResultCode.YIELD) {
-    return YIELD(result.value, state);
-  }
-  if (result.code != ResultCode.OK) {
-    return result;
-  }
-  return RETURN(result.value);
-}
 
 const ERROR_SIGNATURE = "error message";
 const errorCmd: Command = {
