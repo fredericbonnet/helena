@@ -26,6 +26,7 @@ type is `INTEGER`.
   Argument-less integer commands return themselves.
 
 - ✅ can be expressed as strings
+- ✅ should not take precedence over named commands
 
 - Exceptions
 
@@ -47,6 +48,7 @@ is `REAL`.
   Argument-less real number commands return themselves.
 
 - ✅ can be expressed as strings
+- ✅ should not take precedence over named commands
 
 - Exceptions
 
