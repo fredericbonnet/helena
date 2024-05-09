@@ -220,6 +220,135 @@ guard in argspecs.
 - ✅ too many specifiers
 - ✅ non-optional parameter with guard and default
 
+## <a id="argspec-option-specifications"></a>Option specifications
+
+Arguments can be preceded by an option specification. Option names
+start with a dash character `-`.
+
+
+- Required options
+
+  - ✅ value
+  - ✅ usage
+
+  - set
+
+    - ✅ one
+    - ✅ two
+    - ✅ out of order
+    - ✅ prefix
+    - ✅ suffix
+    - ✅ infix
+    - ✅ complex case
+
+- Optional options
+
+  - ✅ value
+  - ✅ usage
+
+  - set
+
+    - ✅ zero
+    - ✅ default
+    - ✅ one
+    - ✅ two
+
+### <a id="argspec-option-specifications-flags"></a>Flags
+
+Flags are optional boolean options that take no value.
+
+- ✅ value
+- ✅ usage
+
+- set
+
+  - ✅ zero
+  - ✅ one
+  - ✅ two
+
+- Exceptions
+
+  - ✅ non-optional argument
+
+    Flag arguments must be optional
+
+
+- Exceptions
+
+  - ✅ missing argument
+
+    Options must be followed by an argument.
+
+  - ✅ incompatible aliases
+  - ✅ duplicate options
+  - ✅ remainder before non-required options
+
+## <a id="argspec-evaluation-order"></a>Evaluation order
+
+Argument values are evaluated left-to-right and in order of priority:
+
+- Required arguments
+- Optional arguments
+- Remainder
+
+If there are neither optional nor remainder arguments then the number
+of provided argument values must match the number of required
+arguments. Else it must be at least equal to the number of required
+arguments.
+
+If there is no remainder argument then the number of extra argument
+values must not exceed the number of optional arguments. Else the
+the remainder argument is set to the remaining values.
+
+Consecutive arguments are grouped depending on whether they have an
+option specification. There can be any number of groups of alternate
+kinds.
+
+Opionless arguments are positional and must be provided in the same
+order as they are specified.
+
+Options can be provided in any order within the same group of
+consecutive options.
+
+In both cases, optional argument values are set in the order they are
+provided.
+
+- ✅ required positionals only
+
+  The number of values must match the number of required arguments.
+  Values are provided in order.
+
+- ✅ required options only
+
+  The number of values must match the number of required options.
+  Values can be provided out-of-order.
+
+- ✅ required and optional options
+
+  The number of values must be at least the number of required options,
+  and at most the total number of options. Values can be provided
+  out-of-order. All required options must be provided.
+
+- ✅ required positional and option groups
+
+  The number of values must match the number of required options.
+  Within the same group, positional values are provided in order
+  whereas options can be provided out-of-order. Options cannot be
+  provided outside of their group.
+
+- ✅ optional arguments
+
+  Optional argument values are set left-to-right:
+  - Positionals are set in the order they are specified
+  - Options can be set in any order and can be omitted
+
+- ✅ remainder argument
+
+  Remainder argument values are always set after all required and
+  optional arguments have been set. This can bring unexpected results.
+
+- ✅ complex case
+
 ## <a id="argspec-subcommands"></a>Subcommands
 
 The `argspec` ensemble comes with a number of predefined subcommands
@@ -271,7 +400,7 @@ Get a help string
 ### <a id="argspec-subcommands-set"></a>`set`
 
 ```lna
-argspec value usage
+argspec value set values
 ```
 
 Set parameter variables from a list of argument values

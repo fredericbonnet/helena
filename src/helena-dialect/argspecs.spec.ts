@@ -360,7 +360,7 @@ describe("Helena argument handling", () => {
           });
           describe("set", () => {
             specify("zero", () => {
-              evaluate("argspec ?a set ()");
+              evaluate("argspec (?a) set ()");
               expect(execute("get a")).to.eql(
                 ERROR(`cannot get "a": no such variable`)
               );
@@ -672,6 +672,567 @@ describe("Helena argument handling", () => {
       });
     });
 
+    mochadoc.section("Option specifications", () => {
+      mochadoc.description(() => {
+        /**
+         * Arguments can be preceded by an option specification. Option names
+         * start with a dash character `-`.
+         */
+      });
+
+      describe("Required options", () => {
+        specify("value", () => {
+          const value = evaluate("argspec (-o a)") as ArgspecValue;
+          expect(evaluate("argspec {-o a}")).to.eql(value);
+          expect(value.argspec).to.include({
+            nbRequired: 2,
+            nbOptional: 0,
+            hasRemainder: false,
+          });
+          expect(value.argspec.args).to.eql([
+            {
+              name: "a",
+              type: "required",
+              option: { names: ["-o"], type: "option" },
+            },
+          ]);
+        });
+        specify("usage", () => {
+          expect(evaluate("argspec (-o a) usage")).to.eql(STR("-o a"));
+          expect(evaluate("argspec ((-o --opt) a) usage")).to.eql(
+            STR("-o|--opt a")
+          );
+        });
+        describe("set", () => {
+          specify("one", () => {
+            evaluate("argspec (-o a) set (-o val)");
+            expect(evaluate("get a")).to.eql(STR("val"));
+          });
+          specify("two", () => {
+            evaluate("argspec (-o a -p b) set (-o val1 -p val2)");
+            expect(evaluate("get a")).to.eql(STR("val1"));
+            expect(evaluate("get b")).to.eql(STR("val2"));
+          });
+          specify("out of order", () => {
+            evaluate("argspec (-o a -p b) set (-p val1 -o val2)");
+            expect(evaluate("get a")).to.eql(STR("val2"));
+            expect(evaluate("get b")).to.eql(STR("val1"));
+          });
+          specify("prefix", () => {
+            evaluate("argspec (-o a -p b c) set (-o val1 -p val2 val3)");
+            expect(evaluate("get a")).to.eql(STR("val1"));
+            expect(evaluate("get b")).to.eql(STR("val2"));
+            expect(evaluate("get c")).to.eql(STR("val3"));
+          });
+          specify("suffix", () => {
+            evaluate("argspec (a -o b -p c) set (val1 -o val2 -p val3)");
+            expect(evaluate("get a")).to.eql(STR("val1"));
+            expect(evaluate("get b")).to.eql(STR("val2"));
+            expect(evaluate("get c")).to.eql(STR("val3"));
+          });
+          specify("infix", () => {
+            evaluate("argspec (a -o b -p c d) set (val1 -o val2 -p val3 val4)");
+            expect(evaluate("get a")).to.eql(STR("val1"));
+            expect(evaluate("get b")).to.eql(STR("val2"));
+            expect(evaluate("get c")).to.eql(STR("val3"));
+            expect(evaluate("get d")).to.eql(STR("val4"));
+          });
+          specify("complex case", () => {
+            evaluate(`argspec (
+                a 
+                -o1 b -o2 c 
+                d 
+                -o3 e
+                f g h 
+                -o4 i -o5 j -o6 k
+                l
+              ) set (
+                val1 
+                -o2 val2 -o1 val3
+                val4 
+                -o3 val5 
+                val6 val7 val8
+                -o6 val9 -o4 val10 -o5 val11
+                val12
+              )`);
+            expect(evaluate("get a")).to.eql(STR("val1"));
+            expect(evaluate("get b")).to.eql(STR("val3"));
+            expect(evaluate("get c")).to.eql(STR("val2"));
+            expect(evaluate("get d")).to.eql(STR("val4"));
+            expect(evaluate("get e")).to.eql(STR("val5"));
+            expect(evaluate("get f")).to.eql(STR("val6"));
+            expect(evaluate("get g")).to.eql(STR("val7"));
+            expect(evaluate("get h")).to.eql(STR("val8"));
+            expect(evaluate("get i")).to.eql(STR("val10"));
+            expect(evaluate("get j")).to.eql(STR("val11"));
+            expect(evaluate("get k")).to.eql(STR("val9"));
+            expect(evaluate("get l")).to.eql(STR("val12"));
+          });
+        });
+      });
+
+      describe("Optional options", () => {
+        specify("value", () => {
+          const value = evaluate("argspec (-o ?a)") as ArgspecValue;
+          expect(evaluate("argspec {-o ?a}")).to.eql(value);
+          expect(value.argspec).to.include({
+            nbRequired: 0,
+            nbOptional: 2,
+            hasRemainder: false,
+          });
+          expect(value.argspec.args).to.eql([
+            {
+              name: "a",
+              type: "optional",
+              option: { names: ["-o"], type: "option" },
+            },
+          ]);
+        });
+        specify("usage", () => {
+          expect(evaluate("argspec (-o ?a) usage")).to.eql(STR("?-o a?"));
+          expect(evaluate("argspec ((-o --opt) ?a) usage")).to.eql(
+            STR("?-o|--opt a?")
+          );
+        });
+        describe("set", () => {
+          specify("zero", () => {
+            evaluate("argspec (-o ?a) set ()");
+            expect(execute("get a")).to.eql(
+              ERROR(`cannot get "a": no such variable`)
+            );
+          });
+          specify("default", () => {
+            evaluate("argspec (-o (?a def)) set ()");
+            expect(evaluate("get a")).to.eql(STR("def"));
+          });
+          specify("one", () => {
+            evaluate("argspec (-o ?a) set (-o val)");
+            expect(evaluate("get a")).to.eql(STR("val"));
+          });
+          specify("two", () => {
+            evaluate("argspec (-o ?a -p ?b) set (-o val)");
+            expect(evaluate("get a")).to.eql(STR("val"));
+            expect(execute("get b")).to.eql(
+              ERROR(`cannot get "b": no such variable`)
+            );
+          });
+        });
+      });
+
+      describe("Flags", () => {
+        mochadoc.description(() => {
+          /**
+           * Flags are optional boolean options that take no value.
+           */
+        });
+
+        specify("value", () => {
+          const value = evaluate("argspec (?-o ?a)") as ArgspecValue;
+          expect(evaluate("argspec {?-o ?a}")).to.eql(value);
+          expect(value.argspec).to.include({
+            nbRequired: 0,
+            nbOptional: 1,
+            hasRemainder: false,
+          });
+          expect(value.argspec.args).to.eql([
+            {
+              name: "a",
+              type: "optional",
+              option: { names: ["-o"], type: "flag" },
+            },
+          ]);
+        });
+        specify("usage", () => {
+          expect(evaluate("argspec (?-o ?a) usage")).to.eql(STR("?-o?"));
+          expect(evaluate("argspec ((?-o ?--opt) ?a) usage")).to.eql(
+            STR("?-o|--opt?")
+          );
+        });
+        describe("set", () => {
+          specify("zero", () => {
+            evaluate("argspec (?-o ?a) set ()");
+            expect(evaluate("get a")).to.eql(FALSE);
+          });
+          specify("one", () => {
+            evaluate("argspec (?-o ?a) set (-o)");
+            expect(evaluate("get a")).to.eql(TRUE);
+          });
+          specify("two", () => {
+            evaluate("argspec (?-o ?a ?-p ?b) set (-p)");
+            expect(evaluate("get a")).to.eql(FALSE);
+            expect(evaluate("get b")).to.eql(TRUE);
+          });
+        });
+
+        describe("Exceptions", () => {
+          specify("non-optional argument", () => {
+            /**
+             * Flag arguments must be optional
+             */
+            expect(execute("argspec (?-o a)")).to.eql(
+              ERROR(`argument for flag "-o" must be optional`)
+            );
+          });
+        });
+      });
+
+      describe("Exceptions", () => {
+        specify("missing argument", () => {
+          /**
+           * Options must be followed by an argument.
+           */
+          expect(execute("argspec (-a)")).to.eql(
+            ERROR(`missing argument for option "-a"`)
+          );
+          expect(execute("argspec ((-a --argument))")).to.eql(
+            ERROR(`missing argument for option "-a|--argument"`)
+          );
+          expect(execute("argspec ({-a --arg --argument-name})")).to.eql(
+            ERROR(`missing argument for option "-a|--arg|--argument-name"`)
+          );
+          expect(execute("argspec ([list (-a --argument)])")).to.eql(
+            ERROR(`missing argument for option "-a|--argument"`)
+          );
+        });
+        specify("incompatible aliases", () => {
+          expect(execute("argspec ((?-a --argument) a)")).to.eql(
+            ERROR(`incompatible aliases for option "-a"`)
+          );
+          expect(execute("argspec ((-a ?--argument) a)")).to.eql(
+            ERROR(`incompatible aliases for option "-a"`)
+          );
+        });
+        specify("duplicate options", () => {
+          expect(execute("argspec (-o a -o b)")).to.eql(
+            ERROR('duplicate option "-o"')
+          );
+          expect(execute("argspec ((-o --opt) a --opt b)")).to.eql(
+            ERROR('duplicate option "--opt"')
+          );
+          expect(execute("argspec ((-o -o) a --opt b)")).to.eql(
+            ERROR('duplicate option "-o"')
+          );
+        });
+        specify("remainder before non-required options", () => {
+          expect(execute("argspec (*args -o ?o)")).to.eql(
+            ERROR("cannot use remainder argument before a non-required option")
+          );
+          expect(execute("argspec (*args ?-o ?o)")).to.eql(
+            ERROR("cannot use remainder argument before a non-required option")
+          );
+        });
+      });
+    });
+
+    mochadoc.section("Evaluation order", () => {
+      mochadoc.description(() => {
+        /**
+         * Argument values are evaluated left-to-right and in order of priority:
+         *
+         * - Required arguments
+         * - Optional arguments
+         * - Remainder
+         *
+         * If there are neither optional nor remainder arguments then the number
+         * of provided argument values must match the number of required
+         * arguments. Else it must be at least equal to the number of required
+         * arguments.
+         *
+         * If there is no remainder argument then the number of extra argument
+         * values must not exceed the number of optional arguments. Else the
+         * the remainder argument is set to the remaining values.
+         *
+         * Consecutive arguments are grouped depending on whether they have an
+         * option specification. There can be any number of groups of alternate
+         * kinds.
+         *
+         * Opionless arguments are positional and must be provided in the same
+         * order as they are specified.
+         *
+         * Options can be provided in any order within the same group of
+         * consecutive options.
+         *
+         * In both cases, optional argument values are set in the order they are
+         * provided.
+         */
+      });
+
+      specify("required positionals only", () => {
+        /**
+         * The number of values must match the number of required arguments.
+         * Values are provided in order.
+         */
+        evaluate("set s [argspec (a b c)]");
+        expect(execute("argspec $s set ()")).to.eql(
+          ERROR(`wrong # values: should be "a b c"`)
+        );
+        expect(execute("argspec $s set (1 2 3 4)")).to.eql(
+          ERROR(`wrong # values: should be "a b c"`)
+        );
+        expect(evaluate("argspec $s set (1 2 3); get (a b c)")).to.eql(
+          evaluate("idem (1 2 3)")
+        );
+      });
+      specify("required options only", () => {
+        /**
+         * The number of values must match the number of required options.
+         * Values can be provided out-of-order.
+         */
+        evaluate("set s [argspec (-a a -b b -c c)]");
+        expect(execute("argspec $s set ()")).to.eql(
+          ERROR(`wrong # values: should be "-a a -b b -c c"`)
+        );
+        expect(execute("argspec $s set (-a 1)")).to.eql(
+          ERROR(`wrong # values: should be "-a a -b b -c c"`)
+        );
+        expect(execute("argspec $s set (-a 1 -b 2 -c 3 4)")).to.eql(
+          ERROR(`wrong # values: should be "-a a -b b -c c"`)
+        );
+        expect(evaluate("argspec $s set (-a 1 -b 2 -c 3); get (a b c)")).to.eql(
+          evaluate("idem (1 2 3)")
+        );
+        expect(evaluate("argspec $s set (-b 1 -c 2 -a 3); get (a b c)")).to.eql(
+          evaluate("idem (3 1 2)")
+        );
+      });
+      specify("required and optional options", () => {
+        /**
+         * The number of values must be at least the number of required options,
+         * and at most the total number of options. Values can be provided
+         * out-of-order. All required options must be provided.
+         */
+        evaluate("set s [argspec (-a a -b ?b ?-c ?c -d ?d -e e)]");
+        evaluate(
+          "macro cleanup {} {list (a b c d e) foreach v {catch {unset $v}}}"
+        );
+        expect(execute("argspec $s set ()")).to.eql(
+          ERROR(`wrong # values: should be "-a a ?-b b? ?-c? ?-d d? -e e"`)
+        );
+        expect(execute("argspec $s set (-a 1)")).to.eql(
+          ERROR(`wrong # values: should be "-a a ?-b b? ?-c? ?-d d? -e e"`)
+        );
+        expect(execute("argspec $s set (-a 1 -b 2 -c -d 3 -e 4 5)")).to.eql(
+          ERROR(`wrong # values: should be "-a a ?-b b? ?-c? ?-d d? -e e"`)
+        );
+        expect(
+          evaluate("argspec $s set (-a 1 -b 2 -c -d 3 -e 4); get (a b c d e)")
+        ).to.eql(evaluate("idem (1 2 [true] 3 4)"));
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (-a 1 -e 2); list ($a [exists b] $c [exists d] $e)"
+          )
+        ).to.eql(evaluate("list (1 [false] [false] [false] 2)"));
+        expect(execute("argspec $s set (-b 1 -d 2)")).to.eql(
+          ERROR(`missing value for option "-a"`)
+        );
+        expect(execute("argspec $s set (-b 1 -a 2 -d 3)")).to.eql(
+          ERROR(`missing value for option "-e"`)
+        );
+        expect(execute("argspec $s set (-c -a 1 -d 2)")).to.eql(
+          ERROR(`missing value for option "-e"`)
+        );
+      });
+      specify("required positional and option groups", () => {
+        /**
+         * The number of values must match the number of required options.
+         * Within the same group, positional values are provided in order
+         * whereas options can be provided out-of-order. Options cannot be
+         * provided outside of their group.
+         */
+        evaluate("set s [argspec (a b -c c d -e e -f f -g g h i j -k k)]");
+        expect(execute("argspec $s set ()")).to.eql(
+          ERROR(
+            `wrong # values: should be "a b -c c d -e e -f f -g g h i j -k k"`
+          )
+        );
+        expect(execute("argspec $s set (a b -c)")).to.eql(
+          ERROR(
+            `wrong # values: should be "a b -c c d -e e -f f -g g h i j -k k"`
+          )
+        );
+        expect(
+          evaluate(
+            "argspec $s set (1 2 -c 3 4 -e 5 -f 6 -g 7 8 9 10 -k 11); get (a b c d e f g h i j k)"
+          )
+        ).to.eql(evaluate("idem (1 2 3 4 5 6 7 8 9 10 11)"));
+        expect(
+          evaluate(
+            "argspec $s set (1 2 -c 3 4 -e 5 -g 6 -f 7 8 9 10 -k 11); get (a b c d e f g h i j k)"
+          )
+        ).to.eql(evaluate("idem (1 2 3 4 5 7 6 8 9 10 11)"));
+        expect(
+          execute("argspec $s set (1 2 -e 3 4 -c 5 -f 6 -g 7 8 9 10 -k 11)")
+        ).to.eql(ERROR(`unexpected option "-e"`));
+        expect(
+          execute("argspec $s set (1 2 -c 3 4 -e 5 -f 6 -f 7 8 9 10 -k 11)")
+        ).to.eql(ERROR(`duplicate values for option "-f"`));
+      });
+      specify("optional arguments", () => {
+        /**
+         * Optional argument values are set left-to-right:
+         * - Positionals are set in the order they are specified
+         * - Options can be set in any order and can be omitted
+         */
+        evaluate("set s [argspec (?a ?b ?-c ?c -d ?d ?e ?f)]");
+        evaluate(
+          "macro cleanup {} {list (a b c d e f) foreach v {catch {unset $v}}}"
+        );
+        expect(
+          evaluate(
+            "argspec $s set (); list ([exists a] [exists b] $c [exists d] [exists e] [exists f])"
+          )
+        ).to.eql(
+          evaluate("list ([false] [false] [false] [false] [false] [false])")
+        );
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1); list ($a [exists b] $c [exists d] [exists e] [exists f])"
+          )
+        ).to.eql(evaluate("list (1 [false] [false] [false] [false] [false])"));
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 2); list ($a $b $c [exists d] [exists e] [exists f])"
+          )
+        ).to.eql(evaluate("list (1 2 [false] [false] [false] [false])"));
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 2 3); list ($a $b $c [exists d] $e [exists f])"
+          )
+        ).to.eql(evaluate("list (1 2 [false] [false] 3 [false])"));
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 2 3 4); list ($a $b $c [exists d] $e $f)"
+          )
+        ).to.eql(evaluate("list (1 2 [false] [false] 3 4)"));
+        expect(execute("argspec $s set (1 2 3 4 5)")).to.eql(
+          ERROR("argument mismatch")
+        );
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 2 -c 3 4); list ($a $b $c [exists d] $e $f)"
+          )
+        ).to.eql(evaluate("list (1 2 [true] [false] 3 4)"));
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 2 -d 3 4); list ($a $b $c $d $e [exists f])"
+          )
+        ).to.eql(evaluate("list (1 2 [false] 3 4 [false])"));
+        expect(execute("argspec $s set (1 -d 2 3 4)")).to.eql(
+          ERROR("argument mismatch")
+        );
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 2 -c -d 3 4); list ($a $b $c $d $e [exists f])"
+          )
+        ).to.eql(evaluate("list (1 2 [true] 3 4 [false])"));
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 2 -c -d 3 4 5); list ($a $b $c $d $e $f)"
+          )
+        ).to.eql(evaluate("list (1 2 [true] 3 4 5)"));
+      });
+      specify("remainder argument", () => {
+        /**
+         * Remainder argument values are always set after all required and
+         * optional arguments have been set. This can bring unexpected results.
+         */
+        evaluate("set s [argspec (?a ?-b ?b -c ?c -d d *args e)]");
+        evaluate(
+          "macro cleanup {} {list (a b c d e args) foreach v {catch {unset $v}}}"
+        );
+        expect(execute("argspec $s set ()")).to.eql(
+          ERROR(`wrong # values: should be "?a? ?-b? ?-c c? -d d ?args ...? e"`)
+        );
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (-d 1 2); list ([exists a] $b [exists c] $d $e $args)"
+          )
+        ).to.eql(evaluate("list ([false] [false] [false] 1 2 ())"));
+        expect(execute("argspec $s set (-d 1 2 3)")).to.eql(
+          ERROR(`unknown option "1"`)
+        );
+        expect(execute("argspec $s set (1 -d 2 3 4)")).to.eql(
+          ERROR(`argument mismatch`)
+        );
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 -b -d 2 3); list ($a $b [exists c] $d $e $args)"
+          )
+        ).to.eql(evaluate("list (1 [true] [false] 2 3 ())"));
+        expect(execute("argspec $s set (1 -b -d 2 3 4)")).to.eql(
+          ERROR(`argument mismatch`)
+        );
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 -b -c 2 -d 3 4); list ($a $b $c $d $e $args)"
+          )
+        ).to.eql(evaluate("list (1 [true] 2 3 4 ())"));
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 -b -c 2 -d 3 4 5 6); list ($a $b $c $d $e $args)"
+          )
+        ).to.eql(evaluate("list (1 [true] 2 3 6 (4 5))"));
+      });
+      specify("complex case", () => {
+        evaluate(
+          "set s [argspec (a ?b ?-c ?c -d ?d  -e e -f ?f -g g ?h *args ?i j -k k)]"
+        );
+        evaluate(
+          "macro cleanup {} {list (a b c d e f g h i j k args) foreach v {catch {unset $v}}}"
+        );
+        expect(execute("argspec $s set ()")).to.eql(
+          ERROR(
+            `wrong # values: should be "a ?b? ?-c? ?-d d? -e e ?-f f? -g g ?h? ?args ...? ?i? j -k k"`
+          )
+        );
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 2 -c -d 3 -e 4 -f 5 -g 6 7 8 9 10 11 12 -k 13); get (a b c d e f g h i j k args)"
+          )
+        ).to.eql(evaluate("idem (1 2 [true] 3 4 5 6 7 11 12 13 (8 9 10))"));
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 -e 2 -g 3 4 -k 5); get (a c e g j k args)"
+          )
+        ).to.eql(evaluate("idem (1 [false] 2 3 4 5 ())"));
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 2 -e 3 -g 4 5 -k 6); get (a b c e g j k args)"
+          )
+        ).to.eql(evaluate("idem (1 2 [false] 3 4 5 6 ())"));
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 2 -e 3 -g 4 5 -k 6); get (a b c e g j k args)"
+          )
+        ).to.eql(evaluate("idem (1 2 [false] 3 4 5 6 ())"));
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 2 -c -e 3 -g 4 5 -k 6); get (a b c e g j k args)"
+          )
+        ).to.eql(evaluate("idem (1 2 [true] 3 4 5 6 ())"));
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 2 -d 3 -e 4 -g 5 6 -k 7); get (a b c d e g j k args)"
+          )
+        ).to.eql(evaluate("idem (1 2 [false] 3 4 5 6 7 ())"));
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 2 -d 3 -e 4 -g 5 6 7 -k 8); get (a b c d e g h j k args)"
+          )
+        ).to.eql(evaluate("idem (1 2 [false] 3 4 5 6 7 8 ())"));
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 2 -d 3 -e 4 -g 5 6 7 8 -k 9); get (a b c d e g h i j k args)"
+          )
+        ).to.eql(evaluate("idem (1 2 [false] 3 4 5 6 7 8 9 ())"));
+        expect(
+          execute(
+            "argspec $s set (1 2 -d 3 -e 4 -g 5 6 7 8 9 -k 10); get (a b c d e g h i j k args)"
+          )
+        ).to.eql(ERROR(`unknown option "9"`));
+      });
+    });
+
     mochadoc.section("Subcommands", () => {
       mochadoc.description(() => {
         /**
@@ -749,7 +1310,7 @@ describe("Helena argument handling", () => {
       });
 
       describe("`set`", () => {
-        mochadoc.description(usage("argspec () usage"));
+        mochadoc.description(usage("argspec () set"));
         mochadoc.description(() => {
           /**
            * Set parameter variables from a list of argument values
@@ -831,6 +1392,9 @@ describe("Helena argument handling", () => {
               ERROR('wrong # args: should be "argspec value set values"')
             );
             expect(execute("argspec {} set a b")).to.eql(
+              ERROR('wrong # args: should be "argspec value set values"')
+            );
+            expect(execute("help argspec {} set a b")).to.eql(
               ERROR('wrong # args: should be "argspec value set values"')
             );
           });
