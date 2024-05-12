@@ -18,6 +18,10 @@ export type Option = {
   readonly type: "flag" | "option";
 };
 
+export function optionName(names: string[]) {
+  return names.join("|");
+}
+
 export function buildArguments(specs: Value): Result<Argument[]> {
   const args: Argument[] = [];
   const argnames = new Set<string>();
@@ -43,7 +47,7 @@ export function buildArguments(specs: Value): Result<Argument[]> {
     if (lastOption) {
       if (lastOption.type == "flag" && arg.type != "optional") {
         return ERROR(
-          `argument for flag "${lastOption.names.join("|")}" must be optional`
+          `argument for flag "${optionName(lastOption.names)}" must be optional`
         );
       }
       if (arg.type != "required" && hasRemainder) {
@@ -65,7 +69,9 @@ export function buildArguments(specs: Value): Result<Argument[]> {
     args.push(arg);
   }
   if (lastOption) {
-    return ERROR(`missing argument for option "${lastOption.names.join("|")}"`);
+    return ERROR(
+      `missing argument for option "${optionName(lastOption.names)}"`
+    );
   }
   return OK(NIL, args);
 }
@@ -94,21 +100,25 @@ function isOption(value: Value): Result<Option> {
     if (name[0] == "-") {
       // Option
       if (name.length < 2) break;
-      if (type && type != "option") break;
+      if (name == "--")
+        return ERROR("cannot use option terminator as option name");
+      if (names.length && type != "option") break;
       type = "option";
       names.push(name);
     } else if (name[0] == "?") {
       // Flag
       if (name.length < 3) break;
       if (name[1] != "-") break;
-      if (type && type != "flag") break;
+      if (name == "?--")
+        return ERROR("cannot use option terminator as option name");
+      if (names.length && type != "flag") break;
       type = "flag";
       names.push(name.substring(1));
     } else break;
   }
-  if (!type) return OK(NIL);
+  if (names.length == 0) return OK(NIL);
   if (names.length != options.length) {
-    return ERROR(`incompatible aliases for option "${names.join("|")}"`);
+    return ERROR(`incompatible aliases for option "${optionName(names)}"`);
   }
   return OK(NIL, { names, type });
 }
@@ -209,7 +219,7 @@ export function buildUsage(args: Argument[], skip = 0) {
   for (let i = skip; i < args.length; i++) {
     const arg = args[i];
     if (arg.option) {
-      const name = arg.option.names.join("|");
+      const name = optionName(arg.option.names);
       switch (arg.option.type) {
         case "flag":
           parts.push(`?${name}?`);

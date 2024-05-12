@@ -921,6 +921,17 @@ describe("Helena argument handling", () => {
             ERROR("cannot use remainder argument before a non-required option")
           );
         });
+        specify("option terminator", () => {
+          expect(execute("argspec (--)")).to.eql(
+            ERROR(`cannot use option terminator as option name`)
+          );
+          expect(execute("argspec (?--)")).to.eql(
+            ERROR(`cannot use option terminator as option name`)
+          );
+          expect(execute("argspec ((-a --))")).to.eql(
+            ERROR(`cannot use option terminator as option name`)
+          );
+        });
       });
     });
 
@@ -1172,6 +1183,62 @@ describe("Helena argument handling", () => {
             "cleanup; argspec $s set (1 -b -c 2 -d 3 4 5 6); list ($a $b $c $d $e $args)"
           )
         ).to.eql(evaluate("list (1 [true] 2 3 6 (4 5))"));
+        expect(
+          evaluate(
+            "cleanup; argspec (*args -a a -b b) set (1 2 -b 3 -a 4); get (a b args)"
+          )
+        ).to.eql(evaluate("idem (4 3 (1 2))"));
+        expect(
+          evaluate(
+            "cleanup; argspec (*args -a a -b b) set (1 2 -a 3 -b 4); get (a b args)"
+          )
+        ).to.eql(evaluate("idem (3 4 (1 2))"));
+        expect(
+          evaluate(
+            "cleanup; argspec (*args a -b b) set (1 2 3 -b 4); get (a b args)"
+          )
+        ).to.eql(evaluate("idem (3 4 (1 2))"));
+      });
+      specify("option terminator", () => {
+        /**
+         * Option terminators `--` will end option groups as long as all
+         * required options have been set.
+         */
+        evaluate("set s [argspec (-a a -b b c -d ?d ?-e ?e *args)]");
+        evaluate(
+          "macro cleanup {} {list (a b c d e args) foreach v {catch {unset $v}}}"
+        );
+        expect(execute("argspec $s set ()")).to.eql(
+          ERROR(
+            `wrong # values: should be "-a a -b b c ?-d d? ?-e? ?args ...?"`
+          )
+        );
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (-a 1 -b 2 3 -d 4 -e); get (a b c d e args)"
+          )
+        ).to.eql(evaluate("idem (1 2 3 4 [true] ())"));
+        expect(execute("argspec $s set (-- -a 1 -b 2 3 -d 4 -e)")).to.eql(
+          ERROR("unexpected option terminator")
+        );
+        expect(execute("argspec $s set (-a 1 -- -b 2 3 -d 4 -e)")).to.eql(
+          ERROR("unexpected option terminator")
+        );
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (-a 1 -b 2 -- 3 -d 4 -e); get (a b c d e args)"
+          )
+        ).to.eql(evaluate("idem (1 2 3 4 [true] ())"));
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (-a 1 -b 2 3 -- 4 5 6); list ($a $b $c [exists d] $e $args)"
+          )
+        ).to.eql(evaluate("list (1 2 3 [false] [false] (4 5 6))"));
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (-a 1 -b 2 3 -d 4 -e --); get (a b c d e args)"
+          )
+        ).to.eql(evaluate("idem (1 2 3 4 [true] ())"));
       });
       specify("complex case", () => {
         evaluate(

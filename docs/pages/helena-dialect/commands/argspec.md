@@ -282,6 +282,7 @@ Flags are optional boolean options that take no value.
   - ✅ incompatible aliases
   - ✅ duplicate options
   - ✅ remainder before non-required options
+  - ✅ option terminator
 
 ## <a id="argspec-evaluation-order"></a>Evaluation order
 
@@ -346,6 +347,11 @@ provided.
 
   Remainder argument values are always set after all required and
   optional arguments have been set. This can bring unexpected results.
+
+- ✅ option terminator
+
+  Option terminators `--` will end option groups as long as all
+  required options have been set.
 
 - ✅ complex case
 
