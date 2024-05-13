@@ -777,7 +777,7 @@ describe("Helena argument handling", () => {
           expect(evaluate("argspec {-o ?a}")).to.eql(value);
           expect(value.argspec).to.include({
             nbRequired: 0,
-            nbOptional: 2,
+            nbOptional: 0,
             hasRemainder: false,
           });
           expect(value.argspec.args).to.eql([
@@ -831,7 +831,7 @@ describe("Helena argument handling", () => {
           expect(evaluate("argspec {?-o ?a}")).to.eql(value);
           expect(value.argspec).to.include({
             nbRequired: 0,
-            nbOptional: 1,
+            nbOptional: 0,
             hasRemainder: false,
           });
           expect(value.argspec.args).to.eql([
@@ -913,12 +913,15 @@ describe("Helena argument handling", () => {
             ERROR('duplicate option "-o"')
           );
         });
-        specify("remainder before non-required options", () => {
+        specify("remainder before options", () => {
+          expect(execute("argspec (*args -o o)")).to.eql(
+            ERROR("cannot use remainder argument before options")
+          );
           expect(execute("argspec (*args -o ?o)")).to.eql(
-            ERROR("cannot use remainder argument before a non-required option")
+            ERROR("cannot use remainder argument before options")
           );
           expect(execute("argspec (*args ?-o ?o)")).to.eql(
-            ERROR("cannot use remainder argument before a non-required option")
+            ERROR("cannot use remainder argument before options")
           );
         });
         specify("option terminator", () => {
@@ -997,7 +1000,7 @@ describe("Helena argument handling", () => {
           ERROR(`wrong # values: should be "-a a -b b -c c"`)
         );
         expect(execute("argspec $s set (-a 1 -b 2 -c 3 4)")).to.eql(
-          ERROR(`wrong # values: should be "-a a -b b -c c"`)
+          ERROR("extra values after arguments")
         );
         expect(evaluate("argspec $s set (-a 1 -b 2 -c 3); get (a b c)")).to.eql(
           evaluate("idem (1 2 3)")
@@ -1023,7 +1026,7 @@ describe("Helena argument handling", () => {
           ERROR(`wrong # values: should be "-a a ?-b b? ?-c? ?-d d? -e e"`)
         );
         expect(execute("argspec $s set (-a 1 -b 2 -c -d 3 -e 4 5)")).to.eql(
-          ERROR(`wrong # values: should be "-a a ?-b b? ?-c? ?-d d? -e e"`)
+          ERROR("extra values after arguments")
         );
         expect(
           evaluate("argspec $s set (-a 1 -b 2 -c -d 3 -e 4); get (a b c d e)")
@@ -1116,7 +1119,7 @@ describe("Helena argument handling", () => {
           )
         ).to.eql(evaluate("list (1 2 [false] [false] 3 4)"));
         expect(execute("argspec $s set (1 2 3 4 5)")).to.eql(
-          ERROR("argument mismatch")
+          ERROR("extra values after arguments")
         );
         expect(
           evaluate(
@@ -1129,7 +1132,7 @@ describe("Helena argument handling", () => {
           )
         ).to.eql(evaluate("list (1 2 [false] 3 4 [false])"));
         expect(execute("argspec $s set (1 -d 2 3 4)")).to.eql(
-          ERROR("argument mismatch")
+          ERROR("extra values after arguments")
         );
         expect(
           evaluate(
@@ -1162,17 +1165,21 @@ describe("Helena argument handling", () => {
         expect(execute("argspec $s set (-d 1 2 3)")).to.eql(
           ERROR(`unknown option "1"`)
         );
-        expect(execute("argspec $s set (1 -d 2 3 4)")).to.eql(
-          ERROR(`argument mismatch`)
-        );
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 -d 2 3 4); list ($a $b [exists c] $d $e $args)"
+          )
+        ).to.eql(evaluate("list (1 [false] [false] 2 4 (3))"));
         expect(
           evaluate(
             "cleanup; argspec $s set (1 -b -d 2 3); list ($a $b [exists c] $d $e $args)"
           )
         ).to.eql(evaluate("list (1 [true] [false] 2 3 ())"));
-        expect(execute("argspec $s set (1 -b -d 2 3 4)")).to.eql(
-          ERROR(`argument mismatch`)
-        );
+        expect(
+          evaluate(
+            "cleanup; argspec $s set (1 -b -d 2 3 4); list ($a $b [exists c] $d $e $args)"
+          )
+        ).to.eql(evaluate("list (1 [true] [false] 2 4 (3))"));
         expect(
           evaluate(
             "cleanup; argspec $s set (1 -b -c 2 -d 3 4); list ($a $b $c $d $e $args)"
@@ -1183,26 +1190,11 @@ describe("Helena argument handling", () => {
             "cleanup; argspec $s set (1 -b -c 2 -d 3 4 5 6); list ($a $b $c $d $e $args)"
           )
         ).to.eql(evaluate("list (1 [true] 2 3 6 (4 5))"));
-        expect(
-          evaluate(
-            "cleanup; argspec (*args -a a -b b) set (1 2 -b 3 -a 4); get (a b args)"
-          )
-        ).to.eql(evaluate("idem (4 3 (1 2))"));
-        expect(
-          evaluate(
-            "cleanup; argspec (*args -a a -b b) set (1 2 -a 3 -b 4); get (a b args)"
-          )
-        ).to.eql(evaluate("idem (3 4 (1 2))"));
-        expect(
-          evaluate(
-            "cleanup; argspec (*args a -b b) set (1 2 3 -b 4); get (a b args)"
-          )
-        ).to.eql(evaluate("idem (3 4 (1 2))"));
       });
       specify("option terminator", () => {
         /**
          * Option terminators `--` will end option groups as long as all
-         * required options have been set.
+         * required options have been set. They are ignored when checking arity.
          */
         evaluate("set s [argspec (-a a -b b c -d ?d ?-e ?e *args)]");
         evaluate(
@@ -1242,61 +1234,61 @@ describe("Helena argument handling", () => {
       });
       specify("complex case", () => {
         evaluate(
-          "set s [argspec (a ?b ?-c ?c -d ?d  -e e -f ?f -g g ?h *args ?i j -k k)]"
+          "set s [argspec (a ?b ?-c ?c -d ?d -e e -f ?f -g g ?h *args ?i j k)]"
         );
         evaluate(
           "macro cleanup {} {list (a b c d e f g h i j k args) foreach v {catch {unset $v}}}"
         );
         expect(execute("argspec $s set ()")).to.eql(
           ERROR(
-            `wrong # values: should be "a ?b? ?-c? ?-d d? -e e ?-f f? -g g ?h? ?args ...? ?i? j -k k"`
+            `wrong # values: should be "a ?b? ?-c? ?-d d? -e e ?-f f? -g g ?h? ?args ...? ?i? j k"`
           )
         );
         expect(
           evaluate(
-            "cleanup; argspec $s set (1 2 -c -d 3 -e 4 -f 5 -g 6 7 8 9 10 11 12 -k 13); get (a b c d e f g h i j k args)"
+            "cleanup; argspec $s set (1 2 -c -d 3 -e 4 -f 5 -g 6 7 8 9 10 11 12 13); get (a b c d e f g h i j k args)"
           )
         ).to.eql(evaluate("idem (1 2 [true] 3 4 5 6 7 11 12 13 (8 9 10))"));
         expect(
           evaluate(
-            "cleanup; argspec $s set (1 -e 2 -g 3 4 -k 5); get (a c e g j k args)"
+            "cleanup; argspec $s set (1 -e 2 -g 3 4 5); get (a c e g j k args)"
           )
         ).to.eql(evaluate("idem (1 [false] 2 3 4 5 ())"));
         expect(
           evaluate(
-            "cleanup; argspec $s set (1 2 -e 3 -g 4 5 -k 6); get (a b c e g j k args)"
+            "cleanup; argspec $s set (1 2 -e 3 -g 4 5 6); get (a b c e g j k args)"
           )
         ).to.eql(evaluate("idem (1 2 [false] 3 4 5 6 ())"));
         expect(
           evaluate(
-            "cleanup; argspec $s set (1 2 -e 3 -g 4 5 -k 6); get (a b c e g j k args)"
+            "cleanup; argspec $s set (1 2 -e 3 -g 4 5 6); get (a b c e g j k args)"
           )
         ).to.eql(evaluate("idem (1 2 [false] 3 4 5 6 ())"));
         expect(
           evaluate(
-            "cleanup; argspec $s set (1 2 -c -e 3 -g 4 5 -k 6); get (a b c e g j k args)"
+            "cleanup; argspec $s set (1 2 -c -e 3 -g 4 5 6); get (a b c e g j k args)"
           )
         ).to.eql(evaluate("idem (1 2 [true] 3 4 5 6 ())"));
         expect(
           evaluate(
-            "cleanup; argspec $s set (1 2 -d 3 -e 4 -g 5 6 -k 7); get (a b c d e g j k args)"
+            "cleanup; argspec $s set (1 2 -d 3 -e 4 -g 5 6 7); get (a b c d e g j k args)"
           )
         ).to.eql(evaluate("idem (1 2 [false] 3 4 5 6 7 ())"));
         expect(
           evaluate(
-            "cleanup; argspec $s set (1 2 -d 3 -e 4 -g 5 6 7 -k 8); get (a b c d e g h j k args)"
+            "cleanup; argspec $s set (1 2 -d 3 -e 4 -g 5 6 7 8); get (a b c d e g h j k args)"
           )
         ).to.eql(evaluate("idem (1 2 [false] 3 4 5 6 7 8 ())"));
         expect(
           evaluate(
-            "cleanup; argspec $s set (1 2 -d 3 -e 4 -g 5 6 7 8 -k 9); get (a b c d e g h i j k args)"
+            "cleanup; argspec $s set (1 2 -d 3 -e 4 -g 5 6 7 8 9); get (a b c d e g h i j k args)"
           )
         ).to.eql(evaluate("idem (1 2 [false] 3 4 5 6 7 8 9 ())"));
         expect(
-          execute(
-            "argspec $s set (1 2 -d 3 -e 4 -g 5 6 7 8 9 -k 10); get (a b c d e g h i j k args)"
+          evaluate(
+            "argspec $s set (1 2 -d 3 -e 4 -g 5 6 7 8 9 10); get (a b c d e g h i j k args)"
           )
-        ).to.eql(ERROR(`unknown option "9"`));
+        ).to.eql(evaluate("idem (1 2 [false] 3 4 5 6 8 9 10 (7))"));
       });
     });
 

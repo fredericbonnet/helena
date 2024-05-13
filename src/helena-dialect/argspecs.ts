@@ -36,16 +36,7 @@ export class Argspec {
     for (let i = 0; i < args.length; i++) {
       const arg = args[i];
       if (arg.option) {
-        switch (arg.type) {
-          case "required":
-            this.nbRequired += 2;
-            break;
-          case "optional":
-            this.nbOptional += arg.option.type == "flag" ? 1 : 2;
-            break;
-          default:
-            throw new Error("CANTHAPPEN");
-        }
+        if (arg.type == "required") this.nbRequired += 2;
         if (!this.optionSlots) this.optionSlots = new Map<string, number>();
         for (const name of arg.option.names) this.optionSlots.set(name, i);
       } else {
@@ -92,6 +83,11 @@ export class ArgspecValue implements CustomValue {
     return buildUsage(this.argspec.args, skip);
   }
   checkArity(values: Value[], skip: number) {
+    if (this.argspec.hasOptions()) {
+      // There is no fast way to check arity without parsing all options, so
+      // just check that there are enough to cover all the required ones
+      return values.length - skip >= this.argspec.nbRequired;
+    }
     return (
       values.length - skip >= this.argspec.nbRequired &&
       (this.argspec.hasRemainder ||
@@ -173,10 +169,7 @@ export class ArgspecValue implements CustomValue {
     skip: number
   ): Result<{ slots: number[]; remainders: number }> {
     let nbRequired = this.argspec.nbRequired;
-    let nbOptional = Math.min(
-      this.argspec.nbOptional,
-      values.length - skip - nbRequired
-    );
+    let nbOptional = this.argspec.nbOptional;
     let remainders = 0;
     const nbArgs = this.argspec.args.length;
     const slots = new Array(nbArgs);
@@ -195,26 +188,25 @@ export class ArgspecValue implements CustomValue {
       }
       while (i < values.length && slot < lastSlot) {
         const arg = this.argspec.args[slot];
+        const remaining = values.length - i;
         switch (arg.type) {
           case "required":
             nbRequired--;
             slots[slot] = i++;
             break;
           case "optional":
-            if (nbOptional >= 1) {
+            if (remaining > nbRequired) {
               nbOptional--;
               slots[slot] = i++;
             }
             break;
-          case "remainder": {
-            const remaining = values.length - i;
-            remainders = remaining - nbRequired - nbOptional;
-            if (remainders > 0) {
+          case "remainder":
+            if (remaining > nbRequired + nbOptional) {
+              remainders = remaining - nbRequired - nbOptional;
               slots[slot] = i;
               i += remainders;
             }
             break;
-          }
         }
         slot++;
       }
@@ -233,38 +225,16 @@ export class ArgspecValue implements CustomValue {
       while (i < values.length && nbOptions < lastSlot - firstSlot) {
         const { data: optname, code } = StringValue.toString(values[i]);
         if (code != ResultCode.OK) {
-          if (requiredOptions) {
-            return ERROR("invalid option");
-          }
-          break;
+          if (!requiredOptions) break;
+          return ERROR("invalid option");
         }
         if (optname == "--") {
-          if (requiredOptions) {
-            return ERROR("unexpected option terminator");
-          }
-          // Skip all remaining optionals in the group
-          slot = firstSlot;
-          while (slot < lastSlot) {
-            const arg = this.argspec.args[slot];
-            if (slots[slot] < 0) {
-              switch (arg.option.type) {
-                case "flag":
-                  nbOptional--;
-                  break;
-                case "option":
-                  nbOptional -= 2;
-              }
-            }
-            slot++;
-          }
-          i++;
-          break;
+          if (!requiredOptions) break;
+          return ERROR("unexpected option terminator");
         }
         if (!this.argspec.optionSlots.has(optname)) {
-          if (requiredOptions) {
-            return ERROR(`unknown option "${optname}"`);
-          }
-          break;
+          if (!requiredOptions) break;
+          return ERROR(`unknown option "${optname}"`);
         }
         const optionSlot = this.argspec.optionSlots.get(optname);
         if (optionSlot < firstSlot || optionSlot >= lastSlot) {
@@ -279,10 +249,7 @@ export class ArgspecValue implements CustomValue {
         nbOptions++;
         switch (arg.option.type) {
           case "flag":
-            if (nbOptional >= 1) {
-              nbOptional--;
-              slots[optionSlot] = i++;
-            }
+            slots[optionSlot] = i++;
             break;
           case "option":
             switch (arg.type) {
@@ -293,11 +260,8 @@ export class ArgspecValue implements CustomValue {
                 i += 2;
                 break;
               case "optional":
-                if (nbOptional >= 2) {
-                  nbOptional -= 2;
-                  slots[optionSlot] = i + 1;
-                  i += 2;
-                }
+                slots[optionSlot] = i + 1;
+                i += 2;
                 break;
             }
             break;
@@ -313,7 +277,7 @@ export class ArgspecValue implements CustomValue {
       slot = lastSlot;
       if (slot >= nbArgs) break;
     }
-    if (nbOptional) return ERROR("argument mismatch"); // TODO find better error
+    if (i < values.length) return ERROR("extra values after arguments");
     return OK(NIL, { slots, remainders });
   }
   private applyPositionals(

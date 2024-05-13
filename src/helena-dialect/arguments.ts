@@ -34,6 +34,9 @@ export function buildArguments(specs: Value): Result<Argument[]> {
     const { data: option, ...result } = isOption(value);
     if (result.code != ResultCode.OK) return result;
     if (option) {
+      if (hasRemainder) {
+        return ERROR("cannot use remainder argument before options");
+      }
       for (const optname of option.names) {
         if (optnames.has(optname))
           return ERROR(`duplicate option "${optname}"`);
@@ -48,11 +51,6 @@ export function buildArguments(specs: Value): Result<Argument[]> {
       if (lastOption.type == "flag" && arg.type != "optional") {
         return ERROR(
           `argument for flag "${optionName(lastOption.names)}" must be optional`
-        );
-      }
-      if (arg.type != "required" && hasRemainder) {
-        return ERROR(
-          "cannot use remainder argument before a non-required option"
         );
       }
       args.push({ ...arg, option: lastOption });
