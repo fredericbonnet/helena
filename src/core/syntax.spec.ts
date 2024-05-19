@@ -146,7 +146,7 @@ describe("SyntaxChecker", () => {
         specify("double", () => {
           const script = parse("$$" + value);
           const word = firstWord(script);
-          expect(word.morphemes).to.have.length(2);
+          expect(word.morphemes).to.have.length(3);
           expect(checker.checkWord(word)).to.eq(WordType.SUBSTITUTION);
         });
         specify("indexed selector", () => {

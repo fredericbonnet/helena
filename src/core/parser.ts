@@ -284,7 +284,6 @@ class BlockCommentNode implements MorphemeNode {
 class SubstituteNextNode implements MorphemeNode {
   readonly type = MorphemeType.SUBSTITUTE_NEXT;
   expansion = false;
-  levels = 1;
   value: string;
 
   constructor(value: string) {
@@ -295,7 +294,6 @@ class SubstituteNextNode implements MorphemeNode {
     return {
       type: this.type,
       expansion: this.expansion,
-      levels: this.levels,
       value: this.value,
     };
   }
@@ -1050,19 +1048,14 @@ export class Parser {
    */
 
   private beginSubstitution(value: string) {
-    if (this.context.currentMorpheme()?.type == MorphemeType.SUBSTITUTE_NEXT) {
-      const morpheme = this.context.currentMorpheme() as SubstituteNextNode;
-      morpheme.value += value;
-      morpheme.levels++;
-      if (this.stream.current()?.type == TokenType.ASTERISK) {
-        // Ignore expansion on inner substitutions
-        morpheme.value += this.stream.next().literal;
-      }
-      return;
-    }
     const morpheme = new SubstituteNextNode(value);
     if (this.stream.current()?.type == TokenType.ASTERISK) {
-      morpheme.expansion = true;
+      if (
+        this.context.currentMorpheme()?.type != MorphemeType.SUBSTITUTE_NEXT
+      ) {
+        // Only expand the leading substitution
+        morpheme.expansion = true;
+      }
       morpheme.value += this.stream.next().literal;
     }
     this.context.morphemes.push(morpheme);
@@ -1078,8 +1071,14 @@ export class Parser {
 
     // Convert stale substitutions to literals
     this.context.substitutionMode = "";
-    const value = (this.context.currentMorpheme() as SubstituteNextNode).value;
-    this.context.morphemes.pop();
+    let value = "";
+    while (
+      this.context.currentMorpheme()?.type == MorphemeType.SUBSTITUTE_NEXT
+    ) {
+      value =
+        (this.context.currentMorpheme() as SubstituteNextNode).value + value;
+      this.context.morphemes.pop();
+    }
     this.addLiteral(value);
   }
   private withinSubstitution() {
@@ -1087,8 +1086,5 @@ export class Parser {
   }
   private expectSource() {
     return this.context.substitutionMode == "expect-source";
-  }
-  private expectSelector() {
-    return this.context.substitutionMode == "expect-selector";
   }
 }

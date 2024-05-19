@@ -430,7 +430,11 @@ export class InlineEvaluator implements Evaluator {
     morphemes: Morpheme[],
     first: number
   ): [Value, number] {
-    const levels = (morphemes[first] as SubstituteNextMorpheme).levels;
+    let levels = 1;
+    while (morphemes[first + 1].type == MorphemeType.SUBSTITUTE_NEXT) {
+      first++;
+      levels++;
+    }
     const source = morphemes[first + 1];
     const [selectors, last] = this.getSelectors(morphemes, first + 1);
     let value;

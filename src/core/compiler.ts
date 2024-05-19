@@ -290,8 +290,14 @@ export class Compiler {
     program.pushOpCode(OpCode.JOIN_STRINGS);
   }
   private emitSubstitution(program: Program, morphemes: Morpheme[]) {
-    const substitute = morphemes[0] as SubstituteNextMorpheme;
-    const selectable = morphemes[1];
+    const expand = (morphemes[0] as SubstituteNextMorpheme).expansion;
+    let levels = 1;
+    let i = 1;
+    while (morphemes[i].type == MorphemeType.SUBSTITUTE_NEXT) {
+      i++;
+      levels++;
+    }
+    const selectable = morphemes[i++];
     switch (selectable.type) {
       case MorphemeType.LITERAL: {
         const literal = selectable as LiteralMorpheme;
@@ -320,8 +326,8 @@ export class Compiler {
       default:
         throw new UnexpectedMorphemeError("unexpected morpheme");
     }
-    for (let i = 2; i < morphemes.length; i++) {
-      const morpheme = morphemes[i];
+    while (i < morphemes.length) {
+      const morpheme = morphemes[i++];
       switch (morpheme.type) {
         case MorphemeType.TUPLE: {
           const tuple = morpheme as TupleMorpheme;
@@ -345,10 +351,10 @@ export class Compiler {
           throw new UnexpectedMorphemeError("unexpected morpheme");
       }
     }
-    for (let level = 1; level < substitute.levels; level++) {
+    for (let level = 1; level < levels; level++) {
       program.pushOpCode(OpCode.RESOLVE_VALUE);
     }
-    if (substitute.expansion) {
+    if (expand) {
       program.pushOpCode(OpCode.EXPAND_VALUE);
     }
   }
@@ -404,17 +410,16 @@ export class Compiler {
   }
   private emitStems(program: Program, morphemes: Morpheme[]) {
     let mode: "" | "substitute" | "selectable" = "";
-    let substitute: SubstituteNextMorpheme;
+    let levels;
     for (const morpheme of morphemes) {
       if (mode == "selectable") {
         switch (morpheme.type) {
           case MorphemeType.SUBSTITUTE_NEXT:
           case MorphemeType.LITERAL: {
             // Terminate substitution sequence
-            for (let level = 1; level < substitute.levels; level++) {
+            for (let level = 1; level < levels; level++) {
               program.pushOpCode(OpCode.RESOLVE_VALUE);
             }
-            substitute = undefined;
             mode = "";
           }
         }
@@ -422,8 +427,13 @@ export class Compiler {
 
       switch (mode) {
         case "substitute": {
-          // Expecting a source (varname or expression)
           switch (morpheme.type) {
+            case MorphemeType.SUBSTITUTE_NEXT:
+              // Continue substitution sequence
+              levels++;
+              continue;
+
+            // Expecting a source (varname or expression)
             case MorphemeType.LITERAL: {
               const literal = morpheme as LiteralMorpheme;
               this.emitLiteralVarname(program, literal);
@@ -486,8 +496,8 @@ export class Compiler {
           switch (morpheme.type) {
             case MorphemeType.SUBSTITUTE_NEXT:
               // Start substitution sequence
-              substitute = morpheme as SubstituteNextMorpheme;
               mode = "substitute";
+              levels = 1;
               break;
 
             case MorphemeType.LITERAL: {
@@ -506,13 +516,6 @@ export class Compiler {
               throw new UnexpectedMorphemeError("unexpected morpheme");
           }
         }
-      }
-    }
-
-    if (mode == "selectable") {
-      // Terminate substitution sequence
-      for (let level = 1; level < substitute.levels; level++) {
-        program.pushOpCode(OpCode.RESOLVE_VALUE);
       }
     }
   }

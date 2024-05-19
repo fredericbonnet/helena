@@ -215,9 +215,6 @@ export interface SubstituteNextMorpheme extends Morpheme {
   /** Simple or expanded substitution flag */
   readonly expansion: boolean;
 
-  /** Number of substitutions to perform */
-  readonly levels: number;
-
   /** Literal value; can be safely ignored */
   readonly value: string;
 }
@@ -356,6 +353,13 @@ export class SyntaxChecker {
           case MorphemeType.SUBSTITUTE_NEXT:
             nbStems++;
             substitute = true;
+            // Skip all following substitutes
+            while (
+              i + 1 < morphemes.length &&
+              morphemes[i + 1].type == MorphemeType.SUBSTITUTE_NEXT
+            ) {
+              i++;
+            }
             break;
 
           case MorphemeType.LITERAL:

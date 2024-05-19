@@ -53,7 +53,7 @@ const mapMorpheme = (morpheme: Morpheme) => {
       return {
         [(morpheme as SubstituteNextMorpheme).expansion
           ? "EXPAND_NEXT"
-          : "SUBSTITUTE_NEXT"]: (morpheme as SubstituteNextMorpheme).levels,
+          : "SUBSTITUTE_NEXT"]: (morpheme as SubstituteNextMorpheme).value,
       };
     default:
       throw new Error("CANTHAPPEN");
@@ -474,13 +474,13 @@ describe("Parser", () => {
         specify("simple variable", () => {
           const script = parse('"$a"');
           expect(toTree(script)).to.eql([
-            [[{ STRING: [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a" }] }]],
+            [[{ STRING: [{ SUBSTITUTE_NEXT: "$" }, { LITERAL: "a" }] }]],
           ]);
         });
         specify("Unicode variable name", () => {
           const script = parse('"$a\u1234"');
           expect(toTree(script)).to.eql([
-            [[{ STRING: [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a\u1234" }] }]],
+            [[{ STRING: [{ SUBSTITUTE_NEXT: "$" }, { LITERAL: "a\u1234" }] }]],
           ]);
         });
         specify("block", () => {
@@ -490,7 +490,7 @@ describe("Parser", () => {
               [
                 {
                   STRING: [
-                    { SUBSTITUTE_NEXT: 1 },
+                    { SUBSTITUTE_NEXT: "$" },
                     { BLOCK: [[[{ LITERAL: "a" }]]] },
                   ],
                 },
@@ -505,7 +505,7 @@ describe("Parser", () => {
               [
                 {
                   STRING: [
-                    { SUBSTITUTE_NEXT: 1 },
+                    { SUBSTITUTE_NEXT: "$" },
                     { EXPRESSION: [[[{ LITERAL: "a" }]]] },
                   ],
                 },
@@ -520,13 +520,19 @@ describe("Parser", () => {
               [
                 {
                   STRING: [
-                    { SUBSTITUTE_NEXT: 2 },
+                    { SUBSTITUTE_NEXT: "$" },
+                    { SUBSTITUTE_NEXT: "$" },
                     { LITERAL: "a" },
                     { LITERAL: " " },
-                    { SUBSTITUTE_NEXT: 3 },
+                    { SUBSTITUTE_NEXT: "$" },
+                    { SUBSTITUTE_NEXT: "$" },
+                    { SUBSTITUTE_NEXT: "$" },
                     { LITERAL: "b" },
                     { LITERAL: " " },
-                    { SUBSTITUTE_NEXT: 4 },
+                    { SUBSTITUTE_NEXT: "$" },
+                    { SUBSTITUTE_NEXT: "$" },
+                    { SUBSTITUTE_NEXT: "$" },
+                    { SUBSTITUTE_NEXT: "$" },
                     { EXPRESSION: [[[{ LITERAL: "c" }]]] },
                   ],
                 },
@@ -541,10 +547,13 @@ describe("Parser", () => {
               [
                 {
                   STRING: [
-                    { EXPAND_NEXT: 3 },
+                    { EXPAND_NEXT: "$*" },
+                    { SUBSTITUTE_NEXT: "$" },
+                    { SUBSTITUTE_NEXT: "$*" },
                     { LITERAL: "a" },
                     { LITERAL: " " },
-                    { EXPAND_NEXT: 2 },
+                    { EXPAND_NEXT: "$*" },
+                    { SUBSTITUTE_NEXT: "$" },
                     { EXPRESSION: [[[{ LITERAL: "b" }]]] },
                   ],
                 },
@@ -566,10 +575,10 @@ describe("Parser", () => {
                 [
                   {
                     STRING: [
-                      { SUBSTITUTE_NEXT: 1 },
+                      { SUBSTITUTE_NEXT: "$" },
                       { LITERAL: "a" },
                       { LITERAL: "b " },
-                      { SUBSTITUTE_NEXT: 1 },
+                      { SUBSTITUTE_NEXT: "$" },
                       { LITERAL: "c" },
                       { LITERAL: "d" },
                     ],
@@ -594,8 +603,8 @@ describe("Parser", () => {
             const script = parse("$a# $b*");
             expect(toTree(script)).to.eql([
               [
-                [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a" }, { LITERAL: "#" }],
-                [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "b" }, { LITERAL: "*" }],
+                [{ SUBSTITUTE_NEXT: "$" }, { LITERAL: "a" }, { LITERAL: "#" }],
+                [{ SUBSTITUTE_NEXT: "$" }, { LITERAL: "b" }, { LITERAL: "*" }],
               ],
             ]);
           });
@@ -609,11 +618,11 @@ describe("Parser", () => {
                   [
                     {
                       STRING: [
-                        { SUBSTITUTE_NEXT: 1 },
+                        { SUBSTITUTE_NEXT: "$" },
                         { LITERAL: "name" },
                         { EXPRESSION: [[[{ LITERAL: "index1" }]]] },
                         { LITERAL: " " },
-                        { SUBSTITUTE_NEXT: 1 },
+                        { SUBSTITUTE_NEXT: "$" },
                         { EXPRESSION: [[[{ LITERAL: "expression" }]]] },
                         { EXPRESSION: [[[{ LITERAL: "index2" }]]] },
                       ],
@@ -631,7 +640,7 @@ describe("Parser", () => {
                   [
                     {
                       STRING: [
-                        { SUBSTITUTE_NEXT: 1 },
+                        { SUBSTITUTE_NEXT: "$" },
                         { LITERAL: "name" },
                         { EXPRESSION: [[[{ LITERAL: "index1" }]]] },
                         {
@@ -639,7 +648,7 @@ describe("Parser", () => {
                         },
                         { EXPRESSION: [[[{ LITERAL: "index3" }]]] },
                         { LITERAL: " " },
-                        { SUBSTITUTE_NEXT: 1 },
+                        { SUBSTITUTE_NEXT: "$" },
                         { EXPRESSION: [[[{ LITERAL: "expression" }]]] },
                         {
                           EXPRESSION: [[[{ LITERAL: "index4" }]]],
@@ -663,11 +672,11 @@ describe("Parser", () => {
                   [
                     {
                       STRING: [
-                        { SUBSTITUTE_NEXT: 1 },
+                        { SUBSTITUTE_NEXT: "$" },
                         { LITERAL: "name" },
                         { TUPLE: [[[{ LITERAL: "key1" }]]] },
                         { LITERAL: " " },
-                        { SUBSTITUTE_NEXT: 1 },
+                        { SUBSTITUTE_NEXT: "$" },
                         { EXPRESSION: [[[{ LITERAL: "expression" }]]] },
                         { TUPLE: [[[{ LITERAL: "key2" }]]] },
                       ],
@@ -685,7 +694,7 @@ describe("Parser", () => {
                   [
                     {
                       STRING: [
-                        { SUBSTITUTE_NEXT: 1 },
+                        { SUBSTITUTE_NEXT: "$" },
                         { LITERAL: "name" },
                         {
                           TUPLE: [
@@ -693,7 +702,7 @@ describe("Parser", () => {
                           ],
                         },
                         { LITERAL: " " },
-                        { SUBSTITUTE_NEXT: 1 },
+                        { SUBSTITUTE_NEXT: "$" },
                         { EXPRESSION: [[[{ LITERAL: "expression" }]]] },
                         {
                           TUPLE: [
@@ -715,7 +724,7 @@ describe("Parser", () => {
                   [
                     {
                       STRING: [
-                        { SUBSTITUTE_NEXT: 1 },
+                        { SUBSTITUTE_NEXT: "$" },
                         { LITERAL: "name" },
                         { TUPLE: [[[{ LITERAL: "key1" }]]] },
                         {
@@ -725,7 +734,7 @@ describe("Parser", () => {
                         },
                         { TUPLE: [[[{ LITERAL: "key4" }]]] },
                         { LITERAL: " " },
-                        { SUBSTITUTE_NEXT: 1 },
+                        { SUBSTITUTE_NEXT: "$" },
                         { EXPRESSION: [[[{ LITERAL: "expression" }]]] },
                         {
                           TUPLE: [
@@ -755,7 +764,7 @@ describe("Parser", () => {
                   [
                     {
                       STRING: [
-                        { SUBSTITUTE_NEXT: 1 },
+                        { SUBSTITUTE_NEXT: "$" },
                         { LITERAL: "name" },
                         {
                           BLOCK: [
@@ -763,7 +772,7 @@ describe("Parser", () => {
                           ],
                         },
                         { LITERAL: " " },
-                        { SUBSTITUTE_NEXT: 1 },
+                        { SUBSTITUTE_NEXT: "$" },
                         { EXPRESSION: [[[{ LITERAL: "expression" }]]] },
                         {
                           BLOCK: [
@@ -785,7 +794,7 @@ describe("Parser", () => {
                   [
                     {
                       STRING: [
-                        { SUBSTITUTE_NEXT: 1 },
+                        { SUBSTITUTE_NEXT: "$" },
                         { LITERAL: "name" },
                         {
                           BLOCK: [
@@ -805,7 +814,7 @@ describe("Parser", () => {
                           ],
                         },
                         { LITERAL: " " },
-                        { SUBSTITUTE_NEXT: 1 },
+                        { SUBSTITUTE_NEXT: "$" },
                         { EXPRESSION: [[[{ LITERAL: "expression" }]]] },
                         {
                           BLOCK: [[[{ LITERAL: "selector4" }]]],
@@ -840,7 +849,7 @@ describe("Parser", () => {
                 [
                   {
                     STRING: [
-                      { SUBSTITUTE_NEXT: 1 },
+                      { SUBSTITUTE_NEXT: "$" },
                       { LITERAL: "name" },
                       {
                         TUPLE: [[[{ LITERAL: "key1" }], [{ LITERAL: "key2" }]]],
@@ -856,7 +865,7 @@ describe("Parser", () => {
                         ],
                       },
                       { LITERAL: " " },
-                      { SUBSTITUTE_NEXT: 1 },
+                      { SUBSTITUTE_NEXT: "$" },
                       { EXPRESSION: [[[{ LITERAL: "expression" }]]] },
                       {
                         BLOCK: [
@@ -886,19 +895,19 @@ describe("Parser", () => {
                 [
                   {
                     STRING: [
-                      { SUBSTITUTE_NEXT: 1 },
+                      { SUBSTITUTE_NEXT: "$" },
                       { LITERAL: "name1" },
                       {
                         TUPLE: [
                           [
                             [{ LITERAL: "key1" }],
                             [
-                              { SUBSTITUTE_NEXT: 1 },
+                              { SUBSTITUTE_NEXT: "$" },
                               { LITERAL: "name2" },
                               { BLOCK: [[[{ LITERAL: "selector1" }]]] },
                             ],
                             [
-                              { SUBSTITUTE_NEXT: 1 },
+                              { SUBSTITUTE_NEXT: "$" },
                               { EXPRESSION: [[[{ LITERAL: "expression1" }]]] },
                               { TUPLE: [[[{ LITERAL: "key2" }]]] },
                             ],
@@ -906,14 +915,14 @@ describe("Parser", () => {
                         ],
                       },
                       { LITERAL: " " },
-                      { SUBSTITUTE_NEXT: 1 },
+                      { SUBSTITUTE_NEXT: "$" },
                       { EXPRESSION: [[[{ LITERAL: "expression2" }]]] },
                       {
                         BLOCK: [
                           [
                             [{ LITERAL: "selector2" }],
                             [
-                              { SUBSTITUTE_NEXT: 1 },
+                              { SUBSTITUTE_NEXT: "$" },
                               { LITERAL: "name3" },
                               { TUPLE: [[[{ LITERAL: "key3" }]]] },
                             ],
@@ -1201,40 +1210,55 @@ int main(void) {
       specify("simple variable", () => {
         const script = parse("$a");
         expect(toTree(script)).to.eql([
-          [[{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a" }]],
+          [[{ SUBSTITUTE_NEXT: "$" }, { LITERAL: "a" }]],
         ]);
       });
       specify("Unicode variable name", () => {
         const script = parse("$a\u1234");
         expect(toTree(script)).to.eql([
-          [[{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a\u1234" }]],
+          [[{ SUBSTITUTE_NEXT: "$" }, { LITERAL: "a\u1234" }]],
         ]);
       });
       specify("tuple", () => {
         const script = parse("$(a)");
         expect(toTree(script)).to.eql([
-          [[{ SUBSTITUTE_NEXT: 1 }, { TUPLE: [[[{ LITERAL: "a" }]]] }]],
+          [[{ SUBSTITUTE_NEXT: "$" }, { TUPLE: [[[{ LITERAL: "a" }]]] }]],
         ]);
       });
       specify("block", () => {
         const script = parse("${a}");
         expect(toTree(script)).to.eql([
-          [[{ SUBSTITUTE_NEXT: 1 }, { BLOCK: [[[{ LITERAL: "a" }]]] }]],
+          [[{ SUBSTITUTE_NEXT: "$" }, { BLOCK: [[[{ LITERAL: "a" }]]] }]],
         ]);
       });
       specify("expression", () => {
         const script = parse("$[a]");
         expect(toTree(script)).to.eql([
-          [[{ SUBSTITUTE_NEXT: 1 }, { EXPRESSION: [[[{ LITERAL: "a" }]]] }]],
+          [[{ SUBSTITUTE_NEXT: "$" }, { EXPRESSION: [[[{ LITERAL: "a" }]]] }]],
         ]);
       });
       specify("multiple substitution", () => {
         const script = parse("$$a $$$b $$$$[c]");
         expect(toTree(script)).to.eql([
           [
-            [{ SUBSTITUTE_NEXT: 2 }, { LITERAL: "a" }],
-            [{ SUBSTITUTE_NEXT: 3 }, { LITERAL: "b" }],
-            [{ SUBSTITUTE_NEXT: 4 }, { EXPRESSION: [[[{ LITERAL: "c" }]]] }],
+            [
+              { SUBSTITUTE_NEXT: "$" },
+              { SUBSTITUTE_NEXT: "$" },
+              { LITERAL: "a" },
+            ],
+            [
+              { SUBSTITUTE_NEXT: "$" },
+              { SUBSTITUTE_NEXT: "$" },
+              { SUBSTITUTE_NEXT: "$" },
+              { LITERAL: "b" },
+            ],
+            [
+              { SUBSTITUTE_NEXT: "$" },
+              { SUBSTITUTE_NEXT: "$" },
+              { SUBSTITUTE_NEXT: "$" },
+              { SUBSTITUTE_NEXT: "$" },
+              { EXPRESSION: [[[{ LITERAL: "c" }]]] },
+            ],
           ],
         ]);
       });
@@ -1242,8 +1266,17 @@ int main(void) {
         const script = parse("$*$$*a $*$[b]");
         expect(toTree(script)).to.eql([
           [
-            [{ EXPAND_NEXT: 3 }, { LITERAL: "a" }],
-            [{ EXPAND_NEXT: 2 }, { EXPRESSION: [[[{ LITERAL: "b" }]]] }],
+            [
+              { EXPAND_NEXT: "$*" },
+              { SUBSTITUTE_NEXT: "$" },
+              { SUBSTITUTE_NEXT: "$*" },
+              { LITERAL: "a" },
+            ],
+            [
+              { EXPAND_NEXT: "$*" },
+              { SUBSTITUTE_NEXT: "$" },
+              { EXPRESSION: [[[{ LITERAL: "b" }]]] },
+            ],
           ],
         ]);
       });
@@ -1262,8 +1295,8 @@ int main(void) {
           const script = parse("$a\\x62 $c\\d");
           expect(toTree(script)).to.eql([
             [
-              [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a" }, { LITERAL: "b" }],
-              [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "c" }, { LITERAL: "d" }],
+              [{ SUBSTITUTE_NEXT: "$" }, { LITERAL: "a" }, { LITERAL: "b" }],
+              [{ SUBSTITUTE_NEXT: "$" }, { LITERAL: "c" }, { LITERAL: "d" }],
             ],
           ]);
         });
@@ -1271,8 +1304,8 @@ int main(void) {
           const script = parse("$a# $b*");
           expect(toTree(script)).to.eql([
             [
-              [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "a" }, { LITERAL: "#" }],
-              [{ SUBSTITUTE_NEXT: 1 }, { LITERAL: "b" }, { LITERAL: "*" }],
+              [{ SUBSTITUTE_NEXT: "$" }, { LITERAL: "a" }, { LITERAL: "#" }],
+              [{ SUBSTITUTE_NEXT: "$" }, { LITERAL: "b" }, { LITERAL: "*" }],
             ],
           ]);
         });
@@ -1298,12 +1331,12 @@ int main(void) {
             expect(toTree(script)).to.eql([
               [
                 [
-                  { SUBSTITUTE_NEXT: 1 },
+                  { SUBSTITUTE_NEXT: "$" },
                   { LITERAL: "name" },
                   { EXPRESSION: [[[{ LITERAL: "index1" }]]] },
                 ],
                 [
-                  { SUBSTITUTE_NEXT: 1 },
+                  { SUBSTITUTE_NEXT: "$" },
                   { EXPRESSION: [[[{ LITERAL: "expression" }]]] },
                   { EXPRESSION: [[[{ LITERAL: "index2" }]]] },
                 ],
@@ -1317,14 +1350,14 @@ int main(void) {
             expect(toTree(script)).to.eql([
               [
                 [
-                  { SUBSTITUTE_NEXT: 1 },
+                  { SUBSTITUTE_NEXT: "$" },
                   { LITERAL: "name" },
                   { EXPRESSION: [[[{ LITERAL: "index1" }]]] },
                   { EXPRESSION: [[[{ LITERAL: "index2" }]]] },
                   { EXPRESSION: [[[{ LITERAL: "index3" }]]] },
                 ],
                 [
-                  { SUBSTITUTE_NEXT: 1 },
+                  { SUBSTITUTE_NEXT: "$" },
                   { EXPRESSION: [[[{ LITERAL: "expression" }]]] },
                   { EXPRESSION: [[[{ LITERAL: "index4" }]]] },
                   { EXPRESSION: [[[{ LITERAL: "index5" }]]] },
@@ -1340,12 +1373,12 @@ int main(void) {
             expect(toTree(script)).to.eql([
               [
                 [
-                  { SUBSTITUTE_NEXT: 1 },
+                  { SUBSTITUTE_NEXT: "$" },
                   { LITERAL: "name" },
                   { TUPLE: [[[{ LITERAL: "key1" }]]] },
                 ],
                 [
-                  { SUBSTITUTE_NEXT: 1 },
+                  { SUBSTITUTE_NEXT: "$" },
                   { EXPRESSION: [[[{ LITERAL: "expression" }]]] },
                   { TUPLE: [[[{ LITERAL: "key2" }]]] },
                 ],
@@ -1357,12 +1390,12 @@ int main(void) {
             expect(toTree(script)).to.eql([
               [
                 [
-                  { SUBSTITUTE_NEXT: 1 },
+                  { SUBSTITUTE_NEXT: "$" },
                   { LITERAL: "name" },
                   { TUPLE: [[[{ LITERAL: "key1" }], [{ LITERAL: "key2" }]]] },
                 ],
                 [
-                  { SUBSTITUTE_NEXT: 1 },
+                  { SUBSTITUTE_NEXT: "$" },
                   { EXPRESSION: [[[{ LITERAL: "expression" }]]] },
                   { TUPLE: [[[{ LITERAL: "key3" }], [{ LITERAL: "key4" }]]] },
                 ],
@@ -1376,14 +1409,14 @@ int main(void) {
             expect(toTree(script)).to.eql([
               [
                 [
-                  { SUBSTITUTE_NEXT: 1 },
+                  { SUBSTITUTE_NEXT: "$" },
                   { LITERAL: "name" },
                   { TUPLE: [[[{ LITERAL: "key1" }]]] },
                   { TUPLE: [[[{ LITERAL: "key2" }], [{ LITERAL: "key3" }]]] },
                   { TUPLE: [[[{ LITERAL: "key4" }]]] },
                 ],
                 [
-                  { SUBSTITUTE_NEXT: 1 },
+                  { SUBSTITUTE_NEXT: "$" },
                   { EXPRESSION: [[[{ LITERAL: "expression" }]]] },
                   { TUPLE: [[[{ LITERAL: "key5" }], [{ LITERAL: "key6" }]]] },
                   { TUPLE: [[[{ LITERAL: "key7" }]]] },
@@ -1399,12 +1432,12 @@ int main(void) {
             expect(toTree(script)).to.eql([
               [
                 [
-                  { SUBSTITUTE_NEXT: 1 },
+                  { SUBSTITUTE_NEXT: "$" },
                   { LITERAL: "name" },
                   { BLOCK: [[[{ LITERAL: "selector1" }]]] },
                 ],
                 [
-                  { SUBSTITUTE_NEXT: 1 },
+                  { SUBSTITUTE_NEXT: "$" },
                   { EXPRESSION: [[[{ LITERAL: "expression" }]]] },
                   { BLOCK: [[[{ LITERAL: "selector2" }]]] },
                 ],
@@ -1418,7 +1451,7 @@ int main(void) {
             expect(toTree(script)).to.eql([
               [
                 [
-                  { SUBSTITUTE_NEXT: 1 },
+                  { SUBSTITUTE_NEXT: "$" },
                   { LITERAL: "name" },
                   { BLOCK: [[[{ LITERAL: "selector1" }]]] },
                   {
@@ -1429,7 +1462,7 @@ int main(void) {
                   { BLOCK: [[[{ LITERAL: "selector3" }]]] },
                 ],
                 [
-                  { SUBSTITUTE_NEXT: 1 },
+                  { SUBSTITUTE_NEXT: "$" },
                   { EXPRESSION: [[[{ LITERAL: "expression" }]]] },
                   {
                     BLOCK: [
@@ -1458,7 +1491,7 @@ int main(void) {
           expect(toTree(script)).to.eql([
             [
               [
-                { SUBSTITUTE_NEXT: 1 },
+                { SUBSTITUTE_NEXT: "$" },
                 { LITERAL: "name" },
                 { TUPLE: [[[{ LITERAL: "key1" }], [{ LITERAL: "key2" }]]] },
                 { BLOCK: [[[{ LITERAL: "selector1" }]]] },
@@ -1470,7 +1503,7 @@ int main(void) {
                 },
               ],
               [
-                { SUBSTITUTE_NEXT: 1 },
+                { SUBSTITUTE_NEXT: "$" },
                 { EXPRESSION: [[[{ LITERAL: "expression" }]]] },
                 {
                   BLOCK: [
@@ -1491,19 +1524,19 @@ int main(void) {
           expect(toTree(script)).to.eql([
             [
               [
-                { SUBSTITUTE_NEXT: 1 },
+                { SUBSTITUTE_NEXT: "$" },
                 { LITERAL: "name1" },
                 {
                   TUPLE: [
                     [
                       [{ LITERAL: "key1" }],
                       [
-                        { SUBSTITUTE_NEXT: 1 },
+                        { SUBSTITUTE_NEXT: "$" },
                         { LITERAL: "name2" },
                         { BLOCK: [[[{ LITERAL: "selector1" }]]] },
                       ],
                       [
-                        { SUBSTITUTE_NEXT: 1 },
+                        { SUBSTITUTE_NEXT: "$" },
                         { EXPRESSION: [[[{ LITERAL: "expression1" }]]] },
                         { TUPLE: [[[{ LITERAL: "key2" }]]] },
                       ],
@@ -1512,14 +1545,14 @@ int main(void) {
                 },
               ],
               [
-                { SUBSTITUTE_NEXT: 1 },
+                { SUBSTITUTE_NEXT: "$" },
                 { EXPRESSION: [[[{ LITERAL: "expression2" }]]] },
                 {
                   BLOCK: [
                     [
                       [{ LITERAL: "selector2" }],
                       [
-                        { SUBSTITUTE_NEXT: 1 },
+                        { SUBSTITUTE_NEXT: "$" },
                         { LITERAL: "name3" },
                         { TUPLE: [[[{ LITERAL: "key3" }]]] },
                       ],
