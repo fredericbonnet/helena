@@ -2,6 +2,7 @@
  * @file Helena syntax checking and AST
  */
 
+import { SourcePosition } from "./tokenizer";
 import { Value } from "./values";
 
 /**
@@ -53,7 +54,18 @@ export class UnexpectedMorphemeError extends SyntaxError {
  */
 export class Script {
   /** Sentences that compose the script */
-  readonly sentences: Sentence[] = [];
+  readonly sentences: Sentence[];
+
+  /** Position in source stream */
+  readonly position?: SourcePosition;
+
+  /**
+   * @param position - Position in source stream
+   */
+  constructor(position?: SourcePosition) {
+    this.sentences = [];
+    this.position = position;
+  }
 }
 
 /**
@@ -63,7 +75,18 @@ export class Script {
  */
 export class Sentence {
   /** Words that compose the sentence */
-  readonly words: (Word | Value)[] = [];
+  readonly words: (Word | Value)[];
+
+  /** Position in source stream */
+  readonly position?: SourcePosition;
+
+  /**
+   * @param position - Position in source stream
+   */
+  constructor(position?: SourcePosition) {
+    this.words = [];
+    this.position = position;
+  }
 }
 
 /**
@@ -73,7 +96,18 @@ export class Sentence {
  */
 export class Word {
   /** Morphemes that compose the word */
-  readonly morphemes: Morpheme[] = [];
+  readonly morphemes: Morpheme[];
+
+  /** Position in source stream */
+  readonly position?: SourcePosition;
+
+  /**
+   * @param position - Position in source stream
+   */
+  constructor(position?: SourcePosition) {
+    this.morphemes = [];
+    this.position = position;
+  }
 }
 
 /**
@@ -100,6 +134,9 @@ export enum MorphemeType {
 export interface Morpheme {
   /** Type identifier */
   readonly type: MorphemeType;
+
+  /** Position in source stream */
+  readonly position?: SourcePosition;
 }
 
 /**

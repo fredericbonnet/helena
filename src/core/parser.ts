@@ -72,12 +72,20 @@ class Context {
 
 /** Script AST node */
 class ScriptNode {
-  sentences: SentenceNode[] = [];
+  sentences: SentenceNode[];
+  firstToken: Token;
 
-  toScript(): Script {
-    const script = new Script();
+  constructor(firstToken: Token) {
+    this.sentences = [];
+    this.firstToken = firstToken;
+  }
+
+  toScript(capturePositions: boolean): Script {
+    const script = new Script(
+      capturePositions ? this.firstToken.position : undefined
+    );
     for (const sentence of this.sentences) {
-      script.sentences.push(sentence.toSentence());
+      script.sentences.push(sentence.toSentence(capturePositions));
     }
     return script;
   }
@@ -85,12 +93,20 @@ class ScriptNode {
 
 /** Sentence AST node */
 class SentenceNode {
-  words: WordNode[] = [];
+  words: WordNode[];
+  firstToken: Token;
 
-  toSentence(): Sentence {
-    const sentence = new Sentence();
+  constructor(firstToken: Token) {
+    this.words = [];
+    this.firstToken = firstToken;
+  }
+
+  toSentence(capturePositions: boolean): Sentence {
+    const sentence = new Sentence(
+      capturePositions ? this.firstToken.position : undefined
+    );
     for (const word of this.words) {
-      sentence.words.push(word.toWord());
+      sentence.words.push(word.toWord(capturePositions));
     }
     return sentence;
   }
@@ -98,12 +114,21 @@ class SentenceNode {
 
 /** Word AST node */
 class WordNode {
-  morphemes: MorphemeNode[] = [];
+  /** Word morphemes */
+  morphemes: MorphemeNode[];
+  firstToken: Token;
 
-  toWord(): Word {
-    const word = new Word();
+  constructor(firstToken: Token) {
+    this.morphemes = [];
+    this.firstToken = firstToken;
+  }
+
+  toWord(capturePositions: boolean): Word {
+    const word = new Word(
+      capturePositions ? this.firstToken.position : undefined
+    );
     for (const morpheme of this.morphemes) {
-      word.morphemes.push(morpheme.toMorpheme());
+      word.morphemes.push(morpheme.toMorpheme(capturePositions));
     }
     return word;
   }
@@ -114,23 +139,29 @@ interface MorphemeNode {
   /** Type identifier */
   type: MorphemeType;
 
+  /** First token in morpheme */
+  firstToken: Token;
+
   /** Create morpheme from node */
-  toMorpheme(): Morpheme;
+  toMorpheme(capturePositions: boolean): Morpheme;
 }
 
 /** Literal morpheme AST node */
 class LiteralNode implements MorphemeNode {
   readonly type = MorphemeType.LITERAL;
+  readonly firstToken: Token;
   value: string;
 
-  constructor(value: string) {
+  constructor(firstToken: Token, value: string) {
+    this.firstToken = firstToken;
     this.value = value;
   }
 
-  toMorpheme(): LiteralMorpheme {
+  toMorpheme(capturePositions: boolean): LiteralMorpheme {
     return {
       type: this.type,
       value: this.value,
+      position: capturePositions ? this.firstToken.position : undefined,
     };
   }
 }
@@ -138,12 +169,19 @@ class LiteralNode implements MorphemeNode {
 /** Tuple morpheme AST node */
 class TupleNode implements MorphemeNode {
   readonly type = MorphemeType.TUPLE;
-  readonly subscript: ScriptNode = new ScriptNode();
+  readonly firstToken: Token;
+  readonly subscript: ScriptNode;
 
-  toMorpheme(): TupleMorpheme {
+  constructor(firstToken: Token) {
+    this.firstToken = firstToken;
+    this.subscript = new ScriptNode(firstToken);
+  }
+
+  toMorpheme(capturePositions: boolean): TupleMorpheme {
     return {
       type: this.type,
-      subscript: this.subscript.toScript(),
+      subscript: this.subscript.toScript(capturePositions),
+      position: capturePositions ? this.firstToken.position : undefined,
     };
   }
 }
@@ -151,21 +189,25 @@ class TupleNode implements MorphemeNode {
 /** Block morpheme AST node */
 class BlockNode implements MorphemeNode {
   readonly type = MorphemeType.BLOCK;
-  readonly subscript: ScriptNode = new ScriptNode();
+  readonly firstToken: Token;
+  readonly subscript: ScriptNode;
   value: string;
 
   /** Starting position of block, used to get literal value */
   start: number;
 
-  constructor(start: number) {
+  constructor(firstToken: Token, start: number) {
+    this.firstToken = firstToken;
+    this.subscript = new ScriptNode(firstToken);
     this.start = start;
   }
 
-  toMorpheme(): BlockMorpheme {
+  toMorpheme(capturePositions: boolean): BlockMorpheme {
     return {
       type: this.type,
-      subscript: this.subscript.toScript(),
+      subscript: this.subscript.toScript(capturePositions),
       value: this.value,
+      position: capturePositions ? this.firstToken.position : undefined,
     };
   }
 }
@@ -173,12 +215,19 @@ class BlockNode implements MorphemeNode {
 /** Expression morpheme AST node */
 class ExpressionNode implements MorphemeNode {
   readonly type = MorphemeType.EXPRESSION;
-  readonly subscript: ScriptNode = new ScriptNode();
+  readonly firstToken: Token;
+  readonly subscript: ScriptNode;
 
-  toMorpheme(): ExpressionMorpheme {
+  constructor(firstToken: Token) {
+    this.firstToken = firstToken;
+    this.subscript = new ScriptNode(firstToken);
+  }
+
+  toMorpheme(capturePositions: boolean): ExpressionMorpheme {
     return {
       type: this.type,
-      subscript: this.subscript.toScript(),
+      subscript: this.subscript.toScript(capturePositions),
+      position: capturePositions ? this.firstToken.position : undefined,
     };
   }
 }
@@ -186,12 +235,21 @@ class ExpressionNode implements MorphemeNode {
 /** String morpheme AST node */
 class StringNode implements MorphemeNode {
   readonly type = MorphemeType.STRING;
-  readonly morphemes: MorphemeNode[] = [];
+  readonly firstToken: Token;
+  readonly morphemes: MorphemeNode[];
 
-  toMorpheme(): StringMorpheme {
+  constructor(firstToken: Token) {
+    this.firstToken = firstToken;
+    this.morphemes = [];
+  }
+
+  toMorpheme(capturePositions: boolean): StringMorpheme {
     return {
       type: this.type,
-      morphemes: this.morphemes.map((morpheme) => morpheme.toMorpheme()),
+      morphemes: this.morphemes.map((morpheme) =>
+        morpheme.toMorpheme(capturePositions)
+      ),
+      position: capturePositions ? this.firstToken.position : undefined,
     };
   }
 }
@@ -199,18 +257,22 @@ class StringNode implements MorphemeNode {
 /** Here-string morpheme AST node */
 class HereStringNode implements MorphemeNode {
   readonly type = MorphemeType.HERE_STRING;
-  value = "";
+  readonly firstToken: Token;
+  value: string;
   readonly delimiterLength: number;
 
-  constructor(delimiter: string) {
+  constructor(firstToken: Token, delimiter: string) {
+    this.firstToken = firstToken;
+    this.value = "";
     this.delimiterLength = delimiter.length;
   }
 
-  toMorpheme(): HereStringMorpheme {
+  toMorpheme(capturePositions: boolean): HereStringMorpheme {
     return {
       type: this.type,
       value: this.value,
       delimiterLength: this.delimiterLength,
+      position: capturePositions ? this.firstToken.position : undefined,
     };
   }
 }
@@ -218,14 +280,17 @@ class HereStringNode implements MorphemeNode {
 /** Tagged string morpheme AST node */
 class TaggedStringNode implements MorphemeNode {
   readonly type = MorphemeType.TAGGED_STRING;
-  value = "";
+  readonly firstToken: Token;
+  value: string;
   readonly tag: string;
 
-  constructor(tag: string) {
+  constructor(firstToken: Token, tag: string) {
+    this.firstToken = firstToken;
+    this.value = "";
     this.tag = tag;
   }
 
-  toMorpheme(): TaggedStringMorpheme {
+  toMorpheme(capturePositions: boolean): TaggedStringMorpheme {
     // Shift lines by prefix length
     const lines = this.value.split("\n");
     const prefix = lines[lines.length - 1];
@@ -235,6 +300,7 @@ class TaggedStringNode implements MorphemeNode {
       type: this.type,
       value: value,
       tag: this.tag,
+      position: capturePositions ? this.firstToken.position : undefined,
     };
   }
 }
@@ -242,18 +308,22 @@ class TaggedStringNode implements MorphemeNode {
 /** Line comment morpheme AST node */
 class LineCommentNode implements MorphemeNode {
   readonly type = MorphemeType.LINE_COMMENT;
-  value = "";
+  readonly firstToken: Token;
+  value: string;
   readonly delimiterLength: number;
 
-  constructor(delimiter: string) {
+  constructor(firstToken: Token, delimiter: string) {
+    this.firstToken = firstToken;
+    this.value = "";
     this.delimiterLength = delimiter.length;
   }
 
-  toMorpheme(): LineCommentMorpheme {
+  toMorpheme(capturePositions: boolean): LineCommentMorpheme {
     return {
       type: this.type,
       value: this.value,
       delimiterLength: this.delimiterLength,
+      position: capturePositions ? this.firstToken.position : undefined,
     };
   }
 }
@@ -261,21 +331,25 @@ class LineCommentNode implements MorphemeNode {
 /** Block comment morpheme AST node */
 class BlockCommentNode implements MorphemeNode {
   readonly type = MorphemeType.BLOCK_COMMENT;
-  value = "";
+  readonly firstToken: Token;
+  value: string;
   readonly delimiterLength: number;
 
   /** Nesting level, node is closed when it reaches zero */
   nesting = 1;
 
-  constructor(delimiter: string) {
+  constructor(firstToken: Token, delimiter: string) {
+    this.firstToken = firstToken;
+    this.value = "";
     this.delimiterLength = delimiter.length;
   }
 
-  toMorpheme(): BlockCommentMorpheme {
+  toMorpheme(capturePositions: boolean): BlockCommentMorpheme {
     return {
       type: this.type,
       value: this.value,
       delimiterLength: this.delimiterLength,
+      position: capturePositions ? this.firstToken.position : undefined,
     };
   }
 }
@@ -283,18 +357,22 @@ class BlockCommentNode implements MorphemeNode {
 /** Substitute Next morpheme AST node */
 class SubstituteNextNode implements MorphemeNode {
   readonly type = MorphemeType.SUBSTITUTE_NEXT;
-  expansion = false;
+  readonly firstToken: Token;
+  expansion: boolean;
   value: string;
 
-  constructor(value: string) {
+  constructor(firstToken: Token, value: string) {
+    this.firstToken = firstToken;
+    this.expansion = false;
     this.value = value;
   }
 
-  toMorpheme(): SubstituteNextMorpheme {
+  toMorpheme(capturePositions: boolean): SubstituteNextMorpheme {
     return {
       type: this.type,
       expansion: this.expansion,
       value: this.value,
+      position: capturePositions ? this.firstToken.position : undefined,
     };
   }
 }
@@ -320,6 +398,14 @@ export const PARSE_ERROR = (message: string) => ({ success: false, message });
 /* eslint-enable jsdoc/require-jsdoc */
 
 /**
+ * Parser options
+ */
+export type ParserOptions = {
+  /** Whether to capture morpheme positions */
+  capturePositions?: boolean;
+};
+
+/**
  * Helena parser
  *
  * This class transforms a stream of tokens into an abstract syntax tree
@@ -330,6 +416,15 @@ export class Parser {
 
   /** Current context */
   private context: Context;
+
+  /** Parser options */
+  private options: ParserOptions;
+
+  /* eslint-disable jsdoc/require-jsdoc */
+  constructor(options: ParserOptions = { capturePositions: false }) {
+    this.options = options;
+  }
+  /* eslint-enable jsdoc/require-jsdoc */
 
   /**
    * Parse an array of tokens
@@ -375,7 +470,7 @@ export class Parser {
    */
   begin(stream: TokenStream) {
     this.context = new Context({
-      script: new ScriptNode(),
+      script: new ScriptNode(stream.current()),
     });
     this.stream = stream;
   }
@@ -433,7 +528,9 @@ export class Parser {
     }
     this.closeSentence();
 
-    return PARSE_OK(this.context.script.toScript());
+    return PARSE_OK(
+      this.context.script.toScript(this.options.capturePositions)
+    );
   }
 
   /**
@@ -531,9 +628,13 @@ export class Parser {
     }
   }
 
-  /** Open a tuple parsing context */
-  private openTuple() {
-    const node = new TupleNode();
+  /**
+   * Open a tuple parsing context
+   *
+   * @param token - Current token
+   */
+  private openTuple(token: Token) {
+    const node = new TupleNode(token);
     this.context.morphemes.push(node);
     this.pushContext(node, {
       script: node.subscript,
@@ -561,9 +662,13 @@ export class Parser {
     }
   }
 
-  /** Open a block parsing context */
-  private openBlock() {
-    const node = new BlockNode(this.stream.currentIndex());
+  /**
+   * Open a block parsing context
+   *
+   * @param token - Current token
+   */
+  private openBlock(token: Token) {
+    const node = new BlockNode(token, this.stream.currentIndex());
     this.context.morphemes.push(node);
     this.pushContext(node, {
       script: node.subscript,
@@ -594,9 +699,13 @@ export class Parser {
     }
   }
 
-  /** Open an expression parsing context */
-  private openExpression() {
-    const node = new ExpressionNode();
+  /**
+   * Open an expression parsing context
+   *
+   * @param token - Current token
+   */
+  private openExpression(token: Token) {
+    const node = new ExpressionNode(token);
     this.context.morphemes.push(node);
     this.pushContext(node, {
       script: node.subscript,
@@ -626,69 +735,69 @@ export class Parser {
 
       case TokenType.TEXT:
       case TokenType.ESCAPE:
-        this.ensureWord();
-        this.addLiteral(token.literal);
+        this.ensureWord(token);
+        this.addLiteral(token, token.literal);
         return PARSE_OK();
 
       case TokenType.STRING_DELIMITER:
-        if (!this.ensureWord()) {
+        if (!this.ensureWord(token)) {
           return PARSE_ERROR("unexpected string delimiter");
         }
         if (token.literal.length == 1) {
           // Regular strings
-          this.openString();
+          this.openString(token);
         } else if (token.literal.length == 2) {
           const next = this.stream.current();
           if (next?.type == TokenType.TEXT) {
             // Tagged strings
-            this.openTaggedString(next.literal);
+            this.openTaggedString(token, next.literal);
           } else {
             // Special case for empty strings
-            this.openString();
+            this.openString(token);
             this.closeString();
           }
         } else {
           // Here-strings
-          this.openHereString(token.literal);
+          this.openHereString(token, token.literal);
         }
         return PARSE_OK();
 
       case TokenType.OPEN_TUPLE:
-        this.ensureWord();
-        this.openTuple();
+        this.ensureWord(token);
+        this.openTuple(token);
         return PARSE_OK();
 
       case TokenType.OPEN_BLOCK:
-        this.ensureWord();
-        this.openBlock();
+        this.ensureWord(token);
+        this.openBlock(token);
         return PARSE_OK();
 
       case TokenType.OPEN_EXPRESSION:
-        this.ensureWord();
-        this.openExpression();
+        this.ensureWord(token);
+        this.openExpression(token);
         return PARSE_OK();
 
       case TokenType.COMMENT:
         if (this.expectSource()) {
           return PARSE_ERROR("unexpected comment delimiter");
         }
-        if (!this.ensureWord()) {
-          this.addLiteral(token.literal);
+        if (!this.ensureWord(token)) {
+          this.addLiteral(token, token.literal);
           return PARSE_OK();
         }
-        if (!this.openBlockComment(token.literal)) {
-          this.openLineComment(token.literal);
+        if (!this.openBlockComment(token, token.literal)) {
+          this.openLineComment(token, token.literal);
         }
         return PARSE_OK();
 
       case TokenType.DOLLAR:
-        this.ensureWord();
-        this.beginSubstitution(token.literal);
+        this.ensureWord(token);
+        this.beginSubstitution(token, token.literal);
         return PARSE_OK();
 
       case TokenType.ASTERISK:
-        this.ensureWord();
-        this.addLiteral(token.literal);
+        this.ensureWord(token);
+        this.addLiteral(token, token.literal);
         return PARSE_OK();
 
       case TokenType.CLOSE_TUPLE:
@@ -708,15 +817,17 @@ export class Parser {
   /**
    * Ensure that word-related context info exists
    *
-   * @returns False if the word context already exists, true if it has been created
+   * @param token - Current token
+   *
+   * @returns       False if the word context already exists, true if it has been created
    */
-  private ensureWord() {
+  private ensureWord(token) {
     if (this.context.word) return false;
     if (!this.context.sentence) {
-      this.context.sentence = new SentenceNode();
+      this.context.sentence = new SentenceNode(token);
       this.context.script.sentences.push(this.context.sentence);
     }
-    this.context.word = new WordNode();
+    this.context.word = new WordNode(token);
     this.context.sentence.words.push(this.context.word);
     this.context.morphemes = this.context.word.morphemes;
     return true;
@@ -725,9 +836,10 @@ export class Parser {
   /**
    * Attempt to merge consecutive, non substituted literals
    *
+   * @param token - Current token
    * @param value - Literal to add or merge
    */
-  private addLiteral(value: string) {
+  private addLiteral(token: Token, value: string) {
     if (
       this.context.currentMorpheme()?.type == MorphemeType.LITERAL &&
       !this.withinSubstitution()
@@ -736,7 +848,7 @@ export class Parser {
       morpheme.value += value;
       return;
     }
-    const morpheme = new LiteralNode(value);
+    const morpheme = new LiteralNode(token, value);
     this.context.morphemes.push(morpheme);
     this.continueSubstitution();
   }
@@ -772,7 +884,7 @@ export class Parser {
     }
     switch (token.type) {
       case TokenType.DOLLAR:
-        this.beginSubstitution(token.literal);
+        this.beginSubstitution(token, token.literal);
         break;
 
       case TokenType.STRING_DELIMITER:
@@ -784,33 +896,37 @@ export class Parser {
 
       case TokenType.OPEN_TUPLE:
         if (this.withinSubstitution()) {
-          this.openTuple();
+          this.openTuple(token);
         } else {
-          this.addLiteral(token.literal);
+          this.addLiteral(token, token.literal);
         }
         break;
 
       case TokenType.OPEN_BLOCK:
         if (this.withinSubstitution()) {
-          this.openBlock();
+          this.openBlock(token);
         } else {
-          this.addLiteral(token.literal);
+          this.addLiteral(token, token.literal);
         }
         break;
 
       case TokenType.OPEN_EXPRESSION:
-        this.openExpression();
+        this.openExpression(token);
         break;
 
       default:
-        this.addLiteral(token.literal);
+        this.addLiteral(token, token.literal);
     }
     return PARSE_OK();
   }
 
-  /** Open a string parsing context */
-  private openString() {
-    const node = new StringNode();
+  /**
+   * Open a string parsing context
+   *
+   * @param token - Current token
+   */
+  private openString(token: Token) {
+    const node = new StringNode(token);
     this.context.morphemes.push(node);
     this.pushContext(node, {
       morphemes: node.morphemes,
@@ -840,10 +956,11 @@ export class Parser {
   /**
    * Open a here-string parsing context
    *
+   * @param token     - Current token
    * @param delimiter - Open delimiter sequence
    */
-  private openHereString(delimiter: string) {
-    const node = new HereStringNode(delimiter);
+  private openHereString(token: Token, delimiter: string) {
+    const node = new HereStringNode(token, delimiter);
     this.context.morphemes.push(node);
     this.pushContext(node, {});
   }
@@ -886,10 +1003,11 @@ export class Parser {
   /**
    * Open a tagged string parsing context
    *
-   * @param tag - String tag
+   * @param token - Current token
+   * @param tag   - String tag
    */
-  private openTaggedString(tag: string) {
-    const node = new TaggedStringNode(tag);
+  private openTaggedString(token: Token, tag: string) {
+    const node = new TaggedStringNode(token, tag);
     this.context.morphemes.push(node);
     this.pushContext(node, {});
 
@@ -946,10 +1064,11 @@ export class Parser {
   /**
    * Open a line comment parsing context
    *
+   * @param token     - Current token
    * @param delimiter - Line comment delimiter
    */
-  private openLineComment(delimiter: string) {
-    const node = new LineCommentNode(delimiter);
+  private openLineComment(token: Token, delimiter: string) {
+    const node = new LineCommentNode(token, delimiter);
     this.context.morphemes.push(node);
     this.pushContext(node, {});
   }
@@ -976,7 +1095,7 @@ export class Parser {
   private parseBlockComment(token: Token): ParseResult {
     switch (token.type) {
       case TokenType.COMMENT:
-        if (!this.openBlockComment(token.literal, true)) {
+        if (!this.openBlockComment(token, token.literal, true)) {
           this.addBlockCommentSequence(token.sequence);
         }
         break;
@@ -996,12 +1115,13 @@ export class Parser {
   /**
    * Attempt to open a block comment parsing context
    *
+   * @param token     - Current token
    * @param delimiter - Block comment delimiter
    * @param [nested]  - Whether in block comment context
    *
    * @returns           Whether the context was open
    */
-  private openBlockComment(delimiter: string, nested = false) {
+  private openBlockComment(token: Token, delimiter: string, nested = false) {
     if (this.stream.current()?.type != TokenType.OPEN_BLOCK) return false;
     if (nested) {
       const node = this.context.node as BlockCommentNode;
@@ -1011,7 +1131,7 @@ export class Parser {
       return false;
     }
     this.stream.next();
-    const node = new BlockCommentNode(delimiter);
+    const node = new BlockCommentNode(token, delimiter);
     this.context.morphemes.push(node);
     this.pushContext(node, {});
     return true;
@@ -1047,8 +1167,8 @@ export class Parser {
    * Substitutions
    */
 
-  private beginSubstitution(value: string) {
-    const morpheme = new SubstituteNextNode(value);
+  private beginSubstitution(token: Token, value: string) {
+    const morpheme = new SubstituteNextNode(token, value);
     if (this.stream.current()?.type == TokenType.ASTERISK) {
       if (
         this.context.currentMorpheme()?.type != MorphemeType.SUBSTITUTE_NEXT
@@ -1071,15 +1191,17 @@ export class Parser {
 
     // Convert stale substitutions to literals
     this.context.substitutionMode = "";
+    let firstToken: Token;
     let value = "";
     while (
       this.context.currentMorpheme()?.type == MorphemeType.SUBSTITUTE_NEXT
     ) {
-      value =
-        (this.context.currentMorpheme() as SubstituteNextNode).value + value;
+      const current = this.context.currentMorpheme() as SubstituteNextNode;
+      firstToken = current.firstToken;
+      value = current.value + value;
       this.context.morphemes.pop();
     }
-    this.addLiteral(value);
+    this.addLiteral(firstToken, value);
   }
   private withinSubstitution() {
     return this.context.substitutionMode != "";

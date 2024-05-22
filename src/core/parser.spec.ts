@@ -15,10 +15,11 @@ import {
   BlockCommentMorpheme,
   SubstituteNextMorpheme,
   Word,
+  Sentence,
 } from "./syntax";
 import { Tokenizer } from "./tokenizer";
 
-const mapMorpheme = (morpheme: Morpheme) => {
+const mapMorphemeRaw = (morpheme: Morpheme) => {
   switch (morpheme.type) {
     case MorphemeType.LITERAL:
       return { LITERAL: (morpheme as LiteralMorpheme).value };
@@ -59,10 +60,46 @@ const mapMorpheme = (morpheme: Morpheme) => {
       throw new Error("CANTHAPPEN");
   }
 };
-const toTree = (script: Script) =>
-  script.sentences.map((sentence) =>
-    sentence.words.map((word) => (word as Word).morphemes.map(mapMorpheme))
-  );
+const mapMorpheme = (morpheme) => {
+  if (morpheme.position) {
+    return {
+      ...mapMorphemeRaw(morpheme),
+      position: morpheme.position,
+    };
+  } else {
+    return mapMorphemeRaw(morpheme);
+  }
+};
+const mapWord = (word: Word) => {
+  if (word.position) {
+    return {
+      morphemes: word.morphemes.map(mapMorpheme),
+      position: word.position,
+    };
+  } else {
+    return word.morphemes.map(mapMorpheme);
+  }
+};
+const mapSentence = (sentence: Sentence) => {
+  if (sentence.position) {
+    return {
+      words: sentence.words.map((word) => mapWord(word as Word)),
+      position: sentence.position,
+    };
+  } else {
+    return sentence.words.map((word) => mapWord(word as Word));
+  }
+};
+const toTree = (script: Script) => {
+  if (script.position) {
+    return {
+      sentences: script.sentences.map(mapSentence),
+      position: script.position,
+    };
+  } else {
+    return script.sentences.map(mapSentence);
+  }
+};
 
 describe("Parser", () => {
   let tokenizer: Tokenizer;
@@ -1701,6 +1738,741 @@ int main(void) {
             ],
           ],
         ]);
+      });
+    });
+  });
+
+  describe("capturePositions", () => {
+    beforeEach(() => {
+      parser = new Parser({ capturePositions: true });
+    });
+    specify("literals", () => {
+      const script = parse("this is a list\nof literals");
+      expect(toTree(script)).to.eql({
+        position: { index: 0, line: 0, column: 0 },
+        sentences: [
+          {
+            position: { index: 0, line: 0, column: 0 },
+            words: [
+              {
+                position: { index: 0, line: 0, column: 0 },
+                morphemes: [
+                  {
+                    position: { index: 0, line: 0, column: 0 },
+                    LITERAL: "this",
+                  },
+                ],
+              },
+              {
+                position: { index: 5, line: 0, column: 5 },
+                morphemes: [
+                  {
+                    position: { index: 5, line: 0, column: 5 },
+                    LITERAL: "is",
+                  },
+                ],
+              },
+              {
+                position: { index: 8, line: 0, column: 8 },
+                morphemes: [
+                  {
+                    position: { index: 8, line: 0, column: 8 },
+                    LITERAL: "a",
+                  },
+                ],
+              },
+              {
+                position: { index: 10, line: 0, column: 10 },
+                morphemes: [
+                  {
+                    position: { index: 10, line: 0, column: 10 },
+                    LITERAL: "list",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            position: { index: 15, line: 1, column: 0 },
+            words: [
+              {
+                position: { index: 15, line: 1, column: 0 },
+                morphemes: [
+                  {
+                    position: { index: 15, line: 1, column: 0 },
+                    LITERAL: "of",
+                  },
+                ],
+              },
+              {
+                position: { index: 18, line: 1, column: 3 },
+                morphemes: [
+                  {
+                    position: { index: 18, line: 1, column: 3 },
+                    LITERAL: "literals",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+    });
+    specify("tuples", () => {
+      const script = parse("( ; ) ( ( \n ) ())");
+      expect(toTree(script)).to.eql({
+        position: { index: 0, line: 0, column: 0 },
+        sentences: [
+          {
+            position: { index: 0, line: 0, column: 0 },
+            words: [
+              {
+                position: { index: 0, line: 0, column: 0 },
+                morphemes: [
+                  {
+                    position: { index: 0, line: 0, column: 0 },
+                    TUPLE: {
+                      position: { index: 0, line: 0, column: 0 },
+                      sentences: [],
+                    },
+                  },
+                ],
+              },
+              {
+                position: { index: 6, line: 0, column: 6 },
+                morphemes: [
+                  {
+                    position: { index: 6, line: 0, column: 6 },
+                    TUPLE: {
+                      position: { index: 6, line: 0, column: 6 },
+                      sentences: [
+                        {
+                          position: { index: 8, line: 0, column: 8 },
+                          words: [
+                            {
+                              position: { index: 8, line: 0, column: 8 },
+                              morphemes: [
+                                {
+                                  position: { index: 8, line: 0, column: 8 },
+                                  TUPLE: {
+                                    position: { index: 8, line: 0, column: 8 },
+                                    sentences: [],
+                                  },
+                                },
+                              ],
+                            },
+                            {
+                              position: { index: 14, line: 1, column: 3 },
+                              morphemes: [
+                                {
+                                  position: { index: 14, line: 1, column: 3 },
+                                  TUPLE: {
+                                    position: { index: 14, line: 1, column: 3 },
+                                    sentences: [],
+                                  },
+                                },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+    });
+    specify("blocks", () => {
+      const script = parse("{ ; } { { \n } {}}");
+      expect(toTree(script)).to.eql({
+        position: { index: 0, line: 0, column: 0 },
+        sentences: [
+          {
+            position: { index: 0, line: 0, column: 0 },
+            words: [
+              {
+                position: { index: 0, line: 0, column: 0 },
+                morphemes: [
+                  {
+                    position: { index: 0, line: 0, column: 0 },
+                    BLOCK: {
+                      position: { index: 0, line: 0, column: 0 },
+                      sentences: [],
+                    },
+                  },
+                ],
+              },
+              {
+                position: { index: 6, line: 0, column: 6 },
+                morphemes: [
+                  {
+                    position: { index: 6, line: 0, column: 6 },
+                    BLOCK: {
+                      position: { index: 6, line: 0, column: 6 },
+                      sentences: [
+                        {
+                          position: { index: 8, line: 0, column: 8 },
+                          words: [
+                            {
+                              position: { index: 8, line: 0, column: 8 },
+                              morphemes: [
+                                {
+                                  position: { index: 8, line: 0, column: 8 },
+                                  BLOCK: {
+                                    position: { index: 8, line: 0, column: 8 },
+                                    sentences: [],
+                                  },
+                                },
+                              ],
+                            },
+                            {
+                              position: { index: 14, line: 1, column: 3 },
+                              morphemes: [
+                                {
+                                  position: { index: 14, line: 1, column: 3 },
+                                  BLOCK: {
+                                    position: { index: 14, line: 1, column: 3 },
+                                    sentences: [],
+                                  },
+                                },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+    });
+    specify("expressions", () => {
+      const script = parse("[ ; ] [ [ \n ] []]");
+      expect(toTree(script)).to.eql({
+        position: { index: 0, line: 0, column: 0 },
+        sentences: [
+          {
+            position: { index: 0, line: 0, column: 0 },
+            words: [
+              {
+                position: { index: 0, line: 0, column: 0 },
+                morphemes: [
+                  {
+                    position: { index: 0, line: 0, column: 0 },
+                    EXPRESSION: {
+                      position: { index: 0, line: 0, column: 0 },
+                      sentences: [],
+                    },
+                  },
+                ],
+              },
+              {
+                position: { index: 6, line: 0, column: 6 },
+                morphemes: [
+                  {
+                    position: { index: 6, line: 0, column: 6 },
+                    EXPRESSION: {
+                      position: { index: 6, line: 0, column: 6 },
+                      sentences: [
+                        {
+                          position: { index: 8, line: 0, column: 8 },
+                          words: [
+                            {
+                              position: { index: 8, line: 0, column: 8 },
+                              morphemes: [
+                                {
+                                  position: { index: 8, line: 0, column: 8 },
+                                  EXPRESSION: {
+                                    position: { index: 8, line: 0, column: 8 },
+                                    sentences: [],
+                                  },
+                                },
+                              ],
+                            },
+                            {
+                              position: { index: 14, line: 1, column: 3 },
+                              morphemes: [
+                                {
+                                  position: { index: 14, line: 1, column: 3 },
+                                  EXPRESSION: {
+                                    position: { index: 14, line: 1, column: 3 },
+                                    sentences: [],
+                                  },
+                                },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+    });
+    specify("strings", () => {
+      const script = parse(`"this" "is" "a\nlist $of" "" "strings"`);
+      expect(toTree(script)).to.eql({
+        position: { index: 0, line: 0, column: 0 },
+        sentences: [
+          {
+            position: { index: 0, line: 0, column: 0 },
+            words: [
+              {
+                position: { index: 0, line: 0, column: 0 },
+                morphemes: [
+                  {
+                    position: { index: 0, line: 0, column: 0 },
+                    STRING: [
+                      {
+                        position: { index: 1, line: 0, column: 1 },
+                        LITERAL: "this",
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                position: { index: 7, line: 0, column: 7 },
+                morphemes: [
+                  {
+                    position: { index: 7, line: 0, column: 7 },
+                    STRING: [
+                      {
+                        position: { index: 8, line: 0, column: 8 },
+                        LITERAL: "is",
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                position: { index: 12, line: 0, column: 12 },
+                morphemes: [
+                  {
+                    position: { index: 12, line: 0, column: 12 },
+                    STRING: [
+                      {
+                        position: { index: 13, line: 0, column: 13 },
+                        LITERAL: "a\nlist ",
+                      },
+                      {
+                        position: { index: 20, line: 1, column: 5 },
+                        SUBSTITUTE_NEXT: "$",
+                      },
+                      {
+                        position: { index: 21, line: 1, column: 6 },
+                        LITERAL: "of",
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                position: { index: 25, line: 1, column: 10 },
+                morphemes: [
+                  {
+                    position: { index: 25, line: 1, column: 10 },
+                    STRING: [],
+                  },
+                ],
+              },
+              {
+                position: { index: 28, line: 1, column: 13 },
+                morphemes: [
+                  {
+                    position: { index: 28, line: 1, column: 13 },
+                    STRING: [
+                      {
+                        position: { index: 29, line: 1, column: 14 },
+                        LITERAL: "strings",
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+    });
+    specify("here-strings", () => {
+      const script = parse(
+        `"""this is""" """a\nlist"""\n  """of""" """here-strings"""`
+      );
+      expect(toTree(script)).to.eql({
+        position: { index: 0, line: 0, column: 0 },
+        sentences: [
+          {
+            position: { index: 0, line: 0, column: 0 },
+            words: [
+              {
+                position: { index: 0, line: 0, column: 0 },
+                morphemes: [
+                  {
+                    position: { index: 0, line: 0, column: 0 },
+                    HERE_STRING: "this is",
+                  },
+                ],
+              },
+              {
+                position: { index: 14, line: 0, column: 14 },
+                morphemes: [
+                  {
+                    position: { index: 14, line: 0, column: 14 },
+                    HERE_STRING: "a\nlist",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            position: { index: 29, line: 2, column: 2 },
+            words: [
+              {
+                position: { index: 29, line: 2, column: 2 },
+                morphemes: [
+                  {
+                    position: { index: 29, line: 2, column: 2 },
+                    HERE_STRING: "of",
+                  },
+                ],
+              },
+              {
+                position: { index: 38, line: 2, column: 11 },
+                morphemes: [
+                  {
+                    position: { index: 38, line: 2, column: 11 },
+                    HERE_STRING: "here-strings",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+    });
+    specify("tagged strings", () => {
+      const script = parse(
+        `""A\nthis is\nA"" ""B\na\nlist\nB""\n  ""C\nof\nC"" ""D\ntagged strings\nD""`
+      );
+      expect(toTree(script)).to.eql({
+        position: { index: 0, line: 0, column: 0 },
+        sentences: [
+          {
+            position: { index: 0, line: 0, column: 0 },
+            words: [
+              {
+                position: { index: 0, line: 0, column: 0 },
+                morphemes: [
+                  {
+                    position: { index: 0, line: 0, column: 0 },
+                    TAGGED_STRING: "this is\n",
+                  },
+                ],
+              },
+              {
+                position: { index: 16, line: 2, column: 4 },
+                morphemes: [
+                  {
+                    position: { index: 16, line: 2, column: 4 },
+                    TAGGED_STRING: "a\nlist\n",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            position: { index: 33, line: 6, column: 2 },
+            words: [
+              {
+                position: { index: 33, line: 6, column: 2 },
+                morphemes: [
+                  {
+                    position: { index: 33, line: 6, column: 2 },
+                    TAGGED_STRING: "of\n",
+                  },
+                ],
+              },
+              {
+                position: { index: 44, line: 8, column: 4 },
+                morphemes: [
+                  {
+                    position: { index: 44, line: 8, column: 4 },
+                    TAGGED_STRING: "tagged strings\n",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+    });
+    specify("line comments", () => {
+      const script = parse(
+        "# this is\n# a\\\nlist\n  ###of\n    ## line comments"
+      );
+      expect(toTree(script)).to.eql({
+        position: { index: 0, line: 0, column: 0 },
+        sentences: [
+          {
+            position: { index: 0, line: 0, column: 0 },
+            words: [
+              {
+                position: { index: 0, line: 0, column: 0 },
+                morphemes: [
+                  {
+                    position: { index: 0, line: 0, column: 0 },
+                    LINE_COMMENT: " this is",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            position: { index: 10, line: 1, column: 0 },
+            words: [
+              {
+                position: { index: 10, line: 1, column: 0 },
+                morphemes: [
+                  {
+                    position: { index: 10, line: 1, column: 0 },
+                    LINE_COMMENT: " a list",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            position: { index: 22, line: 3, column: 2 },
+            words: [
+              {
+                position: { index: 22, line: 3, column: 2 },
+                morphemes: [
+                  {
+                    position: { index: 22, line: 3, column: 2 },
+                    LINE_COMMENT: "of",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            position: { index: 32, line: 4, column: 4 },
+            words: [
+              {
+                position: { index: 32, line: 4, column: 4 },
+                morphemes: [
+                  {
+                    position: { index: 32, line: 4, column: 4 },
+                    LINE_COMMENT: " line comments",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+    });
+    specify("block comments", () => {
+      const script = parse(
+        "#{this is}# ##{a\nlist}##\n  #{of}# ###{block comments}###"
+      );
+      expect(toTree(script)).to.eql({
+        position: { index: 0, line: 0, column: 0 },
+        sentences: [
+          {
+            position: { index: 0, line: 0, column: 0 },
+            words: [
+              {
+                position: { index: 0, line: 0, column: 0 },
+                morphemes: [
+                  {
+                    position: { index: 0, line: 0, column: 0 },
+                    BLOCK_COMMENT: "this is",
+                  },
+                ],
+              },
+              {
+                position: { index: 12, line: 0, column: 12 },
+                morphemes: [
+                  {
+                    position: { index: 12, line: 0, column: 12 },
+                    BLOCK_COMMENT: "a\nlist",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            position: { index: 27, line: 2, column: 2 },
+            words: [
+              {
+                position: { index: 27, line: 2, column: 2 },
+                morphemes: [
+                  {
+                    position: { index: 27, line: 2, column: 2 },
+                    BLOCK_COMMENT: "of",
+                  },
+                ],
+              },
+              {
+                position: { index: 34, line: 2, column: 9 },
+                morphemes: [
+                  {
+                    position: { index: 34, line: 2, column: 9 },
+                    BLOCK_COMMENT: "block comments",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+    });
+    specify("substitutions", () => {
+      const script = parse("$this $${is a\nlist} $*$$*$(of substitutions)");
+      expect(toTree(script)).to.eql({
+        position: { index: 0, line: 0, column: 0 },
+        sentences: [
+          {
+            position: { index: 0, line: 0, column: 0 },
+            words: [
+              {
+                position: { index: 0, line: 0, column: 0 },
+                morphemes: [
+                  {
+                    position: { index: 0, line: 0, column: 0 },
+                    SUBSTITUTE_NEXT: "$",
+                  },
+                  {
+                    position: { index: 1, line: 0, column: 1 },
+                    LITERAL: "this",
+                  },
+                ],
+              },
+              {
+                position: { index: 6, line: 0, column: 6 },
+                morphemes: [
+                  {
+                    position: { index: 6, line: 0, column: 6 },
+                    SUBSTITUTE_NEXT: "$",
+                  },
+                  {
+                    position: { index: 7, line: 0, column: 7 },
+                    SUBSTITUTE_NEXT: "$",
+                  },
+                  {
+                    position: { index: 8, line: 0, column: 8 },
+                    BLOCK: {
+                      position: { index: 8, line: 0, column: 8 },
+                      sentences: [
+                        {
+                          position: { index: 9, line: 0, column: 9 },
+                          words: [
+                            {
+                              position: { index: 9, line: 0, column: 9 },
+                              morphemes: [
+                                {
+                                  position: { index: 9, line: 0, column: 9 },
+                                  LITERAL: "is",
+                                },
+                              ],
+                            },
+                            {
+                              position: { index: 12, line: 0, column: 12 },
+                              morphemes: [
+                                {
+                                  position: { index: 12, line: 0, column: 12 },
+                                  LITERAL: "a",
+                                },
+                              ],
+                            },
+                          ],
+                        },
+                        {
+                          position: { index: 14, line: 1, column: 0 },
+                          words: [
+                            {
+                              position: { index: 14, line: 1, column: 0 },
+                              morphemes: [
+                                {
+                                  position: { index: 14, line: 1, column: 0 },
+                                  LITERAL: "list",
+                                },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                ],
+              },
+              {
+                position: { index: 20, line: 1, column: 6 },
+                morphemes: [
+                  {
+                    position: { index: 20, line: 1, column: 6 },
+                    EXPAND_NEXT: "$*",
+                  },
+                  {
+                    position: { index: 22, line: 1, column: 8 },
+                    SUBSTITUTE_NEXT: "$",
+                  },
+                  {
+                    position: { index: 23, line: 1, column: 9 },
+                    SUBSTITUTE_NEXT: "$*",
+                  },
+                  {
+                    position: { index: 25, line: 1, column: 11 },
+                    SUBSTITUTE_NEXT: "$",
+                  },
+                  {
+                    position: { index: 26, line: 1, column: 12 },
+                    TUPLE: {
+                      position: { index: 26, line: 1, column: 12 },
+                      sentences: [
+                        {
+                          position: { index: 27, line: 1, column: 13 },
+                          words: [
+                            {
+                              position: { index: 27, line: 1, column: 13 },
+                              morphemes: [
+                                {
+                                  position: { index: 27, line: 1, column: 13 },
+                                  LITERAL: "of",
+                                },
+                              ],
+                            },
+                            {
+                              position: { index: 30, line: 1, column: 16 },
+                              morphemes: [
+                                {
+                                  position: { index: 30, line: 1, column: 16 },
+                                  LITERAL: "substitutions",
+                                },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
       });
     });
   });
