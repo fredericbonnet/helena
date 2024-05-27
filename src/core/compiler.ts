@@ -40,6 +40,7 @@ import {
   applySelector,
 } from "./values";
 import { displayList } from "./display";
+import { SourcePosition } from "./tokenizer";
 
 /** Supported compiler opcodes */
 export enum OpCode {
@@ -64,18 +65,33 @@ export enum OpCode {
  */
 export class Program {
   /** Sequence of opcodes the program is made of */
-  readonly opCodes: OpCode[] = [];
+  readonly opCodes: OpCode[];
 
   /** Constants the opcodes refer to */
-  readonly constants: Value[] = [];
+  readonly constants: Value[];
+
+  /** Opcode positions */
+  readonly opCodePositions: SourcePosition[];
+
+  /* eslint-disable jsdoc/require-jsdoc */
+  constructor(capturePositions = false) {
+    this.opCodes = [];
+    this.constants = [];
+    if (capturePositions) {
+      this.opCodePositions = [];
+    }
+  }
+  /* eslint-enable jsdoc/require-jsdoc */
 
   /**
    * Push a new opcode
    *
-   * @param opCode - Opcode to add
+   * @param opCode     - Opcode to add
+   * @param [position] - Position in source
    */
-  pushOpCode(opCode: OpCode) {
+  pushOpCode(opCode: OpCode, position?: SourcePosition) {
     this.opCodes.push(opCode);
+    if (this.opCodePositions) this.opCodePositions.push(position);
   }
   /**
    * Push a new constant
@@ -97,13 +113,31 @@ export class Program {
 }
 
 /**
+ * Compiler options
+ */
+export type CompilerOptions = {
+  /** Whether to capture opcode and constant positions */
+  capturePositions?: boolean;
+};
+
+/**
  * Helena compiler
  *
  * This class transforms scripts, sentences and words into programs
  */
 export class Compiler {
   /** Syntax checker used during compilation */
-  private readonly syntaxChecker: SyntaxChecker = new SyntaxChecker();
+  private readonly syntaxChecker: SyntaxChecker;
+
+  /** Compiler options */
+  private readonly options: CompilerOptions;
+
+  /* eslint-disable jsdoc/require-jsdoc */
+  constructor(options: CompilerOptions = { capturePositions: false }) {
+    this.syntaxChecker = new SyntaxChecker();
+    this.options = options;
+  }
+  /* eslint-enable jsdoc/require-jsdoc */
 
   /*
    * Scripts
@@ -117,23 +151,23 @@ export class Compiler {
    * @returns        Compiled program
    */
   compileScript(script: Script): Program {
-    const program: Program = new Program();
+    const program: Program = new Program(this.options.capturePositions);
     if (script.sentences.length == 0) return program;
     this.emitScript(program, script);
     return program;
   }
   private emitScript(program: Program, script: Script) {
     if (script.sentences.length == 0) {
-      program.pushOpCode(OpCode.PUSH_NIL);
+      program.pushOpCode(OpCode.PUSH_NIL, script.position);
       return;
     }
     for (const sentence of script.sentences) {
-      program.pushOpCode(OpCode.OPEN_FRAME);
+      program.pushOpCode(OpCode.OPEN_FRAME, sentence.position);
       this.emitSentence(program, sentence);
-      program.pushOpCode(OpCode.CLOSE_FRAME);
-      program.pushOpCode(OpCode.EVALUATE_SENTENCE);
+      program.pushOpCode(OpCode.CLOSE_FRAME, sentence.position);
+      program.pushOpCode(OpCode.EVALUATE_SENTENCE, sentence.position);
     }
-    program.pushOpCode(OpCode.PUSH_RESULT);
+    program.pushOpCode(OpCode.PUSH_RESULT, script.position);
   }
 
   /*
@@ -148,17 +182,21 @@ export class Compiler {
    * @returns           Compiled program
    */
   compileSentences(sentences: Sentence[]): Program {
-    const program: Program = new Program();
+    const program: Program = new Program(this.options.capturePositions);
     this.emitSentences(program, sentences);
     program.pushOpCode(OpCode.MAKE_TUPLE);
     return program;
   }
-  private emitSentences(program: Program, sentences: Sentence[]) {
-    program.pushOpCode(OpCode.OPEN_FRAME);
+  private emitSentences(
+    program: Program,
+    sentences: Sentence[],
+    position?: SourcePosition
+  ) {
+    program.pushOpCode(OpCode.OPEN_FRAME, position);
     for (const sentence of sentences) {
       this.emitSentence(program, sentence);
     }
-    program.pushOpCode(OpCode.CLOSE_FRAME);
+    program.pushOpCode(OpCode.CLOSE_FRAME, position);
   }
 
   /**
@@ -169,7 +207,7 @@ export class Compiler {
    * @returns          Compiled program
    */
   compileSentence(sentence: Sentence): Program {
-    const program: Program = new Program();
+    const program: Program = new Program(this.options.capturePositions);
     this.emitSentence(program, sentence);
     return program;
   }
@@ -195,7 +233,7 @@ export class Compiler {
    * @returns      Compiled program
    */
   compileWord(word: Word): Program {
-    const program: Program = new Program();
+    const program: Program = new Program(this.options.capturePositions);
     this.emitWord(program, word);
     return program;
   }
@@ -216,16 +254,16 @@ export class Compiler {
   private emitWord(program: Program, word: Word) {
     switch (this.syntaxChecker.checkWord(word)) {
       case WordType.ROOT:
-        this.emitRoot(program, word.morphemes[0]);
+        this.emitRoot(program, word);
         break;
       case WordType.COMPOUND:
-        this.emitCompound(program, word.morphemes);
+        this.emitCompound(program, word);
         break;
       case WordType.SUBSTITUTION:
-        this.emitSubstitution(program, word.morphemes);
+        this.emitSubstitution(program, word);
         break;
       case WordType.QUALIFIED:
-        this.emitQualified(program, word.morphemes);
+        this.emitQualified(program, word);
         break;
       case WordType.IGNORED:
         break;
@@ -235,7 +273,8 @@ export class Compiler {
         throw new Error("CANTHAPPEN");
     }
   }
-  private emitRoot(program: Program, root: Morpheme) {
+  private emitRoot(program: Program, word: Word) {
+    const root = word.morphemes[0];
     switch (root.type) {
       case MorphemeType.LITERAL: {
         const literal = root as LiteralMorpheme;
@@ -283,37 +322,44 @@ export class Compiler {
         throw new UnexpectedMorphemeError("unexpected morpheme");
     }
   }
-  private emitCompound(program: Program, morphemes: Morpheme[]) {
-    program.pushOpCode(OpCode.OPEN_FRAME);
-    this.emitStems(program, morphemes);
-    program.pushOpCode(OpCode.CLOSE_FRAME);
-    program.pushOpCode(OpCode.JOIN_STRINGS);
+  private emitCompound(program: Program, word: Word) {
+    program.pushOpCode(OpCode.OPEN_FRAME, word.position);
+    this.emitStems(program, word.morphemes);
+    program.pushOpCode(OpCode.CLOSE_FRAME, word.position);
+    program.pushOpCode(OpCode.JOIN_STRINGS, word.position);
   }
-  private emitSubstitution(program: Program, morphemes: Morpheme[]) {
-    const expand = (morphemes[0] as SubstituteNextMorpheme).expansion;
+  private emitSubstitution(program: Program, word: Word) {
+    const firstSubstitute = 0;
+    const expand = (word.morphemes[0] as SubstituteNextMorpheme).expansion;
     let levels = 1;
     let i = 1;
-    while (morphemes[i].type == MorphemeType.SUBSTITUTE_NEXT) {
+    while (word.morphemes[i].type == MorphemeType.SUBSTITUTE_NEXT) {
       i++;
       levels++;
     }
-    const selectable = morphemes[i++];
+    const selectable = word.morphemes[i++];
     switch (selectable.type) {
       case MorphemeType.LITERAL: {
         const literal = selectable as LiteralMorpheme;
-        this.emitLiteralVarname(program, literal);
+        const substitute = word.morphemes[firstSubstitute + levels - 1];
+        this.emitLiteral(program, literal);
+        program.pushOpCode(OpCode.RESOLVE_VALUE, substitute.position);
         break;
       }
 
       case MorphemeType.TUPLE: {
         const tuple = selectable as TupleMorpheme;
-        this.emitTupleVarnames(program, tuple);
+        const substitute = word.morphemes[firstSubstitute + levels - 1];
+        this.emitTuple(program, tuple);
+        program.pushOpCode(OpCode.RESOLVE_VALUE, substitute.position);
         break;
       }
 
       case MorphemeType.BLOCK: {
         const block = selectable as BlockMorpheme;
-        this.emitBlockVarname(program, block);
+        const substitute = word.morphemes[firstSubstitute + levels - 1];
+        this.emitBlockString(program, block);
+        program.pushOpCode(OpCode.RESOLVE_VALUE, substitute.position);
         break;
       }
 
@@ -326,8 +372,8 @@ export class Compiler {
       default:
         throw new UnexpectedMorphemeError("unexpected morpheme");
     }
-    while (i < morphemes.length) {
-      const morpheme = morphemes[i++];
+    while (i < word.morphemes.length) {
+      const morpheme = word.morphemes[i++];
       switch (morpheme.type) {
         case MorphemeType.TUPLE: {
           const tuple = morpheme as TupleMorpheme;
@@ -351,39 +397,43 @@ export class Compiler {
           throw new UnexpectedMorphemeError("unexpected morpheme");
       }
     }
-    for (let level = 1; level < levels; level++) {
-      program.pushOpCode(OpCode.RESOLVE_VALUE);
-    }
+    this.terminateSubstitutionSequence(
+      program,
+      word.morphemes,
+      firstSubstitute,
+      levels
+    );
     if (expand) {
-      program.pushOpCode(OpCode.EXPAND_VALUE);
+      program.pushOpCode(OpCode.EXPAND_VALUE, word.position);
     }
   }
-  private emitQualified(program: Program, morphemes: Morpheme[]) {
-    const selectable = morphemes[0];
+  private emitQualified(program: Program, word: Word) {
+    const selectable = word.morphemes[0];
     switch (selectable.type) {
       case MorphemeType.LITERAL: {
         const literal = selectable as LiteralMorpheme;
-        this.emitLiteralSource(program, literal);
+        this.emitLiteral(program, literal);
         break;
       }
 
       case MorphemeType.TUPLE: {
         const tuple = selectable as TupleMorpheme;
-        this.emitTupleSource(program, tuple);
+        this.emitTuple(program, tuple);
         break;
       }
 
       case MorphemeType.BLOCK: {
         const block = selectable as BlockMorpheme;
-        this.emitBlockSource(program, block);
+        this.emitBlockString(program, block);
         break;
       }
 
       default:
         throw new UnexpectedMorphemeError("unexpected morpheme");
     }
-    for (let i = 1; i < morphemes.length; i++) {
-      const morpheme = morphemes[i];
+    program.pushOpCode(OpCode.SET_SOURCE, selectable.position);
+    for (let i = 1; i < word.morphemes.length; i++) {
+      const morpheme = word.morphemes[i];
       switch (morpheme.type) {
         case MorphemeType.TUPLE: {
           const tuple = morpheme as TupleMorpheme;
@@ -410,18 +460,21 @@ export class Compiler {
   }
   private emitStems(program: Program, morphemes: Morpheme[]) {
     let mode: "" | "substitute" | "selectable" = "";
+    let firstSubstitute;
     let levels;
-    for (const morpheme of morphemes) {
+    for (let i = 0; i < morphemes.length; i++) {
+      const morpheme = morphemes[i];
       if (mode == "selectable") {
         switch (morpheme.type) {
           case MorphemeType.SUBSTITUTE_NEXT:
-          case MorphemeType.LITERAL: {
-            // Terminate substitution sequence
-            for (let level = 1; level < levels; level++) {
-              program.pushOpCode(OpCode.RESOLVE_VALUE);
-            }
+          case MorphemeType.LITERAL:
+            this.terminateSubstitutionSequence(
+              program,
+              morphemes,
+              firstSubstitute,
+              levels
+            );
             mode = "";
-          }
         }
       }
 
@@ -436,19 +489,25 @@ export class Compiler {
             // Expecting a source (varname or expression)
             case MorphemeType.LITERAL: {
               const literal = morpheme as LiteralMorpheme;
-              this.emitLiteralVarname(program, literal);
+              const substitute = morphemes[firstSubstitute + levels - 1];
+              this.emitLiteral(program, literal);
+              program.pushOpCode(OpCode.RESOLVE_VALUE, substitute.position);
               break;
             }
 
             case MorphemeType.TUPLE: {
               const tuple = morpheme as TupleMorpheme;
-              this.emitTupleVarnames(program, tuple);
+              const substitute = morphemes[firstSubstitute + levels - 1];
+              this.emitTuple(program, tuple);
+              program.pushOpCode(OpCode.RESOLVE_VALUE, substitute.position);
               break;
             }
 
             case MorphemeType.BLOCK: {
               const block = morpheme as BlockMorpheme;
-              this.emitBlockVarname(program, block);
+              const substitute = morphemes[firstSubstitute + levels - 1];
+              this.emitBlockString(program, block);
+              program.pushOpCode(OpCode.RESOLVE_VALUE, substitute.position);
               break;
             }
 
@@ -497,6 +556,7 @@ export class Compiler {
             case MorphemeType.SUBSTITUTE_NEXT:
               // Start substitution sequence
               mode = "substitute";
+              firstSubstitute = i;
               levels = 1;
               break;
 
@@ -518,6 +578,25 @@ export class Compiler {
         }
       }
     }
+    if (mode == "selectable") {
+      this.terminateSubstitutionSequence(
+        program,
+        morphemes,
+        firstSubstitute,
+        levels
+      );
+    }
+  }
+  private terminateSubstitutionSequence(
+    program: Program,
+    morphemes: Morpheme[],
+    first: number,
+    levels: number
+  ) {
+    for (let level = levels - 1; level >= 1; level--) {
+      const substitute = morphemes[first + level - 1];
+      program.pushOpCode(OpCode.RESOLVE_VALUE, substitute.position);
+    }
   }
 
   /*
@@ -526,84 +605,66 @@ export class Compiler {
 
   private emitLiteral(program: Program, literal: LiteralMorpheme) {
     const value = new StringValue(literal.value);
-    this.emitConstant(program, value);
+    this.emitConstant(program, value, literal.position);
   }
   private emitTuple(program: Program, tuple: TupleMorpheme) {
-    this.emitSentences(program, tuple.subscript.sentences);
-    program.pushOpCode(OpCode.MAKE_TUPLE);
+    this.emitSentences(program, tuple.subscript.sentences, tuple.position);
+    program.pushOpCode(OpCode.MAKE_TUPLE, tuple.position);
   }
   private emitBlock(program: Program, block: BlockMorpheme) {
     const value = new ScriptValue(block.subscript, block.value);
-    this.emitConstant(program, value);
+    this.emitConstant(program, value, block.position);
+  }
+  private emitBlockString(program: Program, block: BlockMorpheme) {
+    const value = new StringValue(block.value);
+    this.emitConstant(program, value, block.position);
   }
   private emitExpression(program: Program, expression: ExpressionMorpheme) {
     this.emitScript(program, expression.subscript);
   }
   private emitString(program: Program, string: StringMorpheme) {
-    program.pushOpCode(OpCode.OPEN_FRAME);
+    program.pushOpCode(OpCode.OPEN_FRAME, string.position);
     this.emitStems(program, string.morphemes);
-    program.pushOpCode(OpCode.CLOSE_FRAME);
-    program.pushOpCode(OpCode.JOIN_STRINGS);
+    program.pushOpCode(OpCode.CLOSE_FRAME, string.position);
+    program.pushOpCode(OpCode.JOIN_STRINGS, string.position);
   }
   private emitHereString(program: Program, string: HereStringMorpheme) {
     const value = new StringValue(string.value);
-    this.emitConstant(program, value);
+    this.emitConstant(program, value, string.position);
   }
   private emitTaggedString(program: Program, string: TaggedStringMorpheme) {
     const value = new StringValue(string.value);
-    this.emitConstant(program, value);
-  }
-  private emitLiteralVarname(program: Program, literal: LiteralMorpheme) {
-    this.emitLiteral(program, literal);
-    program.pushOpCode(OpCode.RESOLVE_VALUE);
-  }
-  private emitTupleVarnames(program: Program, tuple: TupleMorpheme) {
-    this.emitTuple(program, tuple);
-    program.pushOpCode(OpCode.RESOLVE_VALUE);
-  }
-  private emitBlockVarname(program: Program, block: BlockMorpheme) {
-    const value = new StringValue(block.value);
-    this.emitConstant(program, value);
-    program.pushOpCode(OpCode.RESOLVE_VALUE);
-  }
-  private emitLiteralSource(program: Program, literal: LiteralMorpheme) {
-    this.emitLiteral(program, literal);
-    program.pushOpCode(OpCode.SET_SOURCE);
-  }
-  private emitTupleSource(program: Program, tuple: TupleMorpheme) {
-    this.emitTuple(program, tuple);
-    program.pushOpCode(OpCode.SET_SOURCE);
-  }
-  private emitBlockSource(program: Program, block: BlockMorpheme) {
-    const value = new StringValue(block.value);
-    this.emitConstant(program, value);
-    program.pushOpCode(OpCode.SET_SOURCE);
+    this.emitConstant(program, value, string.position);
   }
   private emitKeyedSelector(program: Program, tuple: TupleMorpheme) {
-    this.emitSentences(program, tuple.subscript.sentences);
-    program.pushOpCode(OpCode.SELECT_KEYS);
+    this.emitSentences(program, tuple.subscript.sentences, tuple.position);
+    program.pushOpCode(OpCode.SELECT_KEYS, tuple.position);
   }
   private emitIndexedSelector(
     program: Program,
     expression: ExpressionMorpheme
   ) {
     this.emitScript(program, expression.subscript);
-    program.pushOpCode(OpCode.SELECT_INDEX);
+    program.pushOpCode(OpCode.SELECT_INDEX, expression.position);
   }
   private emitSelector(program: Program, block: BlockMorpheme) {
-    program.pushOpCode(OpCode.OPEN_FRAME);
+    program.pushOpCode(OpCode.OPEN_FRAME, block.position);
     for (const sentence of block.subscript.sentences) {
-      program.pushOpCode(OpCode.OPEN_FRAME);
+      program.pushOpCode(OpCode.OPEN_FRAME, sentence.position);
       this.emitSentence(program, sentence);
-      program.pushOpCode(OpCode.CLOSE_FRAME);
-      program.pushOpCode(OpCode.MAKE_TUPLE);
+      program.pushOpCode(OpCode.CLOSE_FRAME, sentence.position);
+      program.pushOpCode(OpCode.MAKE_TUPLE, sentence.position);
     }
-    program.pushOpCode(OpCode.CLOSE_FRAME);
-    program.pushOpCode(OpCode.SELECT_RULES);
+    program.pushOpCode(OpCode.CLOSE_FRAME, block.position);
+    program.pushOpCode(OpCode.SELECT_RULES, block.position);
   }
 
-  private emitConstant(program: Program, value: Value) {
-    program.pushOpCode(OpCode.PUSH_CONSTANT);
+  private emitConstant(
+    program: Program,
+    value: Value,
+    position?: SourcePosition
+  ) {
+    program.pushOpCode(OpCode.PUSH_CONSTANT, position);
     program.pushConstant(value);
   }
 }

@@ -3228,6 +3228,293 @@ describe("Compilation and execution", () => {
             ]);
           });
         });
+
+        describe("capturePositions", () => {
+          const toOpCodePositions = (program) => {
+            const result = [];
+            for (let i = 0; i < program.opCodes.length; i++) {
+              result.push([program.opCodePositions[i], program.opCodes[i]]);
+            }
+            return result;
+          };
+          beforeEach(() => {
+            parser = new Parser({ capturePositions: true });
+            compiler = new Compiler({ capturePositions: true });
+          });
+
+          specify("literals", () => {
+            const script = parse("value1 value2");
+            const program = compiler.compileScript(script);
+            expect(toOpCodePositions(program)).to.eql([
+              [{ index: 0, line: 0, column: 0 }, OpCode.OPEN_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.PUSH_CONSTANT],
+              [{ index: 7, line: 0, column: 7 }, OpCode.PUSH_CONSTANT],
+              [{ index: 0, line: 0, column: 0 }, OpCode.CLOSE_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.EVALUATE_SENTENCE],
+              [{ index: 0, line: 0, column: 0 }, OpCode.PUSH_RESULT],
+            ]);
+          });
+          specify("tuples", () => {
+            const script = parse("(value1 (value2 value3) value4) ()");
+            //                    0123456789012345678901234567890123456789012345
+            //                              1         2         3         4
+            const program = compiler.compileScript(script);
+            expect(toOpCodePositions(program)).to.eql([
+              [{ index: 0, line: 0, column: 0 }, OpCode.OPEN_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.OPEN_FRAME],
+              [{ index: 1, line: 0, column: 1 }, OpCode.PUSH_CONSTANT],
+              [{ index: 8, line: 0, column: 8 }, OpCode.OPEN_FRAME],
+              [{ index: 9, line: 0, column: 9 }, OpCode.PUSH_CONSTANT],
+              [{ index: 16, line: 0, column: 16 }, OpCode.PUSH_CONSTANT],
+              [{ index: 8, line: 0, column: 8 }, OpCode.CLOSE_FRAME],
+              [{ index: 8, line: 0, column: 8 }, OpCode.MAKE_TUPLE],
+              [{ index: 24, line: 0, column: 24 }, OpCode.PUSH_CONSTANT],
+              [{ index: 0, line: 0, column: 0 }, OpCode.CLOSE_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.MAKE_TUPLE],
+              [{ index: 32, line: 0, column: 32 }, OpCode.OPEN_FRAME],
+              [{ index: 32, line: 0, column: 32 }, OpCode.CLOSE_FRAME],
+              [{ index: 32, line: 0, column: 32 }, OpCode.MAKE_TUPLE],
+              [{ index: 0, line: 0, column: 0 }, OpCode.CLOSE_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.EVALUATE_SENTENCE],
+              [{ index: 0, line: 0, column: 0 }, OpCode.PUSH_RESULT],
+            ]);
+          });
+          specify("blocks", () => {
+            const script = parse("{value1 {value2 value3} value4} {}");
+            //                    0123456789012345678901234567890123456789012345
+            //                              1         2         3         4
+            const program = compiler.compileScript(script);
+            expect(toOpCodePositions(program)).to.eql([
+              [{ index: 0, line: 0, column: 0 }, OpCode.OPEN_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.PUSH_CONSTANT],
+              [{ index: 32, line: 0, column: 32 }, OpCode.PUSH_CONSTANT],
+              [{ index: 0, line: 0, column: 0 }, OpCode.CLOSE_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.EVALUATE_SENTENCE],
+              [{ index: 0, line: 0, column: 0 }, OpCode.PUSH_RESULT],
+            ]);
+          });
+          specify("expressions", () => {
+            const script = parse("[value1 [value2 value3] value4] []");
+            //                    0123456789012345678901234567890123456789012345
+            //                              1         2         3         4
+            const program = compiler.compileScript(script);
+            expect(toOpCodePositions(program)).to.eql([
+              [{ index: 0, line: 0, column: 0 }, OpCode.OPEN_FRAME],
+              [{ index: 1, line: 0, column: 1 }, OpCode.OPEN_FRAME],
+              [{ index: 1, line: 0, column: 1 }, OpCode.PUSH_CONSTANT],
+              [{ index: 9, line: 0, column: 9 }, OpCode.OPEN_FRAME],
+              [{ index: 9, line: 0, column: 9 }, OpCode.PUSH_CONSTANT],
+              [{ index: 16, line: 0, column: 16 }, OpCode.PUSH_CONSTANT],
+              [{ index: 9, line: 0, column: 9 }, OpCode.CLOSE_FRAME],
+              [{ index: 9, line: 0, column: 9 }, OpCode.EVALUATE_SENTENCE],
+              [{ index: 8, line: 0, column: 8 }, OpCode.PUSH_RESULT],
+              [{ index: 24, line: 0, column: 24 }, OpCode.PUSH_CONSTANT],
+              [{ index: 1, line: 0, column: 1 }, OpCode.CLOSE_FRAME],
+              [{ index: 1, line: 0, column: 1 }, OpCode.EVALUATE_SENTENCE],
+              [{ index: 0, line: 0, column: 0 }, OpCode.PUSH_RESULT],
+              [{ index: 32, line: 0, column: 32 }, OpCode.PUSH_NIL],
+              [{ index: 0, line: 0, column: 0 }, OpCode.CLOSE_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.EVALUATE_SENTENCE],
+              [{ index: 0, line: 0, column: 0 }, OpCode.PUSH_RESULT],
+            ]);
+          });
+          specify("strings", () => {
+            const script = parse('"a b $var1 c$${var2}d e"');
+            //                    0123456789012345678901234567890123456789012345
+            //                              1         2         3         4
+            const program = compiler.compileScript(script);
+            expect(toOpCodePositions(program)).to.eql([
+              [{ index: 0, line: 0, column: 0 }, OpCode.OPEN_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.OPEN_FRAME],
+              [{ index: 1, line: 0, column: 1 }, OpCode.PUSH_CONSTANT],
+              [{ index: 6, line: 0, column: 6 }, OpCode.PUSH_CONSTANT],
+              [{ index: 5, line: 0, column: 5 }, OpCode.RESOLVE_VALUE],
+              [{ index: 10, line: 0, column: 10 }, OpCode.PUSH_CONSTANT],
+              [{ index: 14, line: 0, column: 14 }, OpCode.PUSH_CONSTANT],
+              [{ index: 13, line: 0, column: 13 }, OpCode.RESOLVE_VALUE],
+              [{ index: 12, line: 0, column: 12 }, OpCode.RESOLVE_VALUE],
+              [{ index: 20, line: 0, column: 20 }, OpCode.PUSH_CONSTANT],
+              [{ index: 0, line: 0, column: 0 }, OpCode.CLOSE_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.JOIN_STRINGS],
+              [{ index: 0, line: 0, column: 0 }, OpCode.CLOSE_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.EVALUATE_SENTENCE],
+              [{ index: 0, line: 0, column: 0 }, OpCode.PUSH_RESULT],
+            ]);
+          });
+          specify("here-strings", () => {
+            const script = parse('"""a b c d""" """e f"""');
+            const program = compiler.compileScript(script);
+            expect(toOpCodePositions(program)).to.eql([
+              [{ index: 0, line: 0, column: 0 }, OpCode.OPEN_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.PUSH_CONSTANT],
+              [{ index: 14, line: 0, column: 14 }, OpCode.PUSH_CONSTANT],
+              [{ index: 0, line: 0, column: 0 }, OpCode.CLOSE_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.EVALUATE_SENTENCE],
+              [{ index: 0, line: 0, column: 0 }, OpCode.PUSH_RESULT],
+            ]);
+          });
+          specify("tagged strings", () => {
+            const script = parse('""A\na b c d\nA"" ""B\ne f\nB""');
+            const program = compiler.compileScript(script);
+            expect(toOpCodePositions(program)).to.eql([
+              [{ index: 0, line: 0, column: 0 }, OpCode.OPEN_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.PUSH_CONSTANT],
+              [{ index: 16, line: 2, column: 4 }, OpCode.PUSH_CONSTANT],
+              [{ index: 0, line: 0, column: 0 }, OpCode.CLOSE_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.EVALUATE_SENTENCE],
+              [{ index: 0, line: 0, column: 0 }, OpCode.PUSH_RESULT],
+            ]);
+          });
+          specify("compounds", () => {
+            const script = parse("a$b{c}[d e]fg$$${h}i j$[k l]$m");
+            //                    0123456789012345678901234567890123456789012345
+            //                              1         2         3         4
+            const program = compiler.compileScript(script);
+            expect(toOpCodePositions(program)).to.eql([
+              [{ index: 0, line: 0, column: 0 }, OpCode.OPEN_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.OPEN_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.PUSH_CONSTANT],
+              [{ index: 2, line: 0, column: 2 }, OpCode.PUSH_CONSTANT],
+              [{ index: 1, line: 0, column: 1 }, OpCode.RESOLVE_VALUE],
+              [{ index: 3, line: 0, column: 3 }, OpCode.OPEN_FRAME],
+              [{ index: 4, line: 0, column: 4 }, OpCode.OPEN_FRAME],
+              [{ index: 4, line: 0, column: 4 }, OpCode.PUSH_CONSTANT],
+              [{ index: 4, line: 0, column: 4 }, OpCode.CLOSE_FRAME],
+              [{ index: 4, line: 0, column: 4 }, OpCode.MAKE_TUPLE],
+              [{ index: 3, line: 0, column: 3 }, OpCode.CLOSE_FRAME],
+              [{ index: 3, line: 0, column: 3 }, OpCode.SELECT_RULES],
+              [{ index: 7, line: 0, column: 7 }, OpCode.OPEN_FRAME],
+              [{ index: 7, line: 0, column: 7 }, OpCode.PUSH_CONSTANT],
+              [{ index: 9, line: 0, column: 9 }, OpCode.PUSH_CONSTANT],
+              [{ index: 7, line: 0, column: 7 }, OpCode.CLOSE_FRAME],
+              [{ index: 7, line: 0, column: 7 }, OpCode.EVALUATE_SENTENCE],
+              [{ index: 6, line: 0, column: 6 }, OpCode.PUSH_RESULT],
+              [{ index: 6, line: 0, column: 6 }, OpCode.SELECT_INDEX],
+              [{ index: 11, line: 0, column: 11 }, OpCode.PUSH_CONSTANT],
+              [{ index: 16, line: 0, column: 16 }, OpCode.PUSH_CONSTANT],
+              [{ index: 15, line: 0, column: 15 }, OpCode.RESOLVE_VALUE],
+              [{ index: 14, line: 0, column: 14 }, OpCode.RESOLVE_VALUE],
+              [{ index: 13, line: 0, column: 13 }, OpCode.RESOLVE_VALUE],
+              [{ index: 19, line: 0, column: 19 }, OpCode.PUSH_CONSTANT],
+              [{ index: 0, line: 0, column: 0 }, OpCode.CLOSE_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.JOIN_STRINGS],
+              [{ index: 21, line: 0, column: 21 }, OpCode.OPEN_FRAME],
+              [{ index: 21, line: 0, column: 21 }, OpCode.PUSH_CONSTANT],
+              [{ index: 24, line: 0, column: 24 }, OpCode.OPEN_FRAME],
+              [{ index: 24, line: 0, column: 24 }, OpCode.PUSH_CONSTANT],
+              [{ index: 26, line: 0, column: 26 }, OpCode.PUSH_CONSTANT],
+              [{ index: 24, line: 0, column: 24 }, OpCode.CLOSE_FRAME],
+              [{ index: 24, line: 0, column: 24 }, OpCode.EVALUATE_SENTENCE],
+              [{ index: 23, line: 0, column: 23 }, OpCode.PUSH_RESULT],
+              [{ index: 29, line: 0, column: 29 }, OpCode.PUSH_CONSTANT],
+              [{ index: 28, line: 0, column: 28 }, OpCode.RESOLVE_VALUE],
+              [{ index: 21, line: 0, column: 21 }, OpCode.CLOSE_FRAME],
+              [{ index: 21, line: 0, column: 21 }, OpCode.JOIN_STRINGS],
+              [{ index: 0, line: 0, column: 0 }, OpCode.CLOSE_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.EVALUATE_SENTENCE],
+              [{ index: 0, line: 0, column: 0 }, OpCode.PUSH_RESULT],
+            ]);
+          });
+          specify("substitutions", () => {
+            const script = parse("$var1[a b](c $$var2 e){f g} $*$${var3}");
+            //                    0123456789012345678901234567890123456789012345
+            //                              1         2         3         4
+            const program = compiler.compileScript(script);
+            expect(toOpCodePositions(program)).to.eql([
+              [{ index: 0, line: 0, column: 0 }, OpCode.OPEN_FRAME],
+              [{ index: 1, line: 0, column: 1 }, OpCode.PUSH_CONSTANT],
+              [{ index: 0, line: 0, column: 0 }, OpCode.RESOLVE_VALUE],
+              [{ index: 6, line: 0, column: 6 }, OpCode.OPEN_FRAME],
+              [{ index: 6, line: 0, column: 6 }, OpCode.PUSH_CONSTANT],
+              [{ index: 8, line: 0, column: 8 }, OpCode.PUSH_CONSTANT],
+              [{ index: 6, line: 0, column: 6 }, OpCode.CLOSE_FRAME],
+              [{ index: 6, line: 0, column: 6 }, OpCode.EVALUATE_SENTENCE],
+              [{ index: 5, line: 0, column: 5 }, OpCode.PUSH_RESULT],
+              [{ index: 5, line: 0, column: 5 }, OpCode.SELECT_INDEX],
+              [{ index: 10, line: 0, column: 10 }, OpCode.OPEN_FRAME],
+              [{ index: 11, line: 0, column: 11 }, OpCode.PUSH_CONSTANT],
+              [{ index: 15, line: 0, column: 15 }, OpCode.PUSH_CONSTANT],
+              [{ index: 14, line: 0, column: 14 }, OpCode.RESOLVE_VALUE],
+              [{ index: 13, line: 0, column: 13 }, OpCode.RESOLVE_VALUE],
+              [{ index: 20, line: 0, column: 20 }, OpCode.PUSH_CONSTANT],
+              [{ index: 10, line: 0, column: 10 }, OpCode.CLOSE_FRAME],
+              [{ index: 10, line: 0, column: 10 }, OpCode.SELECT_KEYS],
+              [{ index: 22, line: 0, column: 22 }, OpCode.OPEN_FRAME],
+              [{ index: 23, line: 0, column: 23 }, OpCode.OPEN_FRAME],
+              [{ index: 23, line: 0, column: 23 }, OpCode.PUSH_CONSTANT],
+              [{ index: 25, line: 0, column: 25 }, OpCode.PUSH_CONSTANT],
+              [{ index: 23, line: 0, column: 23 }, OpCode.CLOSE_FRAME],
+              [{ index: 23, line: 0, column: 23 }, OpCode.MAKE_TUPLE],
+              [{ index: 22, line: 0, column: 22 }, OpCode.CLOSE_FRAME],
+              [{ index: 22, line: 0, column: 22 }, OpCode.SELECT_RULES],
+              [{ index: 32, line: 0, column: 32 }, OpCode.PUSH_CONSTANT],
+              [{ index: 31, line: 0, column: 31 }, OpCode.RESOLVE_VALUE],
+              [{ index: 30, line: 0, column: 30 }, OpCode.RESOLVE_VALUE],
+              [{ index: 28, line: 0, column: 28 }, OpCode.RESOLVE_VALUE],
+              [{ index: 28, line: 0, column: 28 }, OpCode.EXPAND_VALUE],
+              [{ index: 0, line: 0, column: 0 }, OpCode.CLOSE_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.EVALUATE_SENTENCE],
+              [{ index: 0, line: 0, column: 0 }, OpCode.PUSH_RESULT],
+            ]);
+          });
+          specify("qualified", () => {
+            const script = parse(
+              "var1[a b](c var2(d) e){f g} {var3}(h i j)[k l]"
+              // 0123456789012345678901234567890123456789012345
+              //           1         2         3         4
+            );
+            const program = compiler.compileScript(script);
+            expect(toOpCodePositions(program)).to.eql([
+              [{ index: 0, line: 0, column: 0 }, OpCode.OPEN_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.PUSH_CONSTANT],
+              [{ index: 0, line: 0, column: 0 }, OpCode.SET_SOURCE],
+              [{ index: 5, line: 0, column: 5 }, OpCode.OPEN_FRAME],
+              [{ index: 5, line: 0, column: 5 }, OpCode.PUSH_CONSTANT],
+              [{ index: 7, line: 0, column: 7 }, OpCode.PUSH_CONSTANT],
+              [{ index: 5, line: 0, column: 5 }, OpCode.CLOSE_FRAME],
+              [{ index: 5, line: 0, column: 5 }, OpCode.EVALUATE_SENTENCE],
+              [{ index: 4, line: 0, column: 4 }, OpCode.PUSH_RESULT],
+              [{ index: 4, line: 0, column: 4 }, OpCode.SELECT_INDEX],
+              [{ index: 9, line: 0, column: 9 }, OpCode.OPEN_FRAME],
+              [{ index: 10, line: 0, column: 10 }, OpCode.PUSH_CONSTANT],
+              [{ index: 12, line: 0, column: 12 }, OpCode.PUSH_CONSTANT],
+              [{ index: 12, line: 0, column: 12 }, OpCode.SET_SOURCE],
+              [{ index: 16, line: 0, column: 16 }, OpCode.OPEN_FRAME],
+              [{ index: 17, line: 0, column: 17 }, OpCode.PUSH_CONSTANT],
+              [{ index: 16, line: 0, column: 16 }, OpCode.CLOSE_FRAME],
+              [{ index: 16, line: 0, column: 16 }, OpCode.SELECT_KEYS],
+              [{ index: 20, line: 0, column: 20 }, OpCode.PUSH_CONSTANT],
+              [{ index: 9, line: 0, column: 9 }, OpCode.CLOSE_FRAME],
+              [{ index: 9, line: 0, column: 9 }, OpCode.SELECT_KEYS],
+              [{ index: 22, line: 0, column: 22 }, OpCode.OPEN_FRAME],
+              [{ index: 23, line: 0, column: 23 }, OpCode.OPEN_FRAME],
+              [{ index: 23, line: 0, column: 23 }, OpCode.PUSH_CONSTANT],
+              [{ index: 25, line: 0, column: 25 }, OpCode.PUSH_CONSTANT],
+              [{ index: 23, line: 0, column: 23 }, OpCode.CLOSE_FRAME],
+              [{ index: 23, line: 0, column: 23 }, OpCode.MAKE_TUPLE],
+              [{ index: 22, line: 0, column: 22 }, OpCode.CLOSE_FRAME],
+              [{ index: 22, line: 0, column: 22 }, OpCode.SELECT_RULES],
+              [{ index: 28, line: 0, column: 28 }, OpCode.PUSH_CONSTANT],
+              [{ index: 28, line: 0, column: 28 }, OpCode.SET_SOURCE],
+              [{ index: 34, line: 0, column: 34 }, OpCode.OPEN_FRAME],
+              [{ index: 35, line: 0, column: 35 }, OpCode.PUSH_CONSTANT],
+              [{ index: 37, line: 0, column: 37 }, OpCode.PUSH_CONSTANT],
+              [{ index: 39, line: 0, column: 39 }, OpCode.PUSH_CONSTANT],
+              [{ index: 34, line: 0, column: 34 }, OpCode.CLOSE_FRAME],
+              [{ index: 34, line: 0, column: 34 }, OpCode.SELECT_KEYS],
+              [{ index: 42, line: 0, column: 42 }, OpCode.OPEN_FRAME],
+              [{ index: 42, line: 0, column: 42 }, OpCode.PUSH_CONSTANT],
+              [{ index: 44, line: 0, column: 44 }, OpCode.PUSH_CONSTANT],
+              [{ index: 42, line: 0, column: 42 }, OpCode.CLOSE_FRAME],
+              [{ index: 42, line: 0, column: 42 }, OpCode.EVALUATE_SENTENCE],
+              [{ index: 41, line: 0, column: 41 }, OpCode.PUSH_RESULT],
+              [{ index: 41, line: 0, column: 41 }, OpCode.SELECT_INDEX],
+              [{ index: 0, line: 0, column: 0 }, OpCode.CLOSE_FRAME],
+              [{ index: 0, line: 0, column: 0 }, OpCode.EVALUATE_SENTENCE],
+              [{ index: 0, line: 0, column: 0 }, OpCode.PUSH_RESULT],
+            ]);
+          });
+        });
       });
 
       describe("Executor", () => {
