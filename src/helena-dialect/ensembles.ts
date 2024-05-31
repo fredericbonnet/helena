@@ -75,7 +75,7 @@ export class EnsembleMetacommand implements Command {
           return ERROR(`unknown command "${subcommand}"`);
         const command = this.ensemble.scope.resolveNamedCommand(subcommand);
         const cmdline = [new CommandValue(command), ...args.slice(3)];
-        const program = scope.compileTupleValue(TUPLE(cmdline));
+        const program = scope.compileArgs(...cmdline);
         return ContinuationValue.create(scope, program);
       },
       argspec: () => {
@@ -145,7 +145,7 @@ export class EnsembleCommand implements Command {
       ...ensembleArgs,
       ...args.slice(minArgs + 1),
     ];
-    const program = scope.compileTupleValue(TUPLE(cmdline));
+    const program = scope.compileArgs(...cmdline);
     return ContinuationValue.create(scope, program);
   }
   /** @override */

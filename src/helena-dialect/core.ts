@@ -177,12 +177,25 @@ export class Scope {
   }
   compileTupleValue(tuple: TupleValue): Program {
     const program = new Program();
+    program.pushOpCode(OpCode.OPEN_FRAME);
     program.pushOpCode(OpCode.PUSH_CONSTANT);
     program.pushOpCode(OpCode.EXPAND_VALUE);
     program.pushOpCode(OpCode.CLOSE_FRAME);
     program.pushOpCode(OpCode.EVALUATE_SENTENCE);
     program.pushOpCode(OpCode.PUSH_RESULT);
     program.pushConstant(tuple);
+    return program;
+  }
+  compileArgs(...args: Value[]): Program {
+    const program = new Program();
+    program.pushOpCode(OpCode.OPEN_FRAME);
+    for (const arg of args) {
+      program.pushOpCode(OpCode.PUSH_CONSTANT);
+      program.pushConstant(arg);
+    }
+    program.pushOpCode(OpCode.CLOSE_FRAME);
+    program.pushOpCode(OpCode.EVALUATE_SENTENCE);
+    program.pushOpCode(OpCode.PUSH_RESULT);
     return program;
   }
   compile(script: Script): Program {
@@ -192,12 +205,6 @@ export class Scope {
     return this.executor.execute(program, state);
   }
 
-  prepareScriptValue(script: ScriptValue): Process {
-    return this.prepareProcess(this.compileScriptValue(script));
-  }
-  prepareTupleValue(tuple: TupleValue): Process {
-    return this.prepareProcess(this.compileTupleValue(tuple));
-  }
   prepareScript(script: Script): Process {
     return this.prepareProcess(this.compile(script));
   }

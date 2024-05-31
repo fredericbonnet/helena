@@ -13,7 +13,6 @@ import {
   STR,
   ScriptValue,
   StringValue,
-  TUPLE,
   TupleValue,
   Value,
   ValueType,
@@ -87,9 +86,7 @@ class ProcCommand implements Command {
         switch (result.code) {
           case ResultCode.OK:
           case ResultCode.RETURN: {
-            const program = this.scope.compileTupleValue(
-              TUPLE([this.guard, result.value])
-            );
+            const program = this.scope.compileArgs(this.guard, result.value);
             return ContinuationValue.create(this.scope, program);
           }
           case ResultCode.ERROR:

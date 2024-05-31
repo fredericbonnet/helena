@@ -50,7 +50,8 @@ class CoroutineCommand implements Command {
         if (args.length != 2) return ARITY_ERROR("<coroutine> wait");
         if (this.state == "inactive") {
           this.state = "active";
-          this.process = this.scope.prepareScriptValue(this.body);
+          const program = this.scope.compileScriptValue(this.body);
+          this.process = this.scope.prepareProcess(program);
         }
         return this.run();
       },

@@ -42,7 +42,7 @@ const whileCmd: Command = {
     let lastResult = OK(NIL);
     let callTest: () => Result;
     if (test.type == ValueType.SCRIPT) {
-      const testProgram = scope.compile((test as ScriptValue).script);
+      const testProgram = scope.compileScriptValue(test as ScriptValue);
       callTest = () => {
         return ContinuationValue.create(scope, testProgram, (result) => {
           if (result.code != ResultCode.OK) return result;
@@ -58,7 +58,7 @@ const whileCmd: Command = {
       if (!result.data) return lastResult;
       callTest = () => callBody();
     }
-    const program = scope.compile((body as ScriptValue).script);
+    const program = scope.compileScriptValue(body as ScriptValue);
     const callBody = () => {
       return ContinuationValue.create(scope, program, (result) => {
         switch (result.code) {
@@ -304,7 +304,8 @@ class CatchCommand implements Command {
         case "beforeBody": {
           const body = state.args[1];
           // TODO check type
-          state.bodyProcess = scope.prepareScriptValue(body as ScriptValue); // TODO check type
+          const program = scope.compileScriptValue(body as ScriptValue); // TODO check type
+          state.bodyProcess = scope.prepareProcess(program);
           state.step = "inBody";
           break;
         }
@@ -333,15 +334,17 @@ class CatchCommand implements Command {
               const handler = state.args[i + 2];
               const subscope = new Scope(scope, true);
               subscope.setNamedLocal(varname, state.bodyResult.value);
-              state.process = subscope.prepareScriptValue(
+              const program = subscope.compileScriptValue(
                 handler as ScriptValue
               ); // TODO check type
+              state.process = subscope.prepareProcess(program);
               break;
             }
             case ResultCode.BREAK:
             case ResultCode.CONTINUE: {
               const handler = state.args[i + 1];
-              state.process = scope.prepareScriptValue(handler as ScriptValue); // TODO check type
+              const program = scope.compileScriptValue(handler as ScriptValue); // TODO check type
+              state.process = scope.prepareProcess(program);
               break;
             }
             default:
@@ -371,7 +374,8 @@ class CatchCommand implements Command {
           const i = this.findFinallyIndex(state.args);
           if (i >= state.args.length - 1) return state.result;
           const handler = state.args[i + 1];
-          state.process = scope.prepareScriptValue(handler as ScriptValue); // TODO check type
+          const program = scope.compileScriptValue(handler as ScriptValue); // TODO check type
+          state.process = scope.prepareProcess(program);
           state.step = "inFinally";
           break;
         }

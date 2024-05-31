@@ -331,7 +331,8 @@ export class ArgspecValue implements CustomValue {
     setArgument: (name: string, value: Value) => Result
   ): Result {
     if (arg.guard) {
-      const process = scope.prepareTupleValue(TUPLE([arg.guard, value]));
+      const program = scope.compileArgs(arg.guard, value);
+      const process = scope.prepareProcess(program);
       const result = process.run();
       // TODO handle YIELD?
       if (result.code != ResultCode.OK) return result;

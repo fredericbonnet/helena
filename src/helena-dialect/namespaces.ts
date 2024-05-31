@@ -14,7 +14,6 @@ import {
   NIL,
   LIST,
   STR,
-  TUPLE,
   StringValue,
   CommandValue,
   TupleValue,
@@ -82,7 +81,7 @@ class NamespaceMetacommand implements Command {
           return ERROR(`unknown command "${subcommand}"`);
         const command = this.namespace.scope.resolveNamedCommand(subcommand);
         const cmdline = [new CommandValue(command), ...args.slice(3)];
-        const program = this.namespace.scope.compileTupleValue(TUPLE(cmdline));
+        const program = this.namespace.scope.compileArgs(...cmdline);
         return ContinuationValue.create(this.namespace.scope, program);
       },
       import: () => {
@@ -136,7 +135,7 @@ class NamespaceCommand implements Command {
       return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
     const command = this.scope.resolveNamedCommand(subcommand);
     const cmdline = [new CommandValue(command), ...args.slice(2)];
-    const program = this.scope.compileTupleValue(TUPLE(cmdline));
+    const program = this.scope.compileArgs(...cmdline);
     return ContinuationValue.create(this.scope, program);
   }
   help(args: Value[], { prefix, skip }) {

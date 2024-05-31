@@ -19,7 +19,6 @@ import {
   ListValue,
   DictionaryValue,
   STR,
-  TupleValue,
   Value,
   ValueType,
   StringValue,
@@ -122,7 +121,8 @@ function prompt() {
     execute: (args: Value[], scope: Scope): Result => {
       const callbackContext: CallbackContext = {
         callback: (args, scope: Scope) => {
-          const process = scope.prepareTupleValue(new TupleValue(args));
+          const program = scope.compileArgs(...args);
+          const process = scope.prepareProcess(program);
           const result = process.run();
           if (result.code == ResultCode.ERROR)
             throw new Error(StringValue.toString(result.value).data);
