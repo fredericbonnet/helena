@@ -25,7 +25,9 @@ describe("Helena scopes", () => {
 
   const parse = (script: string) =>
     parser.parse(tokenizer.tokenize(script)).script;
-  const execute = (script: string) => rootScope.executeScript(parse(script));
+  const prepareScript = (script: string) =>
+    rootScope.prepareProcess(rootScope.compile(parse(script)));
+  const execute = (script: string) => prepareScript(script).run();
   const evaluate = (script: string) => execute(script).value;
 
   const init = () => {
@@ -196,8 +198,8 @@ describe("Helena scopes", () => {
           it("should provide a resumable state", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {val} {set var $val}");
-            const process = rootScope.prepareScript(
-              parse("scope cmd {cmd1; cmd2 _[yield val2]_}")
+            const process = prepareScript(
+              "scope cmd {cmd1; cmd2 _[yield val2]_}"
             );
 
             let result = process.run();
@@ -211,7 +213,7 @@ describe("Helena scopes", () => {
             expect(evaluate("get var")).to.eql(STR("_val3_"));
           });
           it("should delay the definition of scope command until resumed", () => {
-            const process = rootScope.prepareScript(parse("scope cmd {yield}"));
+            const process = prepareScript("scope cmd {yield}");
 
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
@@ -352,8 +354,8 @@ describe("Helena scopes", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {val} {set var $val}");
               evaluate("scope cmd {}");
-              const process = rootScope.prepareScript(
-                parse("cmd eval {cmd1; cmd2 _[yield val2]_}")
+              const process = prepareScript(
+                "cmd eval {cmd1; cmd2 _[yield val2]_}"
               );
 
               let result = process.run();
@@ -471,7 +473,7 @@ describe("Helena scopes", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {val} {set var $val}");
               evaluate("scope cmd {macro mac {} {cmd1; cmd2 _[yield val2]_}}");
-              const process = rootScope.prepareScript(parse("cmd call mac"));
+              const process = prepareScript("cmd call mac");
 
               let result = process.run();
               expect(result.code).to.eql(ResultCode.YIELD);

@@ -272,7 +272,8 @@ class CatchCommand implements Command {
     if (args.length == 2) {
       const body = args[1];
       if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
-      const result = scope.executeScriptValue(body as ScriptValue);
+      const program = scope.compileScriptValue(body as ScriptValue);
+      const result = scope.execute(program);
       const codeName = STR(RESULT_CODE_NAME(result));
       switch (result.code) {
         case ResultCode.OK:

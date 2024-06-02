@@ -28,7 +28,9 @@ describe("Helena lists", () => {
 
   const parse = (script: string) =>
     parser.parse(tokenizer.tokenize(script)).script;
-  const execute = (script: string) => rootScope.executeScript(parse(script));
+  const prepareScript = (script: string) =>
+    rootScope.prepareProcess(rootScope.compile(parse(script)));
+  const execute = (script: string) => prepareScript(script).run();
   const evaluate = (script: string) => execute(script).value;
 
   const init = () => {
@@ -683,10 +685,8 @@ describe("Helena lists", () => {
                 ).to.eql(ResultCode.YIELD);
               });
               it("should provide a resumable state", () => {
-                const process = rootScope.prepareScript(
-                  parse(
-                    "list (a b c) foreach element {idem _$[yield $element]_}"
-                  )
+                const process = prepareScript(
+                  "list (a b c) foreach element {idem _$[yield $element]_}"
                 );
 
                 let result = process.run();

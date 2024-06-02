@@ -29,7 +29,9 @@ describe("Helena dictionaries", () => {
 
   const parse = (script: string) =>
     parser.parse(tokenizer.tokenize(script)).script;
-  const execute = (script: string) => rootScope.executeScript(parse(script));
+  const prepareScript = (script: string) =>
+    rootScope.prepareProcess(rootScope.compile(parse(script)));
+  const execute = (script: string) => prepareScript(script).run();
   const evaluate = (script: string) => execute(script).value;
 
   const init = () => {
@@ -718,10 +720,8 @@ describe("Helena dictionaries", () => {
                 ).to.eql(ResultCode.YIELD);
               });
               it("should provide a resumable state", () => {
-                const process = rootScope.prepareScript(
-                  parse(
-                    "dict (a b c d e f) foreach (key value) {idem _$[yield $key]_}"
-                  )
+                const process = prepareScript(
+                  "dict (a b c d e f) foreach (key value) {idem _$[yield $key]_}"
                 );
 
                 let result = process.run();

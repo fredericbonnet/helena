@@ -48,7 +48,9 @@ function sourceFile(path: string, scope: Scope): Result {
   if (!success) {
     return ERROR(message);
   }
-  return scope.executeScript(script);
+  const program = scope.compile(script);
+  const process = scope.prepareProcess(program);
+  return process.run();
 }
 
 const sourceCmd: Command = {
@@ -162,7 +164,9 @@ function run(scope: Scope, cmd, callback?: (err?: Error, result?) => void) {
     return callback(new repl.Recoverable(new Error(parseResult.message)));
   }
 
-  const result = scope.executeScript(parseResult.script);
+  const program = scope.compile(parseResult.script);
+  const process = scope.prepareProcess(program);
+  const result = process.run();
   processResult(
     result,
     (value) => callback(null, value),

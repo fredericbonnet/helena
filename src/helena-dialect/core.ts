@@ -165,11 +165,11 @@ export class Scope {
     this.executor = new Executor(variableResolver, commandResolver, null, this);
   }
 
-  executeScriptValue(script: ScriptValue): Result {
-    return this.executeScript(script.script);
+  compile(script: Script): Program {
+    return this.compiler.compileScript(script);
   }
-  executeScript(script: Script): Result {
-    return this.prepareScript(script).run();
+  execute(program: Program, state?: ProgramState): Result {
+    return this.executor.execute(program, state);
   }
 
   compileScriptValue(script: ScriptValue): Program {
@@ -198,16 +198,7 @@ export class Scope {
     program.pushOpCode(OpCode.PUSH_RESULT);
     return program;
   }
-  compile(script: Script): Program {
-    return this.compiler.compileScript(script);
-  }
-  execute(program: Program, state?: ProgramState): Result {
-    return this.executor.execute(program, state);
-  }
 
-  prepareScript(script: Script): Process {
-    return this.prepareProcess(this.compile(script));
-  }
   prepareProcess(program: Program): Process {
     return new Process(this, program);
   }

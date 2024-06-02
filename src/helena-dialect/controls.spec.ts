@@ -27,7 +27,9 @@ describe("Helena control flow commands", () => {
 
   const parse = (script: string) =>
     parser.parse(tokenizer.tokenize(script)).script;
-  const execute = (script: string) => rootScope.executeScript(parse(script));
+  const prepareScript = (script: string) =>
+    rootScope.prepareProcess(rootScope.compile(parse(script)));
+  const execute = (script: string) => prepareScript(script).run();
   const evaluate = (script: string) => execute(script).value;
 
   const init = () => {
@@ -152,9 +154,7 @@ describe("Helena control flow commands", () => {
           );
         });
         it("should provide a resumable state", () => {
-          const process = rootScope.prepareScript(
-            parse("while {yield test} {yield body}")
-          );
+          const process = prepareScript("while {yield test} {yield body}");
 
           let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
@@ -453,10 +453,8 @@ describe("Helena control flow commands", () => {
         describe("should provide a resumable state", () => {
           let process;
           beforeEach(() => {
-            process = rootScope.prepareScript(
-              parse(
-                "if {yield test1} {yield body1} elseif {yield test2} {yield body2} else {yield body3}"
-              )
+            process = prepareScript(
+              "if {yield test1} {yield body1} elseif {yield test2} {yield body2} else {yield body3}"
             );
           });
           specify("if", () => {
@@ -879,10 +877,8 @@ describe("Helena control flow commands", () => {
           describe("no command", () => {
             let process;
             beforeEach(() => {
-              process = rootScope.prepareScript(
-                parse(
-                  "when {{yield test1} {yield body1} {yield test2} {yield body2} {yield body3}}"
-                )
+              process = prepareScript(
+                "when {{yield test1} {yield body1} {yield test2} {yield body2} {yield body3}}"
               );
             });
             specify("first", () => {
@@ -942,10 +938,8 @@ describe("Helena control flow commands", () => {
             let process;
             beforeEach(() => {
               evaluate("macro test {v} {yield $v}");
-              process = rootScope.prepareScript(
-                parse(
-                  "when {yield command} {test1 {yield body1} test2 {yield body2} {yield body3}}"
-                )
+              process = prepareScript(
+                "when {yield command} {test1 {yield body1} test2 {yield body2} {yield body3}}"
               );
             });
             specify("first", () => {
@@ -1264,8 +1258,8 @@ describe("Helena control flow commands", () => {
             ).to.eql(ResultCode.YIELD);
           });
           it("should provide a resumable state", () => {
-            const process = rootScope.prepareScript(
-              parse("catch {return val} return res {idem _$[yield handler]}")
+            const process = prepareScript(
+              "catch {return val} return res {idem _$[yield handler]}"
             );
 
             let result = process.run();
@@ -1278,10 +1272,8 @@ describe("Helena control flow commands", () => {
             expect(result).to.eql(OK(STR("_value")));
           });
           it("should not bypass `finally` handler", () => {
-            const process = rootScope.prepareScript(
-              parse(
-                "catch {return val} return res {yield; idem handler} finally {set var finally}"
-              )
+            const process = prepareScript(
+              "catch {return val} return res {yield; idem handler} finally {set var finally}"
             );
 
             let result = process.run();
@@ -1430,8 +1422,8 @@ describe("Helena control flow commands", () => {
             ).to.eql(ResultCode.YIELD);
           });
           it("should provide a resumable state", () => {
-            const process = rootScope.prepareScript(
-              parse("catch {yield val} yield res {idem _$[yield handler]}")
+            const process = prepareScript(
+              "catch {yield val} yield res {idem _$[yield handler]}"
             );
 
             let result = process.run();
@@ -1444,10 +1436,8 @@ describe("Helena control flow commands", () => {
             expect(result).to.eql(OK(STR("_value")));
           });
           it("should not bypass `finally` handler", () => {
-            const process = rootScope.prepareScript(
-              parse(
-                "catch {yield val} yield res {yield; idem handler} finally {set var finally}"
-              )
+            const process = prepareScript(
+              "catch {yield val} yield res {yield; idem handler} finally {set var finally}"
             );
 
             let result = process.run();
@@ -1596,8 +1586,8 @@ describe("Helena control flow commands", () => {
             ).to.eql(ResultCode.YIELD);
           });
           it("should provide a resumable state", () => {
-            const process = rootScope.prepareScript(
-              parse("catch {error message} error msg {idem _$[yield handler]}")
+            const process = prepareScript(
+              "catch {error message} error msg {idem _$[yield handler]}"
             );
 
             let result = process.run();
@@ -1610,10 +1600,8 @@ describe("Helena control flow commands", () => {
             expect(result).to.eql(OK(STR("_value")));
           });
           it("should not bypass `finally` handler", () => {
-            const process = rootScope.prepareScript(
-              parse(
-                "catch {error message} error msg {yield; idem handler} finally {set var finally}"
-              )
+            const process = prepareScript(
+              "catch {error message} error msg {yield; idem handler} finally {set var finally}"
             );
 
             let result = process.run();
@@ -1753,8 +1741,8 @@ describe("Helena control flow commands", () => {
             ).to.eql(ResultCode.YIELD);
           });
           it("should provide a resumable state", () => {
-            const process = rootScope.prepareScript(
-              parse("catch {break} break {idem _$[yield handler]}")
+            const process = prepareScript(
+              "catch {break} break {idem _$[yield handler]}"
             );
 
             let result = process.run();
@@ -1767,10 +1755,8 @@ describe("Helena control flow commands", () => {
             expect(result).to.eql(OK(STR("_value")));
           });
           it("should not bypass `finally` handler", () => {
-            const process = rootScope.prepareScript(
-              parse(
-                "catch {break} break {yield; idem handler} finally {set var finally}"
-              )
+            const process = prepareScript(
+              "catch {break} break {yield; idem handler} finally {set var finally}"
             );
 
             let result = process.run();
@@ -1898,8 +1884,8 @@ describe("Helena control flow commands", () => {
             ).to.eql(ResultCode.YIELD);
           });
           it("should provide a resumable state", () => {
-            const process = rootScope.prepareScript(
-              parse("catch {continue} continue {idem _$[yield handler]}")
+            const process = prepareScript(
+              "catch {continue} continue {idem _$[yield handler]}"
             );
 
             let result = process.run();
@@ -1912,10 +1898,8 @@ describe("Helena control flow commands", () => {
             expect(result).to.eql(OK(STR("_value")));
           });
           it("should not bypass `finally` handler", () => {
-            const process = rootScope.prepareScript(
-              parse(
-                "catch {continue} continue {yield; idem handler} finally {set var finally}"
-              )
+            const process = prepareScript(
+              "catch {continue} continue {yield; idem handler} finally {set var finally}"
             );
 
             let result = process.run();
@@ -2050,8 +2034,8 @@ describe("Helena control flow commands", () => {
             ).to.eql(ResultCode.YIELD);
           });
           it("should provide a resumable state", () => {
-            const process = rootScope.prepareScript(
-              parse("catch {error message} finally {idem _$[yield handler]}")
+            const process = prepareScript(
+              "catch {error message} finally {idem _$[yield handler]}"
             );
 
             let result = process.run();
@@ -2204,10 +2188,8 @@ describe("Helena control flow commands", () => {
           expect(evaluate("get var")).to.eql(STR("handler"));
         });
         specify("`YIELD`", () => {
-          const process = rootScope.prepareScript(
-            parse(
-              "catch {yield value} yield res {pass} finally {set var handler}"
-            )
+          const process = prepareScript(
+            "catch {yield value} yield res {pass} finally {set var handler}"
           );
 
           const result = process.run();
@@ -2241,10 +2223,8 @@ describe("Helena control flow commands", () => {
         });
       });
       it("should resume yielded body", () => {
-        const process = rootScope.prepareScript(
-          parse(
-            "catch {set var [yield step1]; idem _$[yield step2]} yield res {pass}"
-          )
+        const process = prepareScript(
+          "catch {set var [yield step1]; idem _$[yield step2]} yield res {pass}"
         );
 
         let result = process.run();

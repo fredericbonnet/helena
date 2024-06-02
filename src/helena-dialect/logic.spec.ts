@@ -25,7 +25,9 @@ describe("Helena logic operations", () => {
 
   const parse = (script: string) =>
     parser.parse(tokenizer.tokenize(script)).script;
-  const execute = (script: string) => rootScope.executeScript(parse(script));
+  const prepareScript = (script: string) =>
+    rootScope.prepareProcess(rootScope.compile(parse(script)));
+  const execute = (script: string) => prepareScript(script).run();
   const evaluate = (script: string) => execute(script).value;
 
   const init = () => {
@@ -524,9 +526,7 @@ describe("Helena logic operations", () => {
             expect(result.value).to.eql(STR("value"));
           });
           it("should provide a resumable state", () => {
-            const process = rootScope.prepareScript(
-              parse("! {yield val1; yield val2}")
-            );
+            const process = prepareScript("! {yield val1; yield val2}");
 
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
@@ -638,9 +638,7 @@ describe("Helena logic operations", () => {
             expect(result.value).to.eql(STR("value"));
           });
           it("should provide a resumable state", () => {
-            const process = rootScope.prepareScript(
-              parse("&& {yield val1} {yield val2}")
-            );
+            const process = prepareScript("&& {yield val1} {yield val2}");
 
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
@@ -759,9 +757,7 @@ describe("Helena logic operations", () => {
             expect(result.value).to.eql(STR("value"));
           });
           it("should provide a resumable state", () => {
-            const process = rootScope.prepareScript(
-              parse("|| {yield val1} {yield val2}")
-            );
+            const process = prepareScript("|| {yield val1} {yield val2}");
 
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);

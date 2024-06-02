@@ -33,7 +33,9 @@ describe("Helena ensembles", () => {
 
   const parse = (script: string) =>
     parser.parse(tokenizer.tokenize(script)).script;
-  const execute = (script: string) => rootScope.executeScript(parse(script));
+  const prepareScript = (script: string) =>
+    rootScope.prepareProcess(rootScope.compile(parse(script)));
+  const execute = (script: string) => prepareScript(script).run();
   const evaluate = (script: string) => execute(script).value;
 
   const init = () => {
@@ -220,8 +222,8 @@ describe("Helena ensembles", () => {
           it("should provide a resumable state", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {val} {set var $val}");
-            const process = rootScope.prepareScript(
-              parse("ensemble cmd {} {cmd1; cmd2 _[yield val2]_}")
+            const process = prepareScript(
+              "ensemble cmd {} {cmd1; cmd2 _[yield val2]_}"
             );
 
             let result = process.run();
@@ -235,9 +237,7 @@ describe("Helena ensembles", () => {
             expect(evaluate("get var")).to.eql(STR("_val3_"));
           });
           it("should delay the definition of ensemble command until resumed", () => {
-            const process = rootScope.prepareScript(
-              parse("ensemble cmd {} {yield}")
-            );
+            const process = prepareScript("ensemble cmd {} {yield}");
 
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
@@ -397,8 +397,8 @@ describe("Helena ensembles", () => {
                 evaluate("closure cmd1 {} {set var val1}");
                 evaluate("closure cmd2 {val} {set var $val}");
                 evaluate("ensemble cmd {} {}");
-                const process = rootScope.prepareScript(
-                  parse("[cmd] eval {cmd1; cmd2 _[yield val2]_}")
+                const process = prepareScript(
+                  "[cmd] eval {cmd1; cmd2 _[yield val2]_}"
                 );
 
                 let result = process.run();
@@ -523,7 +523,7 @@ describe("Helena ensembles", () => {
                 evaluate(
                   "ensemble cmd {} {proc p {} {cmd1; cmd2 _[yield val2]_}}"
                 );
-                const process = rootScope.prepareScript(parse("[cmd] call p"));
+                const process = prepareScript("[cmd] call p");
 
                 let result = process.run();
                 expect(result.code).to.eql(ResultCode.YIELD);
@@ -972,7 +972,7 @@ describe("Helena ensembles", () => {
             evaluate("closure cmd1 {} {set var val1}");
             evaluate("closure cmd2 {val} {set var $val}");
             evaluate("ensemble cmd {} {proc p {} {cmd1; cmd2 _[yield val2]_}}");
-            const process = rootScope.prepareScript(parse("cmd p"));
+            const process = prepareScript("cmd p");
 
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);

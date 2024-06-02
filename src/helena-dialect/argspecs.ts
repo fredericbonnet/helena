@@ -141,8 +141,10 @@ export class ArgspecValue implements CustomValue {
             value = FALSE;
           } else if (arg.default) {
             if (arg.default.type == ValueType.SCRIPT) {
-              const body = arg.default as ScriptValue;
-              const result = scope.executeScriptValue(body);
+              const program = scope.compileScriptValue(
+                arg.default as ScriptValue
+              );
+              const result = scope.execute(program);
               switch (result.code) {
                 case ResultCode.OK:
                   value = result.value;
@@ -321,8 +323,10 @@ export class ArgspecValue implements CustomValue {
             value = values[i++];
           } else if (arg.default) {
             if (arg.default.type == ValueType.SCRIPT) {
-              const body = arg.default as ScriptValue;
-              const result = scope.executeScriptValue(body);
+              const program = scope.compileScriptValue(
+                arg.default as ScriptValue
+              );
+              const result = scope.execute(program);
               switch (result.code) {
                 case ResultCode.OK:
                   value = result.value;

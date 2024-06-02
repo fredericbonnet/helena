@@ -33,7 +33,9 @@ describe("Helena aliases", () => {
 
   const parse = (script: string) =>
     parser.parse(tokenizer.tokenize(script)).script;
-  const execute = (script: string) => rootScope.executeScript(parse(script));
+  const prepareScript = (script: string) =>
+    rootScope.prepareProcess(rootScope.compile(parse(script)));
+  const execute = (script: string) => prepareScript(script).run();
   const evaluate = (script: string) => execute(script).value;
 
   const init = () => {
@@ -258,7 +260,7 @@ describe("Helena aliases", () => {
           it("should provide a resumable state for macro alias", () => {
             evaluate("macro mac {} {idem _[yield val1]_}");
             evaluate("alias cmd mac");
-            const process = rootScope.prepareScript(parse("cmd"));
+            const process = prepareScript("cmd");
 
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);
@@ -270,7 +272,7 @@ describe("Helena aliases", () => {
           });
           it("should provide a resumable state for tuple alias", () => {
             evaluate("alias cmd (yield val1)");
-            const process = rootScope.prepareScript(parse("cmd"));
+            const process = prepareScript("cmd");
 
             let result = process.run();
             expect(result.code).to.eql(ResultCode.YIELD);

@@ -18,7 +18,9 @@ describe("Helena procedures", () => {
 
   const parse = (script: string) =>
     parser.parse(tokenizer.tokenize(script)).script;
-  const execute = (script: string) => rootScope.executeScript(parse(script));
+  const prepareScript = (script: string) =>
+    rootScope.prepareProcess(rootScope.compile(parse(script)));
+  const execute = (script: string) => prepareScript(script).run();
   const evaluate = (script: string) => execute(script).value;
 
   const init = () => {
@@ -471,7 +473,7 @@ describe("Helena procedures", () => {
         });
         it("should provide a resumable state", () => {
           evaluate("proc cmd {} {idem _[yield val1]_}");
-          const process = rootScope.prepareScript(parse("cmd"));
+          const process = prepareScript("cmd");
 
           let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);
@@ -486,7 +488,7 @@ describe("Helena procedures", () => {
           evaluate("proc cmd2 {} {yield [cmd3]; idem [cmd4]}");
           evaluate("proc cmd3 {} {yield val1}");
           evaluate("proc cmd4 {} {yield val3}");
-          const process = rootScope.prepareScript(parse("cmd1"));
+          const process = prepareScript("cmd1");
 
           let result = process.run();
           expect(result.code).to.eql(ResultCode.YIELD);

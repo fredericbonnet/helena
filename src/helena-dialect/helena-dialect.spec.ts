@@ -13,7 +13,9 @@ describe("Helena dialect", () => {
 
   const parse = (script: string) =>
     parser.parse(tokenizer.tokenize(script)).script;
-  const execute = (script: string) => rootScope.executeScript(parse(script));
+  const prepareScript = (script: string) =>
+    rootScope.prepareProcess(rootScope.compile(parse(script)));
+  const execute = (script: string) => prepareScript(script).run();
   const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
@@ -66,7 +68,7 @@ describe("Helena dialect", () => {
     describe("yield", () => {
       it("should provide a resumable state", () => {
         evaluate("macro cmd {*} {yield val1; idem val2}");
-        const process = rootScope.prepareScript(parse("cmd a b c"));
+        const process = prepareScript("cmd a b c");
 
         let result = process.run();
         expect(result.code).to.eql(ResultCode.YIELD);
@@ -78,7 +80,7 @@ describe("Helena dialect", () => {
       it("should work on several levels", () => {
         evaluate("macro cmd2 {*} {yield val2}");
         evaluate("macro cmd {*} {yield val1; yield [cmd2]; idem val4}");
-        const process = rootScope.prepareScript(parse("(((cmd) a) b) c"));
+        const process = prepareScript("(((cmd) a) b) c");
 
         let result = process.run();
         expect(result.code).to.eql(ResultCode.YIELD);

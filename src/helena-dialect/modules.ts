@@ -245,7 +245,9 @@ function createModule(
   const exports = new Map();
   rootScope.registerNamedCommand("export", new ExportCommand(exports));
 
-  const result = rootScope.executeScript(script);
+  const program = rootScope.compile(script);
+  const process = rootScope.prepareProcess(program);
+  const result = process.run();
   if (result.code == ResultCode.ERROR) {
     return result as Result<Module>;
   }

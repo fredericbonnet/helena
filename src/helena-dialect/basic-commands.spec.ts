@@ -26,7 +26,9 @@ describe("Helena basic commands", () => {
 
   const parse = (script: string) =>
     parser.parse(tokenizer.tokenize(script)).script;
-  const execute = (script: string) => rootScope.executeScript(parse(script));
+  const prepareScript = (script: string) =>
+    rootScope.prepareProcess(rootScope.compile(parse(script)));
+  const execute = (script: string) => prepareScript(script).run();
   const evaluate = (script: string) => execute(script).value;
   const init = () => {
     rootScope = new Scope();
@@ -421,8 +423,8 @@ describe("Helena basic commands", () => {
         expect(evaluate("eval (idem val)")).to.eql(STR("val"));
       });
       it("should work recursively", () => {
-        const process = rootScope.prepareScript(
-          parse("eval {eval {yield val1}; yield val2; eval {yield val3}}")
+        const process = prepareScript(
+          "eval {eval {yield val1}; yield val2; eval {yield val3}}"
         );
 
         let result = process.run();
@@ -511,8 +513,8 @@ describe("Helena basic commands", () => {
           /**
            * Scripts interrupted with `yield` can be resumed later.
            */
-          const process = rootScope.prepareScript(
-            parse("eval {set var val1; set var _[yield val2]_}")
+          const process = prepareScript(
+            "eval {set var val1; set var _[yield val2]_}"
           );
 
           let result = process.run();
