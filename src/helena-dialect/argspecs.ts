@@ -1,5 +1,11 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Result, OK, ERROR, ResultCode } from "../core/results";
+import {
+  Result,
+  OK,
+  ERROR,
+  ResultCode,
+  RESULT_CODE_NAME,
+} from "../core/results";
 import { Command } from "../core/command";
 import {
   Value,
@@ -137,9 +143,15 @@ export class ArgspecValue implements CustomValue {
             if (arg.default.type == ValueType.SCRIPT) {
               const body = arg.default as ScriptValue;
               const result = scope.executeScriptValue(body);
-              // TODO handle YIELD?
-              if (result.code != ResultCode.OK) return result;
-              value = result.value;
+              switch (result.code) {
+                case ResultCode.OK:
+                  value = result.value;
+                  break;
+                case ResultCode.ERROR:
+                  return result;
+                default:
+                  return ERROR("unexpected " + RESULT_CODE_NAME(result));
+              }
             } else {
               value = arg.default;
             }
@@ -159,8 +171,14 @@ export class ArgspecValue implements CustomValue {
           break;
       }
       const result = this.setArgument(scope, arg, value, setArgument);
-      // TODO handle YIELD?
-      if (result.code != ResultCode.OK) return result;
+      switch (result.code) {
+        case ResultCode.OK:
+          break;
+        case ResultCode.ERROR:
+          return result;
+        default:
+          return ERROR("unexpected " + RESULT_CODE_NAME(result));
+      }
     }
     return OK(NIL);
   }
@@ -305,9 +323,15 @@ export class ArgspecValue implements CustomValue {
             if (arg.default.type == ValueType.SCRIPT) {
               const body = arg.default as ScriptValue;
               const result = scope.executeScriptValue(body);
-              // TODO handle YIELD?
-              if (result.code != ResultCode.OK) return result;
-              value = result.value;
+              switch (result.code) {
+                case ResultCode.OK:
+                  value = result.value;
+                  break;
+                case ResultCode.ERROR:
+                  return result;
+                default:
+                  return ERROR("unexpected " + RESULT_CODE_NAME(result));
+              }
             } else {
               value = arg.default;
             }
@@ -319,8 +343,14 @@ export class ArgspecValue implements CustomValue {
           break;
       }
       const result = this.setArgument(scope, arg, value, setArgument);
-      // TODO handle YIELD?
-      if (result.code != ResultCode.OK) return result;
+      switch (result.code) {
+        case ResultCode.OK:
+          break;
+        case ResultCode.ERROR:
+          return result;
+        default:
+          return ERROR("unexpected " + RESULT_CODE_NAME(result));
+      }
     }
     return OK(NIL);
   }
@@ -334,7 +364,6 @@ export class ArgspecValue implements CustomValue {
       const program = scope.compileArgs(arg.guard, value);
       const process = scope.prepareProcess(program);
       const result = process.run();
-      // TODO handle YIELD?
       if (result.code != ResultCode.OK) return result;
       value = result.value;
     }

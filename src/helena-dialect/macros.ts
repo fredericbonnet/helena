@@ -66,7 +66,6 @@ class MacroCommand implements Command {
       subscope.setNamedLocal(name, value);
       return OK(value);
     };
-    // TODO handle YIELD?
     const result = this.argspec.applyArguments(scope, args, 1, setarg);
     if (result.code != ResultCode.OK) return result;
     const program = subscope.compileScriptValue(this.body as ScriptValue);

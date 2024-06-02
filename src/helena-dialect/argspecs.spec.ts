@@ -494,8 +494,28 @@ describe("Helena argument handling", () => {
               expect(evaluate("get a")).to.eql(INT(3));
             });
             specify("one", () => {
-              evaluate("argspec ((?a def)) set (val)");
+              evaluate("argspec ((?a {unreachable})) set (val)");
               expect(evaluate("get a")).to.eql(STR("val"));
+            });
+            specify("unexpected result", () => {
+              /**
+               * Dynamic defaults should return `OK` codes.
+               */
+              expect(execute("argspec ((?a {return})) set ()")).to.eql(
+                ERROR("unexpected return")
+              );
+              expect(execute("argspec ((?a {yield})) set ()")).to.eql(
+                ERROR("unexpected yield")
+              );
+              expect(execute("argspec ((?a {error msg})) set ()")).to.eql(
+                ERROR("msg")
+              );
+              expect(execute("argspec ((?a {break})) set ()")).to.eql(
+                ERROR("unexpected break")
+              );
+              expect(execute("argspec ((?a {continue})) set ()")).to.eql(
+                ERROR("unexpected continue")
+              );
             });
           });
         });
@@ -611,6 +631,39 @@ describe("Helena argument handling", () => {
               expect(evaluate("get a")).to.eql(FALSE);
               expect(execute("argspec $args set (value)")).to.eql(
                 ERROR('invalid number "value"')
+              );
+            });
+          });
+
+          describe("Exceptions", () => {
+            specify("unexpected result", () => {
+              /**
+               * Guards should return either `OK` or `ERROR` codes.
+               */
+              expect(execute("argspec ( (eval a) ) set ({return})")).to.eql(
+                ERROR("unexpected return")
+              );
+              expect(execute("argspec ( (eval a) ) set ({yield})")).to.eql(
+                ERROR("unexpected yield")
+              );
+              expect(execute("argspec ( (eval a) ) set ({break})")).to.eql(
+                ERROR("unexpected break")
+              );
+              expect(execute("argspec ( (eval a) ) set ({continue})")).to.eql(
+                ERROR("unexpected continue")
+              );
+            });
+            specify("wrong arity", () => {
+              /**
+               * Guards should take a single argument.
+               */
+              evaluate("macro guard0 {} {}");
+              evaluate("macro guard2 {a b} {}");
+              expect(execute("argspec ( (guard0 a) ) set (val)")).to.eql(
+                ERROR('wrong # args: should be "guard0"')
+              );
+              expect(execute("argspec ( (guard2 a) ) set (val)")).to.eql(
+                ERROR('wrong # args: should be "guard2 a b"')
               );
             });
           });

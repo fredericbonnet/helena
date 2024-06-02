@@ -78,7 +78,6 @@ class ProcCommand implements Command {
     }
     const subscope = new Scope(this.scope);
     const setarg = (name, value) => subscope.setNamedVariable(name, value);
-    // TODO handle YIELD?
     const result = this.argspec.applyArguments(this.scope, args, 1, setarg);
     if (result.code != ResultCode.OK) return result;
     if (this.guard) {

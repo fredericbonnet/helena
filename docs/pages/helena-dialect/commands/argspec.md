@@ -188,6 +188,10 @@ guard in argspecs.
 
       - ✅ zero
       - ✅ one
+      - ✅ unexpected result
+
+        Dynamic defaults should return `OK` codes.
+
 
 - guard
 
@@ -210,6 +214,17 @@ guard in argspecs.
       - ✅ required
       - ✅ optional
       - ✅ default
+
+    - Exceptions
+
+      - ✅ unexpected result
+
+        Guards should return either `OK` or `ERROR` codes.
+
+      - ✅ wrong arity
+
+        Guards should take a single argument.
+
 
 ### <a id="argspec-argument-specifications-exceptions"></a>Exceptions
 
