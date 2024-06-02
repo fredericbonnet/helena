@@ -68,7 +68,7 @@ class ClosureCommand implements Command {
         CLOSURE_COMMAND_SIGNATURE(args[0], this.argspec.usage())
       );
     }
-    const subscope = new Scope(this.scope, true);
+    const subscope = this.scope.newLocalScope();
     const setarg = (name, value) => {
       subscope.setNamedLocal(name, value);
       return OK(value);
@@ -134,7 +134,7 @@ export const closureCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     const argspec = result.data;
     const closure = new ClosureCommand(
-      new Scope(scope, true),
+      scope.newLocalScope(),
       argspec,
       body as ScriptValue,
       guard

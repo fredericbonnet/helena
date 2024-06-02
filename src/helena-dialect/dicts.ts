@@ -31,7 +31,7 @@ class DictCommand implements Command {
   scope: Scope;
   ensemble: EnsembleCommand;
   constructor(scope: Scope) {
-    this.scope = new Scope(scope);
+    this.scope = scope.newChildScope();
     const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
     this.ensemble = new EnsembleCommand(this.scope, argspec);
   }
@@ -231,7 +231,7 @@ const dictForeachCmd: Command = {
     const body = args[3];
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
     const program = scope.compileScriptValue(body as ScriptValue);
-    const subscope = new Scope(scope, true);
+    const subscope = scope.newLocalScope();
     const it = map.entries();
     let lastResult = OK(NIL);
     const next = () => {

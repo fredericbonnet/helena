@@ -153,8 +153,8 @@ export class Scope {
   private readonly compiler: Compiler;
   private readonly executor: Executor;
 
-  constructor(parent?: Scope, shared = false) {
-    this.context = shared ? parent.context : new ScopeContext(parent?.context);
+  private constructor(context: ScopeContext) {
+    this.context = context;
     this.compiler = new Compiler();
     const variableResolver: VariableResolver = {
       resolve: (name) => this.resolveVariable(name),
@@ -163,6 +163,16 @@ export class Scope {
       resolve: (name) => this.resolveCommand(name),
     };
     this.executor = new Executor(variableResolver, commandResolver, null, this);
+  }
+
+  static newRootScope() {
+    return new Scope(new ScopeContext());
+  }
+  newChildScope() {
+    return new Scope(new ScopeContext(this.context));
+  }
+  newLocalScope() {
+    return new Scope(this.context);
   }
 
   compile(script: Script): Program {

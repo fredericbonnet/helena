@@ -32,7 +32,7 @@ describe("Helena numbers", () => {
   const evaluate = (script: string) => execute(script).value;
 
   const init = () => {
-    rootScope = new Scope();
+    rootScope = Scope.newRootScope();
     initCommands(rootScope);
 
     tokenizer = new Tokenizer();

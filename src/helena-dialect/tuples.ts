@@ -20,7 +20,7 @@ class TupleCommand implements Command {
   scope: Scope;
   ensemble: EnsembleCommand;
   constructor(scope: Scope) {
-    this.scope = new Scope(scope);
+    this.scope = scope.newChildScope();
     const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
     this.ensemble = new EnsembleCommand(this.scope, argspec);
   }

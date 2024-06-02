@@ -204,7 +204,7 @@ export const ensembleCmd: Command = {
     if (argspec.argspec.isVariadic())
       return ERROR("ensemble arguments cannot be variadic");
 
-    const subscope = new Scope(scope);
+    const subscope = scope.newChildScope();
     const program = subscope.compileScriptValue(body as ScriptValue);
     return ContinuationValue.create(subscope, program, (result) => {
       switch (result.code) {

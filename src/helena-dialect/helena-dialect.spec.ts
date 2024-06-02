@@ -19,7 +19,7 @@ describe("Helena dialect", () => {
   const evaluate = (script: string) => execute(script).value;
 
   beforeEach(() => {
-    rootScope = new Scope();
+    rootScope = Scope.newRootScope();
     initCommands(rootScope);
 
     tokenizer = new Tokenizer();

@@ -23,7 +23,7 @@ describe("Helena constants and variables", () => {
   const execute = (script: string) => prepareScript(script).run();
   const evaluate = (script: string) => execute(script).value;
   const init = () => {
-    rootScope = new Scope();
+    rootScope = Scope.newRootScope();
     initCommands(rootScope);
 
     tokenizer = new Tokenizer();

@@ -76,7 +76,7 @@ class ProcCommand implements Command {
     if (!this.argspec.checkArity(args, 1)) {
       return ARITY_ERROR(PROC_COMMAND_SIGNATURE(args[0], this.argspec.usage()));
     }
-    const subscope = new Scope(this.scope);
+    const subscope = this.scope.newChildScope();
     const setarg = (name, value) => subscope.setNamedVariable(name, value);
     const result = this.argspec.applyArguments(this.scope, args, 1, setarg);
     if (result.code != ResultCode.OK) return result;
@@ -153,7 +153,7 @@ export const procCmd: Command = {
     const argspec = result.data;
     const program = scope.compileScriptValue(body as ScriptValue);
     const proc = new ProcCommand(
-      new Scope(scope, true),
+      scope.newLocalScope(),
       argspec,
       body as ScriptValue,
       guard,

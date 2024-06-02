@@ -239,7 +239,7 @@ function createModule(
   rootDir: string,
   script: Script
 ): Result<Module> {
-  const rootScope = new Scope();
+  const rootScope = Scope.newRootScope();
   initCommands(rootScope, moduleRegistry, rootDir);
 
   const exports = new Map();

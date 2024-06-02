@@ -34,7 +34,7 @@ describe("Helena modules", () => {
   const evaluate = (script: string) => execute(script).value;
 
   const init = () => {
-    rootScope = new Scope();
+    rootScope = Scope.newRootScope();
     moduleRegistry = new ModuleRegistry();
     initCommands(rootScope, moduleRegistry, __dirname);
 

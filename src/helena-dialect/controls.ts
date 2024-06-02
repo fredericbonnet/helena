@@ -333,7 +333,7 @@ class CatchCommand implements Command {
             case ResultCode.ERROR: {
               const { data: varname } = StringValue.toString(state.args[i + 1]);
               const handler = state.args[i + 2];
-              const subscope = new Scope(scope, true);
+              const subscope = scope.newLocalScope();
               subscope.setNamedLocal(varname, state.bodyResult.value);
               const program = subscope.compileScriptValue(
                 handler as ScriptValue

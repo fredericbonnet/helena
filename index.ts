@@ -78,7 +78,7 @@ const picolCmd: Command = {
 };
 
 function init() {
-  const rootScope = new Scope();
+  const rootScope = Scope.newRootScope();
   initCommands(rootScope, moduleRegistry);
   rootScope.registerNamedCommand("source", sourceCmd);
   rootScope.registerNamedCommand("exit", exitCmd);
@@ -107,7 +107,7 @@ function registerNativeModule(
   exportName: string,
   command: Command
 ) {
-  const scope = new Scope();
+  const scope = Scope.newRootScope();
   const exports = new Map();
   scope.registerNamedCommand(exportName, command);
   exports.set(exportName, STR(exportName));

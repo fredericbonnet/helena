@@ -61,7 +61,7 @@ class MacroCommand implements Command {
         MACRO_COMMAND_SIGNATURE(args[0], this.argspec.usage())
       );
     }
-    const subscope = new Scope(scope, true);
+    const subscope = scope.newLocalScope();
     const setarg = (name, value) => {
       subscope.setNamedLocal(name, value);
       return OK(value);

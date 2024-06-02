@@ -30,7 +30,7 @@ describe("Helena core internals", () => {
     parser.parse(tokenizer.tokenize(script)).script;
 
   beforeEach(() => {
-    rootScope = new Scope();
+    rootScope = Scope.newRootScope();
     initCommands(rootScope);
 
     tokenizer = new Tokenizer();
