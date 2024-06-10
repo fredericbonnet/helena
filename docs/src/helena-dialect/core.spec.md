@@ -16,3 +16,12 @@ source: src\helena-dialect\core.spec.ts
   - ✅ yield
   - ✅ replacement
 
+- Process
+
+  - ✅ captureErrorStack
+
+- Scope
+
+  - ✅ captureErrorStack
+  - ✅ captureErrorStack + capturePositions
+

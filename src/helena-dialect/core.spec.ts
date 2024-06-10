@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import {
+  ERROR,
   OK,
   RESULT_CODE_NAME,
   RETURN,
@@ -28,6 +29,8 @@ describe("Helena core internals", () => {
 
   const parse = (script: string) =>
     parser.parse(tokenizer.tokenize(script)).script;
+  const prepareScript = (script: string) =>
+    rootScope.prepareProcess(rootScope.compile(parse(script)));
 
   beforeEach(() => {
     rootScope = Scope.newRootScope();
@@ -997,5 +1000,80 @@ describe("Helena core internals", () => {
     });
   });
 
-  // TODO example scripts
+  describe("Process", () => {
+    specify("captureErrorStack", () => {
+      const source = `
+macro cmd1 {} {cmd2}
+macro cmd2 {} {error msg}
+cmd1
+      `;
+      const program = rootScope.compile(parse(source));
+      const process = new Process(rootScope, program, {
+        captureErrorStack: true,
+      });
+      expect(process.run()).to.eql(ERROR("msg"));
+      expect(process.errorStack.depth()).to.eql(3);
+      expect(process.errorStack.level(0)).to.eql({
+        frame: [STR("error"), STR("msg")],
+      });
+      expect(process.errorStack.level(1)).to.eql({ frame: [STR("cmd2")] });
+      expect(process.errorStack.level(2)).to.eql({ frame: [STR("cmd1")] });
+    });
+  });
+
+  describe("Scope", () => {
+    specify("captureErrorStack", () => {
+      rootScope = Scope.newRootScope({
+        captureErrorStack: true,
+      });
+      initCommands(rootScope);
+
+      const source = `
+macro cmd1 {} {cmd2}
+macro cmd2 {} {error msg}
+cmd1
+      `;
+      const process = prepareScript(source);
+      expect(process.run()).to.eql(ERROR("msg"));
+      expect(process.errorStack.depth()).to.eql(3);
+      expect(process.errorStack.level(0)).to.eql({
+        frame: [STR("error"), STR("msg")],
+      });
+      expect(process.errorStack.level(1)).to.eql({
+        frame: [STR("cmd2")],
+      });
+      expect(process.errorStack.level(2)).to.eql({
+        frame: [STR("cmd1")],
+      });
+    });
+    specify("captureErrorStack + capturePositions", () => {
+      parser = new Parser({ capturePositions: true });
+      rootScope = Scope.newRootScope({
+        capturePositions: true,
+        captureErrorStack: true,
+      });
+      initCommands(rootScope);
+
+      const source = `
+macro cmd1 {} {cmd2}
+macro cmd2 {} {error msg}
+cmd1
+      `;
+      const process = prepareScript(source);
+      expect(process.run()).to.eql(ERROR("msg"));
+      expect(process.errorStack.depth()).to.eql(3);
+      expect(process.errorStack.level(0)).to.eql({
+        frame: [STR("error"), STR("msg")],
+        position: { index: 37, line: 2, column: 15 },
+      });
+      expect(process.errorStack.level(1)).to.eql({
+        frame: [STR("cmd2")],
+        position: { index: 16, line: 1, column: 15 },
+      });
+      expect(process.errorStack.level(2)).to.eql({
+        frame: [STR("cmd1")],
+        position: { index: 48, line: 3, column: 0 },
+      });
+    });
+  });
 });

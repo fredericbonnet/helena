@@ -22,6 +22,7 @@ import {
   CustomValue,
 } from "../core/values";
 import { numberCmd } from "./numbers";
+import { SourcePosition } from "../core/tokenizer";
 
 export class ContinuationValue implements CustomValue {
   readonly type = ValueType.CUSTOM;
@@ -57,7 +58,7 @@ export type ProcessContext = {
 };
 
 export class ProcessStack {
-  private stack: ProcessContext[] = [];
+  private readonly stack: ProcessContext[] = [];
 
   depth() {
     return this.stack.length;
@@ -88,14 +89,58 @@ export class ProcessStack {
     this.stack.pop();
   }
   clear() {
-    this.stack = [];
+    this.stack.length = 0;
   }
 }
 
-export class Process {
-  private stack: ProcessStack = new ProcessStack();
+export type ErrorStackLevel = {
+  frame: Value[];
+  position?: SourcePosition;
+};
+export class ErrorStack {
+  private readonly stack: ErrorStackLevel[] = [];
 
-  constructor(scope: Scope, program: Program) {
+  depth() {
+    return this.stack.length;
+  }
+  push(context: ProcessContext) {
+    let level: ErrorStackLevel;
+    if (context.program.opCodePositions) {
+      level = {
+        frame: context.state.lastFrame,
+        position: context.program.opCodePositions[context.state.pc - 1],
+      };
+    } else {
+      level = {
+        frame: context.state.lastFrame,
+      };
+    }
+    this.stack.push(level);
+  }
+  clear() {
+    this.stack.length = 0;
+  }
+  level(level: number): ErrorStackLevel {
+    return this.stack[level];
+  }
+}
+
+export type ProcessOptions = {
+  captureErrorStack?: boolean;
+};
+export class Process {
+  private readonly options: ProcessOptions;
+  private readonly stack: ProcessStack;
+  readonly errorStack: ErrorStack;
+
+  constructor(
+    scope: Scope,
+    program: Program,
+    options: ProcessOptions = { captureErrorStack: false }
+  ) {
+    this.options = options;
+    this.stack = new ProcessStack();
+    if (options.captureErrorStack) this.errorStack = new ErrorStack();
     this.stack.pushProgram(scope, program);
   }
 
@@ -117,6 +162,13 @@ export class Process {
         break;
       }
       if (context.callback) result = context.callback(result);
+      if (this.options.captureErrorStack) {
+        if (result.code == ResultCode.ERROR) {
+          this.errorStack.push(this.stack.currentContext());
+        } else {
+          this.errorStack.clear();
+        }
+      }
       if (this.stack.depth() == 1) break;
       this.stack.pop();
       if (result.value instanceof ContinuationValue) continue;
@@ -147,15 +199,29 @@ class ScopeContext {
     this.parent = parent;
   }
 }
+export type ScopeOptions = {
+  capturePositions?: boolean;
+  captureErrorStack?: boolean;
+};
 export class Scope {
+  private readonly options: ScopeOptions;
   readonly context: ScopeContext;
   private readonly locals: Map<string, Value> = new Map();
   private readonly compiler: Compiler;
   private readonly executor: Executor;
 
-  private constructor(context: ScopeContext) {
+  private constructor(
+    context: ScopeContext,
+    options: ScopeOptions = {
+      capturePositions: false,
+      captureErrorStack: false,
+    }
+  ) {
+    this.options = options;
     this.context = context;
-    this.compiler = new Compiler();
+    this.compiler = new Compiler({
+      capturePositions: this.options.capturePositions,
+    });
     const variableResolver: VariableResolver = {
       resolve: (name) => this.resolveVariable(name),
     };
@@ -165,14 +231,14 @@ export class Scope {
     this.executor = new Executor(variableResolver, commandResolver, null, this);
   }
 
-  static newRootScope() {
-    return new Scope(new ScopeContext());
+  static newRootScope(options?: ScopeOptions) {
+    return new Scope(new ScopeContext(), options);
   }
   newChildScope() {
-    return new Scope(new ScopeContext(this.context));
+    return new Scope(new ScopeContext(this.context), this.options);
   }
   newLocalScope() {
-    return new Scope(this.context);
+    return new Scope(this.context, this.options);
   }
 
   compile(script: Script): Program {
@@ -210,7 +276,9 @@ export class Scope {
   }
 
   prepareProcess(program: Program): Process {
-    return new Process(this, program);
+    return new Process(this, program, {
+      captureErrorStack: this.options.captureErrorStack,
+    });
   }
 
   resolveVariable(name: string): Value {
