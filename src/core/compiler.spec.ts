@@ -3713,4 +3713,182 @@ describe("Compilation and execution", () => {
       });
     });
   }
+
+  describe("Executor.executeUntil", () => {
+    specify("empty program", () => {
+      const script = parse("");
+      const program = compiler.compileScript(script);
+      const state = new ProgramState();
+      expect(executor.executeUntil(program, state, 1000)).to.eql(OK(NIL));
+    });
+    specify("step by step", () => {
+      const script = parse("ok 1; ok 2; ok 3");
+      const program = compiler.compileScript(script);
+      expect(program.opCodes).to.eql([
+        /*  0 */ OpCode.OPEN_FRAME,
+        /*  1 */ OpCode.PUSH_CONSTANT,
+        /*  2 */ OpCode.PUSH_CONSTANT,
+        /*  3 */ OpCode.CLOSE_FRAME,
+        /*  4 */ OpCode.EVALUATE_SENTENCE,
+        /*  5 */ OpCode.OPEN_FRAME,
+        /*  6 */ OpCode.PUSH_CONSTANT,
+        /*  7 */ OpCode.PUSH_CONSTANT,
+        /*  8 */ OpCode.CLOSE_FRAME,
+        /*  9 */ OpCode.EVALUATE_SENTENCE,
+        /* 10 */ OpCode.OPEN_FRAME,
+        /* 11 */ OpCode.PUSH_CONSTANT,
+        /* 12 */ OpCode.PUSH_CONSTANT,
+        /* 13 */ OpCode.CLOSE_FRAME,
+        /* 14 */ OpCode.EVALUATE_SENTENCE,
+        /* 15 */ OpCode.PUSH_RESULT,
+      ]);
+
+      commandResolver.register("ok", {
+        execute(args) {
+          return OK(args[1]);
+        },
+      });
+
+      const state = new ProgramState();
+      expect(executor.executeUntil(program, state, 1)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(NIL));
+      expect(executor.executeUntil(program, state, 2)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(NIL));
+      expect(executor.executeUntil(program, state, 3)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(NIL));
+      expect(executor.executeUntil(program, state, 4)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(NIL));
+      expect(executor.executeUntil(program, state, 5)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(STR("1")));
+      expect(executor.executeUntil(program, state, 6)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(STR("1")));
+      expect(executor.executeUntil(program, state, 7)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(STR("1")));
+      expect(executor.executeUntil(program, state, 8)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(STR("1")));
+      expect(executor.executeUntil(program, state, 9)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(STR("1")));
+      expect(executor.executeUntil(program, state, 10)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(STR("2")));
+      expect(executor.executeUntil(program, state, 11)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(STR("2")));
+      expect(executor.executeUntil(program, state, 12)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(STR("2")));
+      expect(executor.executeUntil(program, state, 13)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(STR("2")));
+      expect(executor.executeUntil(program, state, 14)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(STR("2")));
+      expect(executor.executeUntil(program, state, 15)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(STR("3")));
+      expect(executor.executeUntil(program, state, 16)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(STR("3")));
+    });
+    specify("error", () => {
+      const script = parse("$var");
+      const program = compiler.compileScript(script);
+      expect(program.opCodes).to.eql([
+        /* 0 */ OpCode.OPEN_FRAME,
+        /* 1 */ OpCode.PUSH_CONSTANT,
+        /* 2 */ OpCode.RESOLVE_VALUE,
+        /* 3 */ OpCode.CLOSE_FRAME,
+        /* 4 */ OpCode.EVALUATE_SENTENCE,
+        /* 5 */ OpCode.PUSH_RESULT,
+      ]);
+
+      const state = new ProgramState();
+      expect(executor.executeUntil(program, state, 1)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(NIL));
+      expect(executor.executeUntil(program, state, 2)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(NIL));
+      expect(executor.executeUntil(program, state, 3)).to.eql(
+        ERROR(`cannot resolve variable "var"`)
+      );
+      expect(state.result).to.eql(OK(NIL));
+    });
+    specify("repeat", () => {
+      const script = parse("cmd");
+      const program = compiler.compileScript(script);
+      expect(program.opCodes).to.eql([
+        /* 0 */ OpCode.OPEN_FRAME,
+        /* 1 */ OpCode.PUSH_CONSTANT,
+        /* 2 */ OpCode.CLOSE_FRAME,
+        /* 3 */ OpCode.EVALUATE_SENTENCE,
+        /* 4 */ OpCode.PUSH_RESULT,
+      ]);
+
+      let count = 0;
+      commandResolver.register("cmd", {
+        execute() {
+          return OK(INT(++count));
+        },
+      });
+
+      const state = new ProgramState();
+      expect(executor.executeUntil(program, state, 1)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(NIL));
+      expect(executor.executeUntil(program, state, 2)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(NIL));
+      expect(executor.executeUntil(program, state, 3)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(NIL));
+      expect(executor.executeUntil(program, state, 4)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(INT(1)));
+      expect(count).to.eql(1);
+      expect(executor.executeUntil(program, state, 4)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(INT(1)));
+      expect(count).to.eql(1);
+      expect(executor.executeUntil(program, state, 4)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(INT(1)));
+      expect(count).to.eql(1);
+      expect(executor.executeUntil(program, state, 5)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(INT(1)));
+      expect(count).to.eql(1);
+      expect(executor.executeUntil(program, state, 5)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(INT(1)));
+      expect(count).to.eql(1);
+    });
+    specify("yield", () => {
+      const script = parse("cmd");
+      const program = compiler.compileScript(script);
+      expect(program.opCodes).to.eql([
+        /* 0 */ OpCode.OPEN_FRAME,
+        /* 1 */ OpCode.PUSH_CONSTANT,
+        /* 2 */ OpCode.CLOSE_FRAME,
+        /* 3 */ OpCode.EVALUATE_SENTENCE,
+        /* 4 */ OpCode.PUSH_RESULT,
+      ]);
+
+      let count = 0;
+      commandResolver.register("cmd", {
+        execute() {
+          return YIELD(INT(++count));
+        },
+        resume() {
+          return OK(INT(++count));
+        },
+      });
+
+      const state = new ProgramState();
+      expect(executor.executeUntil(program, state, 1)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(NIL));
+      expect(executor.executeUntil(program, state, 2)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(NIL));
+      expect(executor.executeUntil(program, state, 3)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(NIL));
+      expect(executor.executeUntil(program, state, 4)).to.eql(YIELD(INT(1)));
+      expect(state.result).to.eql(YIELD(INT(1)));
+      expect(count).to.eql(1);
+      expect(executor.executeUntil(program, state, 4)).to.eql(OK(NIL));
+      expect(state.result).to.eql(YIELD(INT(1)));
+      expect(count).to.eql(1);
+      expect(executor.executeUntil(program, state, 4)).to.eql(OK(NIL));
+      expect(state.result).to.eql(YIELD(INT(1)));
+      expect(count).to.eql(1);
+      expect(executor.executeUntil(program, state, 5)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(INT(2)));
+      expect(count).to.eql(2);
+      expect(executor.executeUntil(program, state, 5)).to.eql(OK(NIL));
+      expect(state.result).to.eql(OK(INT(2)));
+      expect(count).to.eql(2);
+    });
+  });
 });

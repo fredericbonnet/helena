@@ -799,11 +799,31 @@ export class Executor {
    * @returns         Last executed result
    */
   execute(program: Program, state = new ProgramState()): Result {
+    const result = this.executeUntil(program, state, program.opCodes.length);
+    if (result.code != ResultCode.OK) return result;
+    if (!state.empty()) state.result = OK(state.pop());
+    return state.result;
+  }
+
+  /**
+   * Execute the given program until the provided stop point
+   *
+   * Runs a flat loop over the program opcodes
+   *
+   * @param program - Program to execute
+   * @param [state] - Program state (defaults to new)
+   * @param stop    - Program counter value to stop at
+   *
+   * @returns         OK(NIL) upon success, else last result
+   */
+  executeUntil(program: Program, state: ProgramState, stop: number) {
+    if (stop > program.opCodes.length) stop = program.opCodes.length;
+    if (state.pc >= stop) return OK(NIL);
     if (state.result.code == ResultCode.YIELD && state.command?.resume) {
       state.result = state.command.resume(state.result, this.context);
       if (state.result.code != ResultCode.OK) return state.result;
     }
-    while (state.pc < program.opCodes.length) {
+    while (state.pc < stop) {
       const opcode = program.opCodes[state.pc++];
       switch (opcode) {
         case OpCode.PUSH_NIL:
@@ -918,8 +938,7 @@ export class Executor {
           throw new Error("CANTHAPPEN");
       }
     }
-    if (!state.empty()) state.result = OK(state.pop());
-    return state.result;
+    return OK(NIL);
   }
 
   /**
