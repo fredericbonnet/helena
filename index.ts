@@ -3,8 +3,12 @@ import * as fs from "fs";
 import { exit } from "process";
 import * as repl from "repl";
 import * as c from "ansi-colors";
-import { defaultDisplayFunction, display } from "./src/core/display";
-import { ArrayTokenStream } from "./src/core/tokenizer";
+import {
+  Displayable,
+  defaultDisplayFunction,
+  display,
+} from "./src/core/display";
+import { ArrayTokenStream, StringStream } from "./src/core/tokenizer";
 import { Parser } from "./src/core/parser";
 import {
   ERROR,
@@ -38,6 +42,7 @@ import { childProcessCmd } from "./src/native/node-child_process";
 import { consoleCmd } from "./src/native/javascript-console";
 import { CallbackContext, fsCmd } from "./src/native/node-fs";
 import { Module, ModuleRegistry } from "./src/helena-dialect/modules";
+import { ContinuationValue, ErrorStack } from "./src/helena-dialect/core";
 
 const moduleRegistry = new ModuleRegistry();
 
@@ -57,7 +62,20 @@ const sourceCmd: Command = {
   execute: function (args: Value[], scope: Scope): Result {
     if (args.length != 2) return ARITY_ERROR("source path");
     const { data: path } = StringValue.toString(args[1]);
-    return sourceFile(path, scope);
+    try {
+      const data = fs.readFileSync(path, "utf-8");
+      const tokens = new Tokenizer().tokenize(data);
+      const { success, script, message } = new Parser({
+        capturePositions: true,
+      }).parseTokens(tokens);
+      if (!success) {
+        return ERROR(message);
+      }
+      const program = scope.compile(script);
+      return ContinuationValue.create(scope, program);
+    } catch (e) {
+      return ERROR(e.message);
+    }
   },
 };
 const exitCmd: Command = {
@@ -78,7 +96,10 @@ const picolCmd: Command = {
 };
 
 function init() {
-  const rootScope = Scope.newRootScope();
+  const rootScope = Scope.newRootScope({
+    captureErrorStack: true,
+    capturePositions: true,
+  });
   initCommands(rootScope, moduleRegistry);
   rootScope.registerNamedCommand("source", sourceCmd);
   rootScope.registerNamedCommand("exit", exitCmd);
@@ -141,7 +162,10 @@ function prompt() {
 }
 
 function run(scope: Scope, cmd, callback?: (err?: Error, result?) => void) {
-  const tokens = new Tokenizer().tokenize(cmd);
+  const input = new StringStream(cmd);
+  const tokens = [];
+  const stream = new ArrayTokenStream(tokens, input.source);
+  new Tokenizer().tokenizeStream(input, stream);
   if (
     tokens.length > 0 &&
     tokens[tokens.length - 1].type == TokenType.CONTINUATION
@@ -150,8 +174,7 @@ function run(scope: Scope, cmd, callback?: (err?: Error, result?) => void) {
     return callback(new repl.Recoverable(new Error("continuation")));
   }
 
-  const stream = new ArrayTokenStream(tokens);
-  const parser = new Parser();
+  const parser = new Parser({ capturePositions: true });
   let parseResult = parser.parseStream(stream);
   if (!parseResult.success) {
     // Parse error
@@ -167,11 +190,31 @@ function run(scope: Scope, cmd, callback?: (err?: Error, result?) => void) {
   const program = scope.compile(parseResult.script);
   const process = scope.prepareProcess(program);
   const result = process.run();
+  if (result.code == ResultCode.ERROR) {
+    printErrorStack(process.errorStack);
+  }
   processResult(
     result,
     (value) => callback(null, value),
     (error) => callback(error)
   );
+}
+function printErrorStack(errorStack: ErrorStack) {
+  for (let level = 0; level < errorStack.depth(); level++) {
+    const l = errorStack.level(level);
+    let log = `[${level}] `;
+    if (l.position) {
+      log += `:${l.position.line}:${l.position.column}: `;
+    }
+    log += l.frame.map(displayErrorFrameArg).join(" ");
+    console.debug(c.gray(log));
+  }
+}
+function displayErrorFrameArg(displayable: Displayable): string {
+  if (displayable instanceof ListValue) return `[list (...)]`;
+  if (displayable instanceof DictionaryValue) return `[dict (...)]`;
+  if (displayable instanceof ScriptValue) return `{...}`;
+  return display(displayable, displayErrorFrameArg);
 }
 
 function processResult(result, onSuccess, onError) {
@@ -189,14 +232,16 @@ function processResult(result, onSuccess, onError) {
     }
   }
 }
+function displayResult(displayable: Displayable): string {
+  if (displayable instanceof ListValue)
+    return displayListValue(displayable, displayResult);
+  if (displayable instanceof DictionaryValue)
+    return displayDictionaryValue(displayable, displayResult);
+  return defaultDisplayFunction(displayable);
+}
 function resultWriter(output) {
   if (output instanceof Error) return c.red(output.message);
-  const value = display(output, (displayable) => {
-    if (displayable instanceof ListValue) return displayListValue(displayable);
-    if (displayable instanceof DictionaryValue)
-      return displayDictionaryValue(displayable);
-    return defaultDisplayFunction(displayable);
-  });
+  const value = display(output, displayResult);
   let type;
   if (isValue(output)) {
     if (output.type == ValueType.CUSTOM) {
