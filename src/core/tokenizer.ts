@@ -2,7 +2,7 @@
  * @file Helena tokenization
  */
 
-import { SourcePosition } from "./source";
+import { Source, SourcePosition } from "./source";
 
 /**
  * Helena token type for each special character or sequence
@@ -108,7 +108,7 @@ export class Tokenizer {
    */
   tokenize(source: string): Token[] {
     const input = new StringStream(source);
-    const output = new ArrayTokenStream([]);
+    const output = new ArrayTokenStream([], input.source);
     this.tokenizeStream(input, output);
     return output.tokens;
   }
@@ -456,6 +456,9 @@ export class Tokenizer {
  * Source stream (input)
  */
 export interface SourceStream {
+  /** Stream source */
+  readonly source?: Source;
+
   /**
    * At end predicate
    *
@@ -506,8 +509,8 @@ export interface SourceStream {
  * String-based character stream
  */
 export class StringStream implements SourceStream {
-  /** Source string */
-  private readonly source: string;
+  /** String source */
+  readonly source: Source;
 
   /** Current input position in stream */
   private readonly cursor: SourceCursor = new SourceCursor();
@@ -518,7 +521,7 @@ export class StringStream implements SourceStream {
    * @param source - Source string
    */
   constructor(source: string) {
-    this.source = source;
+    this.source = { content: source };
   }
 
   /**
@@ -527,7 +530,7 @@ export class StringStream implements SourceStream {
    * @returns Whether stream is at end
    */
   end() {
-    return this.cursor.index >= this.source.length;
+    return this.cursor.index >= this.source.content.length;
   }
 
   /**
@@ -536,7 +539,7 @@ export class StringStream implements SourceStream {
    * @returns Character at previous position
    */
   next() {
-    return this.source[this.cursor.next(this.current() === "\n")];
+    return this.source.content[this.cursor.next(this.current() === "\n")];
   }
 
   /**
@@ -545,7 +548,7 @@ export class StringStream implements SourceStream {
    * @returns Character at current position
    */
   current() {
-    return this.source[this.cursor.index];
+    return this.source.content[this.cursor.index];
   }
 
   /**
@@ -557,7 +560,7 @@ export class StringStream implements SourceStream {
    * @returns       Range of characters
    */
   range(start: number, end: number) {
-    return this.source.substring(start, end);
+    return this.source.content.substring(start, end);
   }
 
   /**
@@ -583,6 +586,9 @@ export class StringStream implements SourceStream {
  * Token stream (input/output)
  */
 export interface TokenStream {
+  /** Stream source */
+  readonly source?: Source;
+
   /**
    * Emit (add) token to end of stream
    *
@@ -633,6 +639,9 @@ export interface TokenStream {
  * Array-based token stream
  */
 export class ArrayTokenStream implements TokenStream {
+  /** Stream source */
+  readonly source?: Source;
+
   /** Emitted tokens */
   readonly tokens: Token[];
 
@@ -643,8 +652,10 @@ export class ArrayTokenStream implements TokenStream {
    * Create a new stream from an array of tokens
    *
    * @param tokens - Source array
+   * @param source - Stream source
    */
-  constructor(tokens: Token[]) {
+  constructor(tokens: Token[], source?: Source) {
+    this.source = source;
     this.tokens = tokens;
   }
 

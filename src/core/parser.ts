@@ -428,9 +428,6 @@ export class Parser {
   /** Input stream */
   private stream: TokenStream;
 
-  /** Input source */
-  private source?: Source;
-
   /** Current context */
   private context: Context;
 
@@ -452,8 +449,8 @@ export class Parser {
    * @returns          Script result on success, else error
    */
   parse(tokens: Token[], source?: Source): ParseResult {
-    const stream = new ArrayTokenStream(tokens);
-    const result = this.parseStream(stream, source);
+    const stream = new ArrayTokenStream(tokens, source);
+    const result = this.parseStream(stream);
     if (!result.success) return result;
     return this.closeStream();
   }
@@ -465,13 +462,12 @@ export class Parser {
    * as getting an error at this stage is unrecoverable even if there is more
    * input to parse
    *
-   * @param stream   - Stream to parse
-   * @param [source] - Stream source
+   * @param stream - Stream to parse
    *
-   * @returns          Empty result on success, else error
+   * @returns        Empty result on success, else error
    */
-  parseStream(stream: TokenStream, source?: Source): ParseResult {
-    this.begin(stream, source);
+  parseStream(stream: TokenStream): ParseResult {
+    this.begin(stream);
     while (!this.end()) {
       const result = this.next();
       if (!result.success) return result;
@@ -482,15 +478,13 @@ export class Parser {
   /**
    * Start incremental parsing of a Helena token stream
    *
-   * @param stream   - Stream to parse
-   * @param [source] - Stream source
+   * @param stream - Stream to parse
    */
-  begin(stream: TokenStream, source?: Source) {
+  begin(stream: TokenStream) {
     this.context = new Context({
       script: new ScriptNode(stream.current()),
     });
     this.stream = stream;
-    this.source = source;
   }
 
   /**
@@ -547,7 +541,10 @@ export class Parser {
     this.closeSentence();
 
     return PARSE_OK(
-      this.context.script.toScript(this.options.capturePositions, this.source)
+      this.context.script.toScript(
+        this.options.capturePositions,
+        this.stream.source
+      )
     );
   }
 
