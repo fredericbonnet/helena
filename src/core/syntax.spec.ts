@@ -40,7 +40,7 @@ describe("SyntaxChecker", () => {
   let checker: SyntaxChecker;
 
   const parse = (script: string) =>
-    parser.parse(tokenizer.tokenize(script)).script;
+    parser.parseTokens(tokenizer.tokenize(script)).script;
   const firstWord = (script: Script) => script.sentences[0].words[0] as Word;
 
   beforeEach(() => {

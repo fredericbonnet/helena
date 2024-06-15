@@ -144,7 +144,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
     let evaluator: Evaluator;
 
     const parse = (script: string) =>
-      parser.parse(tokenizer.tokenize(script)).script;
+      parser.parseTokens(tokenizer.tokenize(script)).script;
     const firstSentence = (script: Script) => script.sentences[0];
     const firstWord = (script: Script) =>
       firstSentence(script).words[0] as Word;

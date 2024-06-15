@@ -441,6 +441,19 @@ export class Parser {
   /* eslint-enable jsdoc/require-jsdoc */
 
   /**
+   * Parse a token stream till the end
+   *
+   * @param stream - Stream to parse
+   *
+   * @returns        Script result on success, else error
+   */
+  parse(stream: TokenStream): ParseResult {
+    const result = this.parseStream(stream);
+    if (!result.success) return result;
+    return this.closeStream();
+  }
+
+  /**
    * Parse an array of tokens
    *
    * @param tokens   - Tokens to parse
@@ -448,15 +461,12 @@ export class Parser {
    *
    * @returns          Script result on success, else error
    */
-  parse(tokens: Token[], source?: Source): ParseResult {
-    const stream = new ArrayTokenStream(tokens, source);
-    const result = this.parseStream(stream);
-    if (!result.success) return result;
-    return this.closeStream();
+  parseTokens(tokens: Token[], source?: Source): ParseResult {
+    return this.parse(new ArrayTokenStream(tokens, source));
   }
 
   /**
-   * Parse a token stream till the end
+   * Parse a token stream
    *
    * This method is useful when parsing incomplete scripts in interactive mode,
    * as getting an error at this stage is unrecoverable even if there is more

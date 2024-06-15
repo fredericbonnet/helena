@@ -44,7 +44,7 @@ const moduleRegistry = new ModuleRegistry();
 function sourceFile(path: string, scope: Scope): Result {
   const data = fs.readFileSync(path, "utf-8");
   const tokens = new Tokenizer().tokenize(data);
-  const { success, script, message } = new Parser().parse(tokens);
+  const { success, script, message } = new Parser().parseTokens(tokens);
   if (!success) {
     return ERROR(message);
   }

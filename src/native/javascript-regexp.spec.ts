@@ -52,7 +52,7 @@ describe("Javascript RegExp", () => {
   let executor: Executor;
 
   const parse = (script: string) =>
-    parser.parse(tokenizer.tokenize(script)).script;
+    parser.parseTokens(tokenizer.tokenize(script)).script;
   const compile = (script: Script) => compiler.compileScript(script);
   const execute = (script: string) => executor.execute(compile(parse(script)));
   const evaluate = (script: string) => execute(script).value;

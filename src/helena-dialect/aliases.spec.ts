@@ -32,7 +32,7 @@ describe("Helena aliases", () => {
   let parser: Parser;
 
   const parse = (script: string) =>
-    parser.parse(tokenizer.tokenize(script)).script;
+    parser.parseTokens(tokenizer.tokenize(script)).script;
   const prepareScript = (script: string) =>
     rootScope.prepareProcess(rootScope.compile(parse(script)));
   const execute = (script: string) => prepareScript(script).run();

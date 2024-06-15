@@ -17,7 +17,7 @@ import {
   Word,
   Sentence,
 } from "./syntax";
-import { Tokenizer } from "./tokenizer";
+import { ArrayTokenStream, StringStream, Tokenizer } from "./tokenizer";
 import { Source } from "./source";
 
 const mapMorphemeRaw = (morpheme: Morpheme) => {
@@ -106,7 +106,7 @@ describe("Parser", () => {
   let tokenizer: Tokenizer;
   let parser: Parser;
   const parse = (script: string) =>
-    parser.parse(tokenizer.tokenize(script)).script;
+    parser.parseTokens(tokenizer.tokenize(script)).script;
 
   beforeEach(() => {
     tokenizer = new Tokenizer();
@@ -220,25 +220,25 @@ describe("Parser", () => {
       describe("exceptions", () => {
         specify("unterminated tuple", () => {
           const tokens = tokenizer.tokenize("(");
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("unmatched left parenthesis")
           );
         });
         specify("unmatched right parenthesis", () => {
           const tokens = tokenizer.tokenize(")");
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("unmatched right parenthesis")
           );
         });
         specify("mismatched right brace", () => {
           const tokens = tokenizer.tokenize("(}");
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("mismatched right brace")
           );
         });
         specify("mismatched right bracket", () => {
           const tokens = tokenizer.tokenize("(]");
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("mismatched right bracket")
           );
         });
@@ -317,25 +317,25 @@ describe("Parser", () => {
       describe("exceptions", () => {
         specify("unterminated block", () => {
           const tokens = tokenizer.tokenize("{");
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("unmatched left brace")
           );
         });
         specify("unmatched right brace", () => {
           const tokens = tokenizer.tokenize("}");
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("unmatched right brace")
           );
         });
         specify("mismatched right parenthesis", () => {
           const tokens = tokenizer.tokenize("{)");
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("mismatched right parenthesis")
           );
         });
         specify("mismatched right bracket", () => {
           const tokens = tokenizer.tokenize("{]");
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("mismatched right bracket")
           );
         });
@@ -382,25 +382,25 @@ describe("Parser", () => {
       describe("exceptions", () => {
         specify("unterminated expression", () => {
           const tokens = tokenizer.tokenize("[");
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("unmatched left bracket")
           );
         });
         specify("unmatched right bracket", () => {
           const tokens = tokenizer.tokenize("]");
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("unmatched right bracket")
           );
         });
         specify("mismatched right parenthesis", () => {
           const tokens = tokenizer.tokenize("[)");
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("mismatched right parenthesis")
           );
         });
         specify("mismatched right brace", () => {
           const tokens = tokenizer.tokenize("[}");
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("mismatched right brace")
           );
         });
@@ -486,19 +486,19 @@ describe("Parser", () => {
         describe("exceptions", () => {
           specify("unterminated expression", () => {
             const tokens = tokenizer.tokenize('"[');
-            expect(parser.parse(tokens)).to.eql(
+            expect(parser.parseTokens(tokens)).to.eql(
               PARSE_ERROR("unmatched left bracket")
             );
           });
           specify("mismatched right parenthesis", () => {
             const tokens = tokenizer.tokenize('"[)"');
-            expect(parser.parse(tokens)).to.eql(
+            expect(parser.parseTokens(tokens)).to.eql(
               PARSE_ERROR("mismatched right parenthesis")
             );
           });
           specify("mismatched right brace", () => {
             const tokens = tokenizer.tokenize('"[}"');
-            expect(parser.parse(tokens)).to.eql(
+            expect(parser.parseTokens(tokens)).to.eql(
               PARSE_ERROR("mismatched right brace")
             );
           });
@@ -978,13 +978,13 @@ describe("Parser", () => {
       describe("exceptions", () => {
         specify("unterminated string", () => {
           const tokens = tokenizer.tokenize('"');
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("unmatched string delimiter")
           );
         });
         specify("extra quotes", () => {
           const tokens = tokenizer.tokenize('"hello""');
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("extra characters after string delimiter")
           );
         });
@@ -1036,7 +1036,7 @@ describe("Parser", () => {
       describe("exceptions", () => {
         specify("unterminated here-string", () => {
           const tokens = tokenizer.tokenize('"""hello');
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("unmatched here-string delimiter")
           );
         });
@@ -1044,7 +1044,7 @@ describe("Parser", () => {
           const tokens = tokenizer.tokenize(
             '""" <- 3 quotes here / 4 quotes there -> """"'
           );
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("unmatched here-string delimiter")
           );
         });
@@ -1138,13 +1138,13 @@ int main(void) {
       describe("exceptions", () => {
         specify("unterminated tagged string", () => {
           const tokens = tokenizer.tokenize('""EOF\nhello');
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("unmatched tagged string delimiter")
           );
         });
         specify("extra quotes", () => {
           const tokens = tokenizer.tokenize('""EOF\nhello\nEOF"""');
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("unmatched tagged string delimiter")
           );
         });
@@ -1226,7 +1226,7 @@ int main(void) {
       describe("exceptions", () => {
         specify("unterminated block comment", () => {
           const tokens = tokenizer.tokenize("#{hello");
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("unmatched block comment delimiter")
           );
         });
@@ -1234,7 +1234,7 @@ int main(void) {
           const tokens = tokenizer.tokenize(
             "#{ <- 1 hash here / 2 hashes there -> }##"
           );
-          expect(parser.parse(tokens)).to.eql(
+          expect(parser.parseTokens(tokens)).to.eql(
             PARSE_ERROR("unmatched block comment delimiter")
           );
         });
@@ -1350,13 +1350,13 @@ int main(void) {
         describe("exceptions", () => {
           specify("leading hash", () => {
             const tokens = tokenizer.tokenize("$#");
-            expect(parser.parse(tokens)).to.eql(
+            expect(parser.parseTokens(tokens)).to.eql(
               PARSE_ERROR("unexpected comment delimiter")
             );
           });
           specify("leading quote", () => {
             const tokens = tokenizer.tokenize('$"');
-            expect(parser.parse(tokens)).to.eql(
+            expect(parser.parseTokens(tokens)).to.eql(
               PARSE_ERROR("unexpected string delimiter")
             );
           });
@@ -2479,24 +2479,51 @@ int main(void) {
   });
 
   describe("source", () => {
-    specify("no capturePositions", () => {
-      const source: Source = { content: "cmd {arg1} arg2" };
-      const script = parse(source.content);
-      expect(script.source).to.be.undefined;
+    describe("no capturePositions", () => {
+      specify("tokens", () => {
+        const source: Source = { content: "cmd {arg1} arg2" };
+        const { script } = parser.parseTokens(
+          tokenizer.tokenize(source.content),
+          source
+        );
+        expect(script.source).to.be.undefined;
+      });
+      specify("streams", () => {
+        const input = new StringStream("cmd {arg1} arg2");
+        const output = new ArrayTokenStream([], input.source);
+        tokenizer.tokenizeStream(input, output);
+        const { script } = parser.parse(output);
+        expect(script.source).to.be.undefined;
+      });
     });
-    specify("capturePositions", () => {
-      parser = new Parser({ capturePositions: true });
+    describe("capturePositions", () => {
+      specify("tokens", () => {
+        parser = new Parser({ capturePositions: true });
 
-      const source: Source = { content: "cmd {arg1} arg2" };
-      const { script } = parser.parse(
-        tokenizer.tokenize(source.content),
-        source
-      );
-      expect(script.source).to.equal(source);
-      expect(
-        ((script.sentences[0].words[1] as Word).morphemes[0] as BlockMorpheme)
-          .subscript.source
-      ).to.equal(source);
+        const source: Source = { content: "cmd {arg1} arg2" };
+        const { script } = parser.parseTokens(
+          tokenizer.tokenize(source.content),
+          source
+        );
+        expect(script.source).to.equal(source);
+        expect(
+          ((script.sentences[0].words[1] as Word).morphemes[0] as BlockMorpheme)
+            .subscript.source
+        ).to.equal(source);
+      });
+      specify("streams", () => {
+        parser = new Parser({ capturePositions: true });
+
+        const input = new StringStream("cmd {arg1} arg2");
+        const output = new ArrayTokenStream([], input.source);
+        tokenizer.tokenizeStream(input, output);
+        const { script } = parser.parse(output);
+        expect(script.source).to.equal(input.source);
+        expect(
+          ((script.sentences[0].words[1] as Word).morphemes[0] as BlockMorpheme)
+            .subscript.source
+        ).to.equal(input.source);
+      });
     });
   });
 });

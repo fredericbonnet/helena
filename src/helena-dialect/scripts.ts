@@ -27,7 +27,7 @@ const parseCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     const tokenizer = new Tokenizer();
     const parser = new Parser();
-    const { success, script, message } = parser.parse(
+    const { success, script, message } = parser.parseTokens(
       tokenizer.tokenize(source)
     );
     if (!success) return ERROR(message);

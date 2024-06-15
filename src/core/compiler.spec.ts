@@ -94,7 +94,7 @@ describe("Compilation and execution", () => {
   let executor: Executor;
 
   const parse = (script: string) =>
-    parser.parse(tokenizer.tokenize(script)).script;
+    parser.parseTokens(tokenizer.tokenize(script)).script;
   const compileFirstWord = (script: Script) => {
     const word = script.sentences[0].words[0];
     if (word instanceof Word) {

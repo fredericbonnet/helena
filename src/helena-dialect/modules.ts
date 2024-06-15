@@ -223,7 +223,7 @@ function loadFileBasedModule(
     return ERROR("error reading module: " + e.message);
   }
   const tokens = new Tokenizer().tokenize(data);
-  const { success, script, message } = new Parser().parse(tokens);
+  const { success, script, message } = new Parser().parseTokens(tokens);
   if (!success) {
     moduleRegistry.release(modulePath);
     return ERROR(message);
