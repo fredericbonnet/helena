@@ -2,6 +2,8 @@
  * @file Helena tokenization
  */
 
+import { SourcePosition } from "./source";
+
 /**
  * Helena token type for each special character or sequence
  */
@@ -25,9 +27,9 @@ export enum TokenType {
 }
 
 /**
- * Position in source stream
+ * Current position in source stream
  */
-export class SourcePosition {
+class SourceCursor {
   /** Character index (zero-indexed) */
   index = 0;
 
@@ -38,16 +40,16 @@ export class SourcePosition {
   column = 0;
 
   /**
-   * Make a copy of the current position
+   * Get current position
    *
    * @returns a new position
    */
-  copy() {
-    const copy = new SourcePosition();
-    copy.index = this.index;
-    copy.line = this.line;
-    copy.column = this.column;
-    return copy;
+  current(): SourcePosition {
+    return {
+      index: this.index,
+      line: this.line,
+      column: this.column,
+    };
   }
 
   /**
@@ -71,7 +73,7 @@ export class SourcePosition {
 /**
  * Helena token
  */
-export interface Token {
+export type Token = {
   /** Token type */
   type: TokenType;
 
@@ -83,7 +85,7 @@ export interface Token {
 
   /** String literal */
   literal: string;
-}
+};
 
 /**
  * Helena tokenizer
@@ -508,7 +510,7 @@ export class StringStream implements SourceStream {
   private readonly source: string;
 
   /** Current input position in stream */
-  private readonly position: SourcePosition = new SourcePosition();
+  private readonly cursor: SourceCursor = new SourceCursor();
 
   /**
    * Create a new stream from a string
@@ -525,7 +527,7 @@ export class StringStream implements SourceStream {
    * @returns Whether stream is at end
    */
   end() {
-    return this.position.index >= this.source.length;
+    return this.cursor.index >= this.source.length;
   }
 
   /**
@@ -534,7 +536,7 @@ export class StringStream implements SourceStream {
    * @returns Character at previous position
    */
   next() {
-    return this.source[this.position.next(this.current() === "\n")];
+    return this.source[this.cursor.next(this.current() === "\n")];
   }
 
   /**
@@ -543,7 +545,7 @@ export class StringStream implements SourceStream {
    * @returns Character at current position
    */
   current() {
-    return this.source[this.position.index];
+    return this.source[this.cursor.index];
   }
 
   /**
@@ -564,7 +566,7 @@ export class StringStream implements SourceStream {
    * @returns Current index
    */
   currentIndex() {
-    return this.position.index;
+    return this.cursor.index;
   }
 
   /**
@@ -573,7 +575,7 @@ export class StringStream implements SourceStream {
    * @returns Current position
    */
   currentPosition() {
-    return this.position.copy();
+    return this.cursor.current();
   }
 }
 

@@ -22,7 +22,7 @@ import {
   CustomValue,
 } from "../core/values";
 import { numberCmd } from "./numbers";
-import { SourcePosition } from "../core/tokenizer";
+import { SourcePosition } from "../core/source";
 
 export class ContinuationValue implements CustomValue {
   readonly type = ValueType.CUSTOM;

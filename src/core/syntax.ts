@@ -2,7 +2,7 @@
  * @file Helena syntax checking and AST
  */
 
-import { SourcePosition } from "./tokenizer";
+import { Source, SourcePosition } from "./source";
 import { Value } from "./values";
 
 /**
@@ -56,14 +56,19 @@ export class Script {
   /** Sentences that compose the script */
   readonly sentences: Sentence[];
 
-  /** Position in source stream */
+  /** Script source */
+  readonly source?: Source;
+
+  /** Position in source */
   readonly position?: SourcePosition;
 
   /**
-   * @param position - Position in source stream
+   * @param source   - Script source
+   * @param position - Position in source
    */
-  constructor(position?: SourcePosition) {
+  constructor(source?: Source, position?: SourcePosition) {
     this.sentences = [];
+    this.source = source;
     this.position = position;
   }
 }
@@ -77,11 +82,11 @@ export class Sentence {
   /** Words that compose the sentence */
   readonly words: (Word | Value)[];
 
-  /** Position in source stream */
+  /** Position in source */
   readonly position?: SourcePosition;
 
   /**
-   * @param position - Position in source stream
+   * @param position - Position in source
    */
   constructor(position?: SourcePosition) {
     this.words = [];
@@ -98,11 +103,11 @@ export class Word {
   /** Morphemes that compose the word */
   readonly morphemes: Morpheme[];
 
-  /** Position in source stream */
+  /** Position in source */
   readonly position?: SourcePosition;
 
   /**
-   * @param position - Position in source stream
+   * @param position - Position in source
    */
   constructor(position?: SourcePosition) {
     this.morphemes = [];
@@ -135,7 +140,7 @@ export interface Morpheme {
   /** Type identifier */
   readonly type: MorphemeType;
 
-  /** Position in source stream */
+  /** Position in source */
   readonly position?: SourcePosition;
 }
 

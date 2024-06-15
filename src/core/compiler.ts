@@ -40,7 +40,7 @@ import {
   applySelector,
 } from "./values";
 import { displayList } from "./display";
-import { SourcePosition } from "./tokenizer";
+import { SourcePosition } from "./source";
 
 /** Supported compiler opcodes */
 export enum OpCode {
@@ -71,7 +71,7 @@ export class Program {
   readonly constants: Value[];
 
   /** Opcode positions */
-  readonly opCodePositions: SourcePosition[];
+  readonly opCodePositions?: SourcePosition[];
 
   /* eslint-disable jsdoc/require-jsdoc */
   constructor(capturePositions = false) {

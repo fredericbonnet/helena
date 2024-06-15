@@ -18,6 +18,7 @@ import {
   Sentence,
 } from "./syntax";
 import { Tokenizer } from "./tokenizer";
+import { Source } from "./source";
 
 const mapMorphemeRaw = (morpheme: Morpheme) => {
   switch (morpheme.type) {
@@ -2474,6 +2475,28 @@ int main(void) {
           },
         ],
       });
+    });
+  });
+
+  describe("source", () => {
+    specify("no capturePositions", () => {
+      const source: Source = { content: "cmd {arg1} arg2" };
+      const script = parse(source.content);
+      expect(script.source).to.be.undefined;
+    });
+    specify("capturePositions", () => {
+      parser = new Parser({ capturePositions: true });
+
+      const source: Source = { content: "cmd {arg1} arg2" };
+      const { script } = parser.parse(
+        tokenizer.tokenize(source.content),
+        source
+      );
+      expect(script.source).to.equal(source);
+      expect(
+        ((script.sentences[0].words[1] as Word).morphemes[0] as BlockMorpheme)
+          .subscript.source
+      ).to.equal(source);
     });
   });
 });

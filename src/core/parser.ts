@@ -20,6 +20,7 @@ import {
   BlockCommentMorpheme,
   SubstituteNextMorpheme,
 } from "./syntax";
+import { Source } from "./source";
 
 /**
  * Parsing context
@@ -80,12 +81,13 @@ class ScriptNode {
     this.firstToken = firstToken;
   }
 
-  toScript(capturePositions: boolean): Script {
+  toScript(capturePositions: boolean, source: Source | undefined): Script {
     const script = new Script(
+      capturePositions ? source : undefined,
       capturePositions ? this.firstToken.position : undefined
     );
     for (const sentence of this.sentences) {
-      script.sentences.push(sentence.toSentence(capturePositions));
+      script.sentences.push(sentence.toSentence(capturePositions, source));
     }
     return script;
   }
@@ -101,12 +103,12 @@ class SentenceNode {
     this.firstToken = firstToken;
   }
 
-  toSentence(capturePositions: boolean): Sentence {
+  toSentence(capturePositions: boolean, source: Source | undefined): Sentence {
     const sentence = new Sentence(
       capturePositions ? this.firstToken.position : undefined
     );
     for (const word of this.words) {
-      sentence.words.push(word.toWord(capturePositions));
+      sentence.words.push(word.toWord(capturePositions, source));
     }
     return sentence;
   }
@@ -123,12 +125,12 @@ class WordNode {
     this.firstToken = firstToken;
   }
 
-  toWord(capturePositions: boolean): Word {
+  toWord(capturePositions: boolean, source: Source | undefined): Word {
     const word = new Word(
       capturePositions ? this.firstToken.position : undefined
     );
     for (const morpheme of this.morphemes) {
-      word.morphemes.push(morpheme.toMorpheme(capturePositions));
+      word.morphemes.push(morpheme.toMorpheme(capturePositions, source));
     }
     return word;
   }
@@ -143,7 +145,7 @@ interface MorphemeNode {
   firstToken: Token;
 
   /** Create morpheme from node */
-  toMorpheme(capturePositions: boolean): Morpheme;
+  toMorpheme(capturePositions: boolean, source: Source | undefined): Morpheme;
 }
 
 /** Literal morpheme AST node */
@@ -157,7 +159,7 @@ class LiteralNode implements MorphemeNode {
     this.value = value;
   }
 
-  toMorpheme(capturePositions: boolean): LiteralMorpheme {
+  toMorpheme(capturePositions: boolean, _source?: Source): LiteralMorpheme {
     return {
       type: this.type,
       value: this.value,
@@ -177,10 +179,13 @@ class TupleNode implements MorphemeNode {
     this.subscript = new ScriptNode(firstToken);
   }
 
-  toMorpheme(capturePositions: boolean): TupleMorpheme {
+  toMorpheme(
+    capturePositions: boolean,
+    source: Source | undefined
+  ): TupleMorpheme {
     return {
       type: this.type,
-      subscript: this.subscript.toScript(capturePositions),
+      subscript: this.subscript.toScript(capturePositions, source),
       position: capturePositions ? this.firstToken.position : undefined,
     };
   }
@@ -202,10 +207,13 @@ class BlockNode implements MorphemeNode {
     this.start = start;
   }
 
-  toMorpheme(capturePositions: boolean): BlockMorpheme {
+  toMorpheme(
+    capturePositions: boolean,
+    source: Source | undefined
+  ): BlockMorpheme {
     return {
       type: this.type,
-      subscript: this.subscript.toScript(capturePositions),
+      subscript: this.subscript.toScript(capturePositions, source),
       value: this.value,
       position: capturePositions ? this.firstToken.position : undefined,
     };
@@ -223,10 +231,13 @@ class ExpressionNode implements MorphemeNode {
     this.subscript = new ScriptNode(firstToken);
   }
 
-  toMorpheme(capturePositions: boolean): ExpressionMorpheme {
+  toMorpheme(
+    capturePositions: boolean,
+    source: Source | undefined
+  ): ExpressionMorpheme {
     return {
       type: this.type,
-      subscript: this.subscript.toScript(capturePositions),
+      subscript: this.subscript.toScript(capturePositions, source),
       position: capturePositions ? this.firstToken.position : undefined,
     };
   }
@@ -243,11 +254,14 @@ class StringNode implements MorphemeNode {
     this.morphemes = [];
   }
 
-  toMorpheme(capturePositions: boolean): StringMorpheme {
+  toMorpheme(
+    capturePositions: boolean,
+    source: Source | undefined
+  ): StringMorpheme {
     return {
       type: this.type,
       morphemes: this.morphemes.map((morpheme) =>
-        morpheme.toMorpheme(capturePositions)
+        morpheme.toMorpheme(capturePositions, source)
       ),
       position: capturePositions ? this.firstToken.position : undefined,
     };
@@ -414,6 +428,9 @@ export class Parser {
   /** Input stream */
   private stream: TokenStream;
 
+  /** Input source */
+  private source?: Source;
+
   /** Current context */
   private context: Context;
 
@@ -429,17 +446,15 @@ export class Parser {
   /**
    * Parse an array of tokens
    *
-   * @param tokens - Tokens to parse
+   * @param tokens   - Tokens to parse
+   * @param [source] - Stream source
    *
-   * @returns        Script result on success, else error
+   * @returns          Script result on success, else error
    */
-  parse(tokens: Token[]): ParseResult {
+  parse(tokens: Token[], source?: Source): ParseResult {
     const stream = new ArrayTokenStream(tokens);
-    this.begin(stream);
-    while (!this.end()) {
-      const result = this.next();
-      if (!result.success) return result;
-    }
+    const result = this.parseStream(stream, source);
+    if (!result.success) return result;
     return this.closeStream();
   }
 
@@ -450,12 +465,13 @@ export class Parser {
    * as getting an error at this stage is unrecoverable even if there is more
    * input to parse
    *
-   * @param stream - Stream to parse
+   * @param stream   - Stream to parse
+   * @param [source] - Stream source
    *
-   * @returns        Empty result on success, else error
+   * @returns          Empty result on success, else error
    */
-  parseStream(stream: TokenStream): ParseResult {
-    this.begin(stream);
+  parseStream(stream: TokenStream, source?: Source): ParseResult {
+    this.begin(stream, source);
     while (!this.end()) {
       const result = this.next();
       if (!result.success) return result;
@@ -466,13 +482,15 @@ export class Parser {
   /**
    * Start incremental parsing of a Helena token stream
    *
-   * @param stream - Stream to parse
+   * @param stream   - Stream to parse
+   * @param [source] - Stream source
    */
-  begin(stream: TokenStream) {
+  begin(stream: TokenStream, source?: Source) {
     this.context = new Context({
       script: new ScriptNode(stream.current()),
     });
     this.stream = stream;
+    this.source = source;
   }
 
   /**
@@ -529,7 +547,7 @@ export class Parser {
     this.closeSentence();
 
     return PARSE_OK(
-      this.context.script.toScript(this.options.capturePositions)
+      this.context.script.toScript(this.options.capturePositions, this.source)
     );
   }
 
