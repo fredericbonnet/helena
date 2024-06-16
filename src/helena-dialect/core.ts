@@ -22,7 +22,7 @@ import {
   CustomValue,
 } from "../core/values";
 import { numberCmd } from "./numbers";
-import { SourcePosition } from "../core/source";
+import { Source, SourcePosition } from "../core/source";
 
 export class ContinuationValue implements CustomValue {
   readonly type = ValueType.CUSTOM;
@@ -95,6 +95,7 @@ export class ProcessStack {
 
 export type ErrorStackLevel = {
   frame: Value[];
+  source?: Source;
   position?: SourcePosition;
 };
 export class ErrorStack {
@@ -108,6 +109,7 @@ export class ErrorStack {
     if (context.program.opCodePositions) {
       level = {
         frame: context.state.lastFrame,
+        ...(context.program.source ? { source: context.program.source } : {}),
         position: context.program.opCodePositions[context.state.pc - 1],
       };
     } else {

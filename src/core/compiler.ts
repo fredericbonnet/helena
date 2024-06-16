@@ -40,7 +40,7 @@ import {
   applySelector,
 } from "./values";
 import { displayList } from "./display";
-import { SourcePosition } from "./source";
+import { Source, SourcePosition } from "./source";
 
 /** Supported compiler opcodes */
 export enum OpCode {
@@ -70,14 +70,18 @@ export class Program {
   /** Constants the opcodes refer to */
   readonly constants: Value[];
 
+  /** Program source */
+  readonly source?: Source;
+
   /** Opcode positions */
   readonly opCodePositions?: SourcePosition[];
 
   /* eslint-disable jsdoc/require-jsdoc */
-  constructor(capturePositions = false) {
+  constructor(capturePositions = false, source?: Source) {
     this.opCodes = [];
     this.constants = [];
     if (capturePositions) {
+      this.source = source;
       this.opCodePositions = [];
     }
   }
@@ -151,7 +155,10 @@ export class Compiler {
    * @returns        Compiled program
    */
   compileScript(script: Script): Program {
-    const program: Program = new Program(this.options.capturePositions);
+    const program: Program = new Program(
+      this.options.capturePositions,
+      script.source
+    );
     if (script.sentences.length == 0) return program;
     this.emitScript(program, script);
     return program;
@@ -700,6 +707,7 @@ export class ProgramState {
   /** Open a new frame */
   openFrame() {
     this.frames.push(this.stack.length);
+    this.lastFrame = undefined;
   }
 
   /**

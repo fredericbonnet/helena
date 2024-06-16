@@ -518,10 +518,11 @@ export class StringStream implements SourceStream {
   /**
    * Create a new stream from a string
    *
-   * @param source - Source string
+   * @param source     - Source string
+   * @param [filename] - Source file
    */
-  constructor(source: string) {
-    this.source = { content: source };
+  constructor(source: string, filename?: string) {
+    this.source = { content: source, filename };
   }
 
   /**

@@ -64,10 +64,12 @@ const sourceCmd: Command = {
     const { data: path } = StringValue.toString(args[1]);
     try {
       const data = fs.readFileSync(path, "utf-8");
-      const tokens = new Tokenizer().tokenize(data);
+      const input = new StringStream(data, path);
+      const output = new ArrayTokenStream([], input.source);
+      new Tokenizer().tokenizeStream(input, output);
       const { success, script, message } = new Parser({
         capturePositions: true,
-      }).parseTokens(tokens);
+      }).parse(output);
       if (!success) {
         return ERROR(message);
       }
@@ -164,8 +166,8 @@ function prompt() {
 function run(scope: Scope, cmd, callback?: (err?: Error, result?) => void) {
   const input = new StringStream(cmd);
   const tokens = [];
-  const stream = new ArrayTokenStream(tokens, input.source);
-  new Tokenizer().tokenizeStream(input, stream);
+  const output = new ArrayTokenStream(tokens, input.source);
+  new Tokenizer().tokenizeStream(input, output);
   if (
     tokens.length > 0 &&
     tokens[tokens.length - 1].type == TokenType.CONTINUATION
@@ -175,7 +177,7 @@ function run(scope: Scope, cmd, callback?: (err?: Error, result?) => void) {
   }
 
   const parser = new Parser({ capturePositions: true });
-  let parseResult = parser.parseStream(stream);
+  let parseResult = parser.parseStream(output);
   if (!parseResult.success) {
     // Parse error
     return callback(new Error(parseResult.message));
@@ -203,10 +205,19 @@ function printErrorStack(errorStack: ErrorStack) {
   for (let level = 0; level < errorStack.depth(); level++) {
     const l = errorStack.level(level);
     let log = `[${level}] `;
-    if (l.position) {
-      log += `:${l.position.line}:${l.position.column}: `;
+    if (l.source && l.source.filename) {
+      log += l.source.filename;
+    } else {
+      log += "(script)";
     }
-    log += l.frame.map(displayErrorFrameArg).join(" ");
+    if (l.position) {
+      log += `:${l.position.line + 1}:${l.position.column + 1}: `;
+    } else {
+      log += ` `;
+    }
+    if (l.frame) {
+      log += l.frame.map(displayErrorFrameArg).join(" ");
+    }
     console.debug(c.gray(log));
   }
 }
