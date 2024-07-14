@@ -22,7 +22,7 @@ import {
   CustomValue,
 } from "../core/values";
 import { numberCmd } from "./numbers";
-import { Source, SourcePosition } from "../core/source";
+import { ErrorStack, ErrorStackLevel } from "../core/errors";
 
 export class ContinuationValue implements CustomValue {
   readonly type = ValueType.CUSTOM;
@@ -93,47 +93,12 @@ export class ProcessStack {
   }
 }
 
-export type ErrorStackLevel = {
-  frame: Value[];
-  source?: Source;
-  position?: SourcePosition;
-};
-export class ErrorStack {
-  private readonly stack: ErrorStackLevel[] = [];
-
-  depth() {
-    return this.stack.length;
-  }
-  push(context: ProcessContext) {
-    let level: ErrorStackLevel;
-    if (context.program.opCodePositions) {
-      level = {
-        frame: context.state.lastFrame,
-        ...(context.program.source ? { source: context.program.source } : {}),
-        position: context.program.opCodePositions[context.state.pc - 1],
-      };
-    } else {
-      level = {
-        frame: context.state.lastFrame,
-      };
-    }
-    this.stack.push(level);
-  }
-  clear() {
-    this.stack.length = 0;
-  }
-  level(level: number): ErrorStackLevel {
-    return this.stack[level];
-  }
-}
-
 export type ProcessOptions = {
   captureErrorStack?: boolean;
 };
 export class Process {
   private readonly options: ProcessOptions;
   private readonly stack: ProcessStack;
-  readonly errorStack: ErrorStack;
 
   constructor(
     scope: Scope,
@@ -142,7 +107,6 @@ export class Process {
   ) {
     this.options = options;
     this.stack = new ProcessStack();
-    if (options.captureErrorStack) this.errorStack = new ErrorStack();
     this.stack.pushProgram(scope, program);
   }
 
@@ -155,31 +119,77 @@ export class Process {
           // End and replace current context
           this.stack.pop();
         }
+
+        // Push and execute result continuation context
         context = this.stack.pushContinuation(result.value);
         result = context.scope.execute(context.program, context.state);
         continue;
       }
+
       if (result.code == ResultCode.YIELD) {
-        // Yield to caller
+        // Yield result to caller
         break;
       }
-      if (context.callback) result = context.callback(result);
-      if (this.options.captureErrorStack) {
-        if (result.code == ResultCode.ERROR) {
-          this.errorStack.push(this.stack.currentContext());
-        } else {
-          this.errorStack.clear();
+
+      if (context.callback) {
+        // Process result with callback
+        result = context.callback(result);
+      }
+
+      if (result.code == ResultCode.ERROR) {
+        if (this.options.captureErrorStack) {
+          // Push to error stack
+          if (!result.data) {
+            result = {
+              ...result,
+              data: new ErrorStack(),
+            };
+          }
+          const errorStack = result.data as ErrorStack;
+          let level: ErrorStackLevel;
+          if (context.program.opCodePositions) {
+            level = {
+              frame: context.state.lastFrame,
+              ...(context.program.source
+                ? { source: context.program.source }
+                : {}),
+              position: context.program.opCodePositions[context.state.pc - 1],
+            };
+          } else {
+            level = {
+              frame: context.state.lastFrame,
+            };
+          }
+          errorStack.push(level);
+        } else if (result.data) {
+          // Erase error stack from result
+          result = {
+            code: result.code,
+            value: result.value,
+          };
         }
       }
-      if (this.stack.depth() == 1) break;
-      this.stack.pop();
-      if (result.value instanceof ContinuationValue) continue;
-      context = this.stack.currentContext();
-      if (result.code == ResultCode.OK) {
-        // Yield back and resume current context
-        context.state.result = result;
-        result = context.scope.execute(context.program, context.state);
+
+      if (this.stack.depth() == 1) {
+        // Reached bottom of stack, stop there
+        break;
       }
+
+      this.stack.pop();
+
+      context = this.stack.currentContext();
+      if (result.value instanceof ContinuationValue) {
+        // Process continuation above
+        continue;
+      }
+      if (result.code != ResultCode.OK) {
+        // Pass result down to previous context
+        continue;
+      }
+
+      // Yield back and resume current context
+      context.state.result = result;
+      result = context.scope.execute(context.program, context.state);
     }
     return result;
   }

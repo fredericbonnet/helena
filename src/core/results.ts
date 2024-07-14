@@ -2,6 +2,7 @@
  * @file Helena results
  */
 
+import { ErrorStack } from "./errors";
 import { Value, NIL, STR } from "./values";
 
 /** Helena standard result codes */
@@ -55,6 +56,14 @@ export const YIELD = (value: Value = NIL, state?): Result => ({
 export const ERROR = (message: string): Result<never> => ({
   code: ResultCode.ERROR,
   value: STR(message),
+});
+export const ERROR_STACK = (
+  message: string,
+  errorStack: ErrorStack
+): Result => ({
+  code: ResultCode.ERROR,
+  value: STR(message),
+  data: errorStack,
 });
 export const BREAK = (value: Value = NIL): Result => ({
   code: ResultCode.BREAK,

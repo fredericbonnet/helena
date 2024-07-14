@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import {
-  ERROR,
+  ERROR_STACK,
   OK,
   RESULT_CODE_NAME,
   RETURN,
@@ -18,6 +18,7 @@ import {
   ProcessContext,
   ProcessStack,
 } from "./core";
+import { ErrorStack } from "../core/errors";
 
 const asString = (value) => StringValue.toString(value).data;
 
@@ -1006,18 +1007,21 @@ describe("Helena core internals", () => {
 macro cmd1 {} {cmd2}
 macro cmd2 {} {error msg}
 cmd1
-      `;
+`;
       const program = rootScope.compile(parse(source));
       const process = new Process(rootScope, program, {
         captureErrorStack: true,
       });
-      expect(process.run()).to.eql(ERROR("msg"));
-      expect(process.errorStack.depth()).to.eql(3);
-      expect(process.errorStack.level(0)).to.eql({
+      const result = process.run();
+      expect(result.code).to.eql(ResultCode.ERROR);
+      expect(result.value).to.eql(STR("msg"));
+      const errorStack = result.data as ErrorStack;
+      expect(errorStack.depth()).to.eql(3);
+      expect(errorStack.level(0)).to.eql({
         frame: [STR("error"), STR("msg")],
       });
-      expect(process.errorStack.level(1)).to.eql({ frame: [STR("cmd2")] });
-      expect(process.errorStack.level(2)).to.eql({ frame: [STR("cmd1")] });
+      expect(errorStack.level(1)).to.eql({ frame: [STR("cmd2")] });
+      expect(errorStack.level(2)).to.eql({ frame: [STR("cmd1")] });
     });
   });
 
@@ -1032,17 +1036,20 @@ cmd1
 macro cmd1 {} {cmd2}
 macro cmd2 {} {error msg}
 cmd1
-      `;
+`;
       const process = prepareScript(source);
-      expect(process.run()).to.eql(ERROR("msg"));
-      expect(process.errorStack.depth()).to.eql(3);
-      expect(process.errorStack.level(0)).to.eql({
+      const result = process.run();
+      expect(result.code).to.eql(ResultCode.ERROR);
+      expect(result.value).to.eql(STR("msg"));
+      const errorStack = result.data as ErrorStack;
+      expect(errorStack.depth()).to.eql(3);
+      expect(errorStack.level(0)).to.eql({
         frame: [STR("error"), STR("msg")],
       });
-      expect(process.errorStack.level(1)).to.eql({
+      expect(errorStack.level(1)).to.eql({
         frame: [STR("cmd2")],
       });
-      expect(process.errorStack.level(2)).to.eql({
+      expect(errorStack.level(2)).to.eql({
         frame: [STR("cmd1")],
       });
     });
@@ -1058,21 +1065,106 @@ cmd1
 macro cmd1 {} {cmd2}
 macro cmd2 {} {error msg}
 cmd1
-      `;
+`;
       const process = prepareScript(source);
-      expect(process.run()).to.eql(ERROR("msg"));
-      expect(process.errorStack.depth()).to.eql(3);
-      expect(process.errorStack.level(0)).to.eql({
+      const result = process.run();
+      expect(result.code).to.eql(ResultCode.ERROR);
+      expect(result.value).to.eql(STR("msg"));
+      const errorStack = result.data as ErrorStack;
+      expect(errorStack.depth()).to.eql(3);
+      expect(errorStack.level(0)).to.eql({
         frame: [STR("error"), STR("msg")],
         position: { index: 37, line: 2, column: 15 },
       });
-      expect(process.errorStack.level(1)).to.eql({
+      expect(errorStack.level(1)).to.eql({
         frame: [STR("cmd2")],
         position: { index: 16, line: 1, column: 15 },
       });
-      expect(process.errorStack.level(2)).to.eql({
+      expect(errorStack.level(2)).to.eql({
         frame: [STR("cmd1")],
         position: { index: 48, line: 3, column: 0 },
+      });
+    });
+    describe("result error stack", () => {
+      const cmd = {
+        execute: () => {
+          const errorStack = new ErrorStack();
+          errorStack.push({ frame: [STR("foo")] });
+          return ERROR_STACK("msg", errorStack);
+        },
+      };
+
+      specify("default options", () => {
+        parser = new Parser();
+        rootScope = Scope.newRootScope();
+        initCommands(rootScope);
+        rootScope.registerNamedCommand("cmd", cmd);
+        const source = `
+macro mac {} {cmd}
+mac
+`;
+        const process = prepareScript(source);
+        const result = process.run();
+        expect(result.code).to.eql(ResultCode.ERROR);
+        expect(result.value).to.eql(STR("msg"));
+        expect(result.data).to.be.undefined;
+      });
+      specify("captureErrorStacks", () => {
+        parser = new Parser();
+        rootScope = Scope.newRootScope({
+          captureErrorStack: true,
+        });
+        initCommands(rootScope);
+        rootScope.registerNamedCommand("cmd", cmd);
+        const source = `
+macro mac {} {cmd}
+mac
+`;
+        const process = prepareScript(source);
+        const result = process.run();
+        expect(result.code).to.eql(ResultCode.ERROR);
+        expect(result.value).to.eql(STR("msg"));
+        const errorStack = result.data as ErrorStack;
+        expect(errorStack.depth()).to.eql(3);
+        expect(errorStack.level(0)).to.eql({
+          frame: [STR("foo")],
+        });
+        expect(errorStack.level(1)).to.eql({
+          frame: [STR("cmd")],
+        });
+        expect(errorStack.level(2)).to.eql({
+          frame: [STR("mac")],
+        });
+      });
+      specify("captureErrorStacks + capturePositions", () => {
+        parser = new Parser({ capturePositions: true });
+        rootScope = Scope.newRootScope({
+          capturePositions: true,
+          captureErrorStack: true,
+        });
+        initCommands(rootScope);
+        rootScope.registerNamedCommand("cmd", cmd);
+        const source = `
+macro mac {} {cmd}
+mac
+`;
+        const process = prepareScript(source);
+        const result = process.run();
+        expect(result.code).to.eql(ResultCode.ERROR);
+        expect(result.value).to.eql(STR("msg"));
+        const errorStack = result.data as ErrorStack;
+        expect(errorStack.depth()).to.eql(3);
+        expect(errorStack.level(0)).to.eql({
+          frame: [STR("foo")],
+        });
+        expect(errorStack.level(1)).to.eql({
+          frame: [STR("cmd")],
+          position: { index: 15, line: 1, column: 14 },
+        });
+        expect(errorStack.level(2)).to.eql({
+          frame: [STR("mac")],
+          position: { index: 20, line: 2, column: 0 },
+        });
       });
     });
   });

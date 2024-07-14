@@ -42,7 +42,8 @@ import { childProcessCmd } from "./src/native/node-child_process";
 import { consoleCmd } from "./src/native/javascript-console";
 import { CallbackContext, fsCmd } from "./src/native/node-fs";
 import { Module, ModuleRegistry } from "./src/helena-dialect/modules";
-import { ContinuationValue, ErrorStack } from "./src/helena-dialect/core";
+import { ContinuationValue } from "./src/helena-dialect/core";
+import { ErrorStack } from "./src/core/errors";
 
 const moduleRegistry = new ModuleRegistry();
 
@@ -193,7 +194,7 @@ function run(scope: Scope, cmd, callback?: (err?: Error, result?) => void) {
   const process = scope.prepareProcess(program);
   const result = process.run();
   if (result.code == ResultCode.ERROR) {
-    printErrorStack(process.errorStack);
+    printErrorStack(result.data as ErrorStack);
   }
   processResult(
     result,
