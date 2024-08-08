@@ -47,7 +47,7 @@ class ProcMetacommand implements Command {
 }
 
 const PROC_COMMAND_SIGNATURE = (name, help) =>
-  `${StringValue.toString(name, "<proc>").data}${help ? " " + help : ""}`;
+  `${StringValue.toString(name, "<proc>")[1]}${help ? " " + help : ""}`;
 class ProcCommand implements Command {
   readonly value: Value;
   readonly metacommand: ProcMetacommand;
@@ -148,9 +148,8 @@ export const procCmd: Command = {
     }
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
-    const result = ArgspecValue.fromValue(specs);
+    const [result, argspec] = ArgspecValue.fromValue(specs);
     if (result.code != ResultCode.OK) return result;
-    const argspec = result.data;
     const program = scope.compileScriptValue(body as ScriptValue);
     const proc = new ProcCommand(
       scope.newLocalScope(),

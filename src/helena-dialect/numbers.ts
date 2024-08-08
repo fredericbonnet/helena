@@ -37,7 +37,7 @@ const numberSubcommands = new Subcommands([
 
 export const numberCmd = {
   execute(args: Value[]): Result {
-    const { data: operand1, ...result } = RealValue.toNumber(args[0]);
+    const [result, operand1] = RealValue.toNumber(args[0]);
     if (result.code != ResultCode.OK) return result;
     if (args.length == 1) return OK(numberToValue(operand1));
     return numberSubcommands.dispatch(args[1], {
@@ -69,31 +69,31 @@ const arithmetics = (args: Value[], operand1: number): Result => {
   let total = 0;
   let last = operand1;
   for (let i = 1; i < args.length; i += 2) {
-    const { data: operator, code } = StringValue.toString(args[i]);
-    if (code != ResultCode.OK) return ERROR(`invalid operator`);
+    const [result, operator] = StringValue.toString(args[i]);
+    if (result.code != ResultCode.OK) return ERROR(`invalid operator`);
     switch (operator) {
       case "+": {
-        const { data: operand2, ...result } = RealValue.toNumber(args[i + 1]);
+        const [result, operand2] = RealValue.toNumber(args[i + 1]);
         if (result.code != ResultCode.OK) return result;
         total += last;
         last = operand2;
         break;
       }
       case "-": {
-        const { data: operand2, ...result } = RealValue.toNumber(args[i + 1]);
+        const [result, operand2] = RealValue.toNumber(args[i + 1]);
         if (result.code != ResultCode.OK) return result;
         total += last;
         last = -operand2;
         break;
       }
       case "*": {
-        const { data: operand2, ...result } = RealValue.toNumber(args[i + 1]);
+        const [result, operand2] = RealValue.toNumber(args[i + 1]);
         if (result.code != ResultCode.OK) return result;
         last *= operand2;
         break;
       }
       case "/": {
-        const { data: operand2, ...result } = RealValue.toNumber(args[i + 1]);
+        const [result, operand2] = RealValue.toNumber(args[i + 1]);
         if (result.code != ResultCode.OK) return result;
         last /= operand2;
         break;
@@ -115,7 +115,7 @@ const binaryOp =
   (args: Value[], operand1: number): Result => {
     if (args.length != 3) return OPERATOR_ARITY_ERROR(operator);
     if (args[0] == args[2]) return OK(BOOL(whenEqual));
-    const { data: operand2, ...result } = RealValue.toNumber(args[2]);
+    const [result, operand2] = RealValue.toNumber(args[2]);
     if (result.code != ResultCode.OK) return result;
     return OK(BOOL(fn(operand1, operand2)));
   };
@@ -135,11 +135,11 @@ class IntCommand implements Command {
   ensemble: EnsembleCommand;
   constructor(scope: Scope) {
     this.scope = scope.newChildScope();
-    const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
+    const [, argspec] = ArgspecValue.fromValue(LIST([STR("value")]));
     this.ensemble = new EnsembleCommand(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 2) return IntegerValue.fromValue(args[1]);
+    if (args.length == 2) return IntegerValue.fromValue(args[1])[0];
     return this.ensemble.execute(args, scope);
   }
   help(args) {
@@ -152,11 +152,11 @@ class RealCommand implements Command {
   ensemble: EnsembleCommand;
   constructor(scope: Scope) {
     this.scope = scope.newChildScope();
-    const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
+    const [, argspec] = ArgspecValue.fromValue(LIST([STR("value")]));
     this.ensemble = new EnsembleCommand(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 2) return RealValue.fromValue(args[1]);
+    if (args.length == 2) return RealValue.fromValue(args[1])[0];
     return this.ensemble.execute(args, scope);
   }
   help(args) {

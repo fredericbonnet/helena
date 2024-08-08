@@ -46,16 +46,16 @@ const whileCmd: Command = {
       callTest = () => {
         return ContinuationValue.create(scope, testProgram, (result) => {
           if (result.code != ResultCode.OK) return result;
-          const result2 = BooleanValue.toBoolean(result.value);
+          const [result2, b] = BooleanValue.toBoolean(result.value);
           if (result2.code != ResultCode.OK) return result2;
-          if (!result2.data) return lastResult;
+          if (!b) return lastResult;
           return callBody();
         });
       };
     } else {
-      const result = BooleanValue.toBoolean(test);
+      const [result, b] = BooleanValue.toBoolean(test);
       if (result.code != ResultCode.OK) return result;
-      if (!result.data) return lastResult;
+      if (!b) return lastResult;
       callTest = () => callBody();
     }
     const program = scope.compileScriptValue(body as ScriptValue);
@@ -91,7 +91,7 @@ class IfCommand implements Command {
     let i = 0;
     const callTest = () => {
       if (i >= args.length) return OK(NIL);
-      const keyword = StringValue.toString(args[i]).data;
+      const [, keyword] = StringValue.toString(args[i]);
       if (keyword == "else") {
         return callBody();
       }
@@ -100,25 +100,23 @@ class IfCommand implements Command {
         const program = scope.compileScriptValue(test as ScriptValue);
         return ContinuationValue.create(scope, program, (result) => {
           if (result.code != ResultCode.OK) return result;
-          const result2 = BooleanValue.toBoolean(result.value);
+          const [result2, b] = BooleanValue.toBoolean(result.value);
           if (result2.code != ResultCode.OK) return result2;
-          if (result2.data) return callBody();
+          if (b) return callBody();
           i += 3;
           return callTest();
         });
       } else {
-        const result = BooleanValue.toBoolean(test);
+        const [result, b] = BooleanValue.toBoolean(test);
         if (result.code != ResultCode.OK) return result;
-        if (result.data) return callBody();
+        if (b) return callBody();
         i += 3;
         return callTest();
       }
     };
     const callBody = () => {
       const body =
-        StringValue.toString(args[i]).data == "else"
-          ? args[i + 1]
-          : args[i + 2];
+        StringValue.toString(args[i])[1] == "else" ? args[i + 1] : args[i + 2];
       if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
       const program = scope.compileScriptValue(body as ScriptValue);
       return ContinuationValue.create(scope, program);
@@ -132,8 +130,8 @@ class IfCommand implements Command {
     if (args.length == 2) return ERROR("wrong # args: missing if body");
     let i = 3;
     while (i < args.length) {
-      const { data: keyword, code } = StringValue.toString(args[i]);
-      if (code != ResultCode.OK) return ERROR("invalid keyword");
+      const [result, keyword] = StringValue.toString(args[i]);
+      if (result.code != ResultCode.OK) return ERROR("invalid keyword");
       switch (keyword) {
         case "elseif":
           switch (args.length - i) {
@@ -177,7 +175,7 @@ const whenCmd: Command = {
       default:
         return ARITY_ERROR(WHEN_SIGNATURE);
     }
-    const { data: cases, ...result } = valueToArray(casesBody);
+    const [result, cases] = valueToArray(casesBody);
     if (result.code != ResultCode.OK) return result;
     if (cases.length == 0) return OK(NIL);
     let i = 0;
@@ -219,18 +217,18 @@ const whenCmd: Command = {
           break;
         }
         default: {
-          const result = BooleanValue.toBoolean(test);
+          const [result, b] = BooleanValue.toBoolean(test);
           if (result.code != ResultCode.OK) return result;
-          if (result.data) return callBody();
+          if (b) return callBody();
           i += 2;
           return callCommand();
         }
       }
       return ContinuationValue.create(scope, program, (result) => {
         if (result.code != ResultCode.OK) return result;
-        const result2 = BooleanValue.toBoolean(result.value);
+        const [result2, b] = BooleanValue.toBoolean(result.value);
         if (result2.code != ResultCode.OK) return result2;
-        if (result2.data) return callBody();
+        if (b) return callBody();
         i += 2;
         return callCommand();
       });
@@ -331,7 +329,7 @@ class CatchCommand implements Command {
             case ResultCode.RETURN:
             case ResultCode.YIELD:
             case ResultCode.ERROR: {
-              const { data: varname } = StringValue.toString(state.args[i + 1]);
+              const [, varname] = StringValue.toString(state.args[i + 1]);
               const handler = state.args[i + 2];
               const subscope = scope.newLocalScope();
               subscope.setNamedLocal(varname, state.bodyResult.value);
@@ -396,7 +394,7 @@ class CatchCommand implements Command {
   ): number {
     let i = 2;
     while (i < args.length) {
-      const { data: keyword } = StringValue.toString(args[i]);
+      const [, keyword] = StringValue.toString(args[i]);
       switch (keyword) {
         case "return":
           if (code == ResultCode.RETURN) return i;
@@ -428,7 +426,7 @@ class CatchCommand implements Command {
   private findFinallyIndex(args: Value[]): number {
     let i = 2;
     while (i < args.length) {
-      const { data: keyword } = StringValue.toString(args[i]);
+      const [, keyword] = StringValue.toString(args[i]);
       switch (keyword) {
         case "return":
         case "yield":
@@ -448,8 +446,8 @@ class CatchCommand implements Command {
   private checkArgs(args: Value[]): Result {
     let i = 2;
     while (i < args.length) {
-      const { data: keyword, code } = StringValue.toString(args[i]);
-      if (code != ResultCode.OK) return ERROR("invalid keyword");
+      const [result, keyword] = StringValue.toString(args[i]);
+      if (result.code != ResultCode.OK) return ERROR("invalid keyword");
       switch (keyword) {
         case "return":
         case "yield":
@@ -460,7 +458,7 @@ class CatchCommand implements Command {
             case 2:
               return ERROR(`wrong #args: missing ${keyword} handler body`);
             default: {
-              if (StringValue.toString(args[i + 1]).code != ResultCode.OK)
+              if (StringValue.toString(args[i + 1])[0].code != ResultCode.OK)
                 return ERROR(`invalid ${keyword} handler parameter name`);
               i += 3;
             }

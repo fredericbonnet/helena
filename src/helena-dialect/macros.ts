@@ -40,7 +40,7 @@ class MacroMetacommand implements Command {
 }
 
 const MACRO_COMMAND_SIGNATURE = (name, help) =>
-  `${StringValue.toString(name, "<macro>").data}${help ? " " + help : ""}`;
+  `${StringValue.toString(name, "<macro>")[1]}${help ? " " + help : ""}`;
 class MacroCommand implements Command {
   readonly value: Value;
   readonly metacommand: MacroMetacommand;
@@ -123,9 +123,8 @@ export const macroCmd: Command = {
     }
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
-    const result = ArgspecValue.fromValue(specs);
+    const [result, argspec] = ArgspecValue.fromValue(specs);
     if (result.code != ResultCode.OK) return result;
-    const argspec = result.data;
     const macro = new MacroCommand(argspec, body as ScriptValue, guard);
     if (name) {
       const result = scope.registerCommand(name, macro);

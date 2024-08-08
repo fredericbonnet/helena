@@ -40,7 +40,7 @@ class ClosureMetacommand implements Command {
 }
 
 const CLOSURE_COMMAND_SIGNATURE = (name, help) =>
-  `${StringValue.toString(name, "<closure>").data}${help ? " " + help : ""}`;
+  `${StringValue.toString(name, "<closure>")[1]}${help ? " " + help : ""}`;
 class ClosureCommand implements Command {
   readonly value: Value;
   readonly metacommand: ClosureMetacommand;
@@ -130,9 +130,8 @@ export const closureCmd: Command = {
     }
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
-    const result = ArgspecValue.fromValue(specs);
+    const [result, argspec] = ArgspecValue.fromValue(specs);
     if (result.code != ResultCode.OK) return result;
-    const argspec = result.data;
     const closure = new ClosureCommand(
       scope.newLocalScope(),
       argspec,

@@ -16,7 +16,7 @@ import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand } from "./test-helpers";
 import { Command } from "../core/command";
 
-const asString = (value) => StringValue.toString(value).data;
+const asString = (value) => StringValue.toString(value)[1];
 
 describe("Helena basic commands", () => {
   let rootScope: Scope;

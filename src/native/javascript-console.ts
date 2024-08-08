@@ -14,7 +14,7 @@ import {
   ValueType,
 } from "../core/values";
 
-const asString = (value) => StringValue.toString(value).data;
+const asString = (value) => StringValue.toString(value)[1];
 
 export const consoleCmd: Command = {
   execute: function (args: Value[]): Result {
@@ -25,8 +25,8 @@ export const consoleCmd: Command = {
     if (method == null) return ERROR("invalid method name");
     switch (method) {
       case "assert": {
-        const { data } = BooleanValue.toBoolean(args[2]);
-        console.assert(data, ...args.slice(3).map((v) => asString(v)));
+        const [, b] = BooleanValue.toBoolean(args[2]);
+        console.assert(b, ...args.slice(3).map((v) => asString(v)));
         return OK(NIL);
       }
       case "clear":

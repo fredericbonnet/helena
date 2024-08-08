@@ -174,10 +174,10 @@ export class InlineEvaluator implements Evaluator {
         throw new Interrupt(ERROR("no command resolver"));
       const command = this.commandResolver.resolve(values[0]);
       if (!command) {
-        const { data: cmdname, code } = StringValue.toString(values[0]);
-        if (code != ResultCode.OK) return ERROR("invalid command name");
+        const [result, cmdname] = StringValue.toString(values[0]);
+        if (result.code != ResultCode.OK) return ERROR("invalid command name");
         return ERROR(
-          code != ResultCode.OK
+          result.code != ResultCode.OK
             ? `invalid command name`
             : `cannot resolve command "${cmdname}"`
         );
@@ -374,9 +374,9 @@ export class InlineEvaluator implements Evaluator {
   private joinStrings(values: Value[]): StringValue {
     let s = "";
     for (const value of values) {
-      const { data, ...result } = StringValue.toString(value);
+      const [result, s2] = StringValue.toString(value);
       if (result.code != ResultCode.OK) throw new Interrupt(result);
-      s += data;
+      s += s2;
     }
     return new StringValue(s);
   }
@@ -496,8 +496,8 @@ export class InlineEvaluator implements Evaluator {
         );
       }
       default: {
-        const { data: varname, code } = StringValue.toString(source);
-        if (code != ResultCode.OK)
+        const [result, varname] = StringValue.toString(source);
+        if (result.code != ResultCode.OK)
           throw new Interrupt(ERROR(`invalid variable name`));
         return this.resolveVariable(varname);
       }
@@ -531,9 +531,9 @@ export class InlineEvaluator implements Evaluator {
     switch (morpheme.type) {
       case MorphemeType.TUPLE: {
         const keys = this.evaluateTuple(morpheme as TupleMorpheme).values;
-        const result = KeyedSelector.create(keys);
+        const [result, s] = KeyedSelector.create(keys);
         if (result.code != ResultCode.OK) throw new Interrupt(result);
-        return result.data;
+        return s;
       }
 
       case MorphemeType.BLOCK: {
@@ -541,16 +541,16 @@ export class InlineEvaluator implements Evaluator {
         const rules = this.evaluateSelectorRules(script.script);
         if (!this.selectorResolver)
           throw new Interrupt(ERROR("no selector resolver"));
-        const result = this.selectorResolver.resolve(rules);
+        const [result, s] = this.selectorResolver.resolve(rules);
         if (result.code != ResultCode.OK) throw new Interrupt(result);
-        return result.data;
+        return s;
       }
 
       case MorphemeType.EXPRESSION: {
         const index = this.evaluateExpression(morpheme as ExpressionMorpheme);
-        const result = IndexedSelector.create(index);
+        const [result, s] = IndexedSelector.create(index);
         if (result.code != ResultCode.OK) throw new Interrupt(result);
-        return result.data;
+        return s;
       }
     }
     return null;

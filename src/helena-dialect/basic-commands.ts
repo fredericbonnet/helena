@@ -92,7 +92,7 @@ const errorCmd: Command = {
   execute: (args) => {
     if (args.length != 2) return ARITY_ERROR(ERROR_SIGNATURE);
     // TODO accept non-string messages?
-    if (StringValue.toString(args[1]).code != ResultCode.OK)
+    if (StringValue.toString(args[1])[0].code != ResultCode.OK)
       return ERROR("invalid message");
     return {
       code: ResultCode.ERROR,
@@ -159,17 +159,17 @@ const helpCmd: Command = {
     if (args.length < 2) return ARITY_ERROR(HELP_SIGNATURE);
     const command = scope.resolveCommand(args[1]);
     if (!command) {
-      const { data: cmdname, code } = StringValue.toString(args[1]);
+      const [result, cmdname] = StringValue.toString(args[1]);
       return ERROR(
-        code == ResultCode.OK
+        result.code == ResultCode.OK
           ? `unknown command "${cmdname}"`
           : "invalid command name"
       );
     }
     if (!command.help) {
-      const { data: cmdname, code } = StringValue.toString(args[1]);
+      const [result, cmdname] = StringValue.toString(args[1]);
       return ERROR(
-        code == ResultCode.OK
+        result.code == ResultCode.OK
           ? `no help for command "${cmdname}"`
           : "no help for command"
       );

@@ -77,12 +77,12 @@ export class ArgspecValue implements CustomValue {
     this.argspec = argspec;
   }
 
-  static fromValue(value: Value): Result<ArgspecValue> {
-    if (value instanceof ArgspecValue) return OK(value, value);
-    const { data: args, ...result } = buildArguments(value);
-    if (result.code != ResultCode.OK) return result;
+  static fromValue(value: Value): [Result, ArgspecValue?] {
+    if (value instanceof ArgspecValue) return [OK(value), value];
+    const [result, args] = buildArguments(value);
+    if (result.code != ResultCode.OK) return [result];
     const v = new ArgspecValue(new Argspec(args));
-    return OK(v, v);
+    return [OK(v), v];
   }
 
   usage(skip = 0): string {
@@ -111,7 +111,7 @@ export class ArgspecValue implements CustomValue {
       // Use faster algorithm for the common case with all positionals
       return this.applyPositionals(scope, values, skip, setArgument);
     }
-    const { data, ...result } = this.findSlots(values, skip);
+    const [result, data] = this.findSlots(values, skip);
     if (result.code != ResultCode.OK) return result;
     const { slots, remainders } = data;
     for (let slot = 0; slot < this.argspec.args.length; slot++) {
@@ -187,7 +187,7 @@ export class ArgspecValue implements CustomValue {
   private findSlots(
     values: Value[],
     skip: number
-  ): Result<{ slots: number[]; remainders: number }> {
+  ): [Result, { slots: number[]; remainders: number }?] {
     let nbRequired = this.argspec.nbRequired;
     let nbOptional = this.argspec.nbOptional;
     let remainders = 0;
@@ -243,28 +243,30 @@ export class ArgspecValue implements CustomValue {
       }
       let nbOptions = 0;
       while (i < values.length && nbOptions < lastSlot - firstSlot) {
-        const { data: optname, code } = StringValue.toString(values[i]);
-        if (code != ResultCode.OK) {
+        const [result, optname] = StringValue.toString(values[i]);
+        if (result.code != ResultCode.OK) {
           if (!requiredOptions) break;
-          return ERROR("invalid option");
+          return [ERROR("invalid option")];
         }
         if (optname == "--") {
           if (!requiredOptions) break;
-          return ERROR("unexpected option terminator");
+          return [ERROR("unexpected option terminator")];
         }
         if (!this.argspec.optionSlots.has(optname)) {
           if (!requiredOptions) break;
-          return ERROR(`unknown option "${optname}"`);
+          return [ERROR(`unknown option "${optname}"`)];
         }
         const optionSlot = this.argspec.optionSlots.get(optname);
         if (optionSlot < firstSlot || optionSlot >= lastSlot) {
-          return ERROR(`unexpected option "${optname}"`);
+          return [ERROR(`unexpected option "${optname}"`)];
         }
         const arg = this.argspec.args[optionSlot];
         if (slots[optionSlot] >= 0) {
-          return ERROR(
-            `duplicate values for option "${optionName(arg.option.names)}"`
-          );
+          return [
+            ERROR(
+              `duplicate values for option "${optionName(arg.option.names)}"`
+            ),
+          ];
         }
         nbOptions++;
         switch (arg.option.type) {
@@ -289,16 +291,16 @@ export class ArgspecValue implements CustomValue {
       }
       if (i < values.length) {
         // Skip first trailing terminator
-        const { data: optname, code } = StringValue.toString(values[i]);
-        if (code == ResultCode.OK && optname == "--") {
+        const [result, optname] = StringValue.toString(values[i]);
+        if (result.code == ResultCode.OK && optname == "--") {
           i++;
         }
       }
       slot = lastSlot;
       if (slot >= nbArgs) break;
     }
-    if (i < values.length) return ERROR("extra values after arguments");
-    return OK(NIL, { slots, remainders });
+    if (i < values.length) return [ERROR("extra values after arguments")];
+    return [OK(NIL), { slots, remainders }];
   }
   private applyPositionals(
     scope: Scope,
@@ -380,11 +382,11 @@ class ArgspecCommand implements Command {
   ensemble: EnsembleCommand;
   constructor(scope: Scope) {
     this.scope = scope.newChildScope();
-    const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
+    const [, argspec] = ArgspecValue.fromValue(LIST([STR("value")]));
     this.ensemble = new EnsembleCommand(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 2) return ArgspecValue.fromValue(args[1]);
+    if (args.length == 2) return ArgspecValue.fromValue(args[1])[0];
     return this.ensemble.execute(args, scope);
   }
   help(args) {
@@ -396,7 +398,7 @@ const ARGSPEC_USAGE_SIGNATURE = "argspec value usage";
 const argspecUsageCmd: Command = {
   execute(args) {
     if (args.length != 2) return ARITY_ERROR(ARGSPEC_USAGE_SIGNATURE);
-    const { data: value, ...result } = ArgspecValue.fromValue(args[1]);
+    const [result, value] = ArgspecValue.fromValue(args[1]);
     if (result.code != ResultCode.OK) return result;
     return OK(STR(value.usage()));
   },
@@ -410,9 +412,9 @@ const ARGSPEC_SET_SIGNATURE = "argspec value set values";
 const argspecSetCmd: Command = {
   execute(args, scope: Scope) {
     if (args.length != 3) return ARITY_ERROR(ARGSPEC_SET_SIGNATURE);
-    const { data: value, ...result } = ArgspecValue.fromValue(args[1]);
+    const [result, value] = ArgspecValue.fromValue(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const { data: values, ...result2 } = valueToArray(args[2]);
+    const [result2, values] = valueToArray(args[2]);
     if (result2.code != ResultCode.OK) return result2;
     if (!value.checkArity(values, 0))
       return ERROR(`wrong # values: should be "${value.usage()}"`);

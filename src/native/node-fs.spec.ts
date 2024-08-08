@@ -10,7 +10,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { DICT, NIL, STR, StringValue, Value } from "../core/values";
 import { CallbackContext, fsCmd } from "./node-fs";
 
-const asString = (value) => StringValue.toString(value).data;
+const asString = (value) => StringValue.toString(value)[1];
 
 class MockVariableResolver implements VariableResolver {
   resolve(name: string): Value {

@@ -69,8 +69,8 @@ export class EnsembleMetacommand implements Command {
       call: () => {
         if (args.length < 3)
           return ARITY_ERROR("<ensemble> call cmdname ?arg ...?");
-        const { data: subcommand, code } = StringValue.toString(args[2]);
-        if (code != ResultCode.OK) return ERROR("invalid command name");
+        const [result, subcommand] = StringValue.toString(args[2]);
+        if (result.code != ResultCode.OK) return ERROR("invalid command name");
         if (!this.ensemble.scope.hasLocalCommand(subcommand))
           return ERROR(`unknown command "${subcommand}"`);
         const command = this.ensemble.scope.resolveNamedCommand(subcommand);
@@ -87,7 +87,7 @@ export class EnsembleMetacommand implements Command {
 }
 
 const ENSEMBLE_COMMAND_PREFIX = (name, args) =>
-  `${StringValue.toString(name, "<ensemble>").data}${args ? " " + args : ""}`;
+  `${StringValue.toString(name, "<ensemble>")[1]}${args ? " " + args : ""}`;
 export class EnsembleCommand implements Command {
   readonly metacommand: EnsembleMetacommand;
   readonly scope: Scope;
@@ -121,8 +121,8 @@ export class EnsembleCommand implements Command {
     if (args.length == minArgs) {
       return OK(TUPLE(ensembleArgs));
     }
-    const { data: subcommand, code } = StringValue.toString(args[minArgs]);
-    if (code != ResultCode.OK) return INVALID_SUBCOMMAND_ERROR();
+    const [result2, subcommand] = StringValue.toString(args[minArgs]);
+    if (result2.code != ResultCode.OK) return INVALID_SUBCOMMAND_ERROR();
     if (subcommand == "subcommands") {
       if (args.length != minArgs + 1) {
         return ARITY_ERROR(
@@ -161,8 +161,8 @@ export class EnsembleCommand implements Command {
     if (args.length <= minArgs) {
       return OK(STR(signature + " ?subcommand? ?arg ...?"));
     }
-    const { data: subcommand, code } = StringValue.toString(args[minArgs]);
-    if (code != ResultCode.OK) return INVALID_SUBCOMMAND_ERROR();
+    const [result, subcommand] = StringValue.toString(args[minArgs]);
+    if (result.code != ResultCode.OK) return INVALID_SUBCOMMAND_ERROR();
     if (subcommand == "subcommands") {
       if (args.length > minArgs + 1) {
         return ARITY_ERROR(signature + " subcommands");
@@ -199,7 +199,7 @@ export const ensembleCmd: Command = {
     }
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
 
-    const { data: argspec, ...result } = ArgspecValue.fromValue(specs);
+    const [result, argspec] = ArgspecValue.fromValue(specs);
     if (result.code != ResultCode.OK) return result;
     if (argspec.argspec.isVariadic())
       return ERROR("ensemble arguments cannot be variadic");

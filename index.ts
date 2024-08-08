@@ -62,7 +62,7 @@ function sourceFile(path: string, scope: Scope): Result {
 const sourceCmd: Command = {
   execute: function (args: Value[], scope: Scope): Result {
     if (args.length != 2) return ARITY_ERROR("source path");
-    const { data: path } = StringValue.toString(args[1]);
+    const [, path] = StringValue.toString(args[1]);
     try {
       const data = fs.readFileSync(path, "utf-8");
       const input = new StringStream(data, path);
@@ -151,7 +151,7 @@ function prompt() {
           const process = scope.prepareProcess(program);
           const result = process.run();
           if (result.code == ResultCode.ERROR)
-            throw new Error(StringValue.toString(result.value).data);
+            throw new Error(StringValue.toString(result.value)[1]);
         },
         context: scope,
       };
@@ -236,7 +236,7 @@ function processResult(result, onSuccess, onError) {
       break;
     }
     case ResultCode.ERROR: {
-      onError(new Error(StringValue.toString(result.value).data));
+      onError(new Error(StringValue.toString(result.value)[1]));
       break;
     }
     default: {

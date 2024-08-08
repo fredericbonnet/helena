@@ -46,5 +46,5 @@ export interface SelectorResolver {
    *
    * @returns       Resolved selector
    */
-  resolve(rules: Value[]): Result<Selector>;
+  resolve(rules: Value[]): [Result, Selector?];
 }

@@ -17,7 +17,7 @@ import { initCommands } from "./helena-dialect";
 import { Module, ModuleRegistry } from "./modules";
 import { codeBlock, describeCommand } from "./test-helpers";
 
-const asString = (value) => StringValue.toString(value).data;
+const asString = (value) => StringValue.toString(value)[1];
 
 describe("Helena modules", () => {
   let rootScope: Scope;

@@ -20,7 +20,7 @@ import {
 } from "./core";
 import { ErrorStack } from "../core/errors";
 
-const asString = (value) => StringValue.toString(value).data;
+const asString = (value) => StringValue.toString(value)[1];
 
 describe("Helena core internals", () => {
   let rootScope: Scope;

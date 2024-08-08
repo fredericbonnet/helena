@@ -25,6 +25,9 @@ import {
   CommandValue,
 } from "./values";
 
+const result = (pair) => pair[0];
+const converted = (pair) => pair[1];
+
 describe("values", () => {
   describe("NIL", () => {
     specify("type should be NIL", () => {
@@ -65,36 +68,36 @@ describe("values", () => {
     });
     describe("fromValue()", () => {
       it("should return the passed BooleanValue", () => {
-        expect(BooleanValue.fromValue(TRUE).value).to.equal(TRUE);
-        expect(BooleanValue.fromValue(FALSE).value).to.equal(FALSE);
+        expect(result(BooleanValue.fromValue(TRUE)).value).to.equal(TRUE);
+        expect(result(BooleanValue.fromValue(FALSE)).value).to.equal(FALSE);
       });
       it("should accept boolean strings", () => {
-        expect(BooleanValue.fromValue(new StringValue("false")).value).to.equal(
-          FALSE
-        );
-        expect(BooleanValue.fromValue(new StringValue("true")).value).to.equal(
-          TRUE
-        );
+        expect(
+          result(BooleanValue.fromValue(new StringValue("false"))).value
+        ).to.equal(FALSE);
+        expect(
+          result(BooleanValue.fromValue(new StringValue("true"))).value
+        ).to.equal(TRUE);
       });
       it("should reject non-boolean strings", () => {
-        expect(BooleanValue.fromValue(NIL)).to.eql(
-          ERROR("value has no string representation")
-        );
-        expect(BooleanValue.fromValue(new IntegerValue(0))).to.eql(
-          ERROR('invalid boolean "0"')
-        );
-        expect(BooleanValue.fromValue(new StringValue("1"))).to.eql(
-          ERROR('invalid boolean "1"')
-        );
-        expect(BooleanValue.fromValue(new StringValue("no"))).to.eql(
-          ERROR('invalid boolean "no"')
-        );
-        expect(BooleanValue.fromValue(new StringValue("yes"))).to.eql(
-          ERROR('invalid boolean "yes"')
-        );
-        expect(BooleanValue.fromValue(new StringValue("a"))).to.eql(
-          ERROR('invalid boolean "a"')
-        );
+        expect(BooleanValue.fromValue(NIL)).to.eql([
+          ERROR("value has no string representation"),
+        ]);
+        expect(BooleanValue.fromValue(new IntegerValue(0))).to.eql([
+          ERROR('invalid boolean "0"'),
+        ]);
+        expect(BooleanValue.fromValue(new StringValue("1"))).to.eql([
+          ERROR('invalid boolean "1"'),
+        ]);
+        expect(BooleanValue.fromValue(new StringValue("no"))).to.eql([
+          ERROR('invalid boolean "no"'),
+        ]);
+        expect(BooleanValue.fromValue(new StringValue("yes"))).to.eql([
+          ERROR('invalid boolean "yes"'),
+        ]);
+        expect(BooleanValue.fromValue(new StringValue("a"))).to.eql([
+          ERROR('invalid boolean "a"'),
+        ]);
       });
     });
     it("should not be index-selectable", () => {
@@ -144,32 +147,32 @@ describe("values", () => {
     describe("fromValue()", () => {
       it("should return the passed IntegerValue", () => {
         const value = new IntegerValue(1234);
-        expect(IntegerValue.fromValue(value).value).to.equal(value);
+        expect(result(IntegerValue.fromValue(value)).value).to.equal(value);
       });
       it("should accept integer strings", () => {
         const value = new StringValue("1234");
-        expect(IntegerValue.fromValue(value).data.value).to.eql(1234);
+        expect(converted(IntegerValue.fromValue(value)).value).to.eql(1234);
       });
       it("should accept round reals", () => {
         const value = new RealValue(1);
-        expect(IntegerValue.fromValue(value).data.value).to.eql(1);
+        expect(converted(IntegerValue.fromValue(value)).value).to.eql(1);
       });
       it("should reject non-integer strings", () => {
-        expect(IntegerValue.fromValue(NIL)).to.eql(
-          ERROR("value has no string representation")
-        );
-        expect(IntegerValue.fromValue(new RealValue(1e100))).to.eql(
-          ERROR('invalid integer "1e+100"')
-        );
-        expect(IntegerValue.fromValue(new RealValue(1.1))).to.eql(
-          ERROR('invalid integer "1.1"')
-        );
-        expect(IntegerValue.fromValue(new StringValue("a"))).to.eql(
-          ERROR('invalid integer "a"')
-        );
-        expect(IntegerValue.fromValue(new StringValue("1.2"))).to.eql(
-          ERROR('invalid integer "1.2"')
-        );
+        expect(IntegerValue.fromValue(NIL)).to.eql([
+          ERROR("value has no string representation"),
+        ]);
+        expect(IntegerValue.fromValue(new RealValue(1e100))).to.eql([
+          ERROR('invalid integer "1e+100"'),
+        ]);
+        expect(IntegerValue.fromValue(new RealValue(1.1))).to.eql([
+          ERROR('invalid integer "1.1"'),
+        ]);
+        expect(IntegerValue.fromValue(new StringValue("a"))).to.eql([
+          ERROR('invalid integer "a"'),
+        ]);
+        expect(IntegerValue.fromValue(new StringValue("1.2"))).to.eql([
+          ERROR('invalid integer "1.2"'),
+        ]);
       });
     });
     it("should not be index-selectable", () => {
@@ -209,23 +212,23 @@ describe("values", () => {
     describe("fromValue()", () => {
       it("should return the passed RealValue", () => {
         const value = new RealValue(12.34);
-        expect(RealValue.fromValue(value).value).to.equal(value);
+        expect(result(RealValue.fromValue(value)).value).to.equal(value);
       });
       it("should accept integer values", () => {
         const value = new IntegerValue(4567);
-        expect(RealValue.fromValue(value).data.value).to.eql(4567);
+        expect(converted(RealValue.fromValue(value)).value).to.eql(4567);
       });
       it("should accept float strings", () => {
         const value = new StringValue("12.34");
-        expect(RealValue.fromValue(value).data.value).to.eql(12.34);
+        expect(converted(RealValue.fromValue(value)).value).to.eql(12.34);
       });
       it("should reject non-number strings", () => {
-        expect(RealValue.fromValue(NIL)).to.eql(
-          ERROR("value has no string representation")
-        );
-        expect(RealValue.fromValue(new StringValue("a"))).to.eql(
-          ERROR('invalid number "a"')
-        );
+        expect(RealValue.fromValue(NIL)).to.eql([
+          ERROR("value has no string representation"),
+        ]);
+        expect(RealValue.fromValue(new StringValue("a"))).to.eql([
+          ERROR('invalid number "a"'),
+        ]);
       });
     });
     it("should not be index-selectable", () => {
@@ -279,49 +282,49 @@ describe("values", () => {
     describe("fromValue()", () => {
       it("should return the passed StringValue", () => {
         const value = new StringValue("some string");
-        expect(StringValue.fromValue(value).value).to.equal(value);
+        expect(result(StringValue.fromValue(value)).value).to.equal(value);
       });
       it("should accept booleans as true/false strings", () => {
-        expect(StringValue.fromValue(FALSE).data.value).to.equal("false");
-        expect(StringValue.fromValue(TRUE).data.value).to.equal("true");
+        expect(converted(StringValue.fromValue(FALSE)).value).to.equal("false");
+        expect(converted(StringValue.fromValue(TRUE)).value).to.equal("true");
         expect(
-          StringValue.fromValue(new BooleanValue(false)).data.value
+          converted(StringValue.fromValue(new BooleanValue(false))).value
         ).to.equal("false");
         expect(
-          StringValue.fromValue(new BooleanValue(true)).data.value
+          converted(StringValue.fromValue(new BooleanValue(true))).value
         ).to.equal("true");
       });
       it("should accept integers as decimal strings", () => {
         const value = new IntegerValue(1234);
-        expect(StringValue.fromValue(value).data.value).to.eql("1234");
+        expect(converted(StringValue.fromValue(value)).value).to.eql("1234");
       });
       it("should accept reals as decimal strings", () => {
         const value = new RealValue(1.1);
-        expect(StringValue.fromValue(value).data.value).to.eql("1.1");
+        expect(converted(StringValue.fromValue(value)).value).to.eql("1.1");
       });
       it("should accept scripts with source", () => {
         const value = new ScriptValue(new Script(), "source");
-        expect(StringValue.fromValue(value).data.value).to.eql("source");
+        expect(converted(StringValue.fromValue(value)).value).to.eql("source");
       });
       it("should reject other value types", () => {
-        expect(StringValue.fromValue(NIL)).to.eql(
-          ERROR("value has no string representation")
-        );
-        expect(StringValue.fromValue(new ListValue([]))).to.eql(
-          ERROR("value has no string representation")
-        );
-        expect(StringValue.fromValue(new DictionaryValue({}))).to.eql(
-          ERROR("value has no string representation")
-        );
-        expect(StringValue.fromValue(new TupleValue([]))).to.eql(
-          ERROR("value has no string representation")
-        );
-        expect(StringValue.fromValue(new ScriptValue(new Script()))).to.eql(
-          ERROR("value has no string representation")
-        );
+        expect(StringValue.fromValue(NIL)).to.eql([
+          ERROR("value has no string representation"),
+        ]);
+        expect(StringValue.fromValue(new ListValue([]))).to.eql([
+          ERROR("value has no string representation"),
+        ]);
+        expect(StringValue.fromValue(new DictionaryValue({}))).to.eql([
+          ERROR("value has no string representation"),
+        ]);
+        expect(StringValue.fromValue(new TupleValue([]))).to.eql([
+          ERROR("value has no string representation"),
+        ]);
+        expect(StringValue.fromValue(new ScriptValue(new Script()))).to.eql([
+          ERROR("value has no string representation"),
+        ]);
         expect(
           StringValue.fromValue(new QualifiedValue(new StringValue("name"), []))
-        ).to.eql(ERROR("value has no string representation"));
+        ).to.eql([ERROR("value has no string representation")]);
       });
     });
     describe("indexed selectors", () => {
@@ -388,7 +391,7 @@ describe("values", () => {
     describe("fromValue()", () => {
       it("should return the passed ListValue", () => {
         const value = new ListValue([]);
-        expect(ListValue.fromValue(value).value).to.equal(value);
+        expect(result(ListValue.fromValue(value)).value).to.equal(value);
       });
       it("should accept tuples", () => {
         const value = new TupleValue([
@@ -396,27 +399,27 @@ describe("values", () => {
           TRUE,
           new IntegerValue(10),
         ]);
-        expect(ListValue.fromValue(value).value).to.eql(
+        expect(result(ListValue.fromValue(value)).value).to.eql(
           new ListValue(value.values)
         );
       });
       it("should reject other value types", () => {
-        expect(ListValue.fromValue(TRUE)).to.eql(ERROR("invalid list"));
-        expect(ListValue.fromValue(new StringValue("a"))).to.eql(
-          ERROR("invalid list")
-        );
-        expect(ListValue.fromValue(new IntegerValue(10))).to.eql(
-          ERROR("invalid list")
-        );
-        expect(ListValue.fromValue(new RealValue(10))).to.eql(
-          ERROR("invalid list")
-        );
-        expect(ListValue.fromValue(new ScriptValue(new Script(), ""))).to.eql(
-          ERROR("invalid list")
-        );
-        expect(ListValue.fromValue(new DictionaryValue({}))).to.eql(
-          ERROR("invalid list")
-        );
+        expect(ListValue.fromValue(TRUE)).to.eql([ERROR("invalid list")]);
+        expect(ListValue.fromValue(new StringValue("a"))).to.eql([
+          ERROR("invalid list"),
+        ]);
+        expect(ListValue.fromValue(new IntegerValue(10))).to.eql([
+          ERROR("invalid list"),
+        ]);
+        expect(ListValue.fromValue(new RealValue(10))).to.eql([
+          ERROR("invalid list"),
+        ]);
+        expect(ListValue.fromValue(new ScriptValue(new Script(), ""))).to.eql([
+          ERROR("invalid list"),
+        ]);
+        expect(ListValue.fromValue(new DictionaryValue({}))).to.eql([
+          ERROR("invalid list"),
+        ]);
       });
     });
     describe("indexed selectors", () => {

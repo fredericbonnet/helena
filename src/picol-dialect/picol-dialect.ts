@@ -64,7 +64,7 @@ export class PicolScope {
     return null;
   }
   resolveCommand(name: Value): Command {
-    return this.resolveNamedCommand(StringValue.toString(name).data);
+    return this.resolveNamedCommand(StringValue.toString(name)[1]);
   }
   private resolveNamedCommand(name: string): Command {
     if (!this.commands.has(name)) {
@@ -75,7 +75,7 @@ export class PicolScope {
   }
 }
 
-const asString = (value: Value) => StringValue.toString(value).data;
+const asString = (value: Value) => StringValue.toString(value)[1];
 
 const EMPTY: Result = OK(STR(""));
 
@@ -85,17 +85,16 @@ const ARITY_ERROR = (signature: string) =>
 const addCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("+ arg ?arg ...?");
-    const result = RealValue.toNumber(args[1]);
+    const [result, first] = RealValue.toNumber(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const first = result.data;
     if (args.length == 2) {
       return OK(REAL(first));
     }
     let total = first;
     for (let i = 2; i < args.length; i++) {
-      const result = RealValue.toNumber(args[i]);
+      const [result, n] = RealValue.toNumber(args[i]);
       if (result.code != ResultCode.OK) return result;
-      total += result.data;
+      total += n;
     }
     return OK(REAL(total));
   },
@@ -103,17 +102,16 @@ const addCmd: Command = {
 const subtractCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("- arg ?arg ...?");
-    const result = RealValue.toNumber(args[1]);
+    const [result, first] = RealValue.toNumber(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const first = result.data;
     if (args.length == 2) {
       return OK(REAL(-first));
     }
     let total = first;
     for (let i = 2; i < args.length; i++) {
-      const result = RealValue.toNumber(args[i]);
+      const [result, n] = RealValue.toNumber(args[i]);
       if (result.code != ResultCode.OK) return result;
-      total -= result.data;
+      total -= n;
     }
     return OK(REAL(total));
   },
@@ -122,17 +120,16 @@ const subtractCmd: Command = {
 const multiplyCmd: Command = {
   execute: (args) => {
     if (args.length < 2) return ARITY_ERROR("* arg ?arg ...?");
-    const result = RealValue.toNumber(args[1]);
+    const [result, first] = RealValue.toNumber(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const first = result.data;
     if (args.length == 2) {
       return OK(REAL(first));
     }
     let total = first;
     for (let i = 2; i < args.length; i++) {
-      const result = RealValue.toNumber(args[i]);
+      const [result, n] = RealValue.toNumber(args[i]);
       if (result.code != ResultCode.OK) return result;
-      total *= result.data;
+      total *= n;
     }
     return OK(REAL(total));
   },
@@ -140,14 +137,13 @@ const multiplyCmd: Command = {
 const divideCmd: Command = {
   execute: (args) => {
     if (args.length < 3) return ARITY_ERROR("/ arg arg ?arg ...?");
-    const result = RealValue.toNumber(args[1]);
+    const [result, first] = RealValue.toNumber(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const first = result.data;
     let total = first;
     for (let i = 2; i < args.length; i++) {
-      const result = RealValue.toNumber(args[i]);
+      const [result, n] = RealValue.toNumber(args[i]);
       if (result.code != ResultCode.OK) return result;
-      total /= result.data;
+      total /= n;
     }
     return OK(REAL(total));
   },
@@ -177,12 +173,10 @@ const compareNumbersCmd = (
 ): Command => ({
   execute: (args) => {
     if (args.length != 3) return ARITY_ERROR(`${name} arg arg`);
-    const result1 = RealValue.toNumber(args[1]);
+    const [result1, op1] = RealValue.toNumber(args[1]);
     if (result1.code != ResultCode.OK) return result1;
-    const op1 = result1.data;
-    const result2 = RealValue.toNumber(args[2]);
+    const [result2, op2] = RealValue.toNumber(args[2]);
     if (result2.code != ResultCode.OK) return result2;
-    const op2 = result2.data;
     return fn(op1, op2) ? OK(TRUE) : OK(FALSE);
   },
 });
@@ -312,7 +306,7 @@ function evaluateCondition(value: Value, scope: PicolScope): Result {
       (value as ScriptValue).script
     );
     if (result.code != ResultCode.OK) return result;
-    return BooleanValue.fromValue(result.value);
+    return BooleanValue.fromValue(result.value)[0];
   }
   const s = asString(value);
   if (s == "true" || s == "yes" || s == "1") return OK(TRUE);
@@ -348,9 +342,9 @@ const incrCmd: Command = {
         break;
       case 3:
         {
-          const result = IntegerValue.toInteger(args[2]);
+          const [result, i] = IntegerValue.toInteger(args[2]);
           if (result.code != ResultCode.OK) return result;
-          increment = result.data;
+          increment = i;
         }
         break;
       default:
@@ -360,9 +354,9 @@ const incrCmd: Command = {
     const value = scope.variables.get(varName);
     let incremented;
     if (value) {
-      const result = IntegerValue.toInteger(value);
+      const [result, i] = IntegerValue.toInteger(value);
       if (result.code != ResultCode.OK) return result;
-      incremented = INT(result.data + increment);
+      incremented = INT(i + increment);
     } else {
       incremented = INT(increment);
     }
@@ -410,10 +404,10 @@ class ProcCommand implements Command {
   }
 }
 
-function valueToArray(value: Value): Result<Value[]> {
+function valueToArray(value: Value): [Result, Value[]?] {
   switch (value.type) {
     case ValueType.TUPLE:
-      return OK(NIL, (value as TupleValue).values);
+      return [OK(NIL), (value as TupleValue).values];
     case ValueType.SCRIPT: {
       const evaluator = new InlineEvaluator(null, null, null);
       const values = [];
@@ -421,53 +415,53 @@ function valueToArray(value: Value): Result<Value[]> {
         for (const word of sentence.words) {
           if (word instanceof Word) {
             const result = evaluator.evaluateWord(word);
-            if (result.code != ResultCode.OK) return result as Result<Value[]>;
+            if (result.code != ResultCode.OK) return [result];
             values.push(result.value);
           } else {
             values.push(word);
           }
         }
       }
-      return OK(NIL, values);
+      return [OK(NIL), values];
     }
     default:
-      return ERROR("unsupported list format");
+      return [ERROR("unsupported list format")];
   }
 }
 
-function valueToArgspec(value: Value): Result<ArgSpec> {
+function valueToArgspec(value: Value): [Result, ArgSpec?] {
   switch (value.type) {
     case ValueType.SCRIPT: {
-      const { data: values, ...result } = valueToArray(value);
-      if (result.code != ResultCode.OK) return result;
-      if (values.length == 0) return ERROR("argument with no name");
+      const [result, values] = valueToArray(value);
+      if (result.code != ResultCode.OK) return [result];
+      if (values.length == 0) return [ERROR("argument with no name")];
       const name = asString(values[0]);
-      if (!name) return ERROR("argument with no name");
+      if (!name) return [ERROR("argument with no name")];
       switch (values.length) {
         case 1:
-          return OK(NIL, { name });
+          return [OK(NIL), { name }];
         case 2:
-          return OK(NIL, { name, default: values[1] });
+          return [OK(NIL), { name, default: values[1] }];
         default:
-          return ERROR(
-            `too many fields in argument specifier "${asString(value)}"`
-          );
+          return [
+            ERROR(`too many fields in argument specifier "${asString(value)}"`),
+          ];
       }
     }
     default:
-      return OK(NIL, { name: asString(value) });
+      return [OK(NIL), { name: asString(value) }];
   }
 }
-function valueToArgspecs(value: Value): Result<ArgSpec[]> {
-  const { data: values, ...result } = valueToArray(value);
-  if (result.code != ResultCode.OK) return result;
+function valueToArgspecs(value: Value): [Result, ArgSpec[]?] {
+  const [result, values] = valueToArray(value);
+  if (result.code != ResultCode.OK) return [result];
   const argspecs: ArgSpec[] = [];
   for (const value of values) {
-    const { data: argspec, ...result } = valueToArgspec(value);
-    if (result.code != ResultCode.OK) return result;
+    const [result, argspec] = valueToArgspec(value);
+    if (result.code != ResultCode.OK) return [result];
     argspecs.push(argspec);
   }
-  return OK(NIL, argspecs);
+  return [OK(NIL), argspecs];
 }
 function argspecsToSignature(name: Value, argspecs: ArgSpec[]): string {
   const chunks = [asString(name)];
@@ -486,7 +480,7 @@ const procCmd: Command = {
   execute: (args, scope: PicolScope) => {
     if (args.length != 4) return ARITY_ERROR("proc name args body");
     const [, name, _argspecs, body] = args;
-    const { data: argspecs, ...result } = valueToArgspecs(_argspecs);
+    const [result, argspecs] = valueToArgspecs(_argspecs);
     if (result.code != ResultCode.OK) return result;
     scope.commands.set(
       asString(name),

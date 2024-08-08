@@ -311,8 +311,8 @@ export class Scope {
       case ValueType.REAL:
         return numberCmd;
     }
-    const { data: cmdname, code } = StringValue.toString(value);
-    if (code != ResultCode.OK) return null;
+    const [result, cmdname] = StringValue.toString(value);
+    if (result.code != ResultCode.OK) return null;
     const command = this.resolveNamedCommand(cmdname);
     if (command) return command;
     if (RealValue.isNumber(cmdname)) return numberCmd;
@@ -331,8 +331,8 @@ export class Scope {
     this.locals.set(name, value);
   }
   destructureLocal(local: Value, value: Value, check: boolean): Result {
-    const { data: name, code } = StringValue.toString(local);
-    if (code != ResultCode.OK) return ERROR("invalid local name");
+    const [result, name] = StringValue.toString(local);
+    if (result.code != ResultCode.OK) return ERROR("invalid local name");
     if (check) return OK(NIL);
     this.setNamedLocal(name, value);
     return OK(NIL);
@@ -344,8 +344,8 @@ export class Scope {
     return OK(value);
   }
   destructureConstant(constant: Value, value: Value, check: boolean): Result {
-    const { data: name, code } = StringValue.toString(constant);
-    if (code != ResultCode.OK) return ERROR("invalid constant name");
+    const [result, name] = StringValue.toString(constant);
+    if (result.code != ResultCode.OK) return ERROR("invalid constant name");
     if (check) return this.checkNamedConstant(name);
     this.context.constants.set(name, value);
     return OK(NIL);
@@ -369,8 +369,8 @@ export class Scope {
     return OK(value);
   }
   destructureVariable(variable: Value, value: Value, check: boolean): Result {
-    const { data: name, code } = StringValue.toString(variable);
-    if (code != ResultCode.OK) return ERROR("invalid variable name");
+    const [result, name] = StringValue.toString(variable);
+    if (result.code != ResultCode.OK) return ERROR("invalid variable name");
     if (check) return this.checkNamedVariable(name);
     this.context.variables.set(name, value);
     return OK(NIL);
@@ -385,8 +385,8 @@ export class Scope {
     return OK(NIL);
   }
   unsetVariable(variable: Value, check = false): Result {
-    const { data: name, code } = StringValue.toString(variable);
-    if (code != ResultCode.OK) return ERROR("invalid variable name");
+    const [result, name] = StringValue.toString(variable);
+    if (result.code != ResultCode.OK) return ERROR("invalid variable name");
     if (this.locals.has(name)) {
       return ERROR(`cannot unset local "${name}"`);
     }
@@ -401,8 +401,8 @@ export class Scope {
     return OK(NIL);
   }
   getVariable(variable: Value, def?: Value): Result {
-    const { data: name, code } = StringValue.toString(variable);
-    if (code != ResultCode.OK) return ERROR("invalid variable name");
+    const [result, name] = StringValue.toString(variable);
+    if (result.code != ResultCode.OK) return ERROR("invalid variable name");
     const value = this.resolveVariable(name);
     if (value) return OK(value);
     if (def) return OK(def);
@@ -417,8 +417,8 @@ export class Scope {
   }
 
   registerCommand(name: Value, command: Command): Result {
-    const { data: cmdname, code } = StringValue.toString(name);
-    if (code != ResultCode.OK) return ERROR("invalid command name");
+    const [result, cmdname] = StringValue.toString(name);
+    if (result.code != ResultCode.OK) return ERROR("invalid command name");
     this.registerNamedCommand(cmdname, command);
     return OK(NIL);
   }
@@ -442,9 +442,9 @@ export const expandPrefixCmd: Command = {
     const [command, args2] = resolveLeadingTuple(args, scope);
     if (!command) {
       if (!args2 || args2.length == 0) return OK(NIL);
-      const { data: cmdname, code } = StringValue.toString(args2[0]);
+      const [result, cmdname] = StringValue.toString(args2[0]);
       return ERROR(
-        code != ResultCode.OK
+        result.code != ResultCode.OK
           ? `invalid command name`
           : `cannot resolve command "${cmdname}"`
       );

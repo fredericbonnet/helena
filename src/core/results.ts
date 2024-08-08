@@ -23,7 +23,7 @@ export interface CustomResultCode {
 }
 
 /** Helena result */
-export type Result<T = unknown> = {
+export type Result = {
   /** Result code */
   readonly code: ResultCode;
 
@@ -31,7 +31,7 @@ export type Result<T = unknown> = {
   readonly value: Value;
 
   /** Extra data */
-  readonly data?: T;
+  readonly data?: unknown;
 };
 
 /**
@@ -39,10 +39,9 @@ export type Result<T = unknown> = {
  */
 
 /* eslint-disable jsdoc/require-jsdoc */
-export const OK = <T = unknown>(value: Value, data?: T): Result<T> => ({
+export const OK = (value: Value): Result => ({
   code: ResultCode.OK,
   value,
-  data,
 });
 export const RETURN = (value: Value = NIL): Result => ({
   code: ResultCode.RETURN,
@@ -53,7 +52,7 @@ export const YIELD = (value: Value = NIL, state?): Result => ({
   value,
   data: state,
 });
-export const ERROR = (message: string): Result<never> => ({
+export const ERROR = (message: string): Result => ({
   code: ResultCode.ERROR,
   value: STR(message),
 });

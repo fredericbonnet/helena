@@ -133,13 +133,13 @@ export class BooleanValue implements Value {
    *
    * @returns       Conversion result
    */
-  static fromValue(value: Value): Result<BooleanValue> {
+  static fromValue(value: Value): [Result, BooleanValue?] {
     if (value.type == ValueType.BOOLEAN)
-      return OK(value, value as BooleanValue);
-    const { data, ...result } = this.toBoolean(value);
-    if (result.code != ResultCode.OK) return result;
-    const v = data ? TRUE : FALSE;
-    return OK(v, v);
+      return [OK(value), value as BooleanValue];
+    const [result, b] = this.toBoolean(value);
+    if (result.code != ResultCode.OK) return [result];
+    const v = b ? TRUE : FALSE;
+    return [OK(v), v];
   }
 
   /**
@@ -151,14 +151,14 @@ export class BooleanValue implements Value {
    *
    * @returns       Conversion result
    */
-  static toBoolean(value: Value): Result<boolean> {
+  static toBoolean(value: Value): [Result, boolean?] {
     if (value.type == ValueType.BOOLEAN)
-      return OK(NIL, (value as BooleanValue).value);
-    const { data: s, ...result } = StringValue.toString(value);
-    if (result.code != ResultCode.OK) return result;
-    if (s == "true") return OK(NIL, true);
-    if (s == "false") return OK(NIL, false);
-    return ERROR(`invalid boolean "${s}"`);
+      return [OK(NIL), (value as BooleanValue).value];
+    const [result, s] = StringValue.toString(value);
+    if (result.code != ResultCode.OK) return [result];
+    if (s == "true") return [OK(NIL), true];
+    if (s == "false") return [OK(NIL), false];
+    return [ERROR(`invalid boolean "${s}"`)];
   }
 
   /** @override */
@@ -197,13 +197,13 @@ export class IntegerValue implements Value {
    *
    * @returns       Conversion result
    */
-  static fromValue(value: Value): Result<IntegerValue> {
+  static fromValue(value: Value): [Result, IntegerValue?] {
     if (value.type == ValueType.INTEGER)
-      return OK(value, value as IntegerValue);
-    const { data, ...result } = this.toInteger(value);
-    if (result.code != ResultCode.OK) return result;
-    const v = new IntegerValue(data);
-    return OK(v, v);
+      return [OK(value), value as IntegerValue];
+    const [result, i] = this.toInteger(value);
+    if (result.code != ResultCode.OK) return [result];
+    const v = new IntegerValue(i);
+    return [OK(v), v];
   }
 
   /**
@@ -228,20 +228,20 @@ export class IntegerValue implements Value {
    *
    * @returns       Conversion result
    */
-  static toInteger(value: Value): Result<number> {
+  static toInteger(value: Value): [Result, number?] {
     if (value.type == ValueType.INTEGER)
-      return OK(NIL, (value as IntegerValue).value);
+      return [OK(NIL), (value as IntegerValue).value];
     if (value.type == ValueType.REAL) {
       if (!Number.isSafeInteger((value as RealValue).value))
-        return ERROR(`invalid integer "${(value as RealValue).value}"`);
-      return OK(NIL, (value as RealValue).value);
+        return [ERROR(`invalid integer "${(value as RealValue).value}"`)];
+      return [OK(NIL), (value as RealValue).value];
     }
-    const { data: s, ...result } = StringValue.toString(value);
-    if (result.code != ResultCode.OK) return result;
+    const [result, s] = StringValue.toString(value);
+    if (result.code != ResultCode.OK) return [result];
     const n = Number(s);
     if (isNaN(n) || !Number.isSafeInteger(n))
-      return ERROR(`invalid integer "${s}"`);
-    return OK(NIL, n);
+      return [ERROR(`invalid integer "${s}"`)];
+    return [OK(NIL), n];
   }
 
   /** @override */
@@ -276,16 +276,16 @@ export class RealValue implements Value {
    *
    * @see {@link toNumber}
    */
-  static fromValue(value: Value): Result<RealValue> {
-    if (value.type == ValueType.REAL) return OK(value, value as RealValue);
+  static fromValue(value: Value): [Result, RealValue?] {
+    if (value.type == ValueType.REAL) return [OK(value), value as RealValue];
     if (value.type == ValueType.INTEGER) {
       const v = new RealValue((value as IntegerValue).value);
-      return OK(v, v);
+      return [OK(v), v];
     }
-    const { data, ...result } = this.toNumber(value);
-    if (result.code != ResultCode.OK) return result;
-    const v = new RealValue(data);
-    return OK(v, v);
+    const [result, n] = this.toNumber(value);
+    if (result.code != ResultCode.OK) return [result];
+    const v = new RealValue(n);
+    return [OK(v), v];
   }
 
   /**
@@ -308,16 +308,16 @@ export class RealValue implements Value {
    *
    * @returns       Conversion result
    */
-  static toNumber(value: Value): Result<number> {
+  static toNumber(value: Value): [Result, number?] {
     if (value.type == ValueType.REAL)
-      return OK(NIL, (value as RealValue).value);
+      return [OK(NIL), (value as RealValue).value];
     if (value.type == ValueType.INTEGER)
-      return OK(NIL, (value as IntegerValue).value);
-    const { data: s, ...result } = StringValue.toString(value);
-    if (result.code != ResultCode.OK) return result;
+      return [OK(NIL), (value as IntegerValue).value];
+    const [result, s] = StringValue.toString(value);
+    if (result.code != ResultCode.OK) return [result];
     const n = Number(s);
-    if (isNaN(n)) return ERROR(`invalid number "${s}"`);
-    return OK(NIL, n);
+    if (isNaN(n)) return [ERROR(`invalid number "${s}"`)];
+    return [OK(NIL), n];
   }
 
   /** @override */
@@ -350,12 +350,13 @@ export class StringValue implements Value {
    *
    * @returns       Conversion result
    */
-  static fromValue(value: Value): Result<StringValue> {
-    if (value.type == ValueType.STRING) return OK(value, value as StringValue);
-    const { data, ...result } = this.toString(value);
-    if (result.code != ResultCode.OK) return result;
-    const v = new StringValue(data);
-    return OK(v, v);
+  static fromValue(value: Value): [Result, StringValue?] {
+    if (value.type == ValueType.STRING)
+      return [OK(value), value as StringValue];
+    const [result, s] = this.toString(value);
+    if (result.code != ResultCode.OK) return [result];
+    const v = new StringValue(s);
+    return [OK(v), v];
   }
 
   /**
@@ -366,23 +367,23 @@ export class StringValue implements Value {
    *
    * @returns       Conversion result
    */
-  static toString(value: Value, def?: string): Result<string> {
+  static toString(value: Value, def?: string): [Result, string?] {
     switch (value.type) {
       case ValueType.STRING:
-        return OK(NIL, (value as StringValue).value);
+        return [OK(NIL), (value as StringValue).value];
       case ValueType.BOOLEAN:
-        return OK(NIL, (value as BooleanValue).value.toString());
+        return [OK(NIL), (value as BooleanValue).value.toString()];
       case ValueType.INTEGER:
-        return OK(NIL, (value as IntegerValue).value.toString());
+        return [OK(NIL), (value as IntegerValue).value.toString()];
       case ValueType.REAL:
-        return OK(NIL, (value as RealValue).value.toString());
+        return [OK(NIL), (value as RealValue).value.toString()];
       case ValueType.SCRIPT: {
         const source = (value as ScriptValue).source;
-        if (source != undefined && source != null) return OK(NIL, source);
+        if (source != undefined && source != null) return [OK(NIL), source];
       }
     }
-    if (def) return OK(NIL, def);
-    return ERROR("value has no string representation");
+    if (def) return [OK(NIL), def];
+    return [ERROR("value has no string representation")];
   }
 
   /**
@@ -395,9 +396,8 @@ export class StringValue implements Value {
    * @returns       Conversion result
    */
   static at(value: string, index: Value, def?: Value): Result {
-    const result = IntegerValue.toInteger(index);
+    const [result, i] = IntegerValue.toInteger(index);
     if (result.code != ResultCode.OK) return result;
-    const i = result.data;
     if (i < 0 || i >= value.length)
       return def ? OK(def) : ERROR(`index out of range "${i}"`);
     return OK(new StringValue(value[i]));
@@ -440,12 +440,12 @@ export class ListValue implements Value {
    *
    * @returns       Conversion result
    */
-  static fromValue(value: Value): Result<ListValue> {
-    if (value.type == ValueType.LIST) return OK(value, value as ListValue);
-    const { data, ...result } = this.toValues(value);
-    if (result.code != ResultCode.OK) return result;
-    const v = new ListValue(data);
-    return OK(v, v);
+  static fromValue(value: Value): [Result, ListValue?] {
+    if (value.type == ValueType.LIST) return [OK(value), value as ListValue];
+    const [result, l] = this.toValues(value);
+    if (result.code != ResultCode.OK) return [result];
+    const v = new ListValue(l);
+    return [OK(v), v];
   }
 
   /**
@@ -457,14 +457,14 @@ export class ListValue implements Value {
    *
    * @returns       Conversion result
    */
-  static toValues(value: Value): Result<Value[]> {
+  static toValues(value: Value): [Result, Value[]?] {
     switch (value.type) {
       case ValueType.LIST:
-        return OK(NIL, (value as ListValue).values);
+        return [OK(NIL), (value as ListValue).values];
       case ValueType.TUPLE:
-        return OK(NIL, (value as TupleValue).values);
+        return [OK(NIL), (value as TupleValue).values];
       default:
-        return ERROR("invalid list");
+        return [ERROR("invalid list")];
     }
   }
 
@@ -478,9 +478,8 @@ export class ListValue implements Value {
    * @returns        Conversion result
    */
   static at(values: Value[], index: Value, def?: Value): Result {
-    const result = IntegerValue.toInteger(index);
+    const [result, i] = IntegerValue.toInteger(index);
     if (result.code != ResultCode.OK) return result;
-    const i = result.data;
     if (i < 0 || i >= values.length)
       return def ? OK(def) : ERROR(`index out of range "${i}"`);
     return OK(values[i]);
@@ -513,10 +512,10 @@ export class DictionaryValue implements Value {
 
   /** @override */
   selectKey(key: Value): Result {
-    const { data: k, code } = StringValue.toString(key);
-    if (code != ResultCode.OK) return ERROR("invalid key");
-    if (!this.map.has(k)) return ERROR("unknown key");
-    return OK(this.map.get(k));
+    const [result, s] = StringValue.toString(key);
+    if (result.code != ResultCode.OK) return ERROR("invalid key");
+    if (!this.map.has(s)) return ERROR("unknown key");
+    return OK(this.map.get(s));
   }
 }
 
@@ -666,10 +665,10 @@ export class QualifiedValue implements Value {
     if (this.source.type == ValueType.TUPLE) {
       source = this.source.display(fn);
     } else {
-      const { data, code } = StringValue.toString(this.source);
+      const [result, s] = StringValue.toString(this.source);
       source =
-        code == ResultCode.OK
-          ? displayLiteralOrBlock(data)
+        result.code == ResultCode.OK
+          ? displayLiteralOrBlock(s)
           : undisplayableValue("source");
     }
     return (

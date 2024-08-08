@@ -75,8 +75,8 @@ class NamespaceMetacommand implements Command {
       call: () => {
         if (args.length < 3)
           return ARITY_ERROR("<namespace> call cmdname ?arg ...?");
-        const { data: subcommand, code } = StringValue.toString(args[2]);
-        if (code != ResultCode.OK) return ERROR("invalid command name");
+        const [result, subcommand] = StringValue.toString(args[2]);
+        if (result.code != ResultCode.OK) return ERROR("invalid command name");
         if (!this.namespace.scope.hasLocalCommand(subcommand))
           return ERROR(`unknown command "${subcommand}"`);
         const command = this.namespace.scope.resolveNamedCommand(subcommand);
@@ -87,13 +87,13 @@ class NamespaceMetacommand implements Command {
       import: () => {
         if (args.length != 3 && args.length != 4)
           return ARITY_ERROR("<namespace> import name ?alias?");
-        const { data: name, code } = StringValue.toString(args[2]);
-        if (code != ResultCode.OK) return ERROR("invalid import name");
+        const [result, name] = StringValue.toString(args[2]);
+        if (result.code != ResultCode.OK) return ERROR("invalid import name");
         let alias: string;
         if (args.length == 4) {
-          const result = StringValue.toString(args[3]);
+          const [result, s] = StringValue.toString(args[3]);
           if (result.code != ResultCode.OK) return ERROR("invalid alias name");
-          alias = result.data;
+          alias = s;
         } else {
           alias = name;
         }
@@ -107,7 +107,7 @@ class NamespaceMetacommand implements Command {
 }
 
 const NAMESPACE_COMMAND_PREFIX = (name) =>
-  StringValue.toString(name, "<namespace>").data;
+  StringValue.toString(name, "<namespace>")[1];
 class NamespaceCommand implements Command {
   readonly metacommand: NamespaceMetacommand;
   readonly scope: Scope;
@@ -118,8 +118,8 @@ class NamespaceCommand implements Command {
 
   execute(args: Value[]): Result {
     if (args.length == 1) return OK(this.metacommand.value);
-    const { data: subcommand, code } = StringValue.toString(args[1]);
-    if (code != ResultCode.OK) return INVALID_SUBCOMMAND_ERROR();
+    const [result, subcommand] = StringValue.toString(args[1]);
+    if (result.code != ResultCode.OK) return INVALID_SUBCOMMAND_ERROR();
     if (subcommand == "subcommands") {
       if (args.length != 2) {
         return ARITY_ERROR(NAMESPACE_COMMAND_PREFIX(args[0]) + " subcommands");
@@ -144,8 +144,8 @@ class NamespaceCommand implements Command {
     if (args.length <= 1) {
       return OK(STR(signature + " ?subcommand? ?arg ...?"));
     }
-    const { data: subcommand, code } = StringValue.toString(args[1]);
-    if (code != ResultCode.OK) return INVALID_SUBCOMMAND_ERROR();
+    const [result, subcommand] = StringValue.toString(args[1]);
+    if (result.code != ResultCode.OK) return INVALID_SUBCOMMAND_ERROR();
     if (subcommand == "subcommands") {
       if (args.length > 2) {
         return ARITY_ERROR(signature + " subcommands");

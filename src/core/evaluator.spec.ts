@@ -34,7 +34,7 @@ import {
   Selector,
 } from "./selectors";
 
-const asString = (value) => StringValue.toString(value).data;
+const asString = (value) => StringValue.toString(value)[1];
 
 const mapValue = (value: Value) => {
   if (value == NIL) {
@@ -124,11 +124,11 @@ class FunctionCommand implements Command {
 }
 
 class MockSelectorResolver implements SelectorResolver {
-  resolve(rules: Value[]): Result<Selector> {
+  resolve(rules: Value[]): [Result, Selector?] {
     return this.builder(rules);
   }
-  builder: (rules) => Result<Selector> = () => OK(NIL, undefined);
-  register(builder: (rules) => Result<Selector>) {
+  builder: (rules) => [Result, Selector?] = () => [OK(NIL), undefined];
+  register(builder: (rules) => [Result, Selector?]) {
     this.builder = builder;
   }
 }
@@ -533,7 +533,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
                     return OK(list.values[list.values.length - 1]);
                   },
                 };
-                selectorResolver.register(() => OK(NIL, lastSelector));
+                selectorResolver.register(() => [OK(NIL), lastSelector]);
               });
               specify("simple substitution", () => {
                 variableResolver.register(
@@ -763,7 +763,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
                   return OK(list.values[list.values.length - 1]);
                 },
               };
-              selectorResolver.register(() => OK(NIL, lastSelector));
+              selectorResolver.register(() => [OK(NIL), lastSelector]);
             });
             specify("simple rule", () => {
               const word = firstWord(parse("var{last}"));
@@ -1327,7 +1327,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
                 return OK(list.values[list.values.length - 1]);
               },
             };
-            selectorResolver.register(() => OK(NIL, lastSelector));
+            selectorResolver.register(() => [OK(NIL), lastSelector]);
           });
           specify("simple substitution", () => {
             variableResolver.register(
@@ -1645,7 +1645,7 @@ for (const klass of [InlineEvaluator, CompilingEvaluator]) {
         commandResolver.register(
           "repeat",
           new FunctionCommand((args) => {
-            const nb = IntegerValue.toInteger(args[1]).data;
+            const [, nb] = IntegerValue.toInteger(args[1]);
             const block = args[2];
             let value: Value = NIL;
             for (let i = 0; i < nb; i++) {

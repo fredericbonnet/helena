@@ -15,8 +15,8 @@ export class Subcommands {
     subcommand: Value,
     handlers: { [name: string]: () => Result }
   ): Result {
-    const { data: name, code } = StringValue.toString(subcommand);
-    if (code != ResultCode.OK) return INVALID_SUBCOMMAND_ERROR();
+    const [result, name] = StringValue.toString(subcommand);
+    if (result.code != ResultCode.OK) return INVALID_SUBCOMMAND_ERROR();
     if (!handlers[name]) return UNKNOWN_SUBCOMMAND_ERROR(name);
     return handlers[name]();
   }

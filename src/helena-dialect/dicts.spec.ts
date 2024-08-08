@@ -19,7 +19,7 @@ import { initCommands } from "./helena-dialect";
 import { displayDictionaryValue } from "./dicts";
 import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 
-const asString = (value) => StringValue.toString(value).data;
+const asString = (value) => StringValue.toString(value)[1];
 
 describe("Helena dictionaries", () => {
   let rootScope: Scope;

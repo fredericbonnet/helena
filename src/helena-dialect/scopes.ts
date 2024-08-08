@@ -60,8 +60,8 @@ class ScopeCommand implements Command {
       call: () => {
         if (args.length < 3)
           return ARITY_ERROR("<scope> call cmdname ?arg ...?");
-        const { data: command, code } = StringValue.toString(args[2]);
-        if (code != ResultCode.OK) return ERROR("invalid command name");
+        const [result, command] = StringValue.toString(args[2]);
+        if (result.code != ResultCode.OK) return ERROR("invalid command name");
         if (!this.scope.hasLocalCommand(command))
           return ERROR(`unknown command "${command}"`);
         const program = this.scope.compileArgs(...args.slice(2));

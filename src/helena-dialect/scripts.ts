@@ -23,7 +23,7 @@ const PARSE_SIGNATURE = "parse source";
 const parseCmd: Command = {
   execute(args) {
     if (args.length != 2) return ARITY_ERROR(PARSE_SIGNATURE);
-    const { data: source, ...result } = StringValue.toString(args[1]);
+    const [result, source] = StringValue.toString(args[1]);
     if (result.code != ResultCode.OK) return result;
     const tokenizer = new Tokenizer();
     const parser = new Parser();
@@ -44,7 +44,7 @@ class ScriptCommand implements Command {
   ensemble: EnsembleCommand;
   constructor(scope: Scope) {
     this.scope = scope.newChildScope();
-    const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
+    const [, argspec] = ArgspecValue.fromValue(LIST([STR("value")]));
     this.ensemble = new EnsembleCommand(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {

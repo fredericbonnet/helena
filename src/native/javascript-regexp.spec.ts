@@ -20,7 +20,7 @@ import {
 } from "../core/values";
 import { regexpCmd, RegExpValue, regexpValueType } from "./javascript-regexp";
 
-const asString = (value) => StringValue.toString(value).data;
+const asString = (value) => StringValue.toString(value)[1];
 
 class MockVariableResolver implements VariableResolver {
   resolve(name: string): Value {

@@ -12,7 +12,7 @@ import {
   StringValue,
 } from "../core/values";
 
-const asString = (value) => StringValue.toString(value).data;
+const asString = (value) => StringValue.toString(value)[1];
 
 export type CallbackContext = {
   callback: (args: Value[], context?: unknown) => void;
@@ -139,6 +139,6 @@ function toString(value: Value): string {
 }
 function toNumber(value: Value): number {
   if (!value) return undefined;
-  const { data, ...result } = IntegerValue.toInteger(value);
-  return result.code == ResultCode.OK ? data : undefined;
+  const [result, n] = IntegerValue.toInteger(value);
+  return result.code == ResultCode.OK ? n : undefined;
 }

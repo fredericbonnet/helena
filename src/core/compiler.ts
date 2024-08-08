@@ -874,8 +874,7 @@ export class Executor {
           {
             const index = state.pop();
             const value = state.pop();
-            const { data: selector, ...result2 } =
-              IndexedSelector.create(index);
+            const [result2, selector] = IndexedSelector.create(index);
             if (result2.code != ResultCode.OK) return result2;
             const result = selector.apply(value);
             if (result.code != ResultCode.OK) return result;
@@ -887,7 +886,7 @@ export class Executor {
           {
             const keys = state.lastFrame;
             const value = state.pop();
-            const { data: selector, ...result2 } = KeyedSelector.create(keys);
+            const [result2, selector] = KeyedSelector.create(keys);
             if (result2.code != ResultCode.OK) return result2;
             const result = selector.apply(value);
             if (result.code != ResultCode.OK) return result;
@@ -899,7 +898,7 @@ export class Executor {
           {
             const rules = state.lastFrame;
             const value = state.pop();
-            const { data: selector, ...result } = this.resolveSelector(rules);
+            const [result, selector] = this.resolveSelector(rules);
             if (result.code != ResultCode.OK) return result;
             const result2 = applySelector(value, selector);
             if (result2.code != ResultCode.OK) return result2;
@@ -912,7 +911,7 @@ export class Executor {
             const args = state.lastFrame;
             if (args.length) {
               const cmdname = args[0];
-              const { data: command, ...result } = this.resolveCommand(cmdname);
+              const [result, command] = this.resolveCommand(cmdname);
               if (result.code != ResultCode.OK) return result;
               state.command = command;
               state.result = state.command.execute(args, this.context);
@@ -930,9 +929,9 @@ export class Executor {
             const values = state.lastFrame;
             let s = "";
             for (const value of values) {
-              const { data, ...result } = StringValue.toString(value);
+              const [result, s2] = StringValue.toString(value);
               if (result.code != ResultCode.OK) return result;
-              s += data;
+              s += s2;
             }
             state.push(new StringValue(s));
           }
@@ -1018,8 +1017,8 @@ export class Executor {
       case ValueType.QUALIFIED:
         return this.resolveQualified(source as QualifiedValue);
       default: {
-        const { data: varname, code } = StringValue.toString(source);
-        if (code != ResultCode.OK) return ERROR("invalid variable name");
+        const [result, varname] = StringValue.toString(source);
+        if (result.code != ResultCode.OK) return ERROR("invalid variable name");
         return this.resolveVariable(varname);
       }
     }
@@ -1064,23 +1063,22 @@ export class Executor {
     if (!value) return ERROR(`cannot resolve variable "${varname}"`);
     return OK(value);
   }
-  private resolveCommand(cmdname: Value): Result<Command> {
-    if (!this.commandResolver) return ERROR("no command resolver");
+  private resolveCommand(cmdname: Value): [Result, Command?] {
+    if (!this.commandResolver) return [ERROR("no command resolver")];
     const command = this.commandResolver.resolve(cmdname);
     if (!command) {
-      const { data: name, code } = StringValue.toString(cmdname);
-      if (code != ResultCode.OK) return ERROR("invalid command name");
-      return ERROR(`cannot resolve command "${name}"`);
+      const [result, name] = StringValue.toString(cmdname);
+      if (result.code != ResultCode.OK) return [ERROR("invalid command name")];
+      return [ERROR(`cannot resolve command "${name}"`)];
     }
-    return OK(NIL, command);
+    return [OK(NIL), command];
   }
-  private resolveSelector(rules: Value[]): Result<Selector> {
-    if (!this.selectorResolver) return ERROR("no selector resolver");
-    const result = this.selectorResolver.resolve(rules);
-    if (result.code != ResultCode.OK) return result;
-    if (!result.data)
-      return ERROR(`cannot resolve selector {${displayList(rules)}}`);
-    return result;
+  private resolveSelector(rules: Value[]): [Result, Selector?] {
+    if (!this.selectorResolver) return [ERROR("no selector resolver")];
+    const [result, s] = this.selectorResolver.resolve(rules);
+    if (result.code != ResultCode.OK) return [result];
+    if (!s) return [ERROR(`cannot resolve selector {${displayList(rules)}}`)];
+    return [result, s];
   }
 }
 
@@ -1191,8 +1189,7 @@ export class Translator {
           {
             const index = state.pop();
             const value = state.pop();
-            const { data: selector, ...result2 } =
-              IndexedSelector.create(index);
+            const [result2, selector] = IndexedSelector.create(index);
             const result = selector.apply(value);
             if (result.code != ResultCode.OK) return result;
             state.push(result.value);
@@ -1205,7 +1202,7 @@ export class Translator {
           {
             const keys = state.lastFrame;
             const value = state.pop();
-            const { data: selector, ...result2 } = KeyedSelector.create(keys);
+            const [result2, selector] = KeyedSelector.create(keys);
             if (result2.code != ResultCode.OK) return result2;
             const result = selector.apply(value);
             if (result.code != ResultCode.OK) return result;
@@ -1219,7 +1216,7 @@ export class Translator {
           {
             const rules = state.lastFrame;
             const value = state.pop();
-            const { data: selector, ...result } = resolver.resolveSelector(rules);
+            const [result, selector] = resolver.resolveSelector(rules);
             if (result.code != ResultCode.OK) return result;
             const result2 = applySelector(value, selector);
             if (result2.code != ResultCode.OK) return result2;
@@ -1234,7 +1231,7 @@ export class Translator {
             const args = state.lastFrame;
             if (args.length) {
               const cmdname = args[0];
-              const { data: command, ...result } = resolver.resolveCommand(cmdname);
+              const [result, command] = resolver.resolveCommand(cmdname);
               if (result.code != ResultCode.OK) return result;
               state.command = command;
               state.result = state.command.execute(args, context);
@@ -1256,9 +1253,9 @@ export class Translator {
             const values = state.lastFrame;
             let s = "";
             for (const value of values) {
-              const { data, ...result } = StringValue.toString(value);
+              const [result, s2] = StringValue.toString(value);
               if (result.code != ResultCode.OK) return result;
-              s += data;
+              s += s2;
             }
             state.push(new StringValue(s));
           }

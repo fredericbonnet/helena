@@ -102,11 +102,11 @@ class BoolCommand implements Command {
   ensemble: EnsembleCommand;
   constructor(scope: Scope) {
     this.scope = scope.newChildScope();
-    const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
+    const [, argspec] = ArgspecValue.fromValue(LIST([STR("value")]));
     this.ensemble = new EnsembleCommand(this.scope, argspec);
   }
   execute(args: Value[], scope: Scope): Result {
-    if (args.length == 2) return BooleanValue.fromValue(args[1]);
+    if (args.length == 2) return BooleanValue.fromValue(args[1])[0];
     return this.ensemble.execute(args, scope);
   }
   help(args) {
@@ -118,9 +118,9 @@ const NOT_SIGNATURE = "! arg";
 const notCmd: Command = {
   execute(args: Value[], scope: Scope): Result {
     if (args.length != 2) return ARITY_ERROR(NOT_SIGNATURE);
-    return executeCondition(scope, args[1], (result) => {
+    return executeCondition(scope, args[1], ([result, b]) => {
       if (result.code != ResultCode.OK) return result;
-      return result.data ? OK(FALSE) : OK(TRUE);
+      return b ? OK(FALSE) : OK(TRUE);
     });
   },
   help(args: Value[]): Result {
@@ -134,9 +134,9 @@ const andCmd: Command = {
   execute(args, scope: Scope) {
     if (args.length < 2) return ARITY_ERROR(AND_SIGNATURE);
     let i = 1;
-    const callback = (result) => {
+    const callback = ([result, b]) => {
       if (result.code != ResultCode.OK) return result;
-      if (!result.data) return OK(FALSE);
+      if (!b) return OK(FALSE);
       if (++i >= args.length) return OK(TRUE);
       return executeCondition(scope, args[i], callback);
     };
@@ -152,9 +152,9 @@ const orCmd: Command = {
   execute(args, scope: Scope) {
     if (args.length < 2) return ARITY_ERROR(OR_SIGNATURE);
     let i = 1;
-    const callback = (result: Result<boolean>) => {
+    const callback = ([result, b]: [Result, boolean?]) => {
       if (result.code != ResultCode.OK) return result;
-      if (result.data) return OK(TRUE);
+      if (b) return OK(TRUE);
       if (++i >= args.length) return OK(FALSE);
       return executeCondition(scope, args[i], callback);
     };
@@ -168,7 +168,7 @@ const orCmd: Command = {
 export function executeCondition(
   scope: Scope,
   value: Value,
-  callback: (result: Result<boolean>) => Result
+  callback: ([result, b]: [Result, boolean?]) => Result
 ): Result {
   if (value.type == ValueType.SCRIPT) {
     const program = scope.compileScriptValue(value as ScriptValue);

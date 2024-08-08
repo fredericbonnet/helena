@@ -12,7 +12,7 @@ import {
   StringValue,
 } from "../core/values";
 
-const asString = (value) => StringValue.toString(value).data;
+const asString = (value) => StringValue.toString(value)[1];
 
 export const childProcessCmd: Command = {
   execute: (args: Value[]): Result => {
@@ -100,8 +100,8 @@ function toString(value: Value): string {
 }
 function toNumber(value: Value): number {
   if (!value) return undefined;
-  const { data, ...result } = IntegerValue.toInteger(value);
-  return result.code == ResultCode.OK ? data : undefined;
+  const [result, n] = IntegerValue.toInteger(value);
+  return result.code == ResultCode.OK ? n : undefined;
 }
 function toObject(value: Value): object {
   if (!value) return undefined;

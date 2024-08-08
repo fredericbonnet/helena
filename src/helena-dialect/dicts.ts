@@ -32,7 +32,7 @@ class DictCommand implements Command {
   ensemble: EnsembleCommand;
   constructor(scope: Scope) {
     this.scope = scope.newChildScope();
-    const { data: argspec } = ArgspecValue.fromValue(LIST([STR("value")]));
+    const [, argspec] = ArgspecValue.fromValue(LIST([STR("value")]));
     this.ensemble = new EnsembleCommand(this.scope, argspec);
   }
   execute(args: Value[], scope): Result {
@@ -48,7 +48,7 @@ const DICT_SIZE_SIGNATURE = "dict value size";
 const dictSizeCmd: Command = {
   execute(args) {
     if (args.length != 2) return ARITY_ERROR(DICT_SIZE_SIGNATURE);
-    const { data: map, ...result } = valueToMap(args[1]);
+    const [result, map] = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     return OK(INT(map.size));
   },
@@ -62,10 +62,10 @@ const DICT_HAS_SIGNATURE = "dict value has key";
 const dictHasCmd: Command = {
   execute(args) {
     if (args.length != 3) return ARITY_ERROR(DICT_HAS_SIGNATURE);
-    const { data: map, ...result } = valueToMap(args[1]);
+    const [result, map] = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const { data: key, code } = StringValue.toString(args[2]);
-    if (code != ResultCode.OK) return ERROR("invalid key");
+    const [result2, key] = StringValue.toString(args[2]);
+    if (result2.code != ResultCode.OK) return ERROR("invalid key");
     return OK(BOOL(map.has(key)));
   },
   help(args) {
@@ -79,7 +79,7 @@ const dictGetCmd: Command = {
   execute(args) {
     if (args.length != 3 && args.length != 4)
       return ARITY_ERROR(DICT_GET_SIGNATURE);
-    const { data: map, ...result } = valueToMap(args[1]);
+    const [result, map] = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     switch (args[2].type) {
       case ValueType.TUPLE: {
@@ -88,16 +88,16 @@ const dictGetCmd: Command = {
         const keys = (args[2] as TupleValue).values;
         const values = [];
         for (const k of keys) {
-          const { data: key, code } = StringValue.toString(k);
-          if (code != ResultCode.OK) return ERROR("invalid key");
+          const [result, key] = StringValue.toString(k);
+          if (result.code != ResultCode.OK) return ERROR("invalid key");
           if (!map.has(key)) return ERROR(`unknown key "${key}"`);
           values.push(map.get(key));
         }
         return OK(TUPLE(values));
       }
       default: {
-        const { data: key, code } = StringValue.toString(args[2]);
-        if (code != ResultCode.OK) return ERROR("invalid key");
+        const [result, key] = StringValue.toString(args[2]);
+        if (result.code != ResultCode.OK) return ERROR("invalid key");
         if (!map.has(key))
           return args.length == 4 ? OK(args[3]) : ERROR(`unknown key "${key}"`);
         return OK(map.get(key));
@@ -114,10 +114,10 @@ const DICT_ADD_SIGNATURE = "dict value add key value";
 const dictAddCmd: Command = {
   execute(args) {
     if (args.length != 4) return ARITY_ERROR(DICT_ADD_SIGNATURE);
-    const { data: map, ...result } = valueToMap(args[1]);
+    const [result, map] = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const { data: key, code } = StringValue.toString(args[2]);
-    if (code != ResultCode.OK) return ERROR("invalid key");
+    const [result2, key] = StringValue.toString(args[2]);
+    if (result2.code != ResultCode.OK) return ERROR("invalid key");
     const clone = new Map(map);
     return OK(DICT(clone.set(key, args[3])));
   },
@@ -131,12 +131,12 @@ const DICT_REMOVE_SIGNATURE = "dict value remove ?key ...?";
 const dictRemoveCmd: Command = {
   execute(args) {
     if (args.length == 2) return valueToDictionaryValue(args[1]);
-    const { data: map, ...result } = valueToMap(args[1]);
+    const [result, map] = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     const clone = new Map(map);
     for (let i = 2; i < args.length; i++) {
-      const { data: key, code } = StringValue.toString(args[i]);
-      if (code != ResultCode.OK) return ERROR("invalid key");
+      const [result2, key] = StringValue.toString(args[i]);
+      if (result2.code != ResultCode.OK) return ERROR("invalid key");
       clone.delete(key);
     }
     return OK(DICT(clone));
@@ -150,11 +150,11 @@ const DICT_MERGE_SIGNATURE = "dict value merge ?dict ...?";
 const dictMergeCmd: Command = {
   execute(args) {
     if (args.length == 2) return valueToDictionaryValue(args[1]);
-    const { data: map, ...result } = valueToMap(args[1]);
+    const [result, map] = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     const clone = new Map(map);
     for (let i = 2; i < args.length; i++) {
-      const { data: map2, ...result2 } = valueToMap(args[i]);
+      const [result2, map2] = valueToMap(args[i]);
       if (result2.code != ResultCode.OK) return result2;
       map2.forEach((value, key) => {
         clone.set(key, value);
@@ -171,7 +171,7 @@ const DICT_KEYS_SIGNATURE = "dict value keys";
 const dictKeysCmd: Command = {
   execute(args) {
     if (args.length != 2) return ARITY_ERROR(DICT_KEYS_SIGNATURE);
-    const { data: map, ...result } = valueToMap(args[1]);
+    const [result, map] = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     const values = [];
     for (const key of map.keys()) {
@@ -189,7 +189,7 @@ const DICT_VALUES_SIGNATURE = "dict value values";
 const dictValuesCmd: Command = {
   execute(args) {
     if (args.length != 2) return ARITY_ERROR(DICT_VALUES_SIGNATURE);
-    const { data: map, ...result } = valueToMap(args[1]);
+    const [result, map] = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     const values = [];
     for (const value of map.values()) {
@@ -207,7 +207,7 @@ const DICT_ENTRIES_SIGNATURE = "dict value entries";
 const dictEntriesCmd: Command = {
   execute(args) {
     if (args.length != 2) return ARITY_ERROR(DICT_ENTRIES_SIGNATURE);
-    const { data: map, ...result } = valueToMap(args[1]);
+    const [result, map] = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     const values = [];
     for (const [key, value] of map.entries()) {
@@ -225,7 +225,7 @@ const DICT_FOREACH_SIGNATURE = "dict value foreach entry body";
 const dictForeachCmd: Command = {
   execute(args, scope: Scope) {
     if (args.length != 4) return ARITY_ERROR(DICT_FOREACH_SIGNATURE);
-    const { data: map, ...result } = valueToMap(args[1]);
+    const [result, map] = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
     const varname = args[2];
     const body = args[3];
@@ -274,29 +274,29 @@ function valueToDictionaryValue(value: Value): Result {
     case ValueType.SCRIPT:
     case ValueType.LIST:
     case ValueType.TUPLE: {
-      const { data, ...result } = valueToMap(value);
+      const [result, map] = valueToMap(value);
       if (result.code != ResultCode.OK) return result;
-      return OK(DICT(data));
+      return OK(DICT(map));
     }
     default:
       return ERROR("invalid dictionary");
   }
 }
-function valueToMap(value: Value): Result<Map<string, Value>> {
+function valueToMap(value: Value): [Result, Map<string, Value>?] {
   if (value.type == ValueType.DICTIONARY) {
-    return OK(NIL, (value as DictionaryValue).map);
+    return [OK(NIL), (value as DictionaryValue).map];
   }
-  const { data: values, ...result } = valueToArray(value);
-  if (result.code != ResultCode.OK) return result;
-  if (values.length % 2 != 0) return ERROR("invalid key-value list");
+  const [result, values] = valueToArray(value);
+  if (result.code != ResultCode.OK) return [result];
+  if (values.length % 2 != 0) return [ERROR("invalid key-value list")];
   const map = new Map();
   for (let i = 0; i < values.length; i += 2) {
-    const { data: key, code } = StringValue.toString(values[i]);
-    if (code != ResultCode.OK) return ERROR("invalid key");
+    const [result, key] = StringValue.toString(values[i]);
+    if (result.code != ResultCode.OK) return [ERROR("invalid key")];
     const value = values[i + 1];
     map.set(key, value);
   }
-  return OK(NIL, map);
+  return [OK(NIL), map];
 }
 
 export function displayDictionaryValue(

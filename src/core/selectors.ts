@@ -92,9 +92,9 @@ export class IndexedSelector implements Selector {
    *
    * @returns       New selector or error
    */
-  static create(index: Value): Result<Selector> {
-    if (index == NIL) return ERROR("invalid index");
-    return OK<Selector>(NIL, new IndexedSelector(index));
+  static create(index: Value): [Result, Selector?] {
+    if (index == NIL) return [ERROR("invalid index")];
+    return [OK(NIL), new IndexedSelector(index)];
   }
 
   /** @override */
@@ -135,9 +135,9 @@ export class KeyedSelector implements Selector {
    *
    * @returns      New selector or error
    */
-  static create(keys: Value[]): Result<Selector> {
-    if (keys.length == 0) return ERROR("empty selector");
-    return OK<Selector>(NIL, new KeyedSelector(keys));
+  static create(keys: Value[]): [Result, Selector?] {
+    if (keys.length == 0) return [ERROR("empty selector")];
+    return [OK(NIL), new KeyedSelector(keys)];
   }
 
   /** @override */
@@ -182,9 +182,9 @@ export class GenericSelector implements Selector {
    *
    * @returns       New selector or error
    */
-  static create(rules: Value[]): Result<Selector> {
-    if (rules.length == 0) return ERROR("empty selector");
-    return OK<Selector>(NIL, new GenericSelector(rules));
+  static create(rules: Value[]): [Result, Selector?] {
+    if (rules.length == 0) return [ERROR("empty selector")];
+    return [OK(NIL), new GenericSelector(rules)];
   }
 
   /** @override */
