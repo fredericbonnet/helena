@@ -16,6 +16,7 @@ import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { Module, ModuleRegistry } from "./modules";
 import { codeBlock, describeCommand } from "./test-helpers";
+import { ErrorStack } from "../core/errors";
 
 const asString = (value) => StringValue.toString(value)[1];
 
@@ -654,6 +655,72 @@ describe("Helena modules", () => {
         expect(execute(`import ${errorPath}`)).to.eql(
           ERROR("unmatched left brace")
         );
+      });
+    });
+  });
+  describe("error stack", () => {
+    beforeEach(() => {
+      parser = new Parser({ capturePositions: true });
+      rootScope = Scope.newRootScope({
+        capturePositions: true,
+        captureErrorStack: true,
+      });
+      moduleRegistry = new ModuleRegistry({
+        capturePositions: true,
+        captureErrorStack: true,
+      });
+      initCommands(rootScope, moduleRegistry, __dirname);
+    });
+    specify("module", () => {
+      const source = `
+module {
+  macro cmd {} {error msg}
+  cmd
+}
+`;
+      const process = prepareScript(source);
+      const result = process.run();
+      expect(result.code).to.eql(ResultCode.ERROR);
+      expect(result.value).to.eql(STR("msg"));
+      const errorStack = result.data as ErrorStack;
+      expect(errorStack.depth()).to.eql(3);
+      expect(errorStack.level(0)).to.eql({
+        frame: [STR("error"), STR("msg")],
+        position: { index: 26, line: 2, column: 16 },
+      });
+      expect(errorStack.level(1)).to.eql({
+        frame: [STR("cmd")],
+        position: { index: 39, line: 3, column: 2 },
+      });
+      expect(errorStack.level(2).frame[0]).to.eql(STR("module"));
+      expect(errorStack.level(2).position).to.eql({
+        index: 1,
+        line: 1,
+        column: 0,
+      });
+    });
+    specify("import", () => {
+      const source = `import tests/error.lna`;
+      const process = prepareScript(source);
+      const result = process.run();
+      expect(result.code).to.eql(ResultCode.ERROR);
+      expect(result.value).to.eql(STR("msg"));
+      const errorStack = result.data as ErrorStack;
+      expect(errorStack.depth()).to.eql(2);
+      expect(errorStack.level(1)).to.eql({
+        frame: [STR("import"), STR("tests/error.lna")],
+        position: { index: 0, line: 0, column: 0 },
+      });
+    });
+    specify("parsing error", () => {
+      const result = execute(`import tests/error.txt`);
+      expect(result.code).to.eql(ResultCode.ERROR);
+      expect(result.value).to.eql(STR("unmatched left brace"));
+      const errorStack = result.data as ErrorStack;
+      expect(errorStack.depth()).to.eql(1);
+      expect(errorStack.level(0)).to.eql({
+        frame: [STR("import"), STR("tests/error.txt")],
+        position: { index: 0, line: 0, column: 0 },
       });
     });
   });

@@ -45,7 +45,10 @@ import { Module, ModuleRegistry } from "./src/helena-dialect/modules";
 import { ContinuationValue } from "./src/helena-dialect/core";
 import { ErrorStack } from "./src/core/errors";
 
-const moduleRegistry = new ModuleRegistry();
+const moduleRegistry = new ModuleRegistry({
+  captureErrorStack: true,
+  capturePositions: true,
+});
 
 function sourceFile(path: string, scope: Scope): Result {
   const data = fs.readFileSync(path, "utf-8");

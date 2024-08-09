@@ -109,9 +109,23 @@ function importCommand(
   return OK(NIL);
 }
 
+export type ModuleOptions = {
+  capturePositions?: boolean;
+  captureErrorStack?: boolean;
+};
 export class ModuleRegistry {
+  readonly options: ModuleOptions;
   private readonly modules: Map<string, Module> = new Map();
   private readonly reservedNames: Set<string> = new Set();
+
+  constructor(
+    options: ModuleOptions = {
+      capturePositions: false,
+      captureErrorStack: false,
+    }
+  ) {
+    this.options = options;
+  }
 
   isReserved(name: string) {
     return this.reservedNames.has(name);
@@ -220,7 +234,9 @@ function loadFileBasedModule(
     return [ERROR("error reading module: " + e.message)];
   }
   const tokens = new Tokenizer().tokenize(data);
-  const { success, script, message } = new Parser().parseTokens(tokens);
+  const { success, script, message } = new Parser({
+    capturePositions: moduleRegistry.options.capturePositions,
+  }).parseTokens(tokens, { filename: modulePath });
   if (!success) {
     moduleRegistry.release(modulePath);
     return [ERROR(message)];
@@ -236,7 +252,10 @@ function createModule(
   rootDir: string,
   script: Script
 ): [Result, Module?] {
-  const rootScope = Scope.newRootScope();
+  const rootScope = Scope.newRootScope({
+    captureErrorStack: moduleRegistry.options.captureErrorStack,
+    capturePositions: moduleRegistry.options.capturePositions,
+  });
   initCommands(rootScope, moduleRegistry, rootDir);
 
   const exports = new Map();
