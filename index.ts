@@ -7,6 +7,7 @@ import {
   Displayable,
   defaultDisplayFunction,
   display,
+  undisplayableValue,
 } from "./src/core/display";
 import { ArrayTokenStream, StringStream } from "./src/core/tokenizer";
 import { Parser } from "./src/core/parser";
@@ -28,6 +29,7 @@ import {
   StringValue,
   ScriptValue,
   CustomValue,
+  CommandValue,
 } from "./src/core/values";
 import { displayListValue } from "./src/helena-dialect/lists";
 import { displayDictionaryValue } from "./src/helena-dialect/dicts";
@@ -220,7 +222,7 @@ function printErrorStack(errorStack: ErrorStack) {
       log += ` `;
     }
     if (l.frame) {
-      log += l.frame.map(displayErrorFrameArg).join(" ");
+      log += l.frame.map((arg) => display(arg, displayErrorFrameArg)).join(" ");
     }
     console.debug(c.gray(log));
   }
@@ -229,7 +231,7 @@ function displayErrorFrameArg(displayable: Displayable): string {
   if (displayable instanceof ListValue) return `[list (...)]`;
   if (displayable instanceof DictionaryValue) return `[dict (...)]`;
   if (displayable instanceof ScriptValue) return `{...}`;
-  return display(displayable, displayErrorFrameArg);
+  return displayResult(displayable);
 }
 
 function processResult(result, onSuccess, onError) {
@@ -252,6 +254,7 @@ function displayResult(displayable: Displayable): string {
     return displayListValue(displayable, displayResult);
   if (displayable instanceof DictionaryValue)
     return displayDictionaryValue(displayable, displayResult);
+  if (displayable instanceof CommandValue) return undisplayableValue("command");
   return defaultDisplayFunction(displayable);
 }
 function resultWriter(output) {
