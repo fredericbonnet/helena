@@ -33,7 +33,7 @@ import {
 } from "./src/core/values";
 import { displayListValue } from "./src/helena-dialect/lists";
 import { displayDictionaryValue } from "./src/helena-dialect/dicts";
-import { Command } from "./src/core/command";
+import { Command } from "./src/core/commands";
 import { ARITY_ERROR } from "./src/helena-dialect/arguments";
 import {
   PicolScope,

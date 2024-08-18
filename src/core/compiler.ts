@@ -3,7 +3,7 @@
  */
 
 import { ERROR, OK, Result, ResultCode } from "./results";
-import { Command } from "./command";
+import { Command } from "./commands";
 import {
   CommandResolver,
   SelectorResolver,

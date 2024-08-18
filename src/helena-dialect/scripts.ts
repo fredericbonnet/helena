@@ -1,5 +1,5 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Command } from "../core/command";
+import { Command } from "../core/commands";
 import { Parser } from "../core/parser";
 import { Result, OK, ERROR, ResultCode } from "../core/results";
 import { Script, Sentence } from "../core/syntax";

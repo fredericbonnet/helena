@@ -20,7 +20,7 @@ import {
   undisplayableValue,
   display,
 } from "./display";
-import { Command } from "./command";
+import { Command } from "./commands";
 
 /** Helena standard value types */
 export enum ValueType {

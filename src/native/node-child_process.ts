@@ -1,6 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import * as child_process from "node:child_process";
-import { Command } from "../core/command";
+import { Command } from "../core/commands";
 import { ERROR, OK, Result, ResultCode } from "../core/results";
 import {
   IntegerValue,

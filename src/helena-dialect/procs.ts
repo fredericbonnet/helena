@@ -6,7 +6,7 @@ import {
   ERROR,
   RESULT_CODE_NAME,
 } from "../core/results";
-import { Command } from "../core/command";
+import { Command } from "../core/commands";
 import { Program } from "../core/compiler";
 import {
   CommandValue,

@@ -26,7 +26,7 @@ import {
   TUPLE,
 } from "./values";
 import { Result, ResultCode, OK, RETURN, ERROR } from "./results";
-import { Command } from "./command";
+import { Command } from "./commands";
 import {
   GenericSelector,
   IndexedSelector,

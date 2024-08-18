@@ -3,7 +3,7 @@
  */
 
 import { Value } from "./values";
-import { Command } from "./command";
+import { Command } from "./commands";
 import { Selector } from "./selectors";
 import { Result } from "./results";
 

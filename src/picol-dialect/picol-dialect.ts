@@ -8,7 +8,7 @@ import {
   CONTINUE,
   ERROR,
 } from "../core/results";
-import { Command } from "../core/command";
+import { Command } from "../core/commands";
 import { VariableResolver, CommandResolver } from "../core/resolvers";
 import {
   CompilingEvaluator,

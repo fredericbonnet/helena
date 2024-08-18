@@ -6,7 +6,7 @@ import {
   Result,
   ResultCode,
 } from "../core/results";
-import { Command } from "../core/command";
+import { Command } from "../core/commands";
 import {
   Value,
   ScriptValue,

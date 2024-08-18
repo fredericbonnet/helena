@@ -1,6 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Result, OK, ResultCode } from "../core/results";
-import { Command } from "../core/command";
+import { Command } from "../core/commands";
 import { CommandValue, STR, Value } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { Scope, expandPrefixCmd } from "./core";

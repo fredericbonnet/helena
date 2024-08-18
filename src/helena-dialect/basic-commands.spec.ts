@@ -14,7 +14,7 @@ import { CommandValue, NIL, STR, StringValue, TUPLE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand } from "./test-helpers";
-import { Command } from "../core/command";
+import { Command } from "../core/commands";
 
 const asString = (value) => StringValue.toString(value)[1];
 

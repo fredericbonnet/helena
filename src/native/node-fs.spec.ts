@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import * as fs from "node:fs";
-import { Command } from "../core/command";
+import { Command } from "../core/commands";
 import { Compiler, Executor } from "../core/compiler";
 import { CommandResolver, VariableResolver } from "../core/resolvers";
 import { Parser } from "../core/parser";
