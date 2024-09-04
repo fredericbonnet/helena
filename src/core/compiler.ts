@@ -41,6 +41,7 @@ import {
 } from "./values";
 import { displayList } from "./display";
 import { Source, SourcePosition } from "./source";
+import { SHIFT_LAST_FRAME_RESULT, LAST_RESULT } from "./intrinsics";
 
 /** Supported compiler opcodes */
 export enum OpCode {
@@ -689,6 +690,9 @@ export class ProgramState {
   /** Execution frame start indexes; each frame is a slice of the stack */
   private readonly frames: number[] = [0];
 
+  /** Execution results for each frame */
+  private readonly frameResults: Result[] = [OK(NIL)];
+
   /** Last closed frame */
   lastFrame: Value[] = undefined;
 
@@ -701,20 +705,35 @@ export class ProgramState {
   /** Last executed command */
   command: Command;
 
-  /** Last executed result value */
+  /** Last execution result */
   result: Result = OK(NIL);
+
+  /**
+   * Set result for the current frame
+   *
+   * @param result - Result to set
+   */
+  setResult(result: Result) {
+    this.result = result;
+    this.frameResults[this.frameResults.length - 1] = result;
+  }
+
+  /** @returns result of the last frame */
+  lastFrameResult(): Result {
+    return this.frameResults[this.frameResults.length - 1];
+  }
 
   /** Open a new frame */
   openFrame() {
     this.frames.push(this.stack.length);
+    this.frameResults.push(OK(NIL));
     this.lastFrame = undefined;
   }
 
-  /**
-   * Close the current frame
-   */
+  /** Close the current frame */
   closeFrame() {
     const length = this.frames.pop();
+    this.frameResults.pop();
     this.lastFrame = this.stack.splice(length);
   }
 
@@ -742,13 +761,13 @@ export class ProgramState {
   }
 
   /** @returns Last value on current frame */
-  private last() {
+  private lastValue() {
     return this.stack[this.stack.length - 1];
   }
 
   /** Expand last value in current frame */
   expand() {
-    const last = this.last();
+    const last = this.lastValue();
     if (last && last.type == ValueType.TUPLE) {
       this.stack.pop();
       this.stack.push(...(last as TupleValue).values);
@@ -809,7 +828,7 @@ export class Executor {
   execute(program: Program, state = new ProgramState()): Result {
     const result = this.executeUntil(program, state, program.opCodes.length);
     if (result.code != ResultCode.OK) return result;
-    if (!state.empty()) state.result = OK(state.pop());
+    if (!state.empty()) state.setResult(OK(state.pop()));
     return state.result;
   }
 
@@ -824,12 +843,13 @@ export class Executor {
    *
    * @returns         OK(NIL) upon success, else last result
    */
-  executeUntil(program: Program, state: ProgramState, stop: number) {
+  executeUntil(program: Program, state: ProgramState, stop: number): Result {
     if (stop > program.opCodes.length) stop = program.opCodes.length;
     if (state.pc >= stop) return OK(NIL);
     if (state.result.code == ResultCode.YIELD && state.command?.resume) {
-      state.result = state.command.resume(state.result, this.context);
-      if (state.result.code != ResultCode.OK) return state.result;
+      const result = state.command.resume(state.result, this.context);
+      state.setResult(result);
+      if (result.code != ResultCode.OK) return result;
     }
     while (state.pc < stop) {
       const opcode = program.opCodes[state.pc++];
@@ -909,13 +929,30 @@ export class Executor {
         case OpCode.EVALUATE_SENTENCE:
           {
             const args = state.lastFrame;
-            if (args.length) {
+            while (args.length) {
+              // Loop for successive command resolution
               const cmdname = args[0];
               const [result, command] = this.resolveCommand(cmdname);
               if (result.code != ResultCode.OK) return result;
+              const lastCommand = state.command;
               state.command = command;
-              state.result = state.command.execute(args, this.context);
+              if (command == LAST_RESULT) {
+                // Intrinsic command: return last result = no-op
+              } else if (command == SHIFT_LAST_FRAME_RESULT) {
+                // Intrinsic command: swap last frame result with argument 1
+                if (args.length < 2 || lastCommand == command) {
+                  // No-op
+                } else {
+                  args[0] = args[1];
+                  args[1] = state.lastFrameResult().value;
+                  continue;
+                }
+              } else {
+                // Execute regular command
+                state.setResult(state.command.execute(args, this.context));
+              }
               if (state.result.code != ResultCode.OK) return state.result;
+              break;
             }
           }
           break;
@@ -972,6 +1009,8 @@ export class Executor {
       IndexedSelector,
       KeyedSelector,
       applySelector,
+      LAST_RESULT,
+      SHIFT_LAST_FRAME_RESULT,
     };
     const importsCode = `
     const {
@@ -985,6 +1024,8 @@ export class Executor {
       IndexedSelector,
       KeyedSelector,
       applySelector,
+      LAST_RESULT,
+      SHIFT_LAST_FRAME_RESULT,
     } = imports;
     `;
 
@@ -1118,8 +1159,9 @@ export class Translator {
 
     sections.push(`
     if (state.result.code == ResultCode.YIELD && state.command?.resume) {
-      state.result = state.command.resume(state.result, context);
-      if (state.result.code != ResultCode.OK) return state.result;
+      const result = state.command.resume(state.result, context);
+      state.setResult(result);
+      if (result.code != ResultCode.OK) return result;
     }
     `);
 
@@ -1229,13 +1271,30 @@ export class Translator {
           sections.push(`
           {
             const args = state.lastFrame;
-            if (args.length) {
+            while (args.length) {
+              // Loop for successive command resolution
               const cmdname = args[0];
               const [result, command] = resolver.resolveCommand(cmdname);
               if (result.code != ResultCode.OK) return result;
+              const lastCommand = state.command;
               state.command = command;
-              state.result = state.command.execute(args, context);
+              if (command == LAST_RESULT) {
+                // Intrinsic command: return last result = no-op
+              } else if (command == SHIFT_LAST_FRAME_RESULT) {
+                // Intrinsic command: swap last frame result with argument 1
+                if (args.length < 2 || lastCommand == command) {
+                  // No-op
+                } else {
+                  args[0] = args[1];
+                  args[1] = state.lastFrameResult().value;
+                  continue;
+                }
+              } else {
+                // Execute regular command
+                state.setResult(state.command.execute(args, context));
+              }
               if (state.result.code != ResultCode.OK) return state.result;
+              break;
             }
           }
           `);
@@ -1274,7 +1333,7 @@ export class Translator {
     }
     sections.push(`
     }
-    if (!state.empty()) state.result = OK(state.pop());
+    if (!state.empty()) state.setResult(OK(state.pop()));
     return state.result;
     `);
     return sections.join("\n");

@@ -31,6 +31,7 @@ import {
   ValueType,
   StringValue,
 } from "./values";
+import { LAST_RESULT, SHIFT_LAST_FRAME_RESULT } from "./intrinsics";
 
 const asString = (value) => StringValue.toString(value)[1];
 
@@ -3636,7 +3637,7 @@ describe("Compilation and execution", () => {
           });
           const state = new ProgramState();
           expect(executor.execute(program, state)).to.eql(BREAK(STR("1")));
-          state.result = OK(STR("2"));
+          state.setResult(OK(STR("2")));
           expect(executor.execute(program, state)).to.eql(OK(STR("2")));
         });
         it("should support resumable commands", () => {
@@ -3709,6 +3710,141 @@ describe("Compilation and execution", () => {
             YIELD(STR("step three"), 4)
           );
           expect(executor.execute(program, state)).to.eql(OK(STR("end")));
+        });
+      });
+
+      describe("Intrinsics", () => {
+        const evaluateString = (s) =>
+          evaluate(compiler.compileScript(parse(s)));
+        beforeEach(() => {
+          commandResolver.register("^", LAST_RESULT);
+          commandResolver.register("|>", SHIFT_LAST_FRAME_RESULT);
+        });
+
+        describe("LAST_RESULT", () => {
+          specify("initial", () => {
+            expect(evaluateString("^")).to.eql(NIL);
+          });
+          specify("simple", () => {
+            commandResolver.register(
+              "cmd",
+              new FunctionCommand(() => STR("value"))
+            );
+            expect(evaluateString("cmd; ^")).to.eql(STR("value"));
+          });
+          specify("multiple", () => {
+            commandResolver.register(
+              "cmd1",
+              new FunctionCommand(() => STR("value1"))
+            );
+            commandResolver.register(
+              "cmd2",
+              new FunctionCommand(() => STR("value2"))
+            );
+            commandResolver.register(
+              "join",
+              new FunctionCommand((args) =>
+                STR(args.slice(1).map(asString).join(" "))
+              )
+            );
+            expect(evaluateString("cmd1; join [^] [cmd2] [^]")).to.eql(
+              STR("value1 value2 value2")
+            );
+          });
+        });
+        describe("SHIFT_LAST_FRAME_RESULT", () => {
+          specify("initial", () => {
+            expect(evaluateString("|>")).to.eql(NIL);
+          });
+          specify("idempotent", () => {
+            commandResolver.register(
+              "cmd",
+              new FunctionCommand(() => STR("value"))
+            );
+            expect(evaluateString("cmd; |>")).to.eql(STR("value"));
+          });
+          specify("simple", () => {
+            commandResolver.register(
+              "cmd",
+              new FunctionCommand(() => STR("value"))
+            );
+            commandResolver.register(
+              "quote",
+              new FunctionCommand((args) => STR(`"` + asString(args[1]) + `"`))
+            );
+            expect(evaluateString("cmd; |> quote")).to.eql(STR(`"value"`));
+          });
+          specify("successive", () => {
+            commandResolver.register("cmd", new FunctionCommand(() => INT(1)));
+            commandResolver.register(
+              "double",
+              new FunctionCommand((args) =>
+                INT(IntegerValue.toInteger(args[1])[1] * 2)
+              )
+            );
+            expect(evaluateString("cmd; |> double")).to.eql(INT(2));
+            expect(evaluateString("cmd; |> double; |> double")).to.eql(INT(4));
+          });
+          specify("trailing arguments", () => {
+            commandResolver.register("cmd", new FunctionCommand(() => INT(1)));
+            commandResolver.register(
+              "add",
+              new FunctionCommand((args) =>
+                INT(
+                  IntegerValue.toInteger(args[1])[1] +
+                    IntegerValue.toInteger(args[2])[1]
+                )
+              )
+            );
+            expect(evaluateString("cmd; |> add 2 ")).to.eql(INT(3));
+          });
+          specify("recursive", () => {
+            commandResolver.register(
+              "cmd1",
+              new FunctionCommand(() => STR("concat"))
+            );
+            commandResolver.register(
+              "cmd2",
+              new FunctionCommand(() => STR("|>"))
+            );
+            commandResolver.register(
+              "concat",
+              new FunctionCommand((args) =>
+                STR(asString(args[1]) + asString(args[2]))
+              )
+            );
+            expect(evaluateString("cmd1; |>")).to.eql(STR("concat"));
+            expect(evaluateString("cmd1; |> |>")).to.eql(STR("concat"));
+            expect(evaluateString("cmd1; |> |> value")).to.eql(STR("concat"));
+            expect(evaluateString("cmd1; |> |> |>")).to.eql(STR("concat"));
+            expect(evaluateString("cmd2; |>")).to.eql(STR("|>"));
+            expect(evaluateString("cmd2; |> |>")).to.eql(STR("|>"));
+            expect(evaluateString("cmd2; |> |> value")).to.eql(STR("|>"));
+            expect(evaluateString("cmd2; |> |> |>")).to.eql(STR("|>"));
+          });
+        });
+        specify("combined", () => {
+          commandResolver.register(
+            "cmd1",
+            new FunctionCommand(() => STR("value1"))
+          );
+          commandResolver.register(
+            "cmd2",
+            new FunctionCommand(() => STR("value2"))
+          );
+          commandResolver.register(
+            "concat",
+            new FunctionCommand((args) =>
+              STR(asString(args[1]) + asString(args[2]))
+            )
+          );
+          expect(evaluateString("cmd1; |> concat [cmd2]")).to.eql(
+            STR("value1value2")
+          );
+          expect(evaluateString("cmd1; |> concat [^]")).to.eql(
+            STR("value1value1")
+          );
+          expect(evaluateString("cmd1; |> ^")).to.eql(STR("value1"));
         });
       });
     });
