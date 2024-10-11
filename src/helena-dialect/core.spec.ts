@@ -90,7 +90,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/
@@ -150,7 +150,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/
@@ -230,7 +230,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/
@@ -250,7 +250,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/
@@ -330,7 +330,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/
@@ -351,7 +351,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/
@@ -391,7 +391,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/
@@ -411,7 +411,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/
@@ -491,7 +491,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/
@@ -521,7 +521,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/
@@ -541,7 +541,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/
@@ -621,7 +621,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/
@@ -641,7 +641,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/
@@ -752,7 +752,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/
@@ -822,7 +822,7 @@ describe("Helena core internals", () => {
       expect(stack.depth()).to.equal(3);
       context = stack.currentContext();
       /***/
-      context.state.result = OK(STR("1"));
+      context.state.setResult(OK(STR("1")));
       result = context.scope.execute(context.program, context.state);
       /***/
       expect(result).to.eql(OK(STR("_1_")));
@@ -841,7 +841,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/
@@ -862,7 +862,7 @@ describe("Helena core internals", () => {
       expect(stack.depth()).to.equal(3);
       context = stack.currentContext();
       /***/
-      context.state.result = OK(STR("2"));
+      context.state.setResult(OK(STR("2")));
       result = context.scope.execute(context.program, context.state);
       /***/
       expect(result).to.eql(OK(STR("_2_")));
@@ -881,7 +881,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/
@@ -901,7 +901,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/
@@ -988,7 +988,7 @@ describe("Helena core internals", () => {
       context = stack.currentContext();
       /***/
       if (result.code == ResultCode.OK) {
-        context.state.result = result;
+        context.state.setResult(result);
         result = context.scope.execute(context.program, context.state);
       }
       /***/

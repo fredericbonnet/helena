@@ -10,7 +10,14 @@ import {
 } from "../core/results";
 import { Parser } from "../core/parser";
 import { Tokenizer } from "../core/tokenizer";
-import { CommandValue, NIL, STR, StringValue, TUPLE } from "../core/values";
+import {
+  CommandValue,
+  INT,
+  NIL,
+  STR,
+  StringValue,
+  TUPLE,
+} from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { codeBlock, describeCommand } from "./test-helpers";
@@ -628,6 +635,72 @@ describe("Helena basic commands", () => {
         rootScope.registerNamedCommand("cmd", command);
         expect(execute("help $cmd")).to.eql(ERROR("no help for command"));
         expect(execute("help cmd")).to.eql(ERROR('no help for command "cmd"'));
+      });
+    });
+  });
+
+  describeCommand("^", () => {
+    mochadoc.summary("Last result operator");
+    mochadoc.usage(codeBlock("^"));
+    mochadoc.description(() => {
+      /**
+       * The `^` command returns the last result of the current script.
+       */
+    });
+
+    mochadoc.section("Specifications", () => {
+      it("should return nil by default", () => {
+        expect(evaluate("^")).to.eql(NIL);
+      });
+      it("should return the last result of the current script", () => {
+        expect(evaluate("idem a; ^")).to.eql(STR("a"));
+      });
+      it("should reset between scripts", () => {
+        expect(evaluate("idem a; ^")).to.eql(STR("a"));
+        expect(evaluate(" ^")).to.eql(NIL);
+      });
+      it("should ignore its arguments", () => {
+        expect(evaluate("^ a b c")).to.eql(NIL);
+      });
+    });
+  });
+
+  describeCommand(["|>", "pipe"], () => {
+    mochadoc.summary("Pipe operator");
+    mochadoc.usage(codeBlock("|> ?arg ...?"));
+    mochadoc.description(() => {
+      /**
+       * The pipe operator `|>` passes the result of the previous sentence in
+       * the current script to the provided command.
+       */
+    });
+
+    mochadoc.section("Specifications", () => {
+      it("should return nil by default", () => {
+        expect(evaluate("|>")).to.eql(NIL);
+      });
+      it("should return the result of the previous sentence when used with no argument", () => {
+        expect(evaluate("string a; |>")).to.eql(STR("a"));
+      });
+      it("should accept a command as first argument to pipe the result into", () => {
+        expect(execute("string a; |> return")).to.eql(RETURN(STR("a")));
+      });
+      it("should accept extra arguments to pipe after the result", () => {
+        expect(evaluate("list (1 2 3); |> list length")).to.eql(INT(3));
+      });
+      it("should accept tuple commands", () => {
+        expect(evaluate("idem length; |> (string foo)")).to.eql(INT(3));
+        expect(evaluate("string a; |> (string b append) c")).to.eql(STR("bac"));
+      });
+      it("should work sequentially", () => {
+        expect(evaluate("list (1 2 3); |> list at 2; |> * 5")).to.eql(INT(15));
+      });
+      it("should reset between scripts", () => {
+        expect(evaluate("list (1 2 3); |> list length")).to.eql(INT(3));
+        expect(evaluate("|>")).to.eql(NIL);
+      });
+      it("should not propagate within blocks", () => {
+        expect(evaluate("string a; eval {|>}")).to.eql(NIL);
       });
     });
   });

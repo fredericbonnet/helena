@@ -12,5 +12,7 @@ source: src\helena-dialect\basic-commands.spec.ts
 - [`continue`](../../pages/helena-dialect/commands/continue.md) - Stop execution with `CONTINUE` code
 - [`eval`](../../pages/helena-dialect/commands/eval.md) - Evaluate a script
 - [`help`](../../pages/helena-dialect/commands/help.md) - Give usage of a command
+- [`^`](../../pages/helena-dialect/commands/^.md) - Last result operator
+- [`|>`](../../pages/helena-dialect/commands/pipe.md) - Pipe operator
 
 

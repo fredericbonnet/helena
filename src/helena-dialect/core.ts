@@ -188,17 +188,21 @@ export class Process {
       }
 
       // Yield back and resume current context
-      context.state.result = result;
+      context.state.setResult(result);
       result = context.scope.execute(context.program, context.state);
     }
     return result;
   }
+  setResult(result: Result) {
+    const context = this.stack.currentContext();
+    context.state.setResult(result);
+  }
   yieldBack(value: Value) {
     const context = this.stack.currentContext();
-    context.state.result = {
+    context.state.setResult({
       ...context.state.result,
       value,
-    };
+    });
   }
 }
 

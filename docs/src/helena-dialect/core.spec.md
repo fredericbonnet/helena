@@ -25,3 +25,9 @@ source: src\helena-dialect\core.spec.ts
   - ✅ captureErrorStack
   - ✅ captureErrorStack + capturePositions
 
+  - result error stack
+
+    - ✅ default options
+    - ✅ captureErrorStacks
+    - ✅ captureErrorStacks + capturePositions
+

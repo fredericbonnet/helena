@@ -19,6 +19,7 @@ import {
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { ContinuationValue, Scope } from "./core";
+import { LAST_RESULT, SHIFT_LAST_FRAME_RESULT } from "../core/intrinsics";
 
 const IDEM_SIGNATURE = "idem value";
 const idemCmd: Command = {
@@ -191,4 +192,6 @@ export function registerBasicCommands(scope: Scope) {
   scope.registerNamedCommand("continue", continueCmd);
   scope.registerNamedCommand("eval", evalCmd);
   scope.registerNamedCommand("help", helpCmd);
+  scope.registerNamedCommand("^", LAST_RESULT);
+  scope.registerNamedCommand("|>", SHIFT_LAST_FRAME_RESULT);
 }

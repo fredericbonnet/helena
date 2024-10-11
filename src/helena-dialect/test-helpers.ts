@@ -81,26 +81,37 @@ export const specifyExample =
     });
   };
 
+const pageNames = (nameOrPair: string | [string, string]): [string, string] =>
+  nameOrPair instanceof Array ? nameOrPair : [nameOrPair, nameOrPair];
 export const describeCommand = (
-  name: string,
+  names: string | [string, string],
   fn: (this: Mocha.Suite) => void
 ) => {
+  const [name, page] = pageNames(names);
   return describe("`" + name + "`", function (this: Mocha.Suite) {
-    mochadoc.meta({ page: "helena-dialect/commands/" + name });
+    mochadoc.meta({ page: "helena-dialect/commands/" + page });
     return fn.call(this);
   });
 };
 // eslint-disable-next-line jsdoc/require-jsdoc
-describeCommand.only = (name: string, fn: (this: Mocha.Suite) => void) => {
+describeCommand.only = (
+  names: string | [string, string],
+  fn: (this: Mocha.Suite) => void
+) => {
+  const [name, page] = pageNames(names);
   return describe.only("`" + name + "`", function (this: Mocha.Suite) {
-    mochadoc.meta({ page: "helena-dialect/commands/" + name });
+    mochadoc.meta({ page: "helena-dialect/commands/" + page });
     return fn.call(this);
   });
 };
 // eslint-disable-next-line jsdoc/require-jsdoc
-describeCommand.skip = (name: string, fn: (this: Mocha.Suite) => void) => {
+describeCommand.skip = (
+  names: string | [string, string],
+  fn: (this: Mocha.Suite) => void
+) => {
+  const [name, page] = pageNames(names);
   return describe.skip("`" + name + "`", function (this: Mocha.Suite) {
-    mochadoc.meta({ page: "helena-dialect/commands/" + name });
+    mochadoc.meta({ page: "helena-dialect/commands/" + page });
     return fn.call(this);
   });
 };

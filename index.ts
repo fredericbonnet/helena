@@ -16,6 +16,7 @@ import {
   Result,
   ResultCode,
   RESULT_CODE_NAME,
+  OK,
 } from "./src/core/results";
 import { Tokenizer, TokenType } from "./src/core/tokenizer";
 import { initCommands, Scope } from "./src/helena-dialect/helena-dialect";
@@ -30,6 +31,7 @@ import {
   ScriptValue,
   CustomValue,
   CommandValue,
+  NIL,
 } from "./src/core/values";
 import { displayListValue } from "./src/helena-dialect/lists";
 import { displayDictionaryValue } from "./src/helena-dialect/dicts";
@@ -169,6 +171,7 @@ function prompt() {
   });
 }
 
+let lastResult = OK(NIL);
 function run(scope: Scope, cmd, callback?: (err?: Error, result?) => void) {
   const input = new StringStream(cmd);
   const tokens = [];
@@ -197,7 +200,9 @@ function run(scope: Scope, cmd, callback?: (err?: Error, result?) => void) {
 
   const program = scope.compile(parseResult.script);
   const process = scope.prepareProcess(program);
+  process.setResult(lastResult);
   const result = process.run();
+  lastResult = result;
   if (result.code == ResultCode.ERROR) {
     printErrorStack(result.data as ErrorStack);
   }
