@@ -21,6 +21,7 @@ Tcl.
 - ✅ usage
 - ✅ should define a new command
 - ✅ should replace existing commands
+- ✅ should return a metacommand
 
 ## <a id="proc-exceptions"></a>Exceptions
 
@@ -44,11 +45,21 @@ Tcl.
 `proc` returns a metacommand value that can be used to introspect
 the newly created command.
 
-- ✅ should return a metacommand
-- ✅ the metacommand should return the procedure
+### Usage
 
-  The typical application of this property is to call the procedure by
-  wrapping its metacommand within brackets, e.g. `[$metacommand]`.
+```lna
+<metacommand> ?subcommand? ?arg ...?
+```
+
+
+### <a id="proc-metacommand-specifications"></a>Specifications
+
+- ✅ usage
+- ✅ the metacommand should return the procedure when called with no argument
+
+  The typical application of this property is to call the procedure
+  by wrapping its metacommand within brackets, e.g.
+  `[$metacommand]`.
 
 
 ### <a id="proc-metacommand-examples"></a>Examples
@@ -74,52 +85,60 @@ the newly created command.
 ### <a id="proc-metacommand-subcommands"></a>Subcommands
 
 
-- `subcommands`
+#### <a id="proc-metacommand-subcommands-subcommands"></a>`subcommands`
 
-  - ✅ should return list of subcommands
+```lna
+<metacommand> subcommands
+```
 
-    This subcommand is useful for introspection and interactive
-    calls.
+- ✅ should return list of subcommands
 
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-
-- `argspec`
-
-  - ✅ should return the procedure's argspec
-
-    Each procedure has an argspec command associated to it,
-    created with the procedure's `argspec` argument. This
-    subcommand will return it:
-
-    ```lna
-    [proc {a b} {}] argspec
-    # => {#{argspec: "a b"}#}
-    ```
-
-    This is identical to:
-
-    ```lna
-    argspec {a b}
-    ```
-
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+  This subcommand is useful for introspection and interactive
+  calls.
 
 
 - Exceptions
 
-  - ✅ unknown subcommand
-  - ✅ invalid subcommand name
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+
+#### <a id="proc-metacommand-subcommands-argspec"></a>`argspec`
+
+```lna
+<metacommand> argspec
+```
+
+- ✅ should return the procedure's argspec
+
+  Each procedure has an argspec command associated to it,
+  created with the procedure's `argspec` argument. This
+  subcommand will return it:
+
+  ```lna
+  [proc {a b} {}] argspec
+  # => {#{argspec: "a b"}#}
+  ```
+
+  This is identical to:
+
+  ```lna
+  argspec {a b}
+  ```
+
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+
+#### <a id="proc-metacommand-subcommands-exceptions"></a>Exceptions
+
+- ✅ unknown subcommand
+- ✅ invalid subcommand name
 

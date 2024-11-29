@@ -85,6 +85,10 @@ describe("Helena ensembles", () => {
         evaluate("ensemble cmd {} {}");
         expect(execute("ensemble cmd {} {}").code).to.eql(ResultCode.OK);
       });
+      it("should return a metacommand", () => {
+        expect(evaluate("ensemble {} {}").type).to.eql(ValueType.COMMAND);
+        expect(evaluate("ensemble cmd {} {}").type).to.eql(ValueType.COMMAND);
+      });
     });
 
     mochadoc.section("Exceptions", () => {
@@ -300,18 +304,25 @@ describe("Helena ensembles", () => {
          * the newly created command.
          */
       });
+      mochadoc.usage(usage("[ensemble {} {}]"));
 
-      it("should return a metacommand", () => {
-        expect(evaluate("ensemble {} {}").type).to.eql(ValueType.COMMAND);
-        expect(evaluate("ensemble cmd {} {}").type).to.eql(ValueType.COMMAND);
-      });
-      specify("the metacommand should return itself", () => {
-        const value = evaluate("set cmd [ensemble {} {}]");
-        expect(evaluate("$cmd")).to.eql(value);
+      mochadoc.section("Specifications", () => {
+        specify("usage", () => {
+          evaluate("set cmd [ensemble {} {}]");
+          expect(evaluate("help $cmd")).to.eql(
+            STR("<metacommand> ?subcommand? ?arg ...?")
+          );
+        });
+        specify("the metacommand should return itself", () => {
+          const value = evaluate("set cmd [ensemble {} {}]");
+          expect(evaluate("$cmd")).to.eql(value);
+        });
       });
 
       mochadoc.section("Subcommands", () => {
         describe("`subcommands`", () => {
+          mochadoc.description(usage("[ensemble {} {}] subcommands"));
+
           it("should return list of subcommands", () => {
             /**
              * This subcommand is useful for introspection and interactive
@@ -329,13 +340,18 @@ describe("Helena ensembles", () => {
                * given the wrong number of arguments.
                */
               expect(execute("[ensemble {} {}] subcommands a")).to.eql(
-                ERROR('wrong # args: should be "<ensemble> subcommands"')
+                ERROR('wrong # args: should be "<metacommand> subcommands"')
+              );
+              expect(execute("help [ensemble {} {}] subcommands a")).to.eql(
+                ERROR('wrong # args: should be "<metacommand> subcommands"')
               );
             });
           });
         });
 
         describe("`eval`", () => {
+          mochadoc.description(usage("[ensemble {} {}] eval"));
+
           it("should evaluate body in ensemble scope", () => {
             evaluate("ensemble cmd {} {let cst val}");
             expect(evaluate("[cmd] eval {get cst}")).to.eql(STR("val"));
@@ -453,10 +469,13 @@ describe("Helena ensembles", () => {
                * given the wrong number of arguments.
                */
               expect(execute("[ensemble {} {}] eval")).to.eql(
-                ERROR('wrong # args: should be "<ensemble> eval body"')
+                ERROR('wrong # args: should be "<metacommand> eval body"')
               );
               expect(execute("[ensemble {} {}] eval a b")).to.eql(
-                ERROR('wrong # args: should be "<ensemble> eval body"')
+                ERROR('wrong # args: should be "<metacommand> eval body"')
+              );
+              expect(execute("help [ensemble {} {}] eval a b")).to.eql(
+                ERROR('wrong # args: should be "<metacommand> eval body"')
               );
             });
             specify("invalid body", () => {
@@ -468,6 +487,8 @@ describe("Helena ensembles", () => {
         });
 
         describe("`call`", () => {
+          mochadoc.description(usage("[ensemble {} {}] call"));
+
           it("should call ensemble commands", () => {
             evaluate("ensemble cmd {} {macro mac {} {idem val}}");
             expect(evaluate("[cmd] call mac")).to.eql(STR("val"));
@@ -576,7 +597,7 @@ describe("Helena ensembles", () => {
                */
               expect(execute("[ensemble {} {}] call")).to.eql(
                 ERROR(
-                  'wrong # args: should be "<ensemble> call cmdname ?arg ...?"'
+                  'wrong # args: should be "<metacommand> call cmdname ?arg ...?"'
                 )
               );
             });
@@ -599,6 +620,8 @@ describe("Helena ensembles", () => {
         });
 
         describe("`argspec`", () => {
+          mochadoc.description(usage("[ensemble {} {}] argspec"));
+
           example("should return the ensemble's argspec", [
             {
               doc: () => {
@@ -632,13 +655,16 @@ describe("Helena ensembles", () => {
                * given the wrong number of arguments.
                */
               expect(execute("[ensemble {} {}] argspec a")).to.eql(
-                ERROR('wrong # args: should be "<ensemble> argspec"')
+                ERROR('wrong # args: should be "<metacommand> argspec"')
+              );
+              expect(execute("help [ensemble {} {}] argspec a")).to.eql(
+                ERROR('wrong # args: should be "<metacommand> argspec"')
               );
             });
           });
         });
 
-        describe("Exceptions", () => {
+        mochadoc.section("Exceptions", () => {
           specify("unknown subcommand", () => {
             expect(execute("[ensemble {} {}] unknownSubcommand")).to.eql(
               ERROR('unknown subcommand "unknownSubcommand"')
@@ -826,6 +852,7 @@ describe("Helena ensembles", () => {
             ensemble cmd {a} {
               macro opt1 {a b} {}
               closure opt2 {c d} {}
+              proc opt3 {e f} {}
             }
           `);
           expect(evaluate("help cmd")).to.eql(
@@ -841,6 +868,8 @@ describe("Helena ensembles", () => {
           expect(evaluate("help cmd 2 opt1 3")).to.eql(STR("cmd a opt1 b"));
           expect(evaluate("help cmd 4 opt2")).to.eql(STR("cmd a opt2 d"));
           expect(evaluate("help cmd 5 opt2 6")).to.eql(STR("cmd a opt2 d"));
+          expect(evaluate("help cmd 7 opt3")).to.eql(STR("cmd a opt3 f"));
+          expect(evaluate("help cmd 8 opt3 9")).to.eql(STR("cmd a opt3 f"));
         });
         it("should work recursively", () => {
           evaluate(`

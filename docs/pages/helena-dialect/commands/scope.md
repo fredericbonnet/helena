@@ -11,8 +11,8 @@ Create a scope command
 scope ?name? body
 ```
 
-The `scope` command creates a new command that will execute a script in
-its own child scope.
+The `scope` command creates a new command that will encapsulate a child
+scope.
 
 
 ## <a id="scope-specifications"></a>Specifications
@@ -20,9 +20,7 @@ its own child scope.
 - ✅ usage
 - ✅ should define a new command
 - ✅ should replace existing commands
-- ✅ should return a command object
-- ✅ the named command should return its command object
-- ✅ the command object should return itself
+- ✅ should return a scope value
 
 ## <a id="scope-exceptions"></a>Exceptions
 
@@ -84,116 +82,20 @@ propagated properly by the command.
   - ✅ should interrupt the body with `ERROR` code
   - ✅ should not define the scope command
 
-## <a id="scope-subcommands"></a>Subcommands
+## <a id="scope-scope-value"></a>Scope value
+
+`scope` returns a scope value that can be passed around and called by
+value instead of by name.
+
+### Usage
+
+```lna
+<scope> ?subcommand? ?arg ...?
+```
 
 
-- `subcommands`
+### <a id="scope-scope-value-specifications"></a>Specifications
 
-  - ✅ should return list of subcommands
-
-    This subcommand is useful for introspection and interactive
-    calls.
-
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-
-- `eval`
-
-  - ✅ should evaluate body
-  - ✅ should accept tuple bodies
-  - ✅ should evaluate macros in scope
-  - ✅ should evaluate closures in their scope
-
-  - Control flow
-
-
-    - `return`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `tailcall`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `yield`
-
-      - ✅ should interrupt the body with `YIELD` code
-      - ✅ should provide a resumable state
-
-    - `error`
-
-      - ✅ should interrupt the body with `ERROR` code
-
-    - `break`
-
-      - ✅ should interrupt the body with `BREAK` code
-
-    - `continue`
-
-      - ✅ should interrupt the body with `CONTINUE` code
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-    - ✅ invalid body
-
-- `call`
-
-  - ✅ should call scope commands
-  - ✅ should evaluate macros in scope
-  - ✅ should evaluate closures in scope
-
-  - Control flow
-
-
-    - `return`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `tailcall`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `yield`
-
-      - ✅ should interrupt the body with `YIELD` code
-      - ✅ should provide a resumable state
-
-    - `error`
-
-      - ✅ should interrupt the body with `ERROR` code
-
-    - `break`
-
-      - ✅ should interrupt the body with `BREAK` code
-
-    - `continue`
-
-      - ✅ should interrupt the body with `CONTINUE` code
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-    - ✅ unknown command
-    - ✅ out-of-scope command
-    - ✅ invalid command name
-
-- Exceptions
-
-  - ✅ unknown subcommand
-  - ✅ invalid subcommand name
+- ✅ usage
+- ✅ calling the scope value should return itself
 

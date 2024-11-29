@@ -19,6 +19,7 @@ The `macro` command creates a new macro command.
 - ✅ usage
 - ✅ should define a new command
 - ✅ should replace existing commands
+- ✅ should return a metacommand
 
 ## <a id="macro-exceptions"></a>Exceptions
 
@@ -42,8 +43,17 @@ The `macro` command creates a new macro command.
 `macro` returns a metacommand value that can be used to introspect
 the newly created command.
 
-- ✅ should return a metacommand
-- ✅ the metacommand should return the macro
+### Usage
+
+```lna
+<metacommand> ?subcommand? ?arg ...?
+```
+
+
+### <a id="macro-metacommand-specifications"></a>Specifications
+
+- ✅ usage
+- ✅ the metacommand should return the macro when called with no argument
 
   The typical application of this property is to call the macro by
   wrapping its metacommand within brackets, e.g. `[$metacommand]`.
@@ -72,52 +82,60 @@ the newly created command.
 ### <a id="macro-metacommand-subcommands"></a>Subcommands
 
 
-- `subcommands`
+#### <a id="macro-metacommand-subcommands-subcommands"></a>`subcommands`
 
-  - ✅ should return list of subcommands
+```lna
+<metacommand> subcommands
+```
 
-    This subcommand is useful for introspection and interactive
-    calls.
+- ✅ should return list of subcommands
 
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-
-- `argspec`
-
-  - ✅ should return the macro's argspec
-
-    Each macro has an argspec command associated to it, created
-    with the macro's `argspec` argument. This subcommand will
-    return it:
-
-    ```lna
-    [macro {a b} {}] argspec
-    # => {#{argspec: "a b"}#}
-    ```
-
-    This is identical to:
-
-    ```lna
-    argspec {a b}
-    ```
-
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+  This subcommand is useful for introspection and interactive
+  calls.
 
 
 - Exceptions
 
-  - ✅ unknown subcommand
-  - ✅ invalid subcommand name
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+
+#### <a id="macro-metacommand-subcommands-argspec"></a>`argspec`
+
+```lna
+<metacommand> argspec
+```
+
+- ✅ should return the macro's argspec
+
+  Each macro has an argspec command associated to it, created
+  with the macro's `argspec` argument. This subcommand will
+  return it:
+
+  ```lna
+  [macro {a b} {}] argspec
+  # => {#{argspec: "a b"}#}
+  ```
+
+  This is identical to:
+
+  ```lna
+  argspec {a b}
+  ```
+
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+
+#### <a id="macro-metacommand-subcommands-exceptions"></a>Exceptions
+
+- ✅ unknown subcommand
+- ✅ invalid subcommand name
 

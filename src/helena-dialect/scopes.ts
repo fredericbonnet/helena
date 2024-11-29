@@ -20,7 +20,7 @@ import { ARITY_ERROR } from "./arguments";
 import { ContinuationValue, Scope } from "./core";
 import { Subcommands } from "./subcommands";
 
-const SCOPE_SIGNATURE = "scope ?name? body";
+const SCOPE_COMMAND_PREFIX = (name) => StringValue.toString(name, "<scope>")[1];
 class ScopeCommand implements Command {
   readonly value: Value;
   readonly scope: Scope;
@@ -38,11 +38,13 @@ class ScopeCommand implements Command {
     if (args.length == 1) return OK(this.value);
     return ScopeCommand.subcommands.dispatch(args[1], {
       subcommands: () => {
-        if (args.length != 2) return ARITY_ERROR("<scope> subcommands");
+        if (args.length != 2)
+          return ARITY_ERROR(SCOPE_COMMAND_PREFIX(args[0]) + " subcommands");
         return OK(ScopeCommand.subcommands.list);
       },
       eval: () => {
-        if (args.length != 3) return ARITY_ERROR("<scope> eval body");
+        if (args.length != 3)
+          return ARITY_ERROR(SCOPE_COMMAND_PREFIX(args[0]) + " eval body");
         const body = args[2];
         let program;
         switch (body.type) {
@@ -59,7 +61,9 @@ class ScopeCommand implements Command {
       },
       call: () => {
         if (args.length < 3)
-          return ARITY_ERROR("<scope> call cmdname ?arg ...?");
+          return ARITY_ERROR(
+            SCOPE_COMMAND_PREFIX(args[0]) + " call cmdname ?arg ...?"
+          );
         const [result, command] = StringValue.toString(args[2]);
         if (result.code != ResultCode.OK) return ERROR("invalid command name");
         if (!this.scope.hasLocalCommand(command))
@@ -69,8 +73,29 @@ class ScopeCommand implements Command {
       },
     });
   }
+  help(args: Value[], { prefix, skip }): Result {
+    const usage = skip ? "" : SCOPE_COMMAND_PREFIX(args[0]);
+    const signature = [prefix, usage].filter(Boolean).join(" ");
+    if (args.length <= 1) {
+      return OK(STR(signature + " ?subcommand? ?arg ...?"));
+    }
+    return ScopeCommand.subcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length > 2) return ARITY_ERROR(signature + " subcommands");
+        return OK(STR(signature + " subcommands"));
+      },
+      eval: () => {
+        if (args.length > 3) return ARITY_ERROR(signature + " eval body");
+        return OK(STR(signature + "eval body"));
+      },
+      call: () => {
+        return OK(STR(signature + " call cmdname ?arg ...?"));
+      },
+    });
+  }
 }
 
+const SCOPE_SIGNATURE = "scope ?name? body";
 export const scopeCmd: Command = {
   execute: (args, scope: Scope) => {
     let name, body;

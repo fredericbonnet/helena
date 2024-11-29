@@ -73,6 +73,10 @@ describe("Helena procedures", () => {
         evaluate("proc cmd {} {}");
         expect(execute("proc cmd {} {}").code).to.eql(ResultCode.OK);
       });
+      it("should return a metacommand", () => {
+        expect(evaluate("proc {} {}").type).to.eql(ValueType.COMMAND);
+        expect(evaluate("proc cmd {} {}").type).to.eql(ValueType.COMMAND);
+      });
     });
 
     mochadoc.section("Exceptions", () => {
@@ -120,19 +124,29 @@ describe("Helena procedures", () => {
          */
       });
 
-      it("should return a metacommand", () => {
-        expect(evaluate("proc {} {}").type).to.eql(ValueType.COMMAND);
-        expect(evaluate("proc cmd {} {}").type).to.eql(ValueType.COMMAND);
-      });
-      specify("the metacommand should return the procedure", () => {
-        /**
-         * The typical application of this property is to call the procedure by
-         * wrapping its metacommand within brackets, e.g. `[$metacommand]`.
-         */
-        const value = evaluate("set cmd [proc {val} {idem _${val}_}]");
-        expect(evaluate("$cmd").type).to.eql(ValueType.COMMAND);
-        expect(evaluate("$cmd")).to.not.eql(value);
-        expect(evaluate("[$cmd] arg")).to.eql(STR("_arg_"));
+      mochadoc.usage(usage("[proc {} {}]"));
+
+      mochadoc.section("Specifications", () => {
+        specify("usage", () => {
+          evaluate("set cmd [proc {} {}]");
+          expect(evaluate("help $cmd")).to.eql(
+            STR("<metacommand> ?subcommand? ?arg ...?")
+          );
+        });
+        specify(
+          "the metacommand should return the procedure when called with no argument",
+          () => {
+            /**
+             * The typical application of this property is to call the procedure
+             * by wrapping its metacommand within brackets, e.g.
+             * `[$metacommand]`.
+             */
+            const value = evaluate("set cmd [proc {val} {idem _${val}_}]");
+            expect(evaluate("$cmd").type).to.eql(ValueType.COMMAND);
+            expect(evaluate("$cmd")).to.not.eql(value);
+            expect(evaluate("[$cmd] arg")).to.eql(STR("_arg_"));
+          }
+        );
       });
 
       mochadoc.section("Examples", () => {
@@ -165,6 +179,8 @@ describe("Helena procedures", () => {
 
       mochadoc.section("Subcommands", () => {
         describe("`subcommands`", () => {
+          mochadoc.description(usage("[proc {} {}] subcommands"));
+
           it("should return list of subcommands", () => {
             /**
              * This subcommand is useful for introspection and interactive
@@ -182,13 +198,18 @@ describe("Helena procedures", () => {
                * given the wrong number of arguments.
                */
               expect(execute("[proc {} {}] subcommands a")).to.eql(
-                ERROR('wrong # args: should be "<proc> subcommands"')
+                ERROR('wrong # args: should be "<metacommand> subcommands"')
+              );
+              expect(execute("help [proc {} {}] subcommands a")).to.eql(
+                ERROR('wrong # args: should be "<metacommand> subcommands"')
               );
             });
           });
         });
 
         describe("`argspec`", () => {
+          mochadoc.description(usage("[proc {} {}] argspec"));
+
           example("should return the procedure's argspec", [
             {
               doc: () => {
@@ -222,13 +243,16 @@ describe("Helena procedures", () => {
                * given the wrong number of arguments.
                */
               expect(execute("[proc {} {}] argspec a")).to.eql(
-                ERROR('wrong # args: should be "<proc> argspec"')
+                ERROR('wrong # args: should be "<metacommand> argspec"')
+              );
+              expect(execute("help [proc {} {}] argspec a")).to.eql(
+                ERROR('wrong # args: should be "<metacommand> argspec"')
               );
             });
           });
         });
 
-        describe("Exceptions", () => {
+        mochadoc.section("Exceptions", () => {
           specify("unknown subcommand", () => {
             expect(execute("[proc {} {}] unknownSubcommand")).to.eql(
               ERROR('unknown subcommand "unknownSubcommand"')

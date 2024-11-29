@@ -50,6 +50,8 @@ class ExportCommand implements Command {
   }
 }
 
+const MODULE_COMMAND_PREFIX = (name) =>
+  StringValue.toString(name, "<module>")[1];
 export class Module implements Command {
   readonly value: Value;
   readonly scope: Scope;
@@ -69,16 +71,20 @@ export class Module implements Command {
     if (args.length == 1) return OK(this.value);
     return Module.subcommands.dispatch(args[1], {
       subcommands: () => {
-        if (args.length != 2) return ARITY_ERROR("<module> subcommands");
+        if (args.length != 2)
+          return ARITY_ERROR(MODULE_COMMAND_PREFIX(args[0]) + " subcommands");
         return OK(Module.subcommands.list);
       },
       exports: () => {
-        if (args.length != 2) return ARITY_ERROR("<module> exports");
+        if (args.length != 2)
+          return ARITY_ERROR(MODULE_COMMAND_PREFIX(args[0]) + " exports");
         return OK(LIST([...this.exports.values()]));
       },
       import: () => {
         if (args.length != 3 && args.length != 4)
-          return ARITY_ERROR("<module> import name ?alias?");
+          return ARITY_ERROR(
+            MODULE_COMMAND_PREFIX(args[0]) + " import name ?alias?"
+          );
         return importCommand(
           args[2],
           args.length == 4 ? args[3] : args[2],
@@ -86,6 +92,28 @@ export class Module implements Command {
           this.scope,
           scope
         );
+      },
+    });
+  }
+  help(args: Value[], { prefix, skip }): Result {
+    const usage = skip ? "" : MODULE_COMMAND_PREFIX(args[0]);
+    const signature = [prefix, usage].filter(Boolean).join(" ");
+    if (args.length <= 1) {
+      return OK(STR(signature + " ?subcommand? ?arg ...?"));
+    }
+    return Module.subcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length > 2) return ARITY_ERROR(signature + " subcommands");
+        return OK(STR(signature + " subcommands"));
+      },
+      exports: () => {
+        if (args.length > 2) return ARITY_ERROR(signature + " exports");
+        return OK(STR(signature + " exports"));
+      },
+      import: () => {
+        if (args.length > 4)
+          return ARITY_ERROR(signature + " import name ?alias?");
+        return OK(STR(signature + " import name ?alias?"));
       },
     });
   }

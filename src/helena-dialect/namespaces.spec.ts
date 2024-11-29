@@ -74,6 +74,10 @@ describe("Helena namespaces", () => {
         evaluate("namespace cmd {}");
         expect(execute("namespace cmd {}").code).to.eql(ResultCode.OK);
       });
+      it("should return a metacommand", () => {
+        expect(evaluate("namespace {}").type).to.eql(ValueType.COMMAND);
+        expect(evaluate("namespace cmd {}").type).to.eql(ValueType.COMMAND);
+      });
     });
 
     mochadoc.section("Exceptions", () => {
@@ -269,18 +273,25 @@ describe("Helena namespaces", () => {
          * introspect the newly created command.
          */
       });
+      mochadoc.usage(usage("[namespace {}]"));
 
-      it("should return a metacommand", () => {
-        expect(evaluate("namespace {}").type).to.eql(ValueType.COMMAND);
-        expect(evaluate("namespace cmd {}").type).to.eql(ValueType.COMMAND);
-      });
-      specify("the metacommand should return itself", () => {
-        const value = evaluate("set cmd [namespace {}]");
-        expect(evaluate("$cmd")).to.eql(value);
+      mochadoc.section("Specifications", () => {
+        specify("usage", () => {
+          evaluate("set cmd [namespace {}]");
+          expect(evaluate("help $cmd")).to.eql(
+            STR("<metacommand> ?subcommand? ?arg ...?")
+          );
+        });
+        specify("the metacommand should return itself", () => {
+          const value = evaluate("set cmd [namespace {}]");
+          expect(evaluate("$cmd")).to.eql(value);
+        });
       });
 
       mochadoc.section("Subcommands", () => {
         describe("`subcommands`", () => {
+          mochadoc.description(usage("[namespace {}] subcommands"));
+
           it("should return list of subcommands", () => {
             /**
              * This subcommand is useful for introspection and interactive
@@ -298,13 +309,18 @@ describe("Helena namespaces", () => {
                * given the wrong number of arguments.
                */
               expect(execute("[namespace {}] subcommands a")).to.eql(
-                ERROR('wrong # args: should be "<namespace> subcommands"')
+                ERROR('wrong # args: should be "<metacommand> subcommands"')
+              );
+              expect(execute("help [namespace {}] subcommands a")).to.eql(
+                ERROR('wrong # args: should be "<metacommand> subcommands"')
               );
             });
           });
         });
 
         describe("`eval`", () => {
+          mochadoc.description(usage("[namespace {}] eval"));
+
           it("should evaluate body in namespace scope", () => {
             evaluate("namespace cmd {let cst val}");
             expect(evaluate("[cmd] eval {get cst}")).to.eql(STR("val"));
@@ -422,10 +438,13 @@ describe("Helena namespaces", () => {
                * given the wrong number of arguments.
                */
               expect(execute("[namespace {}] eval")).to.eql(
-                ERROR('wrong # args: should be "<namespace> eval body"')
+                ERROR('wrong # args: should be "<metacommand> eval body"')
               );
               expect(execute("[namespace {}] eval a b")).to.eql(
-                ERROR('wrong # args: should be "<namespace> eval body"')
+                ERROR('wrong # args: should be "<metacommand> eval body"')
+              );
+              expect(execute("help [namespace {}] eval a b")).to.eql(
+                ERROR('wrong # args: should be "<metacommand> eval body"')
               );
             });
             specify("invalid body", () => {
@@ -437,6 +456,8 @@ describe("Helena namespaces", () => {
         });
 
         describe("`call`", () => {
+          mochadoc.description(usage("[namespace {}] call"));
+
           it("should call namespace commands", () => {
             evaluate("namespace cmd {macro mac {} {idem val}}");
             expect(evaluate("[cmd] call mac")).to.eql(STR("val"));
@@ -542,7 +563,7 @@ describe("Helena namespaces", () => {
                */
               expect(execute("[namespace {}] call")).to.eql(
                 ERROR(
-                  'wrong # args: should be "<namespace> call cmdname ?arg ...?"'
+                  'wrong # args: should be "<metacommand> call cmdname ?arg ...?"'
                 )
               );
             });
@@ -565,6 +586,8 @@ describe("Helena namespaces", () => {
         });
 
         describe("`import`", () => {
+          mochadoc.description(usage("[namespace {}] import"));
+
           it("should declare imported commands in the calling scope", () => {
             evaluate(`namespace ns {macro cmd {} {idem value}}`);
             evaluate("[ns] import cmd");
@@ -623,12 +646,17 @@ describe("Helena namespaces", () => {
                */
               expect(execute("[namespace {}] import")).to.eql(
                 ERROR(
-                  'wrong # args: should be "<namespace> import name ?alias?"'
+                  'wrong # args: should be "<metacommand> import name ?alias?"'
                 )
               );
               expect(execute("[namespace {}] import a b c")).to.eql(
                 ERROR(
-                  'wrong # args: should be "<namespace> import name ?alias?"'
+                  'wrong # args: should be "<metacommand> import name ?alias?"'
+                )
+              );
+              expect(execute("help [namespace {}] import a b c")).to.eql(
+                ERROR(
+                  'wrong # args: should be "<metacommand> import name ?alias?"'
                 )
               );
             });
@@ -650,7 +678,7 @@ describe("Helena namespaces", () => {
           });
         });
 
-        describe("Exceptions", () => {
+        mochadoc.section("Exceptions", () => {
           specify("unknown subcommand", () => {
             expect(execute("[namespace {}] unknownSubcommand")).to.eql(
               ERROR('unknown subcommand "unknownSubcommand"')
@@ -762,6 +790,10 @@ describe("Helena namespaces", () => {
             namespace cmd {
               macro opt1 {a} {}
               closure opt2 {b} {}
+              proc opt3 {c} {}
+              scope opt4 {}
+              ensemble opt5 {d} {}
+              module opt6 {}
             }
           `);
           expect(evaluate("help cmd")).to.eql(
@@ -774,6 +806,26 @@ describe("Helena namespaces", () => {
           expect(evaluate("help cmd opt1 1")).to.eql(STR("cmd opt1 a"));
           expect(evaluate("help cmd opt2")).to.eql(STR("cmd opt2 b"));
           expect(evaluate("help cmd opt2 2")).to.eql(STR("cmd opt2 b"));
+          expect(evaluate("help cmd opt3")).to.eql(STR("cmd opt3 c"));
+          expect(evaluate("help cmd opt3 3")).to.eql(STR("cmd opt3 c"));
+          expect(evaluate("help cmd opt4")).to.eql(
+            STR("cmd opt4 ?subcommand? ?arg ...?")
+          );
+          expect(evaluate("help cmd opt4 subcommands")).to.eql(
+            STR("cmd opt4 subcommands")
+          );
+          expect(evaluate("help cmd opt5")).to.eql(
+            STR("cmd opt5 d ?subcommand? ?arg ...?")
+          );
+          expect(evaluate("help cmd opt5 5")).to.eql(
+            STR("cmd opt5 d ?subcommand? ?arg ...?")
+          );
+          expect(evaluate("help cmd opt6")).to.eql(
+            STR("cmd opt6 ?subcommand? ?arg ...?")
+          );
+          expect(evaluate("help cmd opt6 subcommands")).to.eql(
+            STR("cmd opt6 subcommands")
+          );
         });
         it("should work recursively", () => {
           evaluate(`

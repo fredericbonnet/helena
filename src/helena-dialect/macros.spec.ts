@@ -78,6 +78,10 @@ describe("Helena macros", () => {
         evaluate("macro cmd {} {}");
         expect(execute("macro cmd {} {}").code).to.eql(ResultCode.OK);
       });
+      it("should return a metacommand", () => {
+        expect(evaluate("macro {} {}").type).to.eql(ValueType.COMMAND);
+        expect(evaluate("macro cmd {} {}").type).to.eql(ValueType.COMMAND);
+      });
     });
 
     mochadoc.section("Exceptions", () => {
@@ -127,20 +131,28 @@ describe("Helena macros", () => {
          * the newly created command.
          */
       });
+      mochadoc.usage(usage("[macro {} {}]"));
 
-      it("should return a metacommand", () => {
-        expect(evaluate("macro {} {}").type).to.eql(ValueType.COMMAND);
-        expect(evaluate("macro cmd {} {}").type).to.eql(ValueType.COMMAND);
-      });
-      specify("the metacommand should return the macro", () => {
-        /**
-         * The typical application of this property is to call the macro by
-         * wrapping its metacommand within brackets, e.g. `[$metacommand]`.
-         */
-        const value = evaluate("set cmd [macro {val} {idem _${val}_}]");
-        expect(evaluate("$cmd").type).to.eql(ValueType.COMMAND);
-        expect(evaluate("$cmd")).to.not.eql(value);
-        expect(evaluate("[$cmd] arg")).to.eql(STR("_arg_"));
+      mochadoc.section("Specifications", () => {
+        specify("usage", () => {
+          evaluate("set cmd [macro {} {}]");
+          expect(evaluate("help $cmd")).to.eql(
+            STR("<metacommand> ?subcommand? ?arg ...?")
+          );
+        });
+        specify(
+          "the metacommand should return the macro when called with no argument",
+          () => {
+            /**
+             * The typical application of this property is to call the macro by
+             * wrapping its metacommand within brackets, e.g. `[$metacommand]`.
+             */
+            const value = evaluate("set cmd [macro {val} {idem _${val}_}]");
+            expect(evaluate("$cmd").type).to.eql(ValueType.COMMAND);
+            expect(evaluate("$cmd")).to.not.eql(value);
+            expect(evaluate("[$cmd] arg")).to.eql(STR("_arg_"));
+          }
+        );
       });
 
       mochadoc.section("Examples", () => {
@@ -173,6 +185,8 @@ describe("Helena macros", () => {
 
       mochadoc.section("Subcommands", () => {
         describe("`subcommands`", () => {
+          mochadoc.description(usage("[macro {} {}] subcommands"));
+
           it("should return list of subcommands", () => {
             /**
              * This subcommand is useful for introspection and interactive
@@ -190,13 +204,18 @@ describe("Helena macros", () => {
                * given the wrong number of arguments.
                */
               expect(execute("[macro {} {}] subcommands a")).to.eql(
-                ERROR('wrong # args: should be "<macro> subcommands"')
+                ERROR('wrong # args: should be "<metacommand> subcommands"')
+              );
+              expect(execute("help [macro {} {}] subcommands a")).to.eql(
+                ERROR('wrong # args: should be "<metacommand> subcommands"')
               );
             });
           });
         });
 
         describe("`argspec`", () => {
+          mochadoc.description(usage("[macro {} {}] argspec"));
+
           example("should return the macro's argspec", [
             {
               doc: () => {
@@ -230,13 +249,16 @@ describe("Helena macros", () => {
                * given the wrong number of arguments.
                */
               expect(execute("[macro {} {}] argspec a")).to.eql(
-                ERROR('wrong # args: should be "<macro> argspec"')
+                ERROR('wrong # args: should be "<metacommand> argspec"')
+              );
+              expect(execute("help [macro {} {}] argspec a")).to.eql(
+                ERROR('wrong # args: should be "<metacommand> argspec"')
               );
             });
           });
         });
 
-        describe("Exceptions", () => {
+        mochadoc.section("Exceptions", () => {
           specify("unknown subcommand", () => {
             expect(execute("[macro {} {}] unknownSubcommand")).to.eql(
               ERROR('unknown subcommand "unknownSubcommand"')

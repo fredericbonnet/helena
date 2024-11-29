@@ -28,12 +28,26 @@ class ClosureMetacommand implements Command {
     if (args.length == 1) return OK(this.closure.value);
     return ClosureMetacommand.subcommands.dispatch(args[1], {
       subcommands: () => {
-        if (args.length != 2) return ARITY_ERROR("<closure> subcommands");
+        if (args.length != 2) return ARITY_ERROR("<metacommand> subcommands");
         return OK(ClosureMetacommand.subcommands.list);
       },
       argspec: () => {
-        if (args.length != 2) return ARITY_ERROR("<closure> argspec");
+        if (args.length != 2) return ARITY_ERROR("<metacommand> argspec");
         return OK(this.closure.argspec);
+      },
+    });
+  }
+  help(args: Value[]): Result {
+    if (args.length == 1)
+      return OK(STR("<metacommand> ?subcommand? ?arg ...?"));
+    return ClosureMetacommand.subcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length > 2) return ARITY_ERROR("<metacommand> subcommands");
+        return OK(STR("<metacommand> subcommands"));
+      },
+      argspec: () => {
+        if (args.length > 2) return ARITY_ERROR("<metacommand> argspec");
+        return OK(STR("<metacommand> argspec"));
       },
     });
   }

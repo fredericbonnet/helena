@@ -11,8 +11,8 @@ Create a module command
 module ?name? body
 ```
 
-The `module` command creates a new command that will execute a script
-in its own isolated root scope.
+The `module` command creates a new command that will encapsulate an
+isolated root scope.
 
 
 ## <a id="module-specifications"></a>Specifications
@@ -20,9 +20,7 @@ in its own isolated root scope.
 - ✅ usage
 - ✅ should define a new command
 - ✅ should replace existing commands
-- ✅ should return a command object
-- ✅ the named command should return its command object
-- ✅ the command object should return itself
+- ✅ should return a module value
 
 ## <a id="module-exceptions"></a>Exceptions
 
@@ -86,62 +84,20 @@ propagated properly by the command.
   - ✅ should interrupt the body with `ERROR` code
   - ✅ should not define the module command
 
-## <a id="module-subcommands"></a>Subcommands
+## <a id="module-module-value"></a>Module value
+
+`module` returns a module value that can be passed around and called
+by value instead of by name.
+
+### Usage
+
+```lna
+<module> ?subcommand? ?arg ...?
+```
 
 
-- `subcommands`
+### <a id="module-module-value-specifications"></a>Specifications
 
-  - ✅ should return list of subcommands
-
-    This subcommand is useful for introspection and interactive
-    calls.
-
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-
-- `exports`
-
-  - ✅ should return a list
-  - ✅ should return the list of module exports
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-
-- `import`
-
-  - ✅ should declare imported commands in the calling scope
-  - ✅ should return nil
-  - ✅ should replace existing commands
-  - ✅ should evaluate macros in the caller scope
-  - ✅ should evaluate closures in their scope
-  - ✅ should resolve exported commands at call time
-  - ✅ should accept an optional alias name
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-    - ✅ unknown export
-    - ✅ unresolved export
-    - ✅ invalid import name
-    - ✅ invalid alias name
-
-- Exceptions
-
-  - ✅ unknown subcommand
-  - ✅ invalid subcommand name
+- ✅ usage
+- ✅ calling the module value should return itself
 

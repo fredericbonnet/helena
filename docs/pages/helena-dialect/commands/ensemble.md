@@ -19,6 +19,7 @@ The `ensemble` command creates a new ensemble command.
 - ✅ usage
 - ✅ should define a new command
 - ✅ should replace existing commands
+- ✅ should return a metacommand
 
 ## <a id="ensemble-exceptions"></a>Exceptions
 
@@ -94,147 +95,172 @@ propagated properly by the command.
 `ensemble` returns a metacommand value that can be used to introspect
 the newly created command.
 
-- ✅ should return a metacommand
+### Usage
+
+```lna
+<metacommand> ?subcommand? ?arg ...?
+```
+
+
+### <a id="ensemble-metacommand-specifications"></a>Specifications
+
+- ✅ usage
 - ✅ the metacommand should return itself
 
 ### <a id="ensemble-metacommand-subcommands"></a>Subcommands
 
 
-- `subcommands`
+#### <a id="ensemble-metacommand-subcommands-subcommands"></a>`subcommands`
 
-  - ✅ should return list of subcommands
+```lna
+<metacommand> subcommands
+```
 
-    This subcommand is useful for introspection and interactive
-    calls.
+- ✅ should return list of subcommands
 
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-
-- `eval`
-
-  - ✅ should evaluate body in ensemble scope
-  - ✅ should accept tuple bodies
-  - ✅ should evaluate macros in ensemble scope
-  - ✅ should evaluate closures in their scope
-
-  - Control flow
-
-
-    - `return`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `tailcall`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `yield`
-
-      - ✅ should interrupt the body with `YIELD` code
-      - ✅ should provide a resumable state
-
-    - `error`
-
-      - ✅ should interrupt the body with `ERROR` code
-
-    - `break`
-
-      - ✅ should interrupt the body with `BREAK` code
-
-    - `continue`
-
-      - ✅ should interrupt the body with `CONTINUE` code
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-    - ✅ invalid body
-
-- `call`
-
-  - ✅ should call ensemble commands
-  - ✅ should evaluate macros in the caller scope
-  - ✅ should evaluate ensemble closures in ensemble scope
-
-  - Control flow
-
-
-    - `return`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `tailcall`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `yield`
-
-      - ✅ should interrupt the call with `YIELD` code
-      - ✅ should provide a resumable state
-
-    - `error`
-
-      - ✅ should interrupt the body with `ERROR` code
-
-    - `break`
-
-      - ✅ should interrupt the body with `BREAK` code
-
-    - `continue`
-
-      - ✅ should interrupt the body with `CONTINUE` code
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-    - ✅ unknown command
-    - ✅ out-of-scope command
-    - ✅ invalid command name
-
-- `argspec`
-
-  - ✅ should return the ensemble's argspec
-
-    Each ensemble has an argspec command associated to it,
-    created with the ensemble's `argspec` argument. This
-    subcommand will return it:
-
-    ```lna
-    [ensemble {a b} {}] argspec
-    # => {#{argspec: "a b"}#}
-    ```
-
-    This is identical to:
-
-    ```lna
-    argspec {a b}
-    ```
-
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+  This subcommand is useful for introspection and interactive
+  calls.
 
 
 - Exceptions
 
-  - ✅ unknown subcommand
-  - ✅ invalid subcommand name
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+
+#### <a id="ensemble-metacommand-subcommands-eval"></a>`eval`
+
+```lna
+<metacommand> eval body
+```
+
+- ✅ should evaluate body in ensemble scope
+- ✅ should accept tuple bodies
+- ✅ should evaluate macros in ensemble scope
+- ✅ should evaluate closures in their scope
+
+- Control flow
+
+
+  - `return`
+
+    - ✅ should interrupt the body with `RETURN` code
+
+  - `tailcall`
+
+    - ✅ should interrupt the body with `RETURN` code
+
+  - `yield`
+
+    - ✅ should interrupt the body with `YIELD` code
+    - ✅ should provide a resumable state
+
+  - `error`
+
+    - ✅ should interrupt the body with `ERROR` code
+
+  - `break`
+
+    - ✅ should interrupt the body with `BREAK` code
+
+  - `continue`
+
+    - ✅ should interrupt the body with `CONTINUE` code
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+  - ✅ invalid body
+
+#### <a id="ensemble-metacommand-subcommands-call"></a>`call`
+
+```lna
+<metacommand> call cmdname ?arg ...?
+```
+
+- ✅ should call ensemble commands
+- ✅ should evaluate macros in the caller scope
+- ✅ should evaluate ensemble closures in ensemble scope
+
+- Control flow
+
+
+  - `return`
+
+    - ✅ should interrupt the body with `RETURN` code
+
+  - `tailcall`
+
+    - ✅ should interrupt the body with `RETURN` code
+
+  - `yield`
+
+    - ✅ should interrupt the call with `YIELD` code
+    - ✅ should provide a resumable state
+
+  - `error`
+
+    - ✅ should interrupt the body with `ERROR` code
+
+  - `break`
+
+    - ✅ should interrupt the body with `BREAK` code
+
+  - `continue`
+
+    - ✅ should interrupt the body with `CONTINUE` code
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+  - ✅ unknown command
+  - ✅ out-of-scope command
+  - ✅ invalid command name
+
+#### <a id="ensemble-metacommand-subcommands-argspec"></a>`argspec`
+
+```lna
+<metacommand> argspec
+```
+
+- ✅ should return the ensemble's argspec
+
+  Each ensemble has an argspec command associated to it,
+  created with the ensemble's `argspec` argument. This
+  subcommand will return it:
+
+  ```lna
+  [ensemble {a b} {}] argspec
+  # => {#{argspec: "a b"}#}
+  ```
+
+  This is identical to:
+
+  ```lna
+  argspec {a b}
+  ```
+
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+
+#### <a id="ensemble-metacommand-subcommands-exceptions"></a>Exceptions
+
+- ✅ unknown subcommand
+- ✅ invalid subcommand name
 

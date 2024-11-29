@@ -19,6 +19,7 @@ The `closure` command creates a new closure command.
 - ✅ usage
 - ✅ should define a new command
 - ✅ should replace existing commands
+- ✅ should return a metacommand
 
 ## <a id="closure-exceptions"></a>Exceptions
 
@@ -42,11 +43,21 @@ The `closure` command creates a new closure command.
 `closure` returns a metacommand value that can be used to introspect
 the newly created command.
 
-- ✅ should return a metacommand
-- ✅ the metacommand should return the closure
+### Usage
 
-  The typical application of this property is to call the closure by
-  wrapping its metacommand within brackets, e.g. `[$metacommand]`.
+```lna
+<metacommand> ?subcommand? ?arg ...?
+```
+
+
+### <a id="closure-metacommand-specifications"></a>Specifications
+
+- ✅ usage
+- ✅ the metacommand should return the closure when called with no argument
+
+  The typical application of this property is to call the closure
+  by wrapping its metacommand within brackets, e.g.
+  `[$metacommand]`.
 
 
 ### <a id="closure-metacommand-examples"></a>Examples
@@ -72,52 +83,60 @@ the newly created command.
 ### <a id="closure-metacommand-subcommands"></a>Subcommands
 
 
-- `subcommands`
+#### <a id="closure-metacommand-subcommands-subcommands"></a>`subcommands`
 
-  - ✅ should return list of subcommands
+```lna
+<metacommand> subcommands
+```
 
-    This subcommand is useful for introspection and interactive
-    calls.
+- ✅ should return list of subcommands
 
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-
-- `argspec`
-
-  - ✅ should return the closure's argspec
-
-    Each closure has an argspec command associated to it, created
-    with the closure's `argspec` argument. This subcommand will
-    return it:
-
-    ```lna
-    [closure {a b} {}] argspec
-    # => {#{argspec: "a b"}#}
-    ```
-
-    This is identical to:
-
-    ```lna
-    argspec {a b}
-    ```
-
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
+  This subcommand is useful for introspection and interactive
+  calls.
 
 
 - Exceptions
 
-  - ✅ unknown subcommand
-  - ✅ invalid subcommand name
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+
+#### <a id="closure-metacommand-subcommands-argspec"></a>`argspec`
+
+```lna
+<metacommand> argspec
+```
+
+- ✅ should return the closure's argspec
+
+  Each closure has an argspec command associated to it, created
+  with the closure's `argspec` argument. This subcommand will
+  return it:
+
+  ```lna
+  [closure {a b} {}] argspec
+  # => {#{argspec: "a b"}#}
+  ```
+
+  This is identical to:
+
+  ```lna
+  argspec {a b}
+  ```
+
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+
+#### <a id="closure-metacommand-subcommands-exceptions"></a>Exceptions
+
+- ✅ unknown subcommand
+- ✅ invalid subcommand name
 

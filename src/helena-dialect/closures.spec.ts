@@ -80,6 +80,10 @@ describe("Helena closures", () => {
         evaluate("closure cmd {} {}");
         expect(execute("closure cmd {} {}").code).to.eql(ResultCode.OK);
       });
+      it("should return a metacommand", () => {
+        expect(evaluate("closure {} {}").type).to.eql(ValueType.COMMAND);
+        expect(evaluate("closure cmd {} {}").type).to.eql(ValueType.COMMAND);
+      });
     });
 
     mochadoc.section("Exceptions", () => {
@@ -131,20 +135,29 @@ describe("Helena closures", () => {
          * the newly created command.
          */
       });
+      mochadoc.usage(usage("[closure {} {}]"));
 
-      it("should return a metacommand", () => {
-        expect(evaluate("closure {} {}").type).to.eql(ValueType.COMMAND);
-        expect(evaluate("closure cmd {} {}").type).to.eql(ValueType.COMMAND);
-      });
-      specify("the metacommand should return the closure", () => {
-        /**
-         * The typical application of this property is to call the closure by
-         * wrapping its metacommand within brackets, e.g. `[$metacommand]`.
-         */
-        const value = evaluate("set cmd [closure {val} {idem _${val}_}]");
-        expect(evaluate("$cmd").type).to.eql(ValueType.COMMAND);
-        expect(evaluate("$cmd")).to.not.eql(value);
-        expect(evaluate("[$cmd] arg")).to.eql(STR("_arg_"));
+      mochadoc.section("Specifications", () => {
+        specify("usage", () => {
+          evaluate("set cmd [closure {} {}]");
+          expect(evaluate("help $cmd")).to.eql(
+            STR("<metacommand> ?subcommand? ?arg ...?")
+          );
+        });
+        specify(
+          "the metacommand should return the closure when called with no argument",
+          () => {
+            /**
+             * The typical application of this property is to call the closure
+             * by wrapping its metacommand within brackets, e.g.
+             * `[$metacommand]`.
+             */
+            const value = evaluate("set cmd [closure {val} {idem _${val}_}]");
+            expect(evaluate("$cmd").type).to.eql(ValueType.COMMAND);
+            expect(evaluate("$cmd")).to.not.eql(value);
+            expect(evaluate("[$cmd] arg")).to.eql(STR("_arg_"));
+          }
+        );
       });
 
       mochadoc.section("Examples", () => {
@@ -177,6 +190,8 @@ describe("Helena closures", () => {
 
       mochadoc.section("Subcommands", () => {
         describe("`subcommands`", () => {
+          mochadoc.description(usage("[closure {} {}] subcommands"));
+
           it("should return list of subcommands", () => {
             /**
              * This subcommand is useful for introspection and interactive
@@ -194,13 +209,18 @@ describe("Helena closures", () => {
                * given the wrong number of arguments.
                */
               expect(execute("[closure {} {}] subcommands a")).to.eql(
-                ERROR('wrong # args: should be "<closure> subcommands"')
+                ERROR('wrong # args: should be "<metacommand> subcommands"')
+              );
+              expect(execute("help [closure {} {}] subcommands a")).to.eql(
+                ERROR('wrong # args: should be "<metacommand> subcommands"')
               );
             });
           });
         });
 
         describe("`argspec`", () => {
+          mochadoc.description(usage("[closure {} {}] argspec"));
+
           example("should return the closure's argspec", [
             {
               doc: () => {
@@ -234,13 +254,16 @@ describe("Helena closures", () => {
                * given the wrong number of arguments.
                */
               expect(execute("[closure {} {}] argspec a")).to.eql(
-                ERROR('wrong # args: should be "<closure> argspec"')
+                ERROR('wrong # args: should be "<metacommand> argspec"')
+              );
+              expect(execute("help [closure {} {}] argspec a")).to.eql(
+                ERROR('wrong # args: should be "<metacommand> argspec"')
               );
             });
           });
         });
 
-        describe("Exceptions", () => {
+        mochadoc.section("Exceptions", () => {
           specify("unknown subcommand", () => {
             expect(execute("[closure {} {}] unknownSubcommand")).to.eql(
               ERROR('unknown subcommand "unknownSubcommand"')

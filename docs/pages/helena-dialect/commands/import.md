@@ -19,7 +19,7 @@ and the module is added to a global registry.
 ## <a id="import-specifications"></a>Specifications
 
 - ✅ usage
-- ✅ should return a module object
+- ✅ should return a module value
 - ✅ relative paths should resolve relatively to the working directory
 - ✅ in-module relative paths should resolve relatively to the module path
 - ✅ multiple imports should resolve to the same object

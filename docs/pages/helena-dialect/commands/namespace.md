@@ -19,6 +19,7 @@ The `namespace` command creates a new namespace command.
 - ✅ usage
 - ✅ should define a new command
 - ✅ should replace existing commands
+- ✅ should return a metacommand
 
 ## <a id="namespace-exceptions"></a>Exceptions
 
@@ -85,140 +86,165 @@ propagated properly by the command.
 `namespace` returns a metacommand value that can be used to
 introspect the newly created command.
 
-- ✅ should return a metacommand
+### Usage
+
+```lna
+<metacommand> ?subcommand? ?arg ...?
+```
+
+
+### <a id="namespace-metacommand-specifications"></a>Specifications
+
+- ✅ usage
 - ✅ the metacommand should return itself
 
 ### <a id="namespace-metacommand-subcommands"></a>Subcommands
 
 
-- `subcommands`
+#### <a id="namespace-metacommand-subcommands-subcommands"></a>`subcommands`
 
-  - ✅ should return list of subcommands
+```lna
+<metacommand> subcommands
+```
 
-    This subcommand is useful for introspection and interactive
-    calls.
+- ✅ should return list of subcommands
 
+  This subcommand is useful for introspection and interactive
+  calls.
 
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-
-- `eval`
-
-  - ✅ should evaluate body in namespace scope
-  - ✅ should accept tuple bodies
-  - ✅ should evaluate macros in namespace scope
-  - ✅ should evaluate closures in their scope
-
-  - Control flow
-
-
-    - `return`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `tailcall`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `yield`
-
-      - ✅ should interrupt the body with `YIELD` code
-      - ✅ should provide a resumable state
-
-    - `error`
-
-      - ✅ should interrupt the body with `ERROR` code
-
-    - `break`
-
-      - ✅ should interrupt the body with `BREAK` code
-
-    - `continue`
-
-      - ✅ should interrupt the body with `CONTINUE` code
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-    - ✅ invalid body
-
-- `call`
-
-  - ✅ should call namespace commands
-  - ✅ should evaluate macros in namespace
-  - ✅ should evaluate namespace closures in namespace
-
-  - Control flow
-
-
-    - `return`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `tailcall`
-
-      - ✅ should interrupt the body with `RETURN` code
-
-    - `yield`
-
-      - ✅ should interrupt the call with `YIELD` code
-      - ✅ should provide a resumable state
-
-    - `error`
-
-      - ✅ should interrupt the body with `ERROR` code
-
-    - `break`
-
-      - ✅ should interrupt the body with `BREAK` code
-
-    - `continue`
-
-      - ✅ should interrupt the body with `CONTINUE` code
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-    - ✅ unknown command
-    - ✅ out-of-scope command
-    - ✅ invalid command name
-
-- `import`
-
-  - ✅ should declare imported commands in the calling scope
-  - ✅ should return nil
-  - ✅ should replace existing commands
-  - ✅ should evaluate macros in the caller scope
-  - ✅ should evaluate closures in their scope
-  - ✅ should resolve imported commands at call time
-  - ✅ should accept an optional alias name
-
-  - Exceptions
-
-    - ✅ wrong arity
-
-      The subcommand will return an error message with usage when
-      given the wrong number of arguments.
-
-    - ✅ unresolved command
-    - ✅ invalid import name
-    - ✅ invalid alias name
 
 - Exceptions
 
-  - ✅ unknown subcommand
-  - ✅ invalid subcommand name
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+
+#### <a id="namespace-metacommand-subcommands-eval"></a>`eval`
+
+```lna
+<metacommand> eval body
+```
+
+- ✅ should evaluate body in namespace scope
+- ✅ should accept tuple bodies
+- ✅ should evaluate macros in namespace scope
+- ✅ should evaluate closures in their scope
+
+- Control flow
+
+
+  - `return`
+
+    - ✅ should interrupt the body with `RETURN` code
+
+  - `tailcall`
+
+    - ✅ should interrupt the body with `RETURN` code
+
+  - `yield`
+
+    - ✅ should interrupt the body with `YIELD` code
+    - ✅ should provide a resumable state
+
+  - `error`
+
+    - ✅ should interrupt the body with `ERROR` code
+
+  - `break`
+
+    - ✅ should interrupt the body with `BREAK` code
+
+  - `continue`
+
+    - ✅ should interrupt the body with `CONTINUE` code
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+  - ✅ invalid body
+
+#### <a id="namespace-metacommand-subcommands-call"></a>`call`
+
+```lna
+<metacommand> call cmdname ?arg ...?
+```
+
+- ✅ should call namespace commands
+- ✅ should evaluate macros in namespace
+- ✅ should evaluate namespace closures in namespace
+
+- Control flow
+
+
+  - `return`
+
+    - ✅ should interrupt the body with `RETURN` code
+
+  - `tailcall`
+
+    - ✅ should interrupt the body with `RETURN` code
+
+  - `yield`
+
+    - ✅ should interrupt the call with `YIELD` code
+    - ✅ should provide a resumable state
+
+  - `error`
+
+    - ✅ should interrupt the body with `ERROR` code
+
+  - `break`
+
+    - ✅ should interrupt the body with `BREAK` code
+
+  - `continue`
+
+    - ✅ should interrupt the body with `CONTINUE` code
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+  - ✅ unknown command
+  - ✅ out-of-scope command
+  - ✅ invalid command name
+
+#### <a id="namespace-metacommand-subcommands-import"></a>`import`
+
+```lna
+<metacommand> import name ?alias?
+```
+
+- ✅ should declare imported commands in the calling scope
+- ✅ should return nil
+- ✅ should replace existing commands
+- ✅ should evaluate macros in the caller scope
+- ✅ should evaluate closures in their scope
+- ✅ should resolve imported commands at call time
+- ✅ should accept an optional alias name
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+  - ✅ unresolved command
+  - ✅ invalid import name
+  - ✅ invalid alias name
+
+#### <a id="namespace-metacommand-subcommands-exceptions"></a>Exceptions
+
+- ✅ unknown subcommand
+- ✅ invalid subcommand name
 

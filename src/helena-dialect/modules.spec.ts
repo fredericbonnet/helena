@@ -56,8 +56,8 @@ describe("Helena modules", () => {
     mochadoc.usage(usage("module"));
     mochadoc.description(() => {
       /**
-       * The `module` command creates a new command that will execute a script
-       * in its own isolated root scope.
+       * The `module` command creates a new command that will encapsulate an
+       * isolated root scope.
        */
     });
 
@@ -78,17 +78,9 @@ describe("Helena modules", () => {
         evaluate("module cmd {}");
         expect(execute("module cmd {}").code).to.eql(ResultCode.OK);
       });
-      it("should return a command object", () => {
+      it("should return a module value", () => {
         expect(evaluate("module {}").type).to.eql(ValueType.COMMAND);
         expect(evaluate("module cmd  {}").type).to.eql(ValueType.COMMAND);
-      });
-      specify("the named command should return its command object", () => {
-        const value = evaluate("module cmd {}");
-        expect(evaluate("cmd")).to.eql(value);
-      });
-      specify("the command object should return itself", () => {
-        const value = evaluate("set cmd [module {}]");
-        expect(evaluate("$cmd")).to.eql(value);
       });
     });
 
@@ -232,8 +224,62 @@ describe("Helena modules", () => {
       });
     });
 
+    mochadoc.section("Module value", () => {
+      mochadoc.description(() => {
+        /**
+         * `module` returns a module value that can be passed around and called
+         * by value instead of by name.
+         */
+      });
+      mochadoc.usage(usage("[module {}]"));
+
+      mochadoc.section("Specifications", () => {
+        specify("usage", () => {
+          evaluate("set cmd [module cmd {}]");
+          expect(evaluate("help cmd")).to.eql(
+            STR("cmd ?subcommand? ?arg ...?")
+          );
+          expect(evaluate("help $cmd")).to.eql(
+            STR("<module> ?subcommand? ?arg ...?")
+          );
+        });
+        specify("calling the module value should return itself", () => {
+          const value = evaluate("set cmd [module {}]");
+          expect(evaluate("$cmd")).to.eql(value);
+        });
+      });
+    });
+  });
+
+  mochadoc.section("Module commands", () => {
+    mochadoc.description(() => {
+      /**
+       * Module commands are commands that encapsulate an isolated root scope.
+       */
+    });
+
+    mochadoc.section("Specifications", () => {
+      specify("usage", () => {
+        evaluate("set cmd [module cmd {}]");
+        expect(evaluate("help cmd")).to.eql(STR("cmd ?subcommand? ?arg ...?"));
+        expect(evaluate("help $cmd")).to.eql(
+          STR("<module> ?subcommand? ?arg ...?")
+        );
+      });
+      it("should return its module value when called with no argument", () => {
+        /**
+         * The typical application of this property is to pass around or call
+         * the module command by value.
+         */
+        const value = evaluate("scope cmd {}");
+        expect(evaluate("cmd")).to.eql(value);
+      });
+    });
+
     mochadoc.section("Subcommands", () => {
       describe("`subcommands`", () => {
+        mochadoc.description(usage("[module {}] subcommands"));
+
         it("should return list of subcommands", () => {
           /**
            * This subcommand is useful for introspection and interactive
@@ -250,7 +296,17 @@ describe("Helena modules", () => {
              * The subcommand will return an error message with usage when
              * given the wrong number of arguments.
              */
-            expect(execute("[module {}] subcommands a")).to.eql(
+            evaluate("set cmd [module cmd {}]");
+            expect(execute("cmd subcommands a")).to.eql(
+              ERROR('wrong # args: should be "cmd subcommands"')
+            );
+            expect(execute("$cmd subcommands a")).to.eql(
+              ERROR('wrong # args: should be "<module> subcommands"')
+            );
+            expect(execute("help cmd subcommands a")).to.eql(
+              ERROR('wrong # args: should be "cmd subcommands"')
+            );
+            expect(execute("help $cmd subcommands a")).to.eql(
               ERROR('wrong # args: should be "<module> subcommands"')
             );
           });
@@ -258,6 +314,8 @@ describe("Helena modules", () => {
       });
 
       describe("`exports`", () => {
+        mochadoc.description(usage("[module {}] exports"));
+
         it("should return a list", () => {
           expect(evaluate("[module {}] exports")).to.eql(LIST([]));
         });
@@ -273,7 +331,17 @@ describe("Helena modules", () => {
              * The subcommand will return an error message with usage when
              * given the wrong number of arguments.
              */
-            expect(execute("[module {}] exports a")).to.eql(
+            evaluate("set cmd [module cmd {}]");
+            expect(execute("cmd exports a")).to.eql(
+              ERROR('wrong # args: should be "cmd exports"')
+            );
+            expect(execute("$cmd exports a")).to.eql(
+              ERROR('wrong # args: should be "<module> exports"')
+            );
+            expect(execute("help cmd exports a")).to.eql(
+              ERROR('wrong # args: should be "cmd exports"')
+            );
+            expect(execute("help $cmd exports a")).to.eql(
               ERROR('wrong # args: should be "<module> exports"')
             );
           });
@@ -281,6 +349,8 @@ describe("Helena modules", () => {
       });
 
       describe("`import`", () => {
+        mochadoc.description(usage("[module {}] import"));
+
         it("should declare imported commands in the calling scope", () => {
           evaluate(`module mod {macro cmd {} {idem value}; export cmd}`);
           evaluate("mod import cmd");
@@ -341,10 +411,23 @@ describe("Helena modules", () => {
              * The subcommand will return an error message with usage when
              * given the wrong number of arguments.
              */
-            expect(execute("[module {}] import")).to.eql(
+            evaluate("set cmd [module cmd {}]");
+            expect(execute("cmd import")).to.eql(
+              ERROR('wrong # args: should be "cmd import name ?alias?"')
+            );
+            expect(execute("$cmd import")).to.eql(
               ERROR('wrong # args: should be "<module> import name ?alias?"')
             );
-            expect(execute("[module {}] import a b c")).to.eql(
+            expect(execute("cmd import a b c")).to.eql(
+              ERROR('wrong # args: should be "cmd import name ?alias?"')
+            );
+            expect(execute("$cmd import a b c")).to.eql(
+              ERROR('wrong # args: should be "<module> import name ?alias?"')
+            );
+            expect(execute("help cmd import a b c")).to.eql(
+              ERROR('wrong # args: should be "cmd import name ?alias?"')
+            );
+            expect(execute("help $cmd import a b c")).to.eql(
               ERROR('wrong # args: should be "<module> import name ?alias?"')
             );
           });
@@ -371,7 +454,7 @@ describe("Helena modules", () => {
         });
       });
 
-      describe("Exceptions", () => {
+      mochadoc.section("Exceptions", () => {
         specify("unknown subcommand", () => {
           expect(execute("[module {}] unknownSubcommand")).to.eql(
             ERROR('unknown subcommand "unknownSubcommand"')
@@ -506,7 +589,7 @@ describe("Helena modules", () => {
         );
       });
 
-      it("should return a module object", () => {
+      it("should return a module value", () => {
         const value = evaluate(`set cmd [import ${moduleAPathAbs}]`);
         expect(value.type).to.eql(ValueType.COMMAND);
         expect(evaluate("$cmd exports")).to.eql(LIST([STR("name")]));
@@ -658,7 +741,8 @@ describe("Helena modules", () => {
       });
     });
   });
-  describe("error stack", () => {
+
+  mochadoc.section("Error stacks", () => {
     beforeEach(() => {
       parser = new Parser({ capturePositions: true });
       rootScope = Scope.newRootScope({

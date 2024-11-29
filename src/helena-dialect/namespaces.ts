@@ -49,11 +49,11 @@ class NamespaceMetacommand implements Command {
     if (args.length == 1) return OK(this.value);
     return NamespaceMetacommand.subcommands.dispatch(args[1], {
       subcommands: () => {
-        if (args.length != 2) return ARITY_ERROR("<namespace> subcommands");
+        if (args.length != 2) return ARITY_ERROR("<metacommand> subcommands");
         return OK(NamespaceMetacommand.subcommands.list);
       },
       eval: () => {
-        if (args.length != 3) return ARITY_ERROR("<namespace> eval body");
+        if (args.length != 3) return ARITY_ERROR("<metacommand> eval body");
         const body = args[2];
         let program;
         switch (body.type) {
@@ -74,7 +74,7 @@ class NamespaceMetacommand implements Command {
       },
       call: () => {
         if (args.length < 3)
-          return ARITY_ERROR("<namespace> call cmdname ?arg ...?");
+          return ARITY_ERROR("<metacommand> call cmdname ?arg ...?");
         const [result, subcommand] = StringValue.toString(args[2]);
         if (result.code != ResultCode.OK) return ERROR("invalid command name");
         if (!this.namespace.scope.hasLocalCommand(subcommand))
@@ -86,7 +86,7 @@ class NamespaceMetacommand implements Command {
       },
       import: () => {
         if (args.length != 3 && args.length != 4)
-          return ARITY_ERROR("<namespace> import name ?alias?");
+          return ARITY_ERROR("<metacommand> import name ?alias?");
         const [result, name] = StringValue.toString(args[2]);
         if (result.code != ResultCode.OK) return ERROR("invalid import name");
         let alias: string;
@@ -101,6 +101,28 @@ class NamespaceMetacommand implements Command {
         if (!command) return ERROR(`cannot resolve imported command "${name}"`);
         scope.registerNamedCommand(alias, command);
         return OK(NIL);
+      },
+    });
+  }
+  help(args: Value[]): Result {
+    if (args.length == 1)
+      return OK(STR("<metacommand> ?subcommand? ?arg ...?"));
+    return NamespaceMetacommand.subcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length > 2) return ARITY_ERROR("<metacommand> subcommands");
+        return OK(STR("<metacommand> subcommands"));
+      },
+      eval: () => {
+        if (args.length > 3) return ARITY_ERROR("<metacommand> eval body");
+        return OK(STR("<metacommand> eval body"));
+      },
+      call: () => {
+        return OK(STR("<metacommand> call cmdname ?arg ...?"));
+      },
+      import: () => {
+        if (args.length > 4)
+          return ARITY_ERROR("<metacommand> import name ?alias?");
+        return OK(STR("<metacommand> import name ?alias?"));
       },
     });
   }

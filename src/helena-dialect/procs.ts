@@ -35,12 +35,26 @@ class ProcMetacommand implements Command {
     if (args.length == 1) return OK(this.proc.value);
     return ProcMetacommand.subcommands.dispatch(args[1], {
       subcommands: () => {
-        if (args.length != 2) return ARITY_ERROR("<proc> subcommands");
+        if (args.length != 2) return ARITY_ERROR("<metacommand> subcommands");
         return OK(ProcMetacommand.subcommands.list);
       },
       argspec: () => {
-        if (args.length != 2) return ARITY_ERROR("<proc> argspec");
+        if (args.length != 2) return ARITY_ERROR("<metacommand> argspec");
         return OK(this.proc.argspec);
+      },
+    });
+  }
+  help(args: Value[]): Result {
+    if (args.length == 1)
+      return OK(STR("<metacommand> ?subcommand? ?arg ...?"));
+    return ProcMetacommand.subcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length > 2) return ARITY_ERROR("<metacommand> subcommands");
+        return OK(STR("<metacommand> subcommands"));
+      },
+      argspec: () => {
+        if (args.length > 2) return ARITY_ERROR("<metacommand> argspec");
+        return OK(STR("<metacommand> argspec"));
       },
     });
   }
@@ -108,14 +122,18 @@ class ProcCommand implements Command {
       });
     }
   }
-  help(args: Value[]): Result {
+  help(args: Value[], { prefix, skip }) {
+    const usage = skip
+      ? this.argspec.usage(skip - 1)
+      : PROC_COMMAND_SIGNATURE(args[0], this.argspec.usage());
+    const signature = [prefix, usage].filter(Boolean).join(" ");
     if (
       !this.argspec.checkArity(args, 1) &&
       args.length > this.argspec.argspec.nbRequired
     ) {
-      return ARITY_ERROR(PROC_COMMAND_SIGNATURE(args[0], this.argspec.usage()));
+      return ARITY_ERROR(signature);
     }
-    return OK(STR(PROC_COMMAND_SIGNATURE(args[0], this.argspec.usage())));
+    return OK(STR(signature));
   }
 }
 

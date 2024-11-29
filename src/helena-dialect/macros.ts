@@ -28,12 +28,26 @@ class MacroMetacommand implements Command {
     if (args.length == 1) return OK(this.macro.value);
     return MacroMetacommand.subcommands.dispatch(args[1], {
       subcommands: () => {
-        if (args.length != 2) return ARITY_ERROR("<macro> subcommands");
+        if (args.length != 2) return ARITY_ERROR("<metacommand> subcommands");
         return OK(MacroMetacommand.subcommands.list);
       },
       argspec: () => {
-        if (args.length != 2) return ARITY_ERROR("<macro> argspec");
+        if (args.length != 2) return ARITY_ERROR("<metacommand> argspec");
         return OK(this.macro.argspec);
+      },
+    });
+  }
+  help(args: Value[]): Result {
+    if (args.length == 1)
+      return OK(STR("<metacommand> ?subcommand? ?arg ...?"));
+    return MacroMetacommand.subcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length > 2) return ARITY_ERROR("<metacommand> subcommands");
+        return OK(STR("<metacommand> subcommands"));
+      },
+      argspec: () => {
+        if (args.length > 2) return ARITY_ERROR("<metacommand> argspec");
+        return OK(STR("<metacommand> argspec"));
       },
     });
   }

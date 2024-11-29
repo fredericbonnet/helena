@@ -51,8 +51,8 @@ describe("Helena scopes", () => {
     mochadoc.usage(usage("scope"));
     mochadoc.description(() => {
       /**
-       * The `scope` command creates a new command that will execute a script in
-       * its own child scope.
+       * The `scope` command creates a new command that will encapsulate a child
+       * scope.
        */
     });
 
@@ -71,17 +71,9 @@ describe("Helena scopes", () => {
         evaluate("scope cmd {}");
         expect(execute("scope cmd {}").code).to.eql(ResultCode.OK);
       });
-      it("should return a command object", () => {
+      it("should return a scope value", () => {
         expect(evaluate("scope {}").type).to.eql(ValueType.COMMAND);
         expect(evaluate("scope cmd  {}").type).to.eql(ValueType.COMMAND);
-      });
-      specify("the named command should return its command object", () => {
-        const value = evaluate("scope cmd {}");
-        expect(evaluate("cmd")).to.eql(value);
-      });
-      specify("the command object should return itself", () => {
-        const value = evaluate("set cmd [scope {}]");
-        expect(evaluate("$cmd")).to.eql(value);
       });
     });
 
@@ -269,8 +261,62 @@ describe("Helena scopes", () => {
       });
     });
 
+    mochadoc.section("Scope value", () => {
+      mochadoc.description(() => {
+        /**
+         * `scope` returns a scope value that can be passed around and called by
+         * value instead of by name.
+         */
+      });
+      mochadoc.usage(usage("[scope {}]"));
+
+      mochadoc.section("Specifications", () => {
+        specify("usage", () => {
+          evaluate("set cmd [scope cmd {}]");
+          expect(evaluate("help cmd")).to.eql(
+            STR("cmd ?subcommand? ?arg ...?")
+          );
+          expect(evaluate("help $cmd")).to.eql(
+            STR("<scope> ?subcommand? ?arg ...?")
+          );
+        });
+        specify("calling the scope value should return itself", () => {
+          const value = evaluate("set cmd [scope {}]");
+          expect(evaluate("$cmd")).to.eql(value);
+        });
+      });
+    });
+  });
+
+  mochadoc.section("Scope commands", () => {
+    mochadoc.description(() => {
+      /**
+       * Scope commands are commands that encapsulate a child scope.
+       */
+    });
+
+    mochadoc.section("Specifications", () => {
+      specify("usage", () => {
+        evaluate("set cmd [scope cmd {}]");
+        expect(evaluate("help cmd")).to.eql(STR("cmd ?subcommand? ?arg ...?"));
+        expect(evaluate("help $cmd")).to.eql(
+          STR("<scope> ?subcommand? ?arg ...?")
+        );
+      });
+      it("should return its scope value when called with no argument", () => {
+        /**
+         * The typical application of this property is to pass around or call
+         * the scope command by value.
+         */
+        const value = evaluate("scope cmd {}");
+        expect(evaluate("cmd")).to.eql(value);
+      });
+    });
+
     mochadoc.section("Subcommands", () => {
       describe("`subcommands`", () => {
+        mochadoc.description(usage("[scope {}] subcommands"));
+
         it("should return list of subcommands", () => {
           /**
            * This subcommand is useful for introspection and interactive
@@ -287,7 +333,17 @@ describe("Helena scopes", () => {
              * The subcommand will return an error message with usage when
              * given the wrong number of arguments.
              */
-            expect(execute("[scope {}] subcommands a")).to.eql(
+            evaluate("set cmd [scope cmd {}]");
+            expect(execute("cmd subcommands a")).to.eql(
+              ERROR('wrong # args: should be "cmd subcommands"')
+            );
+            expect(execute("$cmd subcommands a")).to.eql(
+              ERROR('wrong # args: should be "<scope> subcommands"')
+            );
+            expect(execute("help cmd subcommands a")).to.eql(
+              ERROR('wrong # args: should be "cmd subcommands"')
+            );
+            expect(execute("help $cmd subcommands a")).to.eql(
               ERROR('wrong # args: should be "<scope> subcommands"')
             );
           });
@@ -295,6 +351,8 @@ describe("Helena scopes", () => {
       });
 
       describe("`eval`", () => {
+        mochadoc.description(usage("[scope {}] eval"));
+
         it("should evaluate body", () => {
           evaluate("scope cmd {let cst val}");
           expect(evaluate("cmd eval {get cst}")).to.eql(STR("val"));
@@ -407,10 +465,23 @@ describe("Helena scopes", () => {
              * The subcommand will return an error message with usage when
              * given the wrong number of arguments.
              */
-            expect(execute("[scope {}] eval")).to.eql(
+            evaluate("set cmd [scope cmd {}]");
+            expect(execute("cmd eval")).to.eql(
+              ERROR('wrong # args: should be "cmd eval body"')
+            );
+            expect(execute("$cmd eval")).to.eql(
               ERROR('wrong # args: should be "<scope> eval body"')
             );
-            expect(execute("[scope {}] eval a b")).to.eql(
+            expect(execute("cmd eval a b")).to.eql(
+              ERROR('wrong # args: should be "cmd eval body"')
+            );
+            expect(execute("$cmd eval a b")).to.eql(
+              ERROR('wrong # args: should be "<scope> eval body"')
+            );
+            expect(execute("help cmd eval a b")).to.eql(
+              ERROR('wrong # args: should be "cmd eval body"')
+            );
+            expect(execute("help $cmd eval a b")).to.eql(
               ERROR('wrong # args: should be "<scope> eval body"')
             );
           });
@@ -423,6 +494,8 @@ describe("Helena scopes", () => {
       });
 
       describe("`call`", () => {
+        mochadoc.description(usage("[scope {}] call"));
+
         it("should call scope commands", () => {
           evaluate("scope cmd {macro mac {} {idem val}}");
           expect(evaluate("cmd call mac")).to.eql(STR("val"));
@@ -520,7 +593,11 @@ describe("Helena scopes", () => {
              * The subcommand will return an error message with usage when
              * given the wrong number of arguments.
              */
-            expect(execute("[scope {}] call")).to.eql(
+            evaluate("set cmd [scope cmd {}]");
+            expect(execute("cmd call")).to.eql(
+              ERROR('wrong # args: should be "cmd call cmdname ?arg ...?"')
+            );
+            expect(execute("$cmd call")).to.eql(
               ERROR('wrong # args: should be "<scope> call cmdname ?arg ...?"')
             );
           });
@@ -542,7 +619,7 @@ describe("Helena scopes", () => {
         });
       });
 
-      describe("Exceptions", () => {
+      mochadoc.section("Exceptions", () => {
         specify("unknown subcommand", () => {
           expect(execute("[scope {}] unknownSubcommand")).to.eql(
             ERROR('unknown subcommand "unknownSubcommand"')

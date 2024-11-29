@@ -45,11 +45,11 @@ export class EnsembleMetacommand implements Command {
     if (args.length == 1) return OK(this.value);
     return EnsembleMetacommand.subcommands.dispatch(args[1], {
       subcommands: () => {
-        if (args.length != 2) return ARITY_ERROR("<ensemble> subcommands");
+        if (args.length != 2) return ARITY_ERROR("<metacommand> subcommands");
         return OK(EnsembleMetacommand.subcommands.list);
       },
       eval: () => {
-        if (args.length != 3) return ARITY_ERROR("<ensemble> eval body");
+        if (args.length != 3) return ARITY_ERROR("<metacommand> eval body");
         const body = args[2];
         let program;
         switch (body.type) {
@@ -68,7 +68,7 @@ export class EnsembleMetacommand implements Command {
       },
       call: () => {
         if (args.length < 3)
-          return ARITY_ERROR("<ensemble> call cmdname ?arg ...?");
+          return ARITY_ERROR("<metacommand> call cmdname ?arg ...?");
         const [result, subcommand] = StringValue.toString(args[2]);
         if (result.code != ResultCode.OK) return ERROR("invalid command name");
         if (!this.ensemble.scope.hasLocalCommand(subcommand))
@@ -79,8 +79,30 @@ export class EnsembleMetacommand implements Command {
         return ContinuationValue.create(scope, program);
       },
       argspec: () => {
-        if (args.length != 2) return ARITY_ERROR("<ensemble> argspec");
+        if (args.length != 2) return ARITY_ERROR("<metacommand> argspec");
         return OK(this.ensemble.argspec);
+      },
+    });
+  }
+  help(args: Value[]): Result {
+    if (args.length == 1)
+      return OK(STR("<metacommand> ?subcommand? ?arg ...?"));
+
+    return EnsembleMetacommand.subcommands.dispatch(args[1], {
+      subcommands: () => {
+        if (args.length > 2) return ARITY_ERROR("<metacommand> subcommands");
+        return OK(STR("<metacommand> subcommands"));
+      },
+      eval: () => {
+        if (args.length > 3) return ARITY_ERROR("<metacommand> eval body");
+        return OK(STR("<metacommand> eval body"));
+      },
+      call: () => {
+        return OK(STR("<metacommand> call cmdname ?arg ...?"));
+      },
+      argspec: () => {
+        if (args.length > 2) return ARITY_ERROR("<metacommand> argspec");
+        return OK(STR("<metacommand> argspec"));
       },
     });
   }
