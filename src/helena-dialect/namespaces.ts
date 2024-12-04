@@ -18,7 +18,7 @@ import {
   CommandValue,
   TupleValue,
 } from "../core/values";
-import { ARITY_ERROR } from "./arguments";
+import { ARITY_ERROR, USAGE_PREFIX } from "./arguments";
 import { ContinuationValue, Scope } from "./core";
 import {
   INVALID_SUBCOMMAND_ERROR,
@@ -128,8 +128,8 @@ class NamespaceMetacommand implements Command {
   }
 }
 
-const NAMESPACE_COMMAND_PREFIX = (name) =>
-  StringValue.toString(name, "<namespace>")[1];
+const NAMESPACE_COMMAND_PREFIX = (name, options?) =>
+  USAGE_PREFIX(name, "<namespace>", options);
 class NamespaceCommand implements Command {
   readonly metacommand: NamespaceMetacommand;
   readonly scope: Scope;
@@ -160,9 +160,8 @@ class NamespaceCommand implements Command {
     const program = this.scope.compileArgs(...cmdline);
     return ContinuationValue.create(this.scope, program);
   }
-  help(args: Value[], { prefix, skip }) {
-    const usage = skip ? "" : NAMESPACE_COMMAND_PREFIX(args[0]);
-    const signature = [prefix, usage].filter(Boolean).join(" ");
+  help(args: Value[], options?) {
+    const signature = NAMESPACE_COMMAND_PREFIX(args[0], options);
     if (args.length <= 1) {
       return OK(STR(signature + " ?subcommand? ?arg ...?"));
     }

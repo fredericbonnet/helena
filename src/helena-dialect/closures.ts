@@ -5,12 +5,11 @@ import {
   CommandValue,
   STR,
   ScriptValue,
-  StringValue,
   TupleValue,
   Value,
   ValueType,
 } from "../core/values";
-import { ArgspecValue } from "./argspecs";
+import { ArgspecValue, USAGE_ARGSPEC } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { ContinuationValue, Scope } from "./core";
 import { Subcommands } from "./subcommands";
@@ -52,9 +51,8 @@ class ClosureMetacommand implements Command {
     });
   }
 }
-
-const CLOSURE_COMMAND_SIGNATURE = (name, help) =>
-  `${StringValue.toString(name, "<closure>")[1]}${help ? " " + help : ""}`;
+const CLOSURE_COMMAND_SIGNATURE = (name, argspec, options?) =>
+  USAGE_ARGSPEC(name, "<closure>", argspec, options);
 class ClosureCommand implements Command {
   readonly value: Value;
   readonly metacommand: ClosureMetacommand;
@@ -78,9 +76,7 @@ class ClosureCommand implements Command {
 
   execute(args: Value[]): Result {
     if (!this.argspec.checkArity(args, 1)) {
-      return ARITY_ERROR(
-        CLOSURE_COMMAND_SIGNATURE(args[0], this.argspec.usage())
-      );
+      return ARITY_ERROR(CLOSURE_COMMAND_SIGNATURE(args[0], this.argspec));
     }
     const subscope = this.scope.newLocalScope();
     const setarg = (name, value) => {
@@ -100,11 +96,8 @@ class ClosureCommand implements Command {
       return ContinuationValue.create(subscope, program);
     }
   }
-  help(args: Value[], { prefix, skip }) {
-    const usage = skip
-      ? this.argspec.usage(skip - 1)
-      : CLOSURE_COMMAND_SIGNATURE(args[0], this.argspec.usage());
-    const signature = [prefix, usage].filter(Boolean).join(" ");
+  help(args: Value[], options) {
+    const signature = CLOSURE_COMMAND_SIGNATURE(args[0], this.argspec, options);
     if (
       !this.argspec.checkArity(args, 1) &&
       args.length > this.argspec.argspec.nbRequired

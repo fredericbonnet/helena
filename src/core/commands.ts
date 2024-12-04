@@ -5,7 +5,20 @@
 import { Value } from "./values";
 import { Result } from "./results";
 
-/** Helena command */
+/**
+ * Helena command help formatting options
+ */
+export type CommandHelpOptions = {
+  /** Prefix to prepend to the help string */
+  prefix?: string;
+
+  /** Leading arguments to skip */
+  skip?: number;
+};
+
+/**
+ * Helena command
+ */
 export interface Command {
   /**
    * Execute the command
@@ -38,15 +51,5 @@ export interface Command {
    *
    * @returns           Validation result
    */
-  help?(
-    args: Value[],
-    options?: {
-      /** Prefix to prepend to the help string */
-      prefix?: string;
-
-      /** Leading arguments to skip */
-      skip?: number;
-    },
-    context?: unknown
-  ): Result;
+  help?(args: Value[], options?: CommandHelpOptions, context?: unknown): Result;
 }

@@ -16,11 +16,12 @@ import {
   CommandValue,
   TupleValue,
 } from "../core/values";
-import { ARITY_ERROR } from "./arguments";
+import { ARITY_ERROR, USAGE_PREFIX } from "./arguments";
 import { ContinuationValue, Scope } from "./core";
 import { Subcommands } from "./subcommands";
 
-const SCOPE_COMMAND_PREFIX = (name) => StringValue.toString(name, "<scope>")[1];
+const SCOPE_COMMAND_PREFIX = (name, options?) =>
+  USAGE_PREFIX(name, "<scope>", options);
 class ScopeCommand implements Command {
   readonly value: Value;
   readonly scope: Scope;
@@ -73,9 +74,8 @@ class ScopeCommand implements Command {
       },
     });
   }
-  help(args: Value[], { prefix, skip }): Result {
-    const usage = skip ? "" : SCOPE_COMMAND_PREFIX(args[0]);
-    const signature = [prefix, usage].filter(Boolean).join(" ");
+  help(args: Value[], options?): Result {
+    const signature = SCOPE_COMMAND_PREFIX(args[0], options);
     if (args.length <= 1) {
       return OK(STR(signature + " ?subcommand? ?arg ...?"));
     }
@@ -86,7 +86,7 @@ class ScopeCommand implements Command {
       },
       eval: () => {
         if (args.length > 3) return ARITY_ERROR(signature + " eval body");
-        return OK(STR(signature + "eval body"));
+        return OK(STR(signature + " eval body"));
       },
       call: () => {
         return OK(STR(signature + " call cmdname ?arg ...?"));

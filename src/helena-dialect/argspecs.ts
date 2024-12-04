@@ -6,7 +6,7 @@ import {
   ResultCode,
   RESULT_CODE_NAME,
 } from "../core/results";
-import { Command } from "../core/commands";
+import { Command, CommandHelpOptions } from "../core/commands";
 import {
   Value,
   ValueType,
@@ -26,10 +26,24 @@ import {
   buildArguments,
   buildUsage,
   optionName,
+  USAGE_PREFIX,
 } from "./arguments";
 import { Scope } from "./core";
 import { valueToArray } from "./lists";
 import { EnsembleCommand } from "./ensembles";
+
+export const USAGE_ARGSPEC = (
+  name: Value,
+  def: string,
+  argspec: ArgspecValue,
+  options?: CommandHelpOptions
+) => {
+  const prefix = USAGE_PREFIX(name, def, options);
+  const usage = options?.skip
+    ? argspec.usage(options.skip - 1)
+    : argspec.usage(0);
+  return [prefix, usage].filter(Boolean).join(" ");
+};
 
 export class Argspec {
   readonly args: Argument[];

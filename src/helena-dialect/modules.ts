@@ -20,7 +20,7 @@ import {
   StringValue,
   CommandValue,
 } from "../core/values";
-import { ARITY_ERROR } from "./arguments";
+import { ARITY_ERROR, USAGE_PREFIX } from "./arguments";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
 import { Subcommands } from "./subcommands";
@@ -50,8 +50,8 @@ class ExportCommand implements Command {
   }
 }
 
-const MODULE_COMMAND_PREFIX = (name) =>
-  StringValue.toString(name, "<module>")[1];
+const MODULE_COMMAND_PREFIX = (name, options?) =>
+  USAGE_PREFIX(name, "<module>", options);
 export class Module implements Command {
   readonly value: Value;
   readonly scope: Scope;
@@ -95,9 +95,8 @@ export class Module implements Command {
       },
     });
   }
-  help(args: Value[], { prefix, skip }): Result {
-    const usage = skip ? "" : MODULE_COMMAND_PREFIX(args[0]);
-    const signature = [prefix, usage].filter(Boolean).join(" ");
+  help(args: Value[], options?): Result {
+    const signature = MODULE_COMMAND_PREFIX(args[0], options);
     if (args.length <= 1) {
       return OK(STR(signature + " ?subcommand? ?arg ...?"));
     }

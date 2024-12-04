@@ -5,12 +5,11 @@ import {
   CommandValue,
   STR,
   ScriptValue,
-  StringValue,
   TupleValue,
   Value,
   ValueType,
 } from "../core/values";
-import { ArgspecValue } from "./argspecs";
+import { ArgspecValue, USAGE_ARGSPEC } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { ContinuationValue, Scope } from "./core";
 import { Subcommands } from "./subcommands";
@@ -53,8 +52,8 @@ class MacroMetacommand implements Command {
   }
 }
 
-const MACRO_COMMAND_SIGNATURE = (name, help) =>
-  `${StringValue.toString(name, "<macro>")[1]}${help ? " " + help : ""}`;
+const MACRO_COMMAND_SIGNATURE = (name, argspec, options?) =>
+  USAGE_ARGSPEC(name, "<macro>", argspec, options);
 class MacroCommand implements Command {
   readonly value: Value;
   readonly metacommand: MacroMetacommand;
@@ -71,9 +70,7 @@ class MacroCommand implements Command {
 
   execute(args: Value[], scope: Scope): Result {
     if (!this.argspec.checkArity(args, 1)) {
-      return ARITY_ERROR(
-        MACRO_COMMAND_SIGNATURE(args[0], this.argspec.usage())
-      );
+      return ARITY_ERROR(MACRO_COMMAND_SIGNATURE(args[0], this.argspec));
     }
     const subscope = scope.newLocalScope();
     const setarg = (name, value) => {
@@ -93,11 +90,8 @@ class MacroCommand implements Command {
       return ContinuationValue.create(subscope, program);
     }
   }
-  help(args: Value[], { prefix, skip }) {
-    const usage = skip
-      ? this.argspec.usage(skip - 1)
-      : MACRO_COMMAND_SIGNATURE(args[0], this.argspec.usage());
-    const signature = [prefix, usage].filter(Boolean).join(" ");
+  help(args: Value[], options?) {
+    const signature = MACRO_COMMAND_SIGNATURE(args[0], this.argspec, options);
     if (
       !this.argspec.checkArity(args, 1) &&
       args.length > this.argspec.argspec.nbRequired

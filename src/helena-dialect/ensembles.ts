@@ -20,7 +20,7 @@ import {
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
 import { ContinuationValue, Scope } from "./core";
-import { ArgspecValue } from "./argspecs";
+import { ArgspecValue, USAGE_ARGSPEC } from "./argspecs";
 import {
   INVALID_SUBCOMMAND_ERROR,
   Subcommands,
@@ -108,8 +108,8 @@ export class EnsembleMetacommand implements Command {
   }
 }
 
-const ENSEMBLE_COMMAND_PREFIX = (name, args) =>
-  `${StringValue.toString(name, "<ensemble>")[1]}${args ? " " + args : ""}`;
+const ENSEMBLE_COMMAND_PREFIX = (name, argspec, options?) =>
+  USAGE_ARGSPEC(name, "<closure>", argspec, options);
 export class EnsembleCommand implements Command {
   readonly metacommand: EnsembleMetacommand;
   readonly scope: Scope;
@@ -125,7 +125,7 @@ export class EnsembleCommand implements Command {
     const minArgs = this.argspec.argspec.nbRequired + 1;
     if (args.length < minArgs)
       return ARITY_ERROR(
-        ENSEMBLE_COMMAND_PREFIX(args[0], this.argspec.usage()) +
+        ENSEMBLE_COMMAND_PREFIX(args[0], this.argspec) +
           " ?subcommand? ?arg ...?"
       );
     const ensembleArgs = [];
@@ -148,8 +148,7 @@ export class EnsembleCommand implements Command {
     if (subcommand == "subcommands") {
       if (args.length != minArgs + 1) {
         return ARITY_ERROR(
-          ENSEMBLE_COMMAND_PREFIX(args[0], this.argspec.usage()) +
-            " subcommands"
+          ENSEMBLE_COMMAND_PREFIX(args[0], this.argspec) + " subcommands"
         );
       }
       return OK(
@@ -171,14 +170,8 @@ export class EnsembleCommand implements Command {
     return ContinuationValue.create(scope, program);
   }
   /** @override */
-  help(
-    args: Value[],
-    { prefix, skip }: { prefix?: string; skip?: number } = {}
-  ) {
-    const usage = skip
-      ? this.argspec.usage(skip - 1)
-      : ENSEMBLE_COMMAND_PREFIX(args[0], this.argspec.usage());
-    const signature = [prefix, usage].filter(Boolean).join(" ");
+  help(args: Value[], options?) {
+    const signature = ENSEMBLE_COMMAND_PREFIX(args[0], this.argspec, options);
     const minArgs = this.argspec.argspec.nbRequired + 1;
     if (args.length <= minArgs) {
       return OK(STR(signature + " ?subcommand? ?arg ...?"));

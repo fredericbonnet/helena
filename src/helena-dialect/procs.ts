@@ -12,12 +12,11 @@ import {
   CommandValue,
   STR,
   ScriptValue,
-  StringValue,
   TupleValue,
   Value,
   ValueType,
 } from "../core/values";
-import { ArgspecValue } from "./argspecs";
+import { ArgspecValue, USAGE_ARGSPEC } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
 import { Scope, ContinuationValue } from "./core";
 import { Subcommands } from "./subcommands";
@@ -60,8 +59,8 @@ class ProcMetacommand implements Command {
   }
 }
 
-const PROC_COMMAND_SIGNATURE = (name, help) =>
-  `${StringValue.toString(name, "<proc>")[1]}${help ? " " + help : ""}`;
+const PROC_COMMAND_SIGNATURE = (name, argspec, options?) =>
+  USAGE_ARGSPEC(name, "<proc>", argspec, options);
 class ProcCommand implements Command {
   readonly value: Value;
   readonly metacommand: ProcMetacommand;
@@ -88,7 +87,7 @@ class ProcCommand implements Command {
 
   execute(args: Value[]): Result {
     if (!this.argspec.checkArity(args, 1)) {
-      return ARITY_ERROR(PROC_COMMAND_SIGNATURE(args[0], this.argspec.usage()));
+      return ARITY_ERROR(PROC_COMMAND_SIGNATURE(args[0], this.argspec));
     }
     const subscope = this.scope.newChildScope();
     const setarg = (name, value) => subscope.setNamedVariable(name, value);
@@ -122,11 +121,8 @@ class ProcCommand implements Command {
       });
     }
   }
-  help(args: Value[], { prefix, skip }) {
-    const usage = skip
-      ? this.argspec.usage(skip - 1)
-      : PROC_COMMAND_SIGNATURE(args[0], this.argspec.usage());
-    const signature = [prefix, usage].filter(Boolean).join(" ");
+  help(args: Value[], options?) {
+    const signature = PROC_COMMAND_SIGNATURE(args[0], this.argspec, options);
     if (
       !this.argspec.checkArity(args, 1) &&
       args.length > this.argspec.argspec.nbRequired

@@ -1,8 +1,17 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
+import { CommandHelpOptions } from "../core/commands";
 import { ERROR, OK, Result, ResultCode } from "../core/results";
 import { NIL, StringValue, Value, ValueType } from "../core/values";
 import { valueToArray } from "./lists";
 
+export const USAGE_PREFIX = (
+  name: Value,
+  def: string,
+  options?: CommandHelpOptions
+) => {
+  const usage = options?.skip ? "" : StringValue.toString(name, def)[1];
+  return [options?.prefix, usage].filter(Boolean).join(" ");
+};
 export const ARITY_ERROR = (signature: string) =>
   ERROR(`wrong # args: should be "${signature}"`);
 
