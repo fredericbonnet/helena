@@ -66,8 +66,10 @@ export const consoleCmd: Command = {
 
       case "time":
       case "timeEnd":
-      case "timeLog":
         console[method](asString(args[2]));
+        return OK(NIL);
+      case "timeLog":
+        console.timeLog(asString(args[2]), ...args.slice(3).map(toLog));
         return OK(NIL);
 
       default:
