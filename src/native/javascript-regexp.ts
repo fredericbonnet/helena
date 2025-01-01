@@ -71,10 +71,10 @@ export const regexpCmd: Command = {
         const matches = regexp.regexp.exec(str);
         if (!matches) return OK(NIL);
         const map = {
-          matches: TO_LIST(STR)(matches),
+          matches: TO_LIST(STR_OR_NIL)(matches),
           index: INT(matches.index),
           input: args[3],
-          groups: matches.groups ? TO_MAP(STR)(matches.groups) : NIL,
+          groups: matches.groups ? TO_MAP(STR_OR_NIL)(matches.groups) : NIL,
         };
         if (matches["indices"]) {
           map["indices"] = TO_LIST(TO_LIST(INT))(matches["indices"]);
@@ -116,10 +116,13 @@ export const regexpCmd: Command = {
   },
 };
 
+const STR_OR_NIL = (v) => (v ? STR(v) : NIL);
 const TO_LIST = (fn) => (a) => LIST(a.map(fn));
 const TO_MAP = (fn) => (m) =>
   DICT(
     Object.fromEntries(
-      Object.entries(m).map(([key, value]) => [key, fn(value)])
+      Object.entries(m)
+        .filter(([, value]) => value != undefined)
+        .map(([key, value]) => [key, fn(value)])
     )
   );
