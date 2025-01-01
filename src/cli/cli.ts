@@ -3,6 +3,7 @@ import * as fs from "fs";
 import { exit } from "process";
 import * as repl from "repl";
 import * as c from "ansi-colors";
+import * as path from "node:path";
 import {
   Displayable,
   defaultDisplayFunction,
@@ -101,6 +102,19 @@ const picolCmd: Command = {
     return scope.evaluator.evaluateScript(script);
   },
 };
+const loadCmd: Command = {
+  execute: function (args: Value[]): Result {
+    if (args.length != 3) return ARITY_ERROR("load path name");
+    const [, filepath] = StringValue.toString(args[1]);
+    const [, name] = StringValue.toString(args[2]);
+    try {
+      loadNativeModule(path.resolve(process.cwd(), filepath), name);
+      return OK(NIL);
+    } catch (e) {
+      return ERROR(e.message);
+    }
+  },
+};
 
 function init() {
   const rootScope = Scope.newRootScope({
@@ -115,6 +129,9 @@ function init() {
 
   // Embedded picol dialect
   rootScope.registerNamedCommand("picol", picolCmd);
+
+  // Dynamic native module loading
+  rootScope.registerNamedCommand("load", loadCmd);
 
   // Native modules
   registerNativeModule("javascript:RegExp", "RegExp", regexpCmd);
@@ -137,6 +154,12 @@ function init() {
   });
 
   return rootScope;
+}
+
+function loadNativeModule(path: string, moduleName: string) {
+  /* eslint-disable-next-line @typescript-eslint/no-var-requires */
+  const m = require(path);
+  m.register(moduleRegistry, moduleName);
 }
 
 function source(path: string) {
