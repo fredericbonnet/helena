@@ -111,9 +111,34 @@ function init() {
     capturePositions: true,
   });
   initCommands(rootScope, moduleRegistry);
+
+  // Interactive mode functions
   rootScope.registerNamedCommand("source", sourceCmd);
   rootScope.registerNamedCommand("exit", exitCmd);
+
+  // Embedded picol dialect
   rootScope.registerNamedCommand("picol", picolCmd);
+
+  // Native modules
+  registerNativeModule("javascript:RegExp", "RegExp", regexpCmd);
+  registerNativeModule("javascript:console", "console", consoleCmd);
+  registerNativeModule("node:child_process", "child_process", childProcessCmd);
+  registerNativeModule("node:fs", "fs", {
+    execute: (args: Value[], scope: Scope): Result => {
+      const callbackContext: CallbackContext = {
+        callback: (args, scope: Scope) => {
+          const program = scope.compileArgs(...args);
+          const process = scope.prepareProcess(program);
+          const result = process.run();
+          if (result.code == ResultCode.ERROR)
+            throw new Error(StringValue.toString(result.value)[1]);
+        },
+        context: scope,
+      };
+      return fsCmd.execute(args, callbackContext);
+    },
+  });
+
   return rootScope;
 }
 
@@ -147,24 +172,6 @@ function registerNativeModule(
 
 function prompt() {
   const rootScope = init();
-  registerNativeModule("javascript:RegExp", "RegExp", regexpCmd);
-  registerNativeModule("javascript:console", "console", consoleCmd);
-  registerNativeModule("node:child_process", "child_process", childProcessCmd);
-  registerNativeModule("node:fs", "fs", {
-    execute: (args: Value[], scope: Scope): Result => {
-      const callbackContext: CallbackContext = {
-        callback: (args, scope: Scope) => {
-          const program = scope.compileArgs(...args);
-          const process = scope.prepareProcess(program);
-          const result = process.run();
-          if (result.code == ResultCode.ERROR)
-            throw new Error(StringValue.toString(result.value)[1]);
-        },
-        context: scope,
-      };
-      return fsCmd.execute(args, callbackContext);
-    },
-  });
   repl.start({
     eval: (cmd, _context, _filename, callback) => run(rootScope, cmd, callback),
     writer: (output) => resultWriter(output),
