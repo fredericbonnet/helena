@@ -221,22 +221,41 @@ const dictEntriesCmd: Command = {
   },
 };
 
-const DICT_FOREACH_SIGNATURE = "dict value foreach entry body";
+const DICT_FOREACH_SIGNATURE = "dict value foreach ?index? entry body";
 const dictForeachCmd: Command = {
   execute(args, scope: Scope) {
-    if (args.length != 4) return ARITY_ERROR(DICT_FOREACH_SIGNATURE);
+    let index: string;
+    let varname, body: Value;
+    switch (args.length) {
+      case 4:
+        varname = args[2];
+        body = args[3];
+        break;
+      case 5: {
+        const [result, name] = StringValue.toString(args[2]);
+        if (result.code != ResultCode.OK) return ERROR("invalid index name");
+        index = name;
+        varname = args[3];
+        body = args[4];
+        break;
+      }
+      default:
+        return ARITY_ERROR(DICT_FOREACH_SIGNATURE);
+    }
     const [result, map] = valueToMap(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const varname = args[2];
-    const body = args[3];
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
     const program = scope.compileScriptValue(body as ScriptValue);
     const subscope = scope.newLocalScope();
     const it = map.entries();
+    let i = 0;
     let lastResult = OK(NIL);
     const next = () => {
       const { value: entry, done } = it.next();
       if (done) return lastResult;
+      if (index) {
+        subscope.setNamedLocal(index, INT(i++));
+      }
       const [key, value] = entry;
       const result = destructureValue(
         subscope.destructureLocal.bind(subscope),

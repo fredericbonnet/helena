@@ -308,12 +308,13 @@ dict value merge ?dict ...?
 Iterate over dictionary elements
 
 ```lna
-dict value foreach entry body
+dict value foreach ?index? entry body
 ```
 
 - ✅ usage
 - ✅ should iterate over entries
 - ✅ should return the result of the last command
+- ✅ should increment `index` at each iteration
 
 - entry parameter tuples
 
@@ -357,6 +358,10 @@ dict value foreach entry body
     given the wrong number of arguments.
 
   - ✅ non-script body
+  - ✅ invalid `index` name
+
+    Index variable name must have a valid string representation.
+
   - ✅ bad value shape
 
     Parameter and dict element shapes must match.

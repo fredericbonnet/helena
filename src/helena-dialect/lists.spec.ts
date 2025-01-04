@@ -613,7 +613,7 @@ describe("Helena lists", () => {
 
           specify("usage", () => {
             expect(evaluate("help list () foreach")).to.eql(
-              STR("list value foreach element body")
+              STR("list value foreach ?index? element body")
             );
           });
 
@@ -654,6 +654,13 @@ describe("Helena lists", () => {
             expect(
               evaluate("set i 0; list (a b c) foreach element {set i [+ $i 1]}")
             ).to.eql(INT(3));
+          });
+          it("should increment `index` at each iteration", () => {
+            expect(
+              evaluate(
+                'set s ""; list (a b c) foreach index element {set s $s$index$element}'
+              )
+            ).to.eql(STR("0a1b2c"));
           });
 
           describe("Control flow", () => {
@@ -748,23 +755,31 @@ describe("Helena lists", () => {
                */
               expect(execute("list (a b c) foreach a")).to.eql(
                 ERROR(
-                  'wrong # args: should be "list value foreach element body"'
+                  'wrong # args: should be "list value foreach ?index? element body"'
                 )
               );
-              expect(execute("list (a b c) foreach a b c")).to.eql(
+              expect(execute("list (a b c) foreach a b c d")).to.eql(
                 ERROR(
-                  'wrong # args: should be "list value foreach element body"'
+                  'wrong # args: should be "list value foreach ?index? element body"'
                 )
               );
-              expect(execute("help list (a b c) foreach a b c")).to.eql(
+              expect(execute("help list (a b c) foreach a b c d")).to.eql(
                 ERROR(
-                  'wrong # args: should be "list value foreach element body"'
+                  'wrong # args: should be "list value foreach ?index? element body"'
                 )
               );
             });
-            specify("non-script body", () => {
+            specify("non-script `body`", () => {
               expect(execute("list (a b c) foreach a b")).to.eql(
                 ERROR("body must be a script")
+              );
+            });
+            specify("invalid `index` name", () => {
+              /**
+               * Index variable name must have a valid string representation.
+               */
+              expect(execute("list (a b c) foreach [] a {}")).to.eql(
+                ERROR("invalid index name")
               );
             });
             specify("bad value shape", () => {

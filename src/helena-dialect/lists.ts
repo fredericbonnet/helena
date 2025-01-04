@@ -15,6 +15,7 @@ import {
   NIL,
   ScriptValue,
   STR,
+  StringValue,
   TupleValue,
   Value,
   ValueType,
@@ -181,14 +182,29 @@ const listReplaceCmd: Command = {
   },
 };
 
-const LIST_FOREACH_SIGNATURE = "list value foreach element body";
+const LIST_FOREACH_SIGNATURE = "list value foreach ?index? element body";
 const listForeachCmd: Command = {
   execute(args, scope: Scope) {
-    if (args.length != 4) return ARITY_ERROR(LIST_FOREACH_SIGNATURE);
+    let index: string;
+    let varname, body: Value;
+    switch (args.length) {
+      case 4:
+        varname = args[2];
+        body = args[3];
+        break;
+      case 5: {
+        const [result, name] = StringValue.toString(args[2]);
+        if (result.code != ResultCode.OK) return ERROR("invalid index name");
+        index = name;
+        varname = args[3];
+        body = args[4];
+        break;
+      }
+      default:
+        return ARITY_ERROR(LIST_FOREACH_SIGNATURE);
+    }
     const [result, list] = valueToList(args[1]);
     if (result.code != ResultCode.OK) return result;
-    const varname = args[2];
-    const body = args[3];
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
     const program = scope.compileScriptValue(body as ScriptValue);
     const subscope = scope.newLocalScope();
@@ -196,6 +212,9 @@ const listForeachCmd: Command = {
     let lastResult = OK(NIL);
     const next = () => {
       if (i >= list.values.length) return lastResult;
+      if (index) {
+        subscope.setNamedLocal(index, INT(i));
+      }
       const value = list.values[i++];
       const result = destructureValue(
         subscope.destructureLocal.bind(subscope),

@@ -632,7 +632,7 @@ describe("Helena dictionaries", () => {
 
           specify("usage", () => {
             expect(evaluate("help dict () foreach")).to.eql(
-              STR("dict value foreach entry body")
+              STR("dict value foreach ?index? entry body")
             );
           });
 
@@ -688,6 +688,13 @@ describe("Helena dictionaries", () => {
                 "set i 0; dict (a b c d e f) foreach entry {set i [+ $i 1]}"
               )
             ).to.eql(INT(3));
+          });
+          it("should increment `index` at each iteration", () => {
+            expect(
+              evaluate(
+                'set s ""; dict (a b c d e f) foreach index (key value) {set s $s$index$key$value}'
+              )
+            ).to.eql(STR("0ab1cd2ef"));
           });
 
           describe("Control flow", () => {
@@ -782,18 +789,32 @@ describe("Helena dictionaries", () => {
                * given the wrong number of arguments.
                */
               expect(execute("dict (a b c d) foreach a")).to.eql(
-                ERROR('wrong # args: should be "dict value foreach entry body"')
+                ERROR(
+                  'wrong # args: should be "dict value foreach ?index? entry body"'
+                )
               );
-              expect(execute("dict (a b c d) foreach a b c")).to.eql(
-                ERROR('wrong # args: should be "dict value foreach entry body"')
+              expect(execute("dict (a b c d) foreach a b c d")).to.eql(
+                ERROR(
+                  'wrong # args: should be "dict value foreach ?index? entry body"'
+                )
               );
-              expect(execute("help dict (a b c d) foreach a b c")).to.eql(
-                ERROR('wrong # args: should be "dict value foreach entry body"')
+              expect(execute("help dict (a b c d) foreach a b c d")).to.eql(
+                ERROR(
+                  'wrong # args: should be "dict value foreach ?index? entry body"'
+                )
               );
             });
             specify("non-script body", () => {
               expect(execute("dict (a b c d) foreach a b")).to.eql(
                 ERROR("body must be a script")
+              );
+            });
+            specify("invalid `index` name", () => {
+              /**
+               * Index variable name must have a valid string representation.
+               */
+              expect(execute("dict (a b c d) foreach [] a {}")).to.eql(
+                ERROR("invalid index name")
               );
             });
             specify("bad value shape", () => {

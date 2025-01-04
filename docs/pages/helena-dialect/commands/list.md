@@ -258,12 +258,13 @@ list value replace first last value2
 Iterate over list elements
 
 ```lna
-list value foreach element body
+list value foreach ?index? element body
 ```
 
 - ✅ usage
 - ✅ should iterate over elements
 - ✅ should return the result of the last command
+- ✅ should increment `index` at each iteration
 
 - parameter tuples
 
@@ -305,7 +306,11 @@ list value foreach element body
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-  - ✅ non-script body
+  - ✅ non-script `body`
+  - ✅ invalid `index` name
+
+    Index variable name must have a valid string representation.
+
   - ✅ bad value shape
 
     Parameter and list element shapes must match.
