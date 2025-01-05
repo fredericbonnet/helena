@@ -182,6 +182,40 @@ const listReplaceCmd: Command = {
   },
 };
 
+const LIST_SORT_SIGNATURE = "list value sort";
+const listSortCmd: Command = {
+  execute(args) {
+    if (args.length != 2) return ARITY_ERROR(LIST_SORT_SIGNATURE);
+    const [result, values] = valueToArray(args[1]);
+    if (result.code != ResultCode.OK) return result;
+    const values2 = [...values];
+    let error;
+    try {
+      values2.sort((a, b) => {
+        const [resulta, sa] = StringValue.toString(a);
+        if (resulta.code != ResultCode.OK) {
+          error = resulta;
+          throw new Error("string conversion error");
+        }
+        const [resultb, sb] = StringValue.toString(b);
+        if (resultb.code != ResultCode.OK) {
+          error = resultb;
+          throw new Error("string conversion error");
+        }
+        return sa < sb ? -1 : sa > sb ? 1 : 0;
+      });
+    } catch (e) {
+      if (error) return error;
+      return ERROR(e.message);
+    }
+    return OK(LIST(values2));
+  },
+  help(args) {
+    if (args.length > 2) return ARITY_ERROR(LIST_SORT_SIGNATURE);
+    return OK(STR(LIST_SORT_SIGNATURE));
+  },
+};
+
 const LIST_FOREACH_SIGNATURE = "list value foreach ?index? element body";
 const listForeachCmd: Command = {
   execute(args, scope: Scope) {
@@ -289,5 +323,6 @@ export function registerListCommands(scope: Scope) {
   command.scope.registerNamedCommand("remove", listRemoveCmd);
   command.scope.registerNamedCommand("insert", listInsertCmd);
   command.scope.registerNamedCommand("replace", listReplaceCmd);
+  command.scope.registerNamedCommand("sort", listSortCmd);
   command.scope.registerNamedCommand("foreach", listForeachCmd);
 }

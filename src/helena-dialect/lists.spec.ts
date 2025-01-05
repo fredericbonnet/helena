@@ -146,7 +146,7 @@ describe("Helena lists", () => {
           it("should return list of subcommands", () => {
             expect(evaluate("list {} subcommands")).to.eql(
               evaluate(
-                "list (subcommands length at range append remove insert replace foreach)"
+                "list (subcommands length at range append remove insert replace sort foreach)"
               )
             );
           });
@@ -600,6 +600,43 @@ describe("Helena lists", () => {
               );
               expect(execute("list (a b c) replace 1 1 a")).to.eql(
                 ERROR("invalid list")
+              );
+            });
+          });
+        });
+
+        describe("`sort`", () => {
+          mochadoc.summary("Sort list elements");
+          mochadoc.description(usage("list () sort"));
+
+          specify("usage", () => {
+            expect(evaluate("help list () sort")).to.eql(
+              STR("list value sort")
+            );
+          });
+
+          it("should sort elements as strings in lexical order", () => {
+            expect(evaluate("list (c a d b) sort")).to.eql(
+              evaluate("list (a b c d)")
+            );
+          });
+
+          describe("Exceptions", () => {
+            specify("wrong arity", () => {
+              /**
+               * The subcommand will return an error message with usage when
+               * given the wrong number of arguments.
+               */
+              expect(execute("list (a b c) sort a")).to.eql(
+                ERROR('wrong # args: should be "list value sort"')
+              );
+              expect(execute("help list (a b c) sort a")).to.eql(
+                ERROR('wrong # args: should be "list value sort"')
+              );
+            });
+            specify("values with no string representation", () => {
+              expect(execute("list ([] ()) sort")).to.eql(
+                ERROR("value has no string representation")
               );
             });
           });

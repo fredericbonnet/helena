@@ -250,6 +250,26 @@ list value replace first last value2
   - ✅ invalid index
   - ✅ invalid `list`
 
+#### <a id="list-subcommands-operations-sort"></a>`sort`
+
+Sort list elements
+
+```lna
+list value sort
+```
+
+- ✅ usage
+- ✅ should sort elements as strings in lexical order
+
+- Exceptions
+
+  - ✅ wrong arity
+
+    The subcommand will return an error message with usage when
+    given the wrong number of arguments.
+
+  - ✅ values with no string representation
+
 ### <a id="list-subcommands-iteration"></a>Iteration
 
 
