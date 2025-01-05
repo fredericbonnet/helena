@@ -196,8 +196,11 @@ describe("Helena scripts", () => {
           });
 
           it("should return list of subcommands", () => {
-            expect(evaluate("script {} subcommands")).to.eql(
-              evaluate("list (subcommands length append split)")
+            /**
+             * Note that subcommands are returned in no special order.
+             */
+            expect(evaluate("list [script {} subcommands] sort")).to.eql(
+              evaluate("list (subcommands length append split) sort")
             );
           });
 

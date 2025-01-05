@@ -799,20 +799,23 @@ describe("Helena ensembles", () => {
             evaluate("ensemble cmd2 {a b} {}");
           });
           it("should return list of subcommands", () => {
+            /**
+             * Note that subcommands are returned in no special order.
+             */
             expect(evaluate("cmd1 subcommands")).to.eql(
               evaluate("list (subcommands)")
             );
             evaluate("[cmd1] eval {macro mac1 {} {}}");
-            expect(evaluate("cmd1 subcommands")).to.eql(
-              evaluate("list (subcommands mac1)")
+            expect(evaluate("list [cmd1 subcommands] sort")).to.eql(
+              evaluate("list (subcommands mac1) sort")
             );
 
             expect(evaluate("cmd2 a b subcommands")).to.eql(
               evaluate("list (subcommands)")
             );
             evaluate("[cmd2] eval {macro mac2 {} {}}");
-            expect(evaluate("cmd2 a b subcommands")).to.eql(
-              evaluate("list (subcommands mac2)")
+            expect(evaluate("list [cmd2 a b subcommands] sort")).to.eql(
+              evaluate("list (subcommands mac2) sort")
             );
           });
 

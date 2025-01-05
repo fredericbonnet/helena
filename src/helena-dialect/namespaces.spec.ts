@@ -749,13 +749,16 @@ describe("Helena namespaces", () => {
              */
           });
           it("should return list of subcommands", () => {
+            /**
+             * Note that subcommands are returned in no special order.
+             */
             evaluate("namespace cmd {}");
             expect(evaluate("cmd subcommands")).to.eql(
               evaluate("list (subcommands)")
             );
             evaluate("[cmd] eval {macro mac {} {}}");
-            expect(evaluate("cmd subcommands")).to.eql(
-              evaluate("list (subcommands mac)")
+            expect(evaluate("list [cmd subcommands] sort")).to.eql(
+              evaluate("list (subcommands mac) sort")
             );
           });
 

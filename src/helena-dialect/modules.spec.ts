@@ -320,9 +320,14 @@ describe("Helena modules", () => {
           expect(evaluate("[module {}] exports")).to.eql(LIST([]));
         });
         it("should return the list of module exports", () => {
+          /**
+           * Note that exports are returned in no special order.
+           */
           expect(
-            evaluate("[module {export a; export b; export c}] exports")
-          ).to.eql(evaluate("list (a b c)"));
+            evaluate(
+              "list [[module {export a; export b; export c}] exports] sort"
+            )
+          ).to.eql(evaluate("list (a b c) sort"));
         });
 
         describe("Exceptions", () => {

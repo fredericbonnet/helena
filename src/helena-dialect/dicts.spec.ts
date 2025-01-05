@@ -208,9 +208,12 @@ describe("Helena dictionaries", () => {
           });
 
           it("should return list of subcommands", () => {
-            expect(evaluate("dict () subcommands")).to.eql(
+            /**
+             * Note that subcommands are returned in no special order.
+             */
+            expect(evaluate("list [dict () subcommands] sort")).to.eql(
               evaluate(
-                "list (subcommands size has get add remove merge keys values entries foreach)"
+                "list (subcommands size has get add remove merge keys values entries foreach) sort"
               )
             );
           });

@@ -41,6 +41,9 @@ all namespace commands.
 
 - ✅ should return list of subcommands
 
+  Note that subcommands are returned in no special order.
+
+
 - Exceptions
 
   - ✅ wrong arity

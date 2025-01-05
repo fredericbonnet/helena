@@ -129,8 +129,11 @@ describe("Helena tuples", () => {
           });
 
           it("should return list of subcommands", () => {
-            expect(evaluate("tuple () subcommands")).to.eql(
-              evaluate("list (subcommands length at)")
+            /**
+             * Note that subcommands are returned in no special order.
+             */
+            expect(evaluate("list [tuple () subcommands] sort")).to.eql(
+              evaluate("list (subcommands length at) sort")
             );
           });
 

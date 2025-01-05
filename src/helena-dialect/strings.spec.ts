@@ -110,9 +110,12 @@ describe("Helena strings", () => {
           });
 
           it("should return list of subcommands", () => {
-            expect(evaluate('string "" subcommands')).to.eql(
+            /**
+             * Note that subcommands are returned in no special order.
+             */
+            expect(evaluate('list [string "" subcommands] sort')).to.eql(
               evaluate(
-                "list (subcommands length at range append remove insert replace == != > >= < <=)"
+                "list (subcommands length at range append remove insert replace == != > >= < <=) sort"
               )
             );
           });

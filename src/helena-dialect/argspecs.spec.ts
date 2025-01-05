@@ -1371,8 +1371,11 @@ describe("Helena argument handling", () => {
         });
 
         it("should return list of subcommands", () => {
-          expect(evaluate("argspec {} subcommands")).to.eql(
-            evaluate("list (subcommands usage set)")
+          /**
+           * Note that subcommands are returned in no special order.
+           */
+          expect(evaluate("list [argspec {} subcommands] sort")).to.eql(
+            evaluate("list (subcommands usage set) sort")
           );
         });
 

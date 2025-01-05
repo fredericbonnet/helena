@@ -56,6 +56,9 @@ Module commands are commands that encapsulate an isolated root scope.
 - ✅ should return a list
 - ✅ should return the list of module exports
 
+  Note that exports are returned in no special order.
+
+
 - Exceptions
 
   - ✅ wrong arity
