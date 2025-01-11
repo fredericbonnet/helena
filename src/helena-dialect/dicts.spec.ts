@@ -630,7 +630,7 @@ describe("Helena dictionaries", () => {
 
       mochadoc.section("Iteration", () => {
         describe("`foreach`", () => {
-          mochadoc.summary("Iterate over dictionary elements");
+          mochadoc.summary("Iterate over dictionary entries");
           mochadoc.description(usage("dict () foreach"));
 
           specify("usage", () => {
@@ -676,7 +676,7 @@ describe("Helena dictionaries", () => {
               evaluate(`
                 set keys [list ()]
                 set d [dict (a b c d e f)]
-                dict (a b c d e f) foreach (key) {
+                dict $d foreach (key) {
                   set keys [list $keys append ($key)]
                 }
               `);

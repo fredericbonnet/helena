@@ -308,7 +308,7 @@ dict value merge ?dict ...?
 
 #### <a id="dict-subcommands-iteration-foreach"></a>`foreach`
 
-Iterate over dictionary elements
+Iterate over dictionary entries
 
 ```lna
 dict value foreach ?index? entry body

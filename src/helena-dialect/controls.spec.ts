@@ -48,6 +48,500 @@ describe("Helena control flow commands", () => {
 
   mochadoc.meta({ toc: true });
 
+  describeCommand("loop", () => {
+    mochadoc.summary("Generic loop");
+    mochadoc.usage(usage("loop"));
+    mochadoc.description(() => {
+      /**
+       * The `loop` command iterates over values provided by sources.
+       */
+    });
+
+    mochadoc.section("Specifications", () => {
+      specify("usage", () => {
+        expect(evaluate("help loop")).to.eql(
+          STR("loop ?index? ?value source ...? body")
+        );
+      });
+
+      it("should loop over `body` indefinitely when no source is provided", () => {
+        evaluate("set i 0; loop {set i [+ $i 1]; if [$i == 10] {break}}");
+        expect(evaluate("get i")).to.eql(INT(10));
+      });
+      it("should return the result of the last command", () => {
+        expect(
+          evaluate(
+            "set i 0; loop {set i [+ $i 1]; if [$i > 10] {break}; idem val$i}"
+          )
+        ).to.eql(STR("val10"));
+        expect(evaluate("loop v [list (a b c)] {get v}")).to.eql(STR("c"));
+      });
+      it("should increment `index` at each iteration", () => {
+        expect(
+          evaluate(
+            `set s ""; loop index {set s $s$index; if [$index == 10] {break}}; get s`
+          )
+        ).to.eql(STR("012345678910"));
+      });
+    });
+
+    mochadoc.section("Exceptions", () => {
+      specify("wrong arity", () => {
+        /**
+         * The command will return an error message with usage when given the
+         * wrong number of arguments.
+         */
+        expect(execute("loop")).to.eql(
+          ERROR(
+            'wrong # args: should be "loop ?index? ?value source ...? body"'
+          )
+        );
+      });
+      specify("non-script body", () => {
+        expect(execute("loop a")).to.eql(ERROR("body must be a script"));
+      });
+      specify("invalid `index` name", () => {
+        /**
+         * Index variable name must have a valid string representation.
+         */
+        expect(execute("loop [] {}")).to.eql(ERROR("invalid index name"));
+      });
+      specify("invalid sources", () => {
+        /**
+         * Only lists, dictionaries, scripts, and commands are acceptable
+         * values.
+         */
+        expect(execute("loop v [] {}")).to.eql(ERROR("invalid source"));
+        expect(execute("loop v a[1] {}")).to.eql(ERROR("invalid source"));
+      });
+    });
+
+    mochadoc.section("Sources", () => {
+      describe("list sources", () => {
+        it("should iterate over list elements", () => {
+          evaluate(`
+            set values [list ()]
+            loop element [list (a b c)] {
+              set values [list $values append ($element)]
+            }
+          `);
+          expect(evaluate("get values")).to.eql(evaluate("list (a b c)"));
+        });
+        describe("value tuples", () => {
+          it("should be supported", () => {
+            evaluate(`
+              set values [list ()]
+              set l [list ((a b) (c d))]
+              loop (i j) $l {
+                set values [list $values append (($i $j))]
+              }
+            `);
+            expect(evaluate("get values")).to.eql(evaluate("get l"));
+          });
+          it("should accept empty tuple", () => {
+            evaluate(`
+              set i 0
+              loop () [list ((a b) (c d) (e f))] {
+                set i [+ $i 1]
+              }
+            `);
+            expect(evaluate("get i")).to.eql(INT(3));
+          });
+        });
+      });
+      describe("dict sources", () => {
+        it("should iterate over dictionary entries", () => {
+          evaluate(`
+            set keys [list ()]
+            set values [list ()]
+            loop (key value) [dict (a b c d e f)] {
+              set keys [list $keys append ($key)]
+              set values [list $values append ($value)]
+            }
+          `);
+          expect(evaluate("list $keys sort")).to.eql(evaluate("list (a c e)"));
+          expect(evaluate("list $values sort")).to.eql(
+            evaluate("list (b d f)")
+          );
+        });
+        describe("value tuples", () => {
+          it("should be supported", () => {
+            evaluate(`
+              set keys [list ()]
+              set values [list ()]
+              set d [dict (a b c d e f)]
+              loop (key value) $d  {
+                set keys [list $keys append ($key)]
+                set values [list $values append ($value)]
+              }
+          `);
+            expect(evaluate("list $keys sort")).to.eql(
+              evaluate("list (a c e)")
+            );
+            expect(evaluate("list $values sort")).to.eql(
+              evaluate("list (b d f)")
+            );
+          });
+          it("should accept empty tuple", () => {
+            evaluate(`
+              set i 0
+              loop () [dict (a b c d e f)] {
+                set i [+ $i 1]
+              }
+            `);
+            expect(evaluate("get i")).to.eql(INT(3));
+          });
+          it("should accept `(key)` tuple", () => {
+            evaluate(`
+              set keys [list ()]
+              set d [dict (a b c d e f)]
+              loop (key) $d {
+                set keys [list $keys append ($key)]
+              }
+            `);
+            expect(evaluate("list $keys sort")).to.eql(
+              evaluate("list (a c e)")
+            );
+          });
+        });
+      });
+      describe("script sources", () => {
+        it("should iterate over script results", () => {
+          evaluate(`
+            set values [list ()]
+            loop index value {idem val$index} {
+              if [$index == 3] {break}
+              set values [list $values append ($value)]
+            }
+          `);
+          expect(evaluate("get values")).to.eql(
+            evaluate("list (val0 val1 val2)")
+          );
+        });
+        describe("value tuples", () => {
+          it("should be supported", () => {
+            evaluate(`
+              set values [list ()]
+              set l [list ((a b) (c d))]
+              loop index (i j) {idem ($index val$index)} {
+                if [$index == 3] {break}
+                set values [list $values append (($i $j))]
+              }
+            `);
+            expect(evaluate("get values")).to.eql(
+              evaluate("list (([0] val0) ([1] val1) ([2] val2))")
+            );
+          });
+          it("should accept empty tuple", () => {
+            evaluate(`
+              set i 0
+              loop index () {idem ($index val$index)} {
+                if [$index == 3] {break}
+                set i [+ $i 1]
+              }
+            `);
+            expect(evaluate("get i")).to.eql(INT(3));
+          });
+        });
+      });
+      describe("command name sources", () => {
+        it("should iterate over command results", () => {
+          evaluate(`
+            macro cmd {i} {idem val$i}
+            set values [list ()]
+            loop index value cmd {
+              if [$index == 3] {break}
+              set values [list $values append ($value)]
+            }
+          `);
+          expect(evaluate("get values")).to.eql(
+            evaluate("list (val0 val1 val2)")
+          );
+        });
+        describe("value tuples", () => {
+          it("should be supported", () => {
+            evaluate(`
+              macro cmd {i} {idem ($i val$i)}
+              set values [list ()]
+              loop index (i j) cmd {
+                if [$index == 3] {break}
+                set values [list $values append (($i $j))]
+              }
+            `);
+            expect(evaluate("get values")).to.eql(
+              evaluate("list (([0] val0) ([1] val1) ([2] val2))")
+            );
+          });
+          it("should accept empty tuple", () => {
+            evaluate(`
+              macro cmd {i} {idem ($i val$i)}
+              set i 0
+              loop index () cmd {
+                if [$index == 3] {break}
+                set i [+ $i 1]
+              }
+            `);
+            expect(evaluate("get i")).to.eql(INT(3));
+          });
+        });
+      });
+      describe("command tuple sources", () => {
+        it("should iterate over command results", () => {
+          evaluate(`
+            set values [list ()]
+            loop index value (* 2) {
+              if [$index == 3] {break}
+              set values [list $values append ($value)]
+            }
+          `);
+          expect(evaluate("get values")).to.eql(evaluate("list ([0] [2] [4])"));
+        });
+        describe("value tuples", () => {
+          it("should be supported", () => {
+            evaluate(`
+              set l [list ((a b) (c d) (e f))]
+              set values [list ()]
+              loop index (i j) (list $l at) {
+                if [$index == 3] {break}
+                set values [list $values append (($i $j))]
+              }
+            `);
+            expect(evaluate("get values")).to.eql(
+              evaluate("list ((a b) (c d) (e f))")
+            );
+          });
+          it("should accept empty tuple", () => {
+            evaluate(`
+              set l [list ((a b) (c d) (e f))]
+              set i 0
+              loop index () (list $l at) {
+                if [$index == 3] {break}
+                set i [+ $i 1]
+              }
+            `);
+            expect(evaluate("get i")).to.eql(INT(3));
+          });
+        });
+      });
+      describe("command value sources", () => {
+        it("should iterate over command results", () => {
+          evaluate(`
+            set values [list ()]
+            loop index value [[macro {i} {idem val$i}]] {
+              if [$index == 3] {break}
+              set values [list $values append ($value)]
+            }
+          `);
+          expect(evaluate("get values")).to.eql(
+            evaluate("list (val0 val1 val2)")
+          );
+        });
+        describe("value tuples", () => {
+          it("should be supported", () => {
+            evaluate(`
+              set values [list ()]
+              loop index (i j) [[macro {i} {idem ($i val$i)}]] {
+                if [$index == 3] {break}
+                set values [list $values append (($i $j))]
+              }
+            `);
+            expect(evaluate("get values")).to.eql(
+              evaluate("list (([0] val0) ([1] val1) ([2] val2))")
+            );
+          });
+          it("should accept empty tuple", () => {
+            evaluate(`
+              set i 0
+              loop index () [[macro {i} {idem ($i val$i)}]] {
+                if [$index == 3] {break}
+                set i [+ $i 1]
+              }
+            `);
+            expect(evaluate("get i")).to.eql(INT(3));
+          });
+        });
+      });
+    });
+
+    mochadoc.section("Control flow", () => {
+      mochadoc.description(() => {
+        /**
+         * The normal return code of a source or body is `OK`. `BREAK` and
+         * `CONTINUE` codes are handled by the command and the others are
+         * propagated to the caller.
+         */
+      });
+      describe("`return`", () => {
+        it("should interrupt sources with `RETURN` code", () => {
+          expect(
+            execute("loop v {return val; unreachable} {unreachable}")
+          ).to.eql(RETURN(STR("val")));
+          evaluate("macro cmd {i} {return val}");
+          expect(execute("loop v cmd {unreachable}")).to.eql(
+            RETURN(STR("val"))
+          );
+          expect(execute("loop v (cmd) {unreachable}")).to.eql(
+            RETURN(STR("val"))
+          );
+          expect(
+            execute("loop v [[macro {i} {return val}]] {unreachable}")
+          ).to.eql(RETURN(STR("val")));
+        });
+        it("should interrupt the loop with `RETURN` code", () => {
+          expect(
+            execute("set i 0; loop {set i [+ $i 1]; return val; unreachable}")
+          ).to.eql(RETURN(STR("val")));
+          expect(evaluate("get i")).to.eql(INT(1));
+        });
+      });
+      describe("`tailcall`", () => {
+        it("should interrupt sources with `RETURN` code", () => {
+          expect(
+            execute("loop v {tailcall {idem val}; unreachable} {unreachable}")
+          ).to.eql(RETURN(STR("val")));
+          evaluate("macro cmd {i} {tailcall {idem val}}");
+          expect(execute("loop v cmd {unreachable}")).to.eql(
+            RETURN(STR("val"))
+          );
+          expect(execute("loop v (cmd) {unreachable}")).to.eql(
+            RETURN(STR("val"))
+          );
+          expect(
+            execute("loop v [[macro {i} {tailcall {idem val}}]] {unreachable}")
+          ).to.eql(RETURN(STR("val")));
+        });
+        it("should interrupt the loop with `RETURN` code", () => {
+          expect(
+            execute(
+              "set i 0; loop {set i [+ $i 1]; tailcall {idem val}; unreachable}"
+            )
+          ).to.eql(RETURN(STR("val")));
+          expect(evaluate("get i")).to.eql(INT(1));
+        });
+      });
+      describe("`yield`", () => {
+        it("should interrupt sources with `YIELD` code", () => {
+          expect(execute("loop v {yield; unreachable} {}").code).to.eql(
+            ResultCode.YIELD
+          );
+        });
+        it("should interrupt the body with `YIELD` code", () => {
+          expect(execute("loop {yield; unreachable}").code).to.eql(
+            ResultCode.YIELD
+          );
+        });
+        it("should provide a resumable state", () => {
+          const process = prepareScript(
+            "loop v {yield source} {if {! $v} {break}; yield body}"
+          );
+          let result = process.run();
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("source"));
+          process.yieldBack(TRUE);
+          result = process.run();
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("body"));
+          process.yieldBack(STR("step 1"));
+          result = process.run();
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("source"));
+          process.yieldBack(TRUE);
+          result = process.run();
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("body"));
+          process.yieldBack(STR("step 2"));
+          result = process.run();
+          expect(result.code).to.eql(ResultCode.YIELD);
+          expect(result.value).to.eql(STR("source"));
+          process.yieldBack(FALSE);
+          result = process.run();
+          expect(result).to.eql(OK(STR("step 2")));
+        });
+      });
+      describe("`error`", () => {
+        it("should interrupt sources with `ERROR` code", () => {
+          expect(
+            execute("loop v {error msg; set var val} {unreachable}")
+          ).to.eql(ERROR("msg"));
+          expect(execute("get var").code).to.eql(ResultCode.ERROR);
+          evaluate("macro cmd {i} {error msg; set var val}");
+          expect(execute("loop v cmd {unreachable}")).to.eql(ERROR("msg"));
+          expect(execute("get var").code).to.eql(ResultCode.ERROR);
+          expect(execute("loop v (cmd) {unreachable}")).to.eql(ERROR("msg"));
+          expect(execute("get var").code).to.eql(ResultCode.ERROR);
+          expect(
+            execute(
+              "loop v [[macro {i} {error msg; set var val}]] {unreachable}"
+            )
+          ).to.eql(ERROR("msg"));
+          expect(execute("get var").code).to.eql(ResultCode.ERROR);
+        });
+        it("should interrupt the loop with `ERROR` code", () => {
+          expect(
+            execute(
+              "set i 0; loop {set i [+ $i 1]; error msg; set var val; unreachable}"
+            )
+          ).to.eql(ERROR("msg"));
+          expect(evaluate("get i")).to.eql(INT(1));
+          expect(execute("get var").code).to.eql(ResultCode.ERROR);
+        });
+      });
+      describe("`break`", () => {
+        it("should skip the source for the remaining loop iterations", () => {
+          evaluate(`
+            macro cmd {i} {
+              if {$i == 1} {break} 
+              get i
+            }
+          `);
+          expect(
+            evaluate(`
+              set l [list ()]
+              loop index v [list (a b c)] e cmd {
+                set l [list $l append ($v [get e skipped])]
+              }
+            `)
+          ).to.eql(evaluate("list (a [0] b skipped c skipped)"));
+        });
+        it("should interrupt the loop with `nil` result", () => {
+          expect(
+            execute("set i 0; loop {set i [+ $i 1]; break; unreachable}")
+          ).to.eql(OK(NIL));
+          expect(evaluate("get i")).to.eql(INT(1));
+        });
+      });
+      describe("`continue`", () => {
+        it("should skip the source value for the current loop iteration", () => {
+          evaluate(`
+            macro cmd {i} {
+              when ($i ==) {
+                1 {continue} 
+                3 {break} 
+                  {get i}
+              }
+            }
+          `);
+          expect(
+            evaluate(`
+              set l [list ()]
+              loop index v [list (a b c)] e cmd {
+                set l [list $l append ($v [get e skipped])]
+              }
+            `)
+          ).to.eql(evaluate("list (a [0] b skipped c [2])"));
+        });
+        it("should interrupt the loop iteration", () => {
+          expect(
+            execute(
+              "set i 0; loop v {if {$i == 10} {break}} {set i [+ $i 1]; continue; unreachable}"
+            )
+          ).to.eql(OK(NIL));
+          expect(evaluate("get i")).to.eql(INT(10));
+        });
+      });
+    });
+  });
+
   describeCommand("while", () => {
     mochadoc.summary("Conditional loop");
     mochadoc.usage(usage("while"));
@@ -72,7 +566,7 @@ describe("Helena control flow commands", () => {
         expect(evaluate("get i")).to.eql(INT(10));
       });
       it("should return the result of the last command", () => {
-        expect(execute(" while false {}")).to.eql(OK(NIL));
+        expect(execute("while false {}")).to.eql(OK(NIL));
         expect(
           evaluate("set i 0; while {$i < 10} {set i [+ $i 1]; idem val$i}")
         ).to.eql(STR("val10"));
@@ -208,7 +702,7 @@ describe("Helena control flow commands", () => {
             BREAK()
           );
         });
-        it("should interrupt the body with `nil` result", () => {
+        it("should interrupt the loop with `nil` result", () => {
           expect(
             execute(
               "set i 0; while {$i < 10} {set i [+ $i 1]; break; unreachable}"
@@ -223,7 +717,7 @@ describe("Helena control flow commands", () => {
             CONTINUE()
           );
         });
-        it("should interrupt the body iteration", () => {
+        it("should interrupt the loop iteration", () => {
           expect(
             execute(
               "set i 0; while {$i < 10} {set i [+ $i 1]; continue; unreachable}"

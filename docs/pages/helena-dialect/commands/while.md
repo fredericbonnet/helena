@@ -65,10 +65,10 @@ caller.
 - `break`
 
   - ✅ should interrupt the test with `BREAK` code
-  - ✅ should interrupt the body with `nil` result
+  - ✅ should interrupt the loop with `nil` result
 
 - `continue`
 
   - ✅ should interrupt the test with `CONTINUE` code
-  - ✅ should interrupt the body iteration
+  - ✅ should interrupt the loop iteration
 

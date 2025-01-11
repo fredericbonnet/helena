@@ -1,6 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import { Command } from "../core/commands";
 import {
+  BREAK,
   CUSTOM_RESULT,
   CustomResultCode,
   ERROR,
@@ -13,6 +14,9 @@ import {
 } from "../core/results";
 import {
   BooleanValue,
+  DictionaryValue,
+  INT,
+  ListValue,
   NIL,
   ScriptValue,
   STR,
@@ -23,8 +27,137 @@ import {
   ValueType,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { ContinuationValue, Process, Scope } from "./core";
+import { ContinuationValue, destructureValue, Process, Scope } from "./core";
 import { valueToArray } from "./lists";
+
+type LoopSourceCallback = (result: Result) => Result;
+type LoopSourceFn = (i: number, callback: LoopSourceCallback) => Result;
+const LOOP_SIGNATURE = "loop ?index? ?value source ...? body";
+const loopCmd: Command = {
+  execute(args, scope: Scope) {
+    if (args.length < 2) return ARITY_ERROR(LOOP_SIGNATURE);
+    let index: string;
+    if (args.length % 2 == 1) {
+      const [result, name] = StringValue.toString(args[1]);
+      if (result.code != ResultCode.OK) return ERROR("invalid index name");
+      index = name;
+    }
+    const body = args[args.length - 1];
+    if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
+    const subscope = scope.newLocalScope();
+    const varnames: Value[] = [];
+    const sources: LoopSourceFn[] = [];
+    for (let i = index ? 2 : 1; i < args.length - 1; i += 2) {
+      const varname = args[i];
+      varnames.push(varname);
+      const source = args[i + 1];
+      switch (source.type) {
+        case ValueType.LIST: {
+          const list = source as ListValue;
+          sources.push((i, callback) => {
+            if (i >= list.values.length) return callback(BREAK());
+            const value = list.values[i];
+            return callback(OK(value));
+          });
+          break;
+        }
+        case ValueType.DICTIONARY: {
+          const dictionary = source as DictionaryValue;
+          const it = dictionary.map.entries();
+          sources.push((_i, callback) => {
+            const { value: entry, done } = it.next();
+            if (done) return callback(BREAK());
+            const [k, v] = entry;
+            const value = TUPLE([STR(k), v]);
+            return callback(OK(value));
+          });
+          break;
+        }
+        case ValueType.SCRIPT: {
+          const program = subscope.compileScriptValue(source as ScriptValue);
+          sources.push((_i, callback) =>
+            ContinuationValue.create(subscope, program, callback)
+          );
+          break;
+        }
+        default: {
+          if (!scope.resolveCommand(source)) {
+            return ERROR("invalid source");
+          }
+          sources.push((i, callback) => {
+            const program = subscope.compileArgs(source, INT(i));
+            return ContinuationValue.create(subscope, program, callback);
+          });
+        }
+      }
+    }
+    const program = subscope.compileScriptValue(body as ScriptValue);
+
+    let activeSources = sources.length;
+    let i = 0;
+    let iSource = -1;
+    let lastResult = OK(NIL);
+    const nextIteration = () => {
+      subscope.clearLocals();
+      if (index) {
+        subscope.setNamedLocal(index, INT(i));
+      }
+      iSource = -1;
+      return nextSource();
+    };
+    const nextSource = () => {
+      if (activeSources == 0 && sources.length > 0) return lastResult;
+      iSource++;
+      if (iSource >= sources.length) return callBody();
+      const source = sources[iSource];
+      if (source == null) return nextSource();
+      const varname = varnames[iSource];
+      return source(i, (result) => {
+        switch (result.code) {
+          case ResultCode.BREAK:
+            sources[iSource] = null;
+            activeSources--;
+            return nextSource();
+          case ResultCode.CONTINUE:
+            return nextSource();
+          case ResultCode.OK:
+            break;
+          default:
+            return result;
+        }
+        const value = result.value;
+        const result2 = destructureValue(
+          subscope.destructureLocal.bind(subscope),
+          varname,
+          value
+        );
+        if (result2.code != ResultCode.OK) return result2;
+        return nextSource();
+      });
+    };
+    const callBody = () => {
+      i++;
+      return ContinuationValue.create(subscope, program, (result) => {
+        switch (result.code) {
+          case ResultCode.BREAK:
+            return lastResult;
+          case ResultCode.CONTINUE:
+            break;
+          case ResultCode.OK:
+            lastResult = result;
+            break;
+          default:
+            return result;
+        }
+        return nextIteration();
+      });
+    };
+    return nextIteration();
+  },
+  help() {
+    return OK(STR(LOOP_SIGNATURE));
+  },
+};
 
 const WHILE_SIGNATURE = "while test body";
 const whileCmd: Command = {
@@ -498,6 +631,7 @@ const passCmd: Command = {
 };
 
 export function registerControlCommands(scope: Scope) {
+  scope.registerNamedCommand("loop", loopCmd);
   scope.registerNamedCommand("while", whileCmd);
   scope.registerNamedCommand("if", ifCmd);
   scope.registerNamedCommand("when", whenCmd);

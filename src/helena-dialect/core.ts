@@ -331,6 +331,9 @@ export class Scope {
     }
   }
 
+  clearLocals() {
+    this.locals.clear();
+  }
   setNamedLocal(name: string, value: Value) {
     this.locals.set(name, value);
   }
