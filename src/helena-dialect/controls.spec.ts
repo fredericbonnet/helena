@@ -15,7 +15,7 @@ import { Tokenizer } from "../core/tokenizer";
 import { FALSE, INT, NIL, STR, StringValue, TRUE } from "../core/values";
 import { Scope } from "./core";
 import { initCommands } from "./helena-dialect";
-import { codeBlock, describeCommand } from "./test-helpers";
+import { codeBlock, describeCommand, specifyExample } from "./test-helpers";
 
 const asString = (value) => StringValue.toString(value)[1];
 
@@ -43,12 +43,13 @@ describe("Helena control flow commands", () => {
     init();
     return codeBlock(asString(evaluate("help " + script)));
   };
+  const example = specifyExample(({ script }) => execute(script));
 
   beforeEach(init);
 
   mochadoc.meta({ toc: true });
 
-  describeCommand("loop", () => {
+  describeCommand.only("loop", () => {
     mochadoc.summary("Generic loop");
     mochadoc.usage(usage("loop"));
     mochadoc.description(() => {
@@ -539,6 +540,106 @@ describe("Helena control flow commands", () => {
           expect(evaluate("get i")).to.eql(INT(10));
         });
       });
+    });
+
+    mochadoc.section("Examples", () => {
+      mochadoc.description(() => {
+        /**
+         * The versatility of the `loop` command makes it very simple to
+         * emulate features from other languages using higher order
+         * functions.
+         */
+      });
+      example("List striding", [
+        {
+          doc: () => {
+            /**
+             * Like `loop`, the Tcl `foreach` function supports traversal of
+             * multiple lists simultaneously. It also supports striding over
+             * several consecutive elements at once by accepting more than one
+             * variable name per list, whereas `loop` chooses to apply tuple
+             * destructuring.
+             *
+             * We can easily emulate that feature with a utility macro returning
+             * a command source:
+             */
+          },
+          script: `
+            macro stride {(list l) (int w)} {
+                idem (
+                  [[macro {l w i} {
+                    if {[$i * $w] >= [list $l length]} {break}
+                    tuple [list $l range [$i * $w] [[[$i + 1] * $w] - 1]]
+                  }]]
+                  $l $w
+                )
+            }
+          `,
+        },
+        {
+          doc: () => {
+            /**
+             * The core macro produces a tuple of $w consecutive elements of $l
+             * for each iteration $i. It expects 3 arguments, but thanks to
+             * leading tuple auto-expansion we can curry it with its first 2
+             * parameters into a command tuple source, and pass it to `loop`:
+             */
+          },
+          script: `
+            set l [list ()]
+            loop (v1 v2 v3) [stride (a b c d e f g h i) 3] {
+              set l [list $l append (($v1 $v2 $v3))]
+            }
+          `,
+          result: evaluate("list ((a b c) (d e f) (g h i))"),
+        },
+      ]);
+      example("Range of integer values", [
+        {
+          doc: () => {
+            /**
+             * Python is well-known for its powerful generator model and notably
+             * its [`range()` built-in
+             * function](https://docs.python.org/3.8/library/stdtypes.html#range).
+             *
+             * We can easily emulate that feature using the same technique as
+             * the previous `stride` example:
+             */
+          },
+          script: `
+            macro range {(int ?start 0) (int stop) (int ?step 1)} {
+              idem (
+                [[macro {start stop step i} {
+                  if {[$start + $step * $i] >= $stop} {break}
+                  $start + $step * $i
+                }]]
+                $start $stop $step
+              )
+            }
+          `,
+        },
+        {
+          script: `
+            set l [list ()]
+            loop i [range 10] {set l [list $l append ($i)]}
+          `,
+          result: evaluate("list ([0] [1] [2] [3] [4] [5] [6] [7] [8] [9])"),
+        },
+        {
+          script: `
+            set l [list ()]
+            loop i [range 1 5] {set l [list $l append ($i)]}
+          `,
+          result: evaluate("list ([1] [2] [3] [4])"),
+        },
+        {
+          script: `
+            set l [list ()]
+            loop i [range -10 20 5] {set l [list $l append ($i)]}
+          `,
+          result: evaluate("list ([-10] [-5] [0] [5] [10] [15])"),
+        },
+      ]);
     });
   });
 
