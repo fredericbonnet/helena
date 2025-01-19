@@ -21,6 +21,7 @@ import {
   display,
 } from "./display";
 import { Command } from "./commands";
+import { Program } from "./compiler";
 
 /** Helena standard value types */
 export enum ValueType {
@@ -611,6 +612,14 @@ export class ScriptValue implements Value {
     if (this.source == null) return fn(this);
     return `{${this.source}}`;
   }
+
+  /** Run-time cache */
+  readonly cache: ScriptValueCache = new ScriptValueCache();
+}
+/** Run-time caching structure for script values */
+class ScriptValueCache {
+  /** Cached compiled program */
+  program?: Program;
 }
 
 /**

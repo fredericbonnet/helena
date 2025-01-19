@@ -265,7 +265,12 @@ export class Scope {
   }
 
   compileScriptValue(script: ScriptValue): Program {
-    return this.compile(script.script);
+    if (script.cache.program) {
+      return script.cache.program;
+    }
+    const program = this.compile(script.script);
+    script.cache.program = program;
+    return program;
   }
   compileTupleValue(tuple: TupleValue): Program {
     const program = new Program();
