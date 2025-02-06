@@ -1658,6 +1658,11 @@ describe("Helena control flow commands", () => {
           )
         );
       });
+      specify("invalid command", () => {
+        expect(execute("when [] {1 {1}}")).to.eql(
+          ERROR("invalid command name")
+        );
+      });
       specify("invalid case list", () => {
         /**
          * Case list must be a block or tuple.

@@ -302,12 +302,14 @@ const ifCmd = new IfCommand();
 const WHEN_SIGNATURE = "when ?command? {?test body ...? ?default?}";
 const whenCmd: Command = {
   execute(args, scope: Scope) {
+    let hasCommand = false;
     let command, casesBody;
     switch (args.length) {
       case 2:
         [, casesBody] = args;
         break;
       case 3:
+        hasCommand = true;
         [, command, casesBody] = args;
         break;
       default:
@@ -322,7 +324,7 @@ const whenCmd: Command = {
       if (i == cases.length - 1) {
         return callBody();
       }
-      if (!command) return callTest(NIL);
+      if (!hasCommand) return callTest(NIL);
       if (command.type == ValueType.SCRIPT) {
         const program = scope.compileScriptValue(command as ScriptValue);
         return ContinuationValue.create(scope, program, (result) => {
@@ -335,7 +337,7 @@ const whenCmd: Command = {
     };
     const callTest = (command: Value): Result => {
       let test = cases[i];
-      if (command != NIL) {
+      if (hasCommand) {
         switch (test.type) {
           case ValueType.TUPLE:
             test = TUPLE([command, ...(test as TupleValue).values]);
