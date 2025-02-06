@@ -27,11 +27,16 @@ import {
   ValueType,
 } from "../core/values";
 import { ARITY_ERROR } from "./arguments";
-import { ContinuationValue, destructureValue, Process, Scope } from "./core";
+import {
+  ContinuationCallback,
+  ContinuationValue,
+  destructureValue,
+  Process,
+  Scope,
+} from "./core";
 import { valueToArray } from "./lists";
 
-type LoopSourceCallback = (result: Result) => Result;
-type LoopSourceFn = (i: number, callback: LoopSourceCallback) => Result;
+type LoopSourceFn = (i: number, callback: ContinuationCallback) => Result;
 const LOOP_SIGNATURE = "loop ?index? ?value source ...? body";
 const loopCmd: Command = {
   execute(args, scope: Scope) {

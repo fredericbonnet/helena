@@ -24,19 +24,16 @@ import {
 import { numberCmd } from "./numbers";
 import { ErrorStack, ErrorStackLevel } from "../core/errors";
 
+export type ContinuationCallback = (result: Result) => Result;
 export class ContinuationValue implements CustomValue {
   readonly type = ValueType.CUSTOM;
   readonly customType = { name: "continuation" };
 
   readonly scope: Scope;
   readonly program: Program;
-  readonly callback?: (result: Result) => Result;
+  readonly callback?: ContinuationCallback;
 
-  constructor(
-    scope: Scope,
-    program: Program,
-    callback?: (result: Result) => Result
-  ) {
+  constructor(scope: Scope, program: Program, callback?: ContinuationCallback) {
     this.scope = scope;
     this.program = program;
     this.callback = callback;
@@ -54,7 +51,7 @@ export type ProcessContext = {
   scope: Scope;
   program: Program;
   state: ProgramState;
-  callback?: (result: Result) => Result;
+  callback?: ContinuationCallback;
 };
 
 export class ProcessStack {

@@ -1109,6 +1109,7 @@ describe("Helena control flow commands", () => {
           );
         });
         it("should interrupt the loop with `nil` result", () => {
+          expect(execute("while true {break}")).to.eql(OK(NIL));
           expect(
             execute(
               "set i 0; while {$i < 10} {set i [+ $i 1]; break; unreachable}"
