@@ -291,6 +291,10 @@ export function valueToList(value: Value): [Result, ListValue?] {
 
 export function valueToArray(value: Value): [Result, Value[]?] {
   if (value.type == ValueType.SCRIPT) {
+    const script = value as ScriptValue;
+    if (script.cache.values) {
+      return [OK(NIL), script.cache.values];
+    }
     const program = new Compiler().compileSentences(
       (value as ScriptValue).script.sentences
     );
@@ -301,7 +305,8 @@ export function valueToArray(value: Value): [Result, Value[]?] {
     );
     const result = listExecutor.execute(program);
     if (result.code != ResultCode.OK) return [ERROR("invalid list")];
-    return [OK(NIL), (result.value as TupleValue).values];
+    script.cache.values = (result.value as TupleValue).values;
+    return [OK(NIL), script.cache.values];
   }
   return ListValue.toValues(value);
 }

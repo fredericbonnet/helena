@@ -620,6 +620,9 @@ export class ScriptValue implements Value {
 class ScriptValueCache {
   /** Cached compiled program */
   program?: Program;
+
+  /** Cached array of values */
+  values?: 	Value[];
 }
 
 /**
