@@ -179,11 +179,6 @@ propagated to the caller.
   - ✅ should interrupt sources with `RETURN` code
   - ✅ should interrupt the loop with `RETURN` code
 
-- `tailcall`
-
-  - ✅ should interrupt sources with `RETURN` code
-  - ✅ should interrupt the loop with `RETURN` code
-
 - `yield`
 
   - ✅ should interrupt sources with `YIELD` code

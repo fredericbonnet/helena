@@ -54,11 +54,6 @@ propagated properly by the command.
   - ✅ should interrupt the body with `ERROR` code
   - ✅ should not define the module command
 
-- `tailcall`
-
-  - ✅ should interrupt the body with `ERROR` code
-  - ✅ should not define the module command
-
 - `yield`
 
   - ✅ should interrupt the body with `ERROR` code

@@ -232,17 +232,6 @@ describe("Helena aliases", () => {
             expect(execute("cmd")).to.eql(RETURN(STR("val")));
           });
         });
-        describe("`tailcall`", () => {
-          it("should interrupt a macro alias with `RETURN` code", () => {
-            evaluate("macro mac {} {tailcall {idem val1}; idem val2}");
-            evaluate("alias cmd mac");
-            expect(execute("cmd")).to.eql(RETURN(STR("val1")));
-          });
-          it("should interrupt a tuple alias with `RETURN` code", () => {
-            evaluate("alias cmd (tailcall {idem val})");
-            expect(execute("cmd")).to.eql(RETURN(STR("val")));
-          });
-        });
         describe("`yield`", () => {
           it("should interrupt a macro alias with `YIELD` code", () => {
             evaluate("macro mac {} {yield val1; idem val2}");

@@ -104,11 +104,6 @@ propagated properly by the alias.
   - ✅ should interrupt a macro alias with `RETURN` code
   - ✅ should interrupt a tuple alias with `RETURN` code
 
-- `tailcall`
-
-  - ✅ should interrupt a macro alias with `RETURN` code
-  - ✅ should interrupt a tuple alias with `RETURN` code
-
 - `yield`
 
   - ✅ should interrupt a macro alias with `YIELD` code

@@ -482,12 +482,6 @@ describe("Helena procedures", () => {
           expect(execute("cmd")).to.eql(OK(STR("val1")));
         });
       });
-      describe("`tailcall`", () => {
-        it("should interrupt a proc with `OK` code", () => {
-          evaluate("proc cmd {} {tailcall (idem val1); idem val2}");
-          expect(execute("cmd")).to.eql(OK(STR("val1")));
-        });
-      });
       describe("`yield`", () => {
         it("should interrupt a proc with `YIELD` code", () => {
           evaluate("proc cmd {} {yield val1; idem val2}");

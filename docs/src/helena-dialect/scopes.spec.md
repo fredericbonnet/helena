@@ -62,10 +62,6 @@ Scope commands are commands that encapsulate a child scope.
 
     - ✅ should interrupt the body with `RETURN` code
 
-  - `tailcall`
-
-    - ✅ should interrupt the body with `RETURN` code
-
   - `yield`
 
     - ✅ should interrupt the body with `YIELD` code
@@ -106,10 +102,6 @@ Scope commands are commands that encapsulate a child scope.
 
 
   - `return`
-
-    - ✅ should interrupt the body with `RETURN` code
-
-  - `tailcall`
 
     - ✅ should interrupt the body with `RETURN` code
 

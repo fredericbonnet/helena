@@ -5,7 +5,6 @@ source: src\helena-dialect\basic-commands.spec.ts
 
 - [`idem`](../../pages/helena-dialect/commands/idem.md) - Return the value that is passed to it
 - [`return`](../../pages/helena-dialect/commands/return.md) - Stop execution with `RETURN` code
-- [`tailcall`](../../pages/helena-dialect/commands/tailcall.md) - Transfer execution to another script
 - [`yield`](../../pages/helena-dialect/commands/yield.md) - Pause execution with `YIELD` code
 - [`error`](../../pages/helena-dialect/commands/error.md) - Stop execution with `ERROR` code
 - [`break`](../../pages/helena-dialect/commands/break.md) - Stop execution with `BREAK` code

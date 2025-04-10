@@ -78,10 +78,6 @@ propagated properly by the macro to the caller.
 
   - ✅ should interrupt a macro with `RETURN` code
 
-- `tailcall`
-
-  - ✅ should interrupt a macro with `RETURN` code
-
 - `yield`
 
   - ✅ should interrupt a macro with `YIELD` code

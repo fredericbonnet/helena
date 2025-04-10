@@ -332,10 +332,6 @@ dict value foreach ?index? entry body
 
     - ✅ should interrupt the loop with `RETURN` code
 
-  - `tailcall`
-
-    - ✅ should interrupt the loop with `RETURN` code
-
   - `yield`
 
     - ✅ should interrupt the body with `YIELD` code

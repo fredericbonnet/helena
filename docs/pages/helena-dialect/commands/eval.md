@@ -46,11 +46,6 @@ Control flow commands will interrupt the evaluated script.
   - ✅ should interrupt the body with `RETURN` code
   - ✅ should return passed value
 
-- `tailcall`
-
-  - ✅ should interrupt the body with `RETURN` code
-  - ✅ should return tailcall result
-
 - `yield`
 
   - ✅ should interrupt the body with `YIELD` code

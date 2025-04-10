@@ -46,11 +46,6 @@ It is inspired by the Tcl command `catch` but with a distinct syntax.
       - ✅ should interrupt handler with `RETURN` code
       - ✅ should bypass `finally` handler
 
-    - `tailcall`
-
-      - ✅ should interrupt handler with `RETURN` code
-      - ✅ should bypass `finally` handler
-
     - `yield`
 
       - ✅ should interrupt handler with `YIELD` code
@@ -91,11 +86,6 @@ It is inspired by the Tcl command `catch` but with a distinct syntax.
 
 
     - `return`
-
-      - ✅ should interrupt handler with `RETURN` code
-      - ✅ should bypass `finally` handler
-
-    - `tailcall`
 
       - ✅ should interrupt handler with `RETURN` code
       - ✅ should bypass `finally` handler
@@ -144,11 +134,6 @@ It is inspired by the Tcl command `catch` but with a distinct syntax.
       - ✅ should interrupt handler with `RETURN` code
       - ✅ should bypass `finally` handler
 
-    - `tailcall`
-
-      - ✅ should interrupt handler with `RETURN` code
-      - ✅ should bypass `finally` handler
-
     - `yield`
 
       - ✅ should interrupt handler with `YIELD` code
@@ -188,11 +173,6 @@ It is inspired by the Tcl command `catch` but with a distinct syntax.
 
 
     - `return`
-
-      - ✅ should interrupt handler with `RETURN` code
-      - ✅ should bypass `finally` handler
-
-    - `tailcall`
 
       - ✅ should interrupt handler with `RETURN` code
       - ✅ should bypass `finally` handler
@@ -239,11 +219,6 @@ It is inspired by the Tcl command `catch` but with a distinct syntax.
       - ✅ should interrupt handler with `RETURN` code
       - ✅ should bypass `finally` handler
 
-    - `tailcall`
-
-      - ✅ should interrupt handler with `RETURN` code
-      - ✅ should bypass `finally` handler
-
     - `yield`
 
       - ✅ should interrupt handler with `YIELD` code
@@ -286,10 +261,6 @@ It is inspired by the Tcl command `catch` but with a distinct syntax.
 
 
     - `return`
-
-      - ✅ should interrupt handler with `RETURN` code
-
-    - `tailcall`
 
       - ✅ should interrupt handler with `RETURN` code
 

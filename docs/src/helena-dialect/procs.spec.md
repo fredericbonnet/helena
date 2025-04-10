@@ -74,10 +74,6 @@ within the procedure whereas others are propagated to the caller.
 
   - ✅ should interrupt a proc with `OK` code
 
-- `tailcall`
-
-  - ✅ should interrupt a proc with `OK` code
-
 - `yield`
 
   - ✅ should interrupt a proc with `YIELD` code

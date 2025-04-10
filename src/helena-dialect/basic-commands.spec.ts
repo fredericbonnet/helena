@@ -142,98 +142,6 @@ describe("Helena basic commands", () => {
     });
   });
 
-  describeCommand("tailcall", () => {
-    mochadoc.summary("Transfer execution to another script");
-    mochadoc.usage(usage("tailcall"));
-    mochadoc.description(() => {
-      /**
-       * The `tailcall` command is a control flow command that stops the script
-       * with a `RETURN` code and the evaluated result of another script passed
-       * as argument.
-       */
-    });
-
-    mochadoc.section("Specifications", () => {
-      specify("usage", () => {
-        expect(evaluate("help tailcall")).to.eql(STR("tailcall body"));
-        expect(evaluate("help tailcall {}")).to.eql(STR("tailcall body"));
-      });
-
-      specify("result code should be `RETURN`", () => {
-        expect(execute("tailcall {}").code).to.eql(ResultCode.RETURN);
-      });
-      it("should accept script values for its `body` argument", () => {
-        expect(execute("tailcall {}")).to.eql(RETURN(NIL));
-      });
-      it("should accept tuple values for its `body` argument", () => {
-        expect(execute("tailcall ()")).to.eql(RETURN(NIL));
-      });
-      it("should return the evaluation result of it `body` argument", () => {
-        expect(execute("tailcall {idem val}")).to.eql(RETURN(STR("val")));
-        expect(execute("tailcall {return val}")).to.eql(RETURN(STR("val")));
-        expect(execute("tailcall (idem val); unreachable")).to.eql(
-          RETURN(STR("val"))
-        );
-        expect(execute("tailcall (return val); unreachable")).to.eql(
-          RETURN(STR("val"))
-        );
-      });
-      it("should propagate `ERROR` code from `body`", () => {
-        expect(execute("tailcall {error msg}")).to.eql(ERROR("msg"));
-        expect(execute("tailcall (error msg); unreachable")).to.eql(
-          ERROR("msg")
-        );
-      });
-      it("should propagate `BREAK` code from `body`", () => {
-        expect(execute("tailcall {break}")).to.eql(BREAK());
-        expect(execute("tailcall (break); unreachable")).to.eql(BREAK());
-      });
-      it("should propagate `CONTINUE` code from `body`", () => {
-        expect(execute("tailcall {continue}")).to.eql(CONTINUE());
-        expect(execute("tailcall (continue); unreachable")).to.eql(CONTINUE());
-      });
-      it("should interrupt the script", () => {
-        expect(execute("tailcall {idem val}; unreachable")).to.eql(
-          RETURN(STR("val"))
-        );
-        expect(execute("tailcall (idem val); unreachable")).to.eql(
-          RETURN(STR("val"))
-        );
-      });
-      it("should work recursively", () => {
-        expect(
-          execute("tailcall {tailcall (idem val); unreachable}; unreachable")
-        ).to.eql(RETURN(STR("val")));
-      });
-    });
-
-    mochadoc.section("Exceptions", () => {
-      specify("wrong arity", () => {
-        /**
-         * The command will return an error message with usage when given the
-         * wrong number of arguments.
-         */
-        expect(execute("tailcall")).to.eql(
-          ERROR('wrong # args: should be "tailcall body"')
-        );
-        expect(execute("tailcall a b")).to.eql(
-          ERROR('wrong # args: should be "tailcall body"')
-        );
-        expect(execute("help tailcall a b")).to.eql(
-          ERROR('wrong # args: should be "tailcall body"')
-        );
-      });
-      specify("invalid `body`", () => {
-        /**
-         * The `body` argument must be a script or tuple.
-         */
-        expect(execute("tailcall 1")).to.eql(
-          ERROR("body must be a script or tuple")
-        );
-      });
-    });
-  });
-
   describeCommand("yield", () => {
     mochadoc.summary("Pause execution with `YIELD` code");
     mochadoc.usage(usage("yield"));
@@ -494,19 +402,6 @@ describe("Helena basic commands", () => {
         });
         it("should return passed value", () => {
           expect(execute("eval {return val}")).to.eql(RETURN(STR("val")));
-        });
-      });
-      describe("`tailcall`", () => {
-        it("should interrupt the body with `RETURN` code", () => {
-          expect(
-            execute("eval {set var val1; tailcall {}; set var val2}").code
-          ).to.eql(ResultCode.RETURN);
-          expect(evaluate("get var")).to.eql(STR("val1"));
-        });
-        it("should return tailcall result", () => {
-          expect(execute("eval {tailcall {idem val}}")).to.eql(
-            RETURN(STR("val"))
-          );
         });
       });
       describe("`yield`", () => {

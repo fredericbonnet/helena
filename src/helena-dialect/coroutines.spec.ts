@@ -115,21 +115,6 @@ describe("Helena coroutines", () => {
             );
           });
         });
-        describe("`tailcall`", () => {
-          it("should interrupt the body with `OK` code", () => {
-            expect(
-              execute(
-                "[coroutine {set var val1; tailcall {}; set var val2}] wait"
-              ).code
-            ).to.eql(ResultCode.OK);
-            expect(evaluate("get var")).to.eql(STR("val1"));
-          });
-          it("should return passed value", () => {
-            expect(execute("[coroutine {tailcall {idem val}}] wait")).to.eql(
-              OK(STR("val"))
-            );
-          });
-        });
         describe("`yield`", () => {
           it("should interrupt the body with `OK` code", () => {
             expect(

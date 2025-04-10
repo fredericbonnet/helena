@@ -54,11 +54,6 @@ should be propagated properly by the command.
   - ✅ should interrupt tests with `RETURN` code
   - ✅ should interrupt bodies with `RETURN` code
 
-- `tailcall`
-
-  - ✅ should interrupt tests with `RETURN` code
-  - ✅ should interrupt bodies with `RETURN` code
-
 - `yield`
 
   - ✅ should interrupt tests with `YIELD` code

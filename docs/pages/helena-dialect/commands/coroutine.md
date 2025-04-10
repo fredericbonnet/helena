@@ -44,11 +44,6 @@ resumable, and can be used for cooperative multitasking.
   - ✅ should interrupt the body with `OK` code
   - ✅ should return passed value
 
-- `tailcall`
-
-  - ✅ should interrupt the body with `OK` code
-  - ✅ should return passed value
-
 - `yield`
 
   - ✅ should interrupt the body with `OK` code

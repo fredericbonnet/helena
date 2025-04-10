@@ -711,16 +711,6 @@ describe("Helena dictionaries", () => {
                 expect(evaluate("get i")).to.eql(INT(1));
               });
             });
-            describe("`tailcall`", () => {
-              it("should interrupt the loop with `RETURN` code", () => {
-                expect(
-                  execute(
-                    "set i 0; dict (a b c d e f) foreach entry {set i [+ $i 1]; tailcall {idem $entry}; unreachable}"
-                  )
-                ).to.eql(execute("return (a b)"));
-                expect(evaluate("get i")).to.eql(INT(1));
-              });
-            });
             describe("`yield`", () => {
               it("should interrupt the body with `YIELD` code", () => {
                 expect(

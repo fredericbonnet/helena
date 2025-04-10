@@ -495,12 +495,6 @@ describe("Helena closures", () => {
           expect(execute("cmd")).to.eql(RETURN(STR("val1")));
         });
       });
-      describe("`tailcall`", () => {
-        it("should interrupt a closure with `RETURN` code", () => {
-          evaluate("closure cmd {} {tailcall {idem val1}; idem val2}");
-          expect(execute("cmd")).to.eql(RETURN(STR("val1")));
-        });
-      });
       describe("`yield`", () => {
         it("should interrupt a closure with `YIELD` code", () => {
           evaluate("closure cmd {} {yield val1; idem val2}");

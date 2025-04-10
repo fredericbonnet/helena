@@ -46,11 +46,6 @@ caller.
   - ✅ should interrupt the test with `RETURN` code
   - ✅ should interrupt the loop with `RETURN` code
 
-- `tailcall`
-
-  - ✅ should interrupt the test with `RETURN` code
-  - ✅ should interrupt the loop with `RETURN` code
-
 - `yield`
 
   - ✅ should interrupt the test with `YIELD` code

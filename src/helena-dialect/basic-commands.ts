@@ -57,37 +57,6 @@ const yieldCmd: Command = {
   },
 };
 
-const TAILCALL_SIGNATURE = "tailcall body";
-const tailcallCmd: Command = {
-  execute: (args, scope: Scope) => {
-    if (args.length != 2) return ARITY_ERROR(TAILCALL_SIGNATURE);
-    const body = args[1];
-    let program;
-    switch (body.type) {
-      case ValueType.SCRIPT:
-        program = scope.compileScriptValue(body as ScriptValue);
-        break;
-      case ValueType.TUPLE:
-        program = scope.compileTupleValue(body as TupleValue);
-        break;
-      default:
-        return ERROR("body must be a script or tuple");
-    }
-    return RETURN(
-      new ContinuationValue(scope, program, (result) => {
-        if (result.code != ResultCode.OK) {
-          return result;
-        }
-        return RETURN(result.value);
-      })
-    );
-  },
-  help: (args) => {
-    if (args.length > 2) return ARITY_ERROR(TAILCALL_SIGNATURE);
-    return OK(STR(TAILCALL_SIGNATURE));
-  },
-};
-
 const ERROR_SIGNATURE = "error message";
 const errorCmd: Command = {
   execute: (args) => {
@@ -185,7 +154,6 @@ const helpCmd: Command = {
 export function registerBasicCommands(scope: Scope) {
   scope.registerNamedCommand("idem", idemCmd);
   scope.registerNamedCommand("return", returnCmd);
-  scope.registerNamedCommand("tailcall", tailcallCmd);
   scope.registerNamedCommand("yield", yieldCmd);
   scope.registerNamedCommand("error", errorCmd);
   scope.registerNamedCommand("break", breakCmd);

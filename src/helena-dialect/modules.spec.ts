@@ -161,17 +161,6 @@ describe("Helena modules", () => {
             expect(rootScope.context.commands.has("cmd")).to.be.false;
           });
         });
-        describe("`tailcall`", () => {
-          it("should interrupt the body with `ERROR` code", () => {
-            expect(execute("module {tailcall {idem value}}")).to.eql(
-              ERROR("unexpected return")
-            );
-          });
-          it("should not define the module command", () => {
-            evaluate("module cmd {return value}");
-            expect(rootScope.context.commands.has("cmd")).to.be.false;
-          });
-        });
         describe("`yield`", () => {
           it("should interrupt the body with `ERROR` code", () => {
             expect(execute("module {yield value}")).to.eql(

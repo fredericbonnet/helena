@@ -512,13 +512,6 @@ describe("Helena logic operations", () => {
             );
           });
         });
-        describe("`tailcall`", () => {
-          it("should interrupt expression with `RETURN` code", () => {
-            expect(execute("! {tailcall {idem value}; unreachable}")).to.eql(
-              RETURN(STR("value"))
-            );
-          });
-        });
         describe("`yield`", () => {
           it("should interrupt expression with `YIELD` code", () => {
             const result = execute("! {yield value; true}");
@@ -622,13 +615,6 @@ describe("Helena logic operations", () => {
             expect(execute("&& true {return value; unreachable} false")).to.eql(
               RETURN(STR("value"))
             );
-          });
-        });
-        describe("`tailcall`", () => {
-          it("should interrupt expression with `RETURN` code", () => {
-            expect(
-              execute("&& true {tailcall {idem value}; unreachable} false")
-            ).to.eql(RETURN(STR("value")));
           });
         });
         describe("`yield`", () => {
@@ -741,13 +727,6 @@ describe("Helena logic operations", () => {
             expect(execute("|| false {return value; unreachable} true")).to.eql(
               RETURN(STR("value"))
             );
-          });
-        });
-        describe("`tailcall`", () => {
-          it("should interrupt expression with `RETURN` code", () => {
-            expect(
-              execute("|| false {tailcall {idem value}; unreachable} true")
-            ).to.eql(RETURN(STR("value")));
           });
         });
         describe("`yield`", () => {

@@ -181,10 +181,6 @@ it should be propagated properly to the caller.
 
   - ✅ should interrupt expression with `RETURN` code
 
-- `tailcall`
-
-  - ✅ should interrupt expression with `RETURN` code
-
 - `yield`
 
   - ✅ should interrupt expression with `YIELD` code
@@ -239,10 +235,6 @@ it should be propagated properly to the caller.
 
 
 - `return`
-
-  - ✅ should interrupt expression with `RETURN` code
-
-- `tailcall`
 
   - ✅ should interrupt expression with `RETURN` code
 
@@ -302,10 +294,6 @@ it should be propagated properly to the caller.
 
 
 - `return`
-
-  - ✅ should interrupt expression with `RETURN` code
-
-- `tailcall`
 
   - ✅ should interrupt expression with `RETURN` code
 

@@ -714,16 +714,6 @@ describe("Helena lists", () => {
                 expect(evaluate("get i")).to.eql(INT(1));
               });
             });
-            describe("`tailcall`", () => {
-              it("should interrupt the loop with `RETURN` code", () => {
-                expect(
-                  execute(
-                    "set i 0; list (a b c) foreach element {set i [+ $i 1]; tailcall {idem $element}; unreachable}"
-                  )
-                ).to.eql(execute("return a"));
-                expect(evaluate("get i")).to.eql(INT(1));
-              });
-            });
             describe("`yield`", () => {
               it("should interrupt the body with `YIELD` code", () => {
                 expect(

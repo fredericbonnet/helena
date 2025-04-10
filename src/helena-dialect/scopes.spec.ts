@@ -159,25 +159,6 @@ describe("Helena scopes", () => {
             expect(execute("scope {return val}")).to.eql(OK(STR("val")));
           });
         });
-        describe("`tailcall`", () => {
-          it("should interrupt the body with `OK` code", () => {
-            evaluate("closure cmd1 {} {set var val1}");
-            evaluate("closure cmd2 {} {set var val2}");
-            expect(execute("scope {cmd1; tailcall {}; cmd2}").code).to.eql(
-              ResultCode.OK
-            );
-            expect(evaluate("get var")).to.eql(STR("val1"));
-          });
-          it("should still define the named command", () => {
-            evaluate("scope cmd {tailcall {}}");
-            expect(rootScope.context.commands.has("cmd")).to.be.true;
-          });
-          it("should return passed value instead of the command object", () => {
-            expect(execute("scope {tailcall {idem val}}")).to.eql(
-              OK(STR("val"))
-            );
-          });
-        });
         describe("`yield`", () => {
           it("should interrupt the body with `YIELD` code", () => {
             evaluate("closure cmd1 {} {set var val1}");
@@ -387,17 +368,6 @@ describe("Helena scopes", () => {
               expect(evaluate("get var")).to.eql(STR("val1"));
             });
           });
-          describe("`tailcall`", () => {
-            it("should interrupt the body with `RETURN` code", () => {
-              evaluate("closure cmd1 {} {set var val1}");
-              evaluate("closure cmd2 {} {set var val2}");
-              evaluate("scope cmd {}");
-              expect(
-                execute("cmd eval {cmd1; tailcall {idem val3}; cmd2}")
-              ).to.eql(RETURN(STR("val3")));
-              expect(evaluate("get var")).to.eql(STR("val1"));
-            });
-          });
           describe("`yield`", () => {
             it("should interrupt the body with `YIELD` code", () => {
               evaluate("closure cmd1 {} {set var val1}");
@@ -519,17 +489,6 @@ describe("Helena scopes", () => {
               evaluate("closure cmd1 {} {set var val1}");
               evaluate("closure cmd2 {} {set var val2}");
               evaluate("scope cmd {macro mac {} {cmd1; return val3; cmd2}}");
-              expect(execute("cmd call mac")).to.eql(RETURN(STR("val3")));
-              expect(evaluate("get var")).to.eql(STR("val1"));
-            });
-          });
-          describe("`tailcall`", () => {
-            it("should interrupt the body with `RETURN` code", () => {
-              evaluate("closure cmd1 {} {set var val1}");
-              evaluate("closure cmd2 {} {set var val2}");
-              evaluate(
-                "scope cmd {macro mac {} {cmd1; tailcall {idem val3}; cmd2}}"
-              );
               expect(execute("cmd call mac")).to.eql(RETURN(STR("val3")));
               expect(evaluate("get var")).to.eql(STR("val1"));
             });

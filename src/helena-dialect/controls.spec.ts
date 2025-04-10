@@ -556,31 +556,6 @@ describe("Helena control flow commands", () => {
           expect(evaluate("get i")).to.eql(INT(1));
         });
       });
-      describe("`tailcall`", () => {
-        it("should interrupt sources with `RETURN` code", () => {
-          expect(
-            execute("loop v {tailcall {idem val}; unreachable} {unreachable}")
-          ).to.eql(RETURN(STR("val")));
-          evaluate("macro cmd {i} {tailcall {idem val}}");
-          expect(execute("loop v cmd {unreachable}")).to.eql(
-            RETURN(STR("val"))
-          );
-          expect(execute("loop v (cmd) {unreachable}")).to.eql(
-            RETURN(STR("val"))
-          );
-          expect(
-            execute("loop v [[macro {i} {tailcall {idem val}}]] {unreachable}")
-          ).to.eql(RETURN(STR("val")));
-        });
-        it("should interrupt the loop with `RETURN` code", () => {
-          expect(
-            execute(
-              "set i 0; loop {set i [+ $i 1]; tailcall {idem val}; unreachable}"
-            )
-          ).to.eql(RETURN(STR("val")));
-          expect(evaluate("get i")).to.eql(INT(1));
-        });
-      });
       describe("`yield`", () => {
         it("should interrupt sources with `YIELD` code", () => {
           expect(execute("loop v {yield; unreachable} {}").code).to.eql(
@@ -1027,21 +1002,6 @@ describe("Helena control flow commands", () => {
           expect(evaluate("get i")).to.eql(INT(1));
         });
       });
-      describe("`tailcall`", () => {
-        it("should interrupt the test with `RETURN` code", () => {
-          expect(
-            execute("while {tailcall {idem val}; unreachable} {unreachable}")
-          ).to.eql(RETURN(STR("val")));
-        });
-        it("should interrupt the loop with `RETURN` code", () => {
-          expect(
-            execute(
-              "set i 0; while {$i < 10} {set i [+ $i 1]; tailcall {idem val}; unreachable}"
-            )
-          ).to.eql(RETURN(STR("val")));
-          expect(evaluate("get i")).to.eql(INT(1));
-        });
-      });
       describe("`yield`", () => {
         it("should interrupt the test with `YIELD` code", () => {
           expect(execute("while {yield; unreachable} {}").code).to.eql(
@@ -1298,33 +1258,6 @@ describe("Helena control flow commands", () => {
           expect(
             execute(
               "if false {} elseif false {} else {return val; unreachable}"
-            )
-          ).to.eql(RETURN(STR("val")));
-        });
-      });
-      describe("`tailcall`", () => {
-        it("should interrupt tests with `RETURN` code", () => {
-          expect(
-            execute("if {tailcall {idem val}; unreachable} {unreachable}")
-          ).to.eql(RETURN(STR("val")));
-          expect(
-            execute(
-              "if false {} elseif {tailcall {idem val}; unreachable} {unreachable}"
-            )
-          ).to.eql(RETURN(STR("val")));
-        });
-        it("should interrupt bodies with `RETURN` code", () => {
-          expect(execute("if true {tailcall {idem val}; unreachable}")).to.eql(
-            RETURN(STR("val"))
-          );
-          expect(
-            execute(
-              "if false {} elseif true {tailcall {idem val}; unreachable}"
-            )
-          ).to.eql(RETURN(STR("val")));
-          expect(
-            execute(
-              "if false {} elseif false {} else {tailcall {idem val}; unreachable}"
             )
           ).to.eql(RETURN(STR("val")));
         });
@@ -1709,43 +1642,6 @@ describe("Helena control flow commands", () => {
           ).to.eql(RETURN(STR("val")));
           expect(
             execute("when {false {} false {} {return val; unreachable}}")
-          ).to.eql(RETURN(STR("val")));
-        });
-      });
-      describe("`tailcall`", () => {
-        it("should interrupt tests with `RETURN` code", () => {
-          expect(
-            execute("when {{tailcall {idem val}; unreachable} {unreachable}}")
-          ).to.eql(RETURN(STR("val")));
-          expect(
-            execute(
-              "when {false {} {tailcall {idem val}; unreachable} {unreachable}}"
-            )
-          ).to.eql(RETURN(STR("val")));
-        });
-        it("should interrupt script command with `RETURN` code", () => {
-          expect(
-            execute(
-              "when {tailcall {idem val}; unreachable} {true {unreachable}}"
-            )
-          ).to.eql(RETURN(STR("val")));
-          expect(
-            execute(
-              "set count 0; when {if {$count == 1} {tailcall {idem val}; unreachable} else {set count [+ $count 1]; idem idem}} {false {unreachable} true {unreachable} {unreachable}}"
-            )
-          ).to.eql(RETURN(STR("val")));
-        });
-        it("should interrupt bodies with `RETURN` code", () => {
-          expect(
-            execute("when {true {tailcall {idem val}; unreachable}}")
-          ).to.eql(RETURN(STR("val")));
-          expect(
-            execute("when {false {} true {tailcall {idem val}; unreachable}}")
-          ).to.eql(RETURN(STR("val")));
-          expect(
-            execute(
-              "when {false {} false {} {tailcall {idem val}; unreachable}}"
-            )
           ).to.eql(RETURN(STR("val")));
         });
       });
@@ -2141,22 +2037,6 @@ describe("Helena control flow commands", () => {
             ).to.eql(RETURN(STR("handler")));
           });
         });
-        describe("`tailcall`", () => {
-          it("should interrupt handler with `RETURN` code", () => {
-            expect(
-              execute(
-                "catch {return val} return res {tailcall {idem handler}; unreachable}"
-              )
-            ).to.eql(RETURN(STR("handler")));
-          });
-          it("should bypass `finally` handler", () => {
-            expect(
-              execute(
-                "catch {return val} return res {tailcall {idem handler}; unreachable} finally {unreachable}"
-              )
-            ).to.eql(RETURN(STR("handler")));
-          });
-        });
         describe("`yield`", () => {
           it("should interrupt handler with `YIELD` code", () => {
             expect(
@@ -2301,22 +2181,6 @@ describe("Helena control flow commands", () => {
             expect(
               execute(
                 "catch {yield val} yield res {return handler; unreachable} finally {unreachable}"
-              )
-            ).to.eql(RETURN(STR("handler")));
-          });
-        });
-        describe("`tailcall`", () => {
-          it("should interrupt handler with `RETURN` code", () => {
-            expect(
-              execute(
-                "catch {yield val} yield res {tailcall {idem handler}; unreachable}"
-              )
-            ).to.eql(RETURN(STR("handler")));
-          });
-          it("should bypass `finally` handler", () => {
-            expect(
-              execute(
-                "catch {yield val} yield res {tailcall {idem handler}; unreachable} finally {unreachable}"
               )
             ).to.eql(RETURN(STR("handler")));
           });
@@ -2468,22 +2332,6 @@ describe("Helena control flow commands", () => {
             ).to.eql(RETURN(STR("handler")));
           });
         });
-        describe("`tailcall`", () => {
-          it("should interrupt handler with `RETURN` code", () => {
-            expect(
-              execute(
-                "catch {error message} error msg {tailcall {idem handler}; unreachable}"
-              )
-            ).to.eql(RETURN(STR("handler")));
-          });
-          it("should bypass `finally` handler", () => {
-            expect(
-              execute(
-                "catch {error message} error msg {tailcall {idem handler}; unreachable} finally {unreachable}"
-              )
-            ).to.eql(RETURN(STR("handler")));
-          });
-        });
         describe("`yield`", () => {
           it("should interrupt handler with `YIELD` code", () => {
             expect(
@@ -2624,22 +2472,6 @@ describe("Helena control flow commands", () => {
             ).to.eql(RETURN(STR("handler")));
           });
         });
-        describe("`tailcall`", () => {
-          it("should interrupt handler with `RETURN` code", () => {
-            expect(
-              execute(
-                "catch {break} break {tailcall {idem handler}; unreachable}"
-              )
-            ).to.eql(RETURN(STR("handler")));
-          });
-          it("should bypass `finally` handler", () => {
-            expect(
-              execute(
-                "catch {break} break {tailcall {idem handler}; unreachable} finally {unreachable}"
-              )
-            ).to.eql(RETURN(STR("handler")));
-          });
-        });
         describe("`yield`", () => {
           it("should interrupt handler with `YIELD` code", () => {
             expect(
@@ -2763,22 +2595,6 @@ describe("Helena control flow commands", () => {
             expect(
               execute(
                 "catch {continue} continue {return handler; unreachable} finally {unreachable}"
-              )
-            ).to.eql(RETURN(STR("handler")));
-          });
-        });
-        describe("`tailcall`", () => {
-          it("should interrupt handler with `RETURN` code", () => {
-            expect(
-              execute(
-                "catch {continue} continue {tailcall {idem handler}; unreachable}"
-              )
-            ).to.eql(RETURN(STR("handler")));
-          });
-          it("should bypass `finally` handler", () => {
-            expect(
-              execute(
-                "catch {continue} continue {tailcall {idem handler}; unreachable} finally {unreachable}"
               )
             ).to.eql(RETURN(STR("handler")));
           });
@@ -2920,15 +2736,6 @@ describe("Helena control flow commands", () => {
             expect(
               execute(
                 "catch {error message} finally {return handler; unreachable}"
-              )
-            ).to.eql(RETURN(STR("handler")));
-          });
-        });
-        describe("`tailcall`", () => {
-          it("should interrupt handler with `RETURN` code", () => {
-            expect(
-              execute(
-                "catch {error message} finally {tailcall {idem handler}; unreachable}"
               )
             ).to.eql(RETURN(STR("handler")));
           });

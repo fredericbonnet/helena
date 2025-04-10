@@ -114,10 +114,6 @@ should be propagated properly to the caller.
 
   - ✅ should interrupt the call with `RETURN` code
 
-- `tailcall`
-
-  - ✅ should interrupt the call with `RETURN` code
-
 - `yield`
 
   - ✅ should interrupt the call with `YIELD` code

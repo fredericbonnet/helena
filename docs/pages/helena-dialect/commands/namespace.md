@@ -54,12 +54,6 @@ propagated properly by the command.
   - ✅ should still define the named command
   - ✅ should return passed value instead of the command object
 
-- `tailcall`
-
-  - ✅ should interrupt the body with `OK` code
-  - ✅ should still define the named command
-  - ✅ should return passed value instead of the command object
-
 - `yield`
 
   - ✅ should interrupt the body with `YIELD` code
@@ -139,10 +133,6 @@ introspect the newly created command.
 
     - ✅ should interrupt the body with `RETURN` code
 
-  - `tailcall`
-
-    - ✅ should interrupt the body with `RETURN` code
-
   - `yield`
 
     - ✅ should interrupt the body with `YIELD` code
@@ -183,10 +173,6 @@ introspect the newly created command.
 
 
   - `return`
-
-    - ✅ should interrupt the body with `RETURN` code
-
-  - `tailcall`
 
     - ✅ should interrupt the body with `RETURN` code
 

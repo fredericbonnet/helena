@@ -60,6 +60,7 @@ in complex cases.
   The command will return an error message with usage when given the
   wrong number of arguments.
 
+- ✅ invalid command
 - ✅ invalid case list
 
   Case list must be a block or tuple.
@@ -72,12 +73,6 @@ should be propagated properly by the command.
 
 
 - `return`
-
-  - ✅ should interrupt tests with `RETURN` code
-  - ✅ should interrupt script command with `RETURN` code
-  - ✅ should interrupt bodies with `RETURN` code
-
-- `tailcall`
 
   - ✅ should interrupt tests with `RETURN` code
   - ✅ should interrupt script command with `RETURN` code

@@ -75,10 +75,6 @@ propagated properly by the closure to the caller.
 
   - ✅ should interrupt a closure with `RETURN` code
 
-- `tailcall`
-
-  - ✅ should interrupt a closure with `RETURN` code
-
 - `yield`
 
   - ✅ should interrupt a closure with `YIELD` code
