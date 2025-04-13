@@ -96,6 +96,7 @@ export type ProcessOptions = {
 export class Process {
   private readonly options: ProcessOptions;
   private readonly stack: ProcessStack;
+  private lastResult: Result;
 
   constructor(
     scope: Scope,
@@ -108,6 +109,9 @@ export class Process {
   }
 
   run() {
+    if (this.stack.depth() == 0) {
+      return this.lastResult;
+    }
     let context = this.stack.currentContext();
     let result = context.scope.execute(context.program, context.state);
     while (this.stack.depth() > 0) {
@@ -167,12 +171,12 @@ export class Process {
         }
       }
 
-      if (this.stack.depth() == 1) {
+      this.stack.pop();
+      if (this.stack.depth() == 0) {
         // Reached bottom of stack, stop there
+        this.lastResult = result;
         break;
       }
-
-      this.stack.pop();
 
       context = this.stack.currentContext();
       if (result.value instanceof ContinuationValue) {
