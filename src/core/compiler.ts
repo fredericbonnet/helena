@@ -1057,7 +1057,7 @@ export class Executor {
    * @param source - Value(s) to resolve
    * @returns        Resolved value(s)
    */
-  private resolveValue(source: Value): Result {
+  resolveValue(source: Value): Result {
     switch (source.type) {
       case ValueType.TUPLE:
         return this.resolveTuple(source as TupleValue);
