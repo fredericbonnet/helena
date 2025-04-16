@@ -69,7 +69,7 @@ class ScopeCommand implements Command {
         if (result.code != ResultCode.OK) return ERROR("invalid command name");
         if (!this.scope.hasLocalCommand(command))
           return ERROR(`unknown command "${command}"`);
-        const program = this.scope.compileArgs(...args.slice(2));
+        const program = this.scope.compileArgs(args.slice(2));
         return ContinuationValue.create(this.scope, program);
       },
     });

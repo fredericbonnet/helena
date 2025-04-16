@@ -89,7 +89,7 @@ class ClosureCommand implements Command {
     if (this.guard) {
       return ContinuationValue.create(subscope, program, (result) => {
         if (result.code != ResultCode.OK) return result;
-        const program = this.scope.compileArgs(this.guard, result.value);
+        const program = this.scope.compilePair(this.guard, result.value);
         return ContinuationValue.create(this.scope, program);
       });
     } else {

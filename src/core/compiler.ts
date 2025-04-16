@@ -86,6 +86,12 @@ export class Program {
       this.opCodePositions = [];
     }
   }
+  static load(opCodes: OpCode[], constants: Value[]): Program {
+    const program = new Program();
+    program.opCodes.push(...opCodes);
+    program.constants.push(...constants);
+    return program;
+  }
   /* eslint-enable jsdoc/require-jsdoc */
 
   /**

@@ -98,7 +98,7 @@ class ProcCommand implements Command {
         switch (result.code) {
           case ResultCode.OK:
           case ResultCode.RETURN: {
-            const program = this.scope.compileArgs(this.guard, result.value);
+            const program = this.scope.compilePair(this.guard, result.value);
             return ContinuationValue.create(this.scope, program);
           }
           case ResultCode.ERROR:

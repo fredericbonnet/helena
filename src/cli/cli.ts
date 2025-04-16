@@ -141,7 +141,7 @@ function init() {
     execute: (args: Value[], scope: Scope): Result => {
       const callbackContext: CallbackContext = {
         callback: (args, scope: Scope) => {
-          const program = scope.compileArgs(...args);
+          const program = scope.compileArgs(args);
           const process = scope.prepareProcess(program);
           const result = process.run();
           if (result.code == ResultCode.ERROR)

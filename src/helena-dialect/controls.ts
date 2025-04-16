@@ -90,7 +90,7 @@ const loopCmd: Command = {
             return ERROR("invalid source");
           }
           sources.push((i, callback) => {
-            const program = subscope.compileArgs(source, INT(i));
+            const program = subscope.compilePair(source, INT(i));
             return ContinuationValue.create(subscope, program, callback);
           });
         }

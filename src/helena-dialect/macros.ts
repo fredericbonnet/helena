@@ -83,7 +83,7 @@ class MacroCommand implements Command {
     if (this.guard) {
       return ContinuationValue.create(subscope, program, (result) => {
         if (result.code != ResultCode.OK) return result;
-        const program = scope.compileArgs(this.guard, result.value);
+        const program = scope.compilePair(this.guard, result.value);
         return ContinuationValue.create(scope, program);
       });
     } else {

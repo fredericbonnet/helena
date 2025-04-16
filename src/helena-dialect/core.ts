@@ -274,27 +274,33 @@ export class Scope {
     return program;
   }
   compileTupleValue(tuple: TupleValue): Program {
-    const program = new Program();
-    program.pushOpCode(OpCode.OPEN_FRAME);
-    program.pushOpCode(OpCode.PUSH_CONSTANT);
-    program.pushOpCode(OpCode.EXPAND_VALUE);
-    program.pushOpCode(OpCode.CLOSE_FRAME);
-    program.pushOpCode(OpCode.EVALUATE_SENTENCE);
-    program.pushOpCode(OpCode.PUSH_RESULT);
-    program.pushConstant(tuple);
-    return program;
+    return Program.load(
+      [
+        OpCode.OPEN_FRAME,
+        OpCode.PUSH_CONSTANT,
+        OpCode.EXPAND_VALUE,
+        OpCode.CLOSE_FRAME,
+        OpCode.EVALUATE_SENTENCE,
+        OpCode.PUSH_RESULT,
+      ],
+      [tuple]
+    );
   }
-  compileArgs(...args: Value[]): Program {
-    const program = new Program();
-    program.pushOpCode(OpCode.OPEN_FRAME);
-    for (const arg of args) {
-      program.pushOpCode(OpCode.PUSH_CONSTANT);
-      program.pushConstant(arg);
-    }
-    program.pushOpCode(OpCode.CLOSE_FRAME);
-    program.pushOpCode(OpCode.EVALUATE_SENTENCE);
-    program.pushOpCode(OpCode.PUSH_RESULT);
-    return program;
+  compilePair(arg1: Value, arg2: Value): Program {
+    return Program.load(
+      [
+        OpCode.OPEN_FRAME,
+        OpCode.PUSH_CONSTANT,
+        OpCode.PUSH_CONSTANT,
+        OpCode.CLOSE_FRAME,
+        OpCode.EVALUATE_SENTENCE,
+        OpCode.PUSH_RESULT,
+      ],
+      [arg1, arg2]
+    );
+  }
+  compileArgs(args: Value[]): Program {
+    return this.compileTupleValue(new TupleValue(args));
   }
 
   prepareProcess(program: Program): Process {
@@ -422,10 +428,10 @@ export class Scope {
     return ERROR(`cannot get "${name}": no such variable`);
   }
   resolveValue(value: Value): Result {
-    const program = new Program();
-    program.pushOpCode(OpCode.PUSH_CONSTANT);
-    program.pushOpCode(OpCode.RESOLVE_VALUE);
-    program.pushConstant(value);
+    const program = Program.load(
+      [OpCode.PUSH_CONSTANT, OpCode.RESOLVE_VALUE],
+      [value]
+    );
     return this.execute(program);
   }
 
