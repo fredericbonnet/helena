@@ -71,9 +71,8 @@ export class EnsembleMetacommand implements Command {
           return ARITY_ERROR("<metacommand> call cmdname ?arg ...?");
         const [result, subcommand] = StringValue.toString(args[2]);
         if (result.code != ResultCode.OK) return ERROR("invalid command name");
-        if (!this.ensemble.scope.hasLocalCommand(subcommand))
-          return ERROR(`unknown command "${subcommand}"`);
-        const command = this.ensemble.scope.resolveNamedCommand(subcommand);
+        const command = this.ensemble.scope.resolveLocalCommand(subcommand);
+        if (!command) return ERROR(`unknown command "${subcommand}"`);
         const cmdline = [new CommandValue(command), ...args.slice(3)];
         const program = scope.compileArgs(cmdline);
         return ContinuationValue.create(scope, program);
@@ -154,13 +153,12 @@ export class EnsembleCommand implements Command {
       return OK(
         LIST([
           args[minArgs],
-          ...this.scope.getLocalCommands().map((name) => STR(name)),
+          ...this.scope.getLocalCommandNames().map((name) => STR(name)),
         ])
       );
     }
-    if (!this.scope.hasLocalCommand(subcommand))
-      return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
-    const command = this.scope.resolveNamedCommand(subcommand);
+    const command = this.scope.resolveLocalCommand(subcommand);
+    if (!command) return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
     const cmdline = [
       new CommandValue(command),
       ...ensembleArgs,
@@ -184,9 +182,8 @@ export class EnsembleCommand implements Command {
       }
       return OK(STR(signature + " subcommands"));
     }
-    if (!this.scope.hasLocalCommand(subcommand))
-      return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
-    const command = this.scope.resolveNamedCommand(subcommand);
+    const command = this.scope.resolveLocalCommand(subcommand);
+    if (!command) return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
     if (!command.help) return ERROR(`no help for subcommand "${subcommand}"`);
     return command.help(
       [args[minArgs], ...args.slice(1, minArgs), ...args.slice(minArgs + 1)],

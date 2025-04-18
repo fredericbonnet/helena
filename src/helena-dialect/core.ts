@@ -440,10 +440,10 @@ export class Scope {
   registerNamedCommand(name: string, command: Command) {
     this.context.commands.set(name, command);
   }
-  hasLocalCommand(name: string): boolean {
-    return this.context.commands.has(name);
+  resolveLocalCommand(name: string): Command {
+    return this.context.commands.get(name);
   }
-  getLocalCommands(): string[] {
+  getLocalCommandNames(): string[] {
     return [...this.context.commands.keys()];
   }
 }

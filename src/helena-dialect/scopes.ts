@@ -67,7 +67,7 @@ class ScopeCommand implements Command {
           );
         const [result, command] = StringValue.toString(args[2]);
         if (result.code != ResultCode.OK) return ERROR("invalid command name");
-        if (!this.scope.hasLocalCommand(command))
+        if (!this.scope.resolveLocalCommand(command))
           return ERROR(`unknown command "${command}"`);
         const program = this.scope.compileArgs(args.slice(2));
         return ContinuationValue.create(this.scope, program);

@@ -77,9 +77,8 @@ class NamespaceMetacommand implements Command {
           return ARITY_ERROR("<metacommand> call cmdname ?arg ...?");
         const [result, subcommand] = StringValue.toString(args[2]);
         if (result.code != ResultCode.OK) return ERROR("invalid command name");
-        if (!this.namespace.scope.hasLocalCommand(subcommand))
-          return ERROR(`unknown command "${subcommand}"`);
-        const command = this.namespace.scope.resolveNamedCommand(subcommand);
+        const command = this.namespace.scope.resolveLocalCommand(subcommand);
+        if (!command) return ERROR(`unknown command "${subcommand}"`);
         const cmdline = [new CommandValue(command), ...args.slice(3)];
         const program = this.namespace.scope.compileArgs(cmdline);
         return ContinuationValue.create(this.namespace.scope, program);
@@ -149,13 +148,12 @@ class NamespaceCommand implements Command {
       return OK(
         LIST([
           args[1],
-          ...this.scope.getLocalCommands().map((name) => STR(name)),
+          ...this.scope.getLocalCommandNames().map((name) => STR(name)),
         ])
       );
     }
-    if (!this.scope.hasLocalCommand(subcommand))
-      return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
-    const command = this.scope.resolveNamedCommand(subcommand);
+    const command = this.scope.resolveLocalCommand(subcommand);
+    if (!command) return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
     const cmdline = [new CommandValue(command), ...args.slice(2)];
     const program = this.scope.compileArgs(cmdline);
     return ContinuationValue.create(this.scope, program);
@@ -173,9 +171,8 @@ class NamespaceCommand implements Command {
       }
       return OK(STR(signature + " subcommands"));
     }
-    if (!this.scope.hasLocalCommand(subcommand))
-      return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
-    const command = this.scope.resolveNamedCommand(subcommand);
+    const command = this.scope.resolveLocalCommand(subcommand);
+    if (!command) return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
     if (!command.help) return ERROR(`no help for subcommand "${subcommand}"`);
     return command.help(args.slice(1), {
       prefix: signature + " " + subcommand,
