@@ -226,6 +226,7 @@ introspect the newly created command.
     given the wrong number of arguments.
 
   - ✅ unresolved command
+  - ✅ non-local command
   - ✅ invalid import name
   - ✅ invalid alias name
 

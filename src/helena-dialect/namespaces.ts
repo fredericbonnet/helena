@@ -96,9 +96,9 @@ class NamespaceMetacommand implements Command {
         } else {
           alias = name;
         }
-        const command = this.namespace.scope.resolveNamedCommand(name);
+        const command = this.namespace.scope.resolveLocalCommand(name);
         if (!command) return ERROR(`cannot resolve imported command "${name}"`);
-        scope.registerNamedCommand(alias, command);
+        scope.registerNamedCommand(alias, command.command);
         return OK(NIL);
       },
     });

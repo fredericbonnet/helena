@@ -624,6 +624,11 @@ describe("Helena namespaces", () => {
                 ERROR('cannot resolve imported command "a"')
               );
             });
+            specify("non-local command", () => {
+              expect(execute("[namespace {}] import idem")).to.eql(
+                ERROR('cannot resolve imported command "idem"')
+              );
+            });
             specify("invalid import name", () => {
               expect(execute("[namespace {}] import []")).to.eql(
                 ERROR("invalid import name")
