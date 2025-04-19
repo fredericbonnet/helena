@@ -212,6 +212,8 @@ export const ensembleCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     if (argspec.argspec.isVariadic())
       return ERROR("ensemble arguments cannot be variadic");
+    if (argspec.argspec.hasOptions())
+      return ERROR("ensemble arguments cannot have options");
 
     const subscope = scope.newChildScope();
     const program = subscope.compileScriptValue(body as ScriptValue);

@@ -115,14 +115,20 @@ describe("Helena ensembles", () => {
       });
       specify("variadic arguments", () => {
         /**
-         * Ensemble argument lists are fixed-length; optional or remainder
-         * arguments are forbidden.
+         * Ensemble argspecs can only contain required positional arguments; all
+         * other types of arguments and options are forbidden.
          */
         expect(execute("ensemble {?a} {}")).to.eql(
           ERROR("ensemble arguments cannot be variadic")
         );
         expect(execute("ensemble {*a} {}")).to.eql(
           ERROR("ensemble arguments cannot be variadic")
+        );
+        expect(execute("ensemble {-a a} {}")).to.eql(
+          ERROR("ensemble arguments cannot have options")
+        );
+        expect(execute("ensemble {-?a ?a} {}")).to.eql(
+          ERROR("ensemble arguments cannot have options")
         );
       });
       specify("invalid `name`", () => {

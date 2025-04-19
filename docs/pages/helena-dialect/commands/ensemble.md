@@ -34,8 +34,8 @@ The `ensemble` command creates a new ensemble command.
 
 - ✅ variadic arguments
 
-  Ensemble argument lists are fixed-length; optional or remainder
-  arguments are forbidden.
+  Ensemble argspecs can only contain required positional arguments; all
+  other types of arguments and options are forbidden.
 
 - ✅ invalid `name`
 
