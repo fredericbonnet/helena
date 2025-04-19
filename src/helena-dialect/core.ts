@@ -211,7 +211,7 @@ class ScopeContext {
   readonly parent?: ScopeContext;
   readonly constants: Map<string, Value> = new Map();
   readonly variables: Map<string, Value> = new Map();
-  readonly commands: Map<string, Command> = new Map();
+  readonly commands: Map<string, CommandValue> = new Map();
   constructor(parent?: ScopeContext) {
     this.parent = parent;
   }
@@ -338,9 +338,15 @@ export class Scope {
     let context = this.context;
     while (context) {
       const command = context.commands.get(name);
-      if (command) return command;
+      if (command) return command.command;
       context = context.parent;
     }
+  }
+  resolveLocalCommand(name: string): CommandValue {
+    return this.context.commands.get(name);
+  }
+  getLocalCommandNames(): string[] {
+    return [...this.context.commands.keys()];
   }
 
   clearLocals() {
@@ -438,13 +444,7 @@ export class Scope {
     return OK(NIL);
   }
   registerNamedCommand(name: string, command: Command) {
-    this.context.commands.set(name, command);
-  }
-  resolveLocalCommand(name: string): Command {
-    return this.context.commands.get(name);
-  }
-  getLocalCommandNames(): string[] {
-    return [...this.context.commands.keys()];
+    this.context.commands.set(name, new CommandValue(command));
   }
 }
 

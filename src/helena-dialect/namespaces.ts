@@ -79,7 +79,7 @@ class NamespaceMetacommand implements Command {
         if (result.code != ResultCode.OK) return ERROR("invalid command name");
         const command = this.namespace.scope.resolveLocalCommand(subcommand);
         if (!command) return ERROR(`unknown command "${subcommand}"`);
-        const cmdline = [new CommandValue(command), ...args.slice(3)];
+        const cmdline = [command, ...args.slice(3)];
         const program = this.namespace.scope.compileArgs(cmdline);
         return ContinuationValue.create(this.namespace.scope, program);
       },
@@ -154,7 +154,7 @@ class NamespaceCommand implements Command {
     }
     const command = this.scope.resolveLocalCommand(subcommand);
     if (!command) return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
-    const cmdline = [new CommandValue(command), ...args.slice(2)];
+    const cmdline = [command, ...args.slice(2)];
     const program = this.scope.compileArgs(cmdline);
     return ContinuationValue.create(this.scope, program);
   }
@@ -173,8 +173,9 @@ class NamespaceCommand implements Command {
     }
     const command = this.scope.resolveLocalCommand(subcommand);
     if (!command) return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
-    if (!command.help) return ERROR(`no help for subcommand "${subcommand}"`);
-    return command.help(args.slice(1), {
+    if (!command.command.help)
+      return ERROR(`no help for subcommand "${subcommand}"`);
+    return command.command.help(args.slice(1), {
       prefix: signature + " " + subcommand,
       skip: 1,
     });

@@ -73,7 +73,7 @@ export class EnsembleMetacommand implements Command {
         if (result.code != ResultCode.OK) return ERROR("invalid command name");
         const command = this.ensemble.scope.resolveLocalCommand(subcommand);
         if (!command) return ERROR(`unknown command "${subcommand}"`);
-        const cmdline = [new CommandValue(command), ...args.slice(3)];
+        const cmdline = [command, ...args.slice(3)];
         const program = scope.compileArgs(cmdline);
         return ContinuationValue.create(scope, program);
       },
@@ -159,11 +159,7 @@ export class EnsembleCommand implements Command {
     }
     const command = this.scope.resolveLocalCommand(subcommand);
     if (!command) return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
-    const cmdline = [
-      new CommandValue(command),
-      ...ensembleArgs,
-      ...args.slice(minArgs + 1),
-    ];
+    const cmdline = [command, ...ensembleArgs, ...args.slice(minArgs + 1)];
     const program = scope.compileArgs(cmdline);
     return ContinuationValue.create(scope, program);
   }
@@ -184,8 +180,9 @@ export class EnsembleCommand implements Command {
     }
     const command = this.scope.resolveLocalCommand(subcommand);
     if (!command) return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
-    if (!command.help) return ERROR(`no help for subcommand "${subcommand}"`);
-    return command.help(
+    if (!command.command.help)
+      return ERROR(`no help for subcommand "${subcommand}"`);
+    return command.command.help(
       [args[minArgs], ...args.slice(1, minArgs), ...args.slice(minArgs + 1)],
       {
         prefix: signature + " " + subcommand,
