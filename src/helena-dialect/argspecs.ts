@@ -51,6 +51,7 @@ export class Argspec {
   readonly nbOptional: number = 0;
   readonly hasRemainder: boolean = false;
   readonly optionSlots: Map<string, number>;
+  readonly hasGuards: boolean = false;
   constructor(args: Argument[]) {
     this.args = args;
     for (let i = 0; i < args.length; i++) {
@@ -71,6 +72,9 @@ export class Argspec {
             this.hasRemainder = true;
             break;
         }
+      }
+      if (arg.guard) {
+        this.hasGuards = true;
       }
     }
   }

@@ -144,6 +144,7 @@ describe("Helena argument handling", () => {
             nbRequired: 0,
             nbOptional: 0,
             hasRemainder: false,
+            hasGuards: false,
           });
           expect(value.argspec.args).to.be.empty;
         });
@@ -164,6 +165,7 @@ describe("Helena argument handling", () => {
             nbRequired: 1,
             nbOptional: 0,
             hasRemainder: false,
+            hasGuards: false,
           });
           expect(value.argspec.args).to.eql([{ name: "a", type: "required" }]);
         });
@@ -186,6 +188,7 @@ describe("Helena argument handling", () => {
             nbRequired: 2,
             nbOptional: 0,
             hasRemainder: false,
+            hasGuards: false,
           });
           expect(value.argspec.args).to.eql([
             { name: "a", type: "required" },
@@ -211,6 +214,7 @@ describe("Helena argument handling", () => {
               nbRequired: 0,
               nbOptional: 0,
               hasRemainder: true,
+              hasGuards: false,
             });
             expect(value.argspec.args).to.eql([
               { name: "*", type: "remainder" },
@@ -245,6 +249,7 @@ describe("Helena argument handling", () => {
               nbRequired: 0,
               nbOptional: 0,
               hasRemainder: true,
+              hasGuards: false,
             });
             expect(value.argspec.args).to.eql([
               { name: "args", type: "remainder" },
@@ -352,6 +357,7 @@ describe("Helena argument handling", () => {
               nbRequired: 0,
               nbOptional: 1,
               hasRemainder: false,
+              hasGuards: false,
             });
             expect(value.argspec.args).to.eql([
               { name: "a", type: "optional" },
@@ -381,6 +387,7 @@ describe("Helena argument handling", () => {
               nbRequired: 0,
               nbOptional: 2,
               hasRemainder: false,
+              hasGuards: false,
             });
             expect(value.argspec.args).to.eql([
               { name: "a", type: "optional" },
@@ -471,6 +478,7 @@ describe("Helena argument handling", () => {
             nbRequired: 0,
             nbOptional: 1,
             hasRemainder: false,
+            hasGuards: false,
           });
           expect(value.argspec.args).to.eql([
             { name: "a", type: "optional", default: STR("val") },
@@ -530,6 +538,7 @@ describe("Helena argument handling", () => {
             nbRequired: 1,
             nbOptional: 0,
             hasRemainder: false,
+            hasGuards: true,
           });
           expect(value.argspec.args).to.eql([
             { name: "a", type: "required", guard: STR("list") },
@@ -541,6 +550,7 @@ describe("Helena argument handling", () => {
             nbRequired: 0,
             nbOptional: 1,
             hasRemainder: false,
+            hasGuards: true,
           });
           expect(value.argspec.args).to.eql([
             { name: "a", type: "optional", guard: STR("list") },
@@ -552,6 +562,7 @@ describe("Helena argument handling", () => {
             nbRequired: 0,
             nbOptional: 1,
             hasRemainder: false,
+            hasGuards: true,
           });
           expect(value.argspec.args).to.eql([
             {
@@ -743,6 +754,7 @@ describe("Helena argument handling", () => {
             nbRequired: 2,
             nbOptional: 0,
             hasRemainder: false,
+            hasGuards: false,
           });
           expect(value.argspec.args).to.eql([
             {
@@ -834,6 +846,7 @@ describe("Helena argument handling", () => {
             nbRequired: 0,
             nbOptional: 0,
             hasRemainder: false,
+            hasGuards: false,
           });
           expect(value.argspec.args).to.eql([
             {
@@ -888,6 +901,7 @@ describe("Helena argument handling", () => {
             nbRequired: 0,
             nbOptional: 0,
             hasRemainder: false,
+            hasGuards: false,
           });
           expect(value.argspec.args).to.eql([
             {

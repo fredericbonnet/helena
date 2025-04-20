@@ -127,19 +127,19 @@ export class EnsembleCommand implements Command {
         ENSEMBLE_COMMAND_PREFIX(args[0], this.argspec) +
           " ?subcommand? ?arg ...?"
       );
-    const ensembleArgs = [];
-    const getargs = (_name, value) => {
-      ensembleArgs.push(value);
-      return OK(value);
-    };
-    const result = this.argspec.applyArguments(
-      scope,
-      args.slice(1, minArgs),
-      0,
-      getargs
-    );
-    if (result.code != ResultCode.OK) return result;
     if (args.length == minArgs) {
+      const ensembleArgs = [];
+      const getargs = (_name, value) => {
+        ensembleArgs.push(value);
+        return OK(value);
+      };
+      const result = this.argspec.applyArguments(
+        scope,
+        args.slice(1, minArgs),
+        0,
+        getargs
+      );
+      if (result.code != ResultCode.OK) return result;
       return OK(TUPLE(ensembleArgs));
     }
     const [result2, subcommand] = StringValue.toString(args[minArgs]);
@@ -159,7 +159,24 @@ export class EnsembleCommand implements Command {
     }
     const command = this.scope.resolveLocalCommand(subcommand);
     if (!command) return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
-    const cmdline = [command, ...ensembleArgs, ...args.slice(minArgs + 1)];
+    const cmdline: Value[] = [command];
+    if (!this.argspec.argspec.hasGuards) {
+      // If we have no guards to apply then can just copy the args over
+      cmdline.push(...args.slice(1, minArgs));
+    } else {
+      const getargs = (_name, value) => {
+        cmdline.push(value);
+        return OK(value);
+      };
+      const result = this.argspec.applyArguments(
+        scope,
+        args.slice(1, minArgs),
+        0,
+        getargs
+      );
+      if (result.code != ResultCode.OK) return result;
+    }
+    cmdline.push(...args.slice(minArgs + 1));
     const program = scope.compileArgs(cmdline);
     return ContinuationValue.create(scope, program);
   }
