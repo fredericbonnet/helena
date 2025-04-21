@@ -467,7 +467,7 @@ export const expandPrefixCmd: Command = {
     const result = command.execute(args2, scope);
     if (result.code == ResultCode.YIELD) {
       const state = { command, result } as ExpandPrefixState;
-      return YIELD(state.result.value, state);
+      return YIELD(result.value, state);
     }
     return result;
   },

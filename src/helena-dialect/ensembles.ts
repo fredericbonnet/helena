@@ -5,6 +5,7 @@ import {
   ERROR,
   ResultCode,
   RESULT_CODE_NAME,
+  YIELD,
 } from "../core/results";
 import { Command } from "../core/commands";
 import {
@@ -109,6 +110,10 @@ export class EnsembleMetacommand implements Command {
 
 const ENSEMBLE_COMMAND_PREFIX = (name, argspec, options?) =>
   USAGE_ARGSPEC(name, "<closure>", argspec, options);
+type EnsembleSubcommandState = {
+  subcommand: Command;
+  result: Result;
+};
 export class EnsembleCommand implements Command {
   readonly metacommand: EnsembleMetacommand;
   readonly scope: Scope;
@@ -177,10 +182,28 @@ export class EnsembleCommand implements Command {
       if (result.code != ResultCode.OK) return result;
     }
     cmdline.push(...args.slice(minArgs + 1));
-    const program = scope.compileArgs(cmdline);
-    return ContinuationValue.create(scope, program);
+    const result = command.command.execute(cmdline, scope);
+    if (result.code == ResultCode.YIELD) {
+      const state = {
+        subcommand: command.command,
+        result,
+      } as EnsembleSubcommandState;
+      return YIELD(result.value, state);
+    }
+    return result;
   }
-  /** @override */
+  resume(result: Result, scope: Scope): Result {
+    const { subcommand, result: subcommandResult } =
+      result.data as EnsembleSubcommandState;
+    if (!subcommand.resume) return OK(result.value);
+    const result2 = subcommand.resume(
+      { ...subcommandResult, value: result.value },
+      scope
+    );
+    if (result2.code == ResultCode.YIELD)
+      return YIELD(result2.value, { subcommand, result: result2 });
+    return result2;
+  }
   help(args: Value[], options?) {
     const signature = ENSEMBLE_COMMAND_PREFIX(args[0], this.argspec, options);
     const minArgs = this.argspec.argspec.nbRequired + 1;

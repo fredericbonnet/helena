@@ -109,6 +109,9 @@ class BoolCommand implements Command {
     if (args.length == 2) return BooleanValue.fromValue(args[1])[0];
     return this.ensemble.execute(args, scope);
   }
+  resume(result: Result, scope: Scope): Result {
+    return this.ensemble.resume(result, scope);
+  }
   help(args) {
     return this.ensemble.help(args);
   }
