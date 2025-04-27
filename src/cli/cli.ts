@@ -159,7 +159,7 @@ function init() {
 function loadNativeModule(path: string, moduleName: string) {
   /* eslint-disable-next-line @typescript-eslint/no-var-requires */
   const m = require(path);
-  m.register(moduleRegistry, moduleName);
+  moduleRegistry.register(moduleName, m.initModule());
 }
 
 function source(path: string) {
