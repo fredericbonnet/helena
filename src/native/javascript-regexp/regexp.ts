@@ -1,7 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Command } from "../core/commands";
-import { DisplayFunction, undisplayableValue } from "../core/display";
-import { ERROR, OK, Result, ResultCode } from "../core/results";
+import { Command } from "../../core/commands";
+import { DisplayFunction, undisplayableValue } from "../../core/display";
+import { ERROR, OK, Result, ResultCode } from "../../core/results";
 import {
   BOOL,
   CustomValueType,
@@ -16,7 +16,7 @@ import {
   CustomValue,
   ValueType,
   isCustomValue,
-} from "../core/values";
+} from "../../core/values";
 
 const asString = (value) => StringValue.toString(value)[1];
 

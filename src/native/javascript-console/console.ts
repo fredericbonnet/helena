@@ -1,6 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
-import { Command } from "../core/commands";
-import { ERROR, OK, Result } from "../core/results";
+import { Command } from "../../core/commands";
+import { ERROR, OK, Result } from "../../core/results";
 import {
   BooleanValue,
   IntegerValue,
@@ -12,7 +12,7 @@ import {
   TupleValue,
   Value,
   ValueType,
-} from "../core/values";
+} from "../../core/values";
 
 const asString = (value) => StringValue.toString(value)[1];
 

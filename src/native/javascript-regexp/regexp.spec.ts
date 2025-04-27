@@ -1,11 +1,11 @@
 import { expect } from "chai";
-import { Command } from "../core/commands";
-import { Compiler, Executor } from "../core/compiler";
-import { CommandResolver, VariableResolver } from "../core/resolvers";
-import { Parser } from "../core/parser";
-import { ERROR } from "../core/results";
-import { Script } from "../core/syntax";
-import { Tokenizer } from "../core/tokenizer";
+import { Command } from "../../core/commands";
+import { Compiler, Executor } from "../../core/compiler";
+import { CommandResolver, VariableResolver } from "../../core/resolvers";
+import { Parser } from "../../core/parser";
+import { ERROR } from "../../core/results";
+import { Script } from "../../core/syntax";
+import { Tokenizer } from "../../core/tokenizer";
 import {
   FALSE,
   INT,
@@ -17,8 +17,8 @@ import {
   Value,
   StringValue,
   isCustomValue,
-} from "../core/values";
-import { regexpCmd, RegExpValue, regexpValueType } from "./javascript-regexp";
+} from "../../core/values";
+import { regexpCmd, RegExpValue, regexpValueType } from "./regexp";
 
 const asString = (value) => StringValue.toString(value)[1];
 

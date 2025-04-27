@@ -1,14 +1,14 @@
 import { expect } from "chai";
 import * as fs from "node:fs";
-import { Command } from "../core/commands";
-import { Compiler, Executor } from "../core/compiler";
-import { CommandResolver, VariableResolver } from "../core/resolvers";
-import { Parser } from "../core/parser";
-import { ERROR, OK, ResultCode } from "../core/results";
-import { Script } from "../core/syntax";
-import { Tokenizer } from "../core/tokenizer";
-import { DICT, NIL, STR, StringValue, Value } from "../core/values";
-import { CallbackContext, fsCmd } from "./node-fs";
+import { Command } from "../../core/commands";
+import { Compiler, Executor } from "../../core/compiler";
+import { CommandResolver, VariableResolver } from "../../core/resolvers";
+import { Parser } from "../../core/parser";
+import { ERROR, OK, ResultCode } from "../../core/results";
+import { Script } from "../../core/syntax";
+import { Tokenizer } from "../../core/tokenizer";
+import { DICT, NIL, STR, StringValue, Value } from "../../core/values";
+import { CallbackContext, fsCmd } from "./fs";
 
 const asString = (value) => StringValue.toString(value)[1];
 

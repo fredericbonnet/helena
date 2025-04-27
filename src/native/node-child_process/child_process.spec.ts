@@ -1,14 +1,14 @@
 import { expect } from "chai";
 import * as child_process from "node:child_process";
-import { Command } from "../core/commands";
-import { Compiler, Executor } from "../core/compiler";
-import { CommandResolver, VariableResolver } from "../core/resolvers";
-import { Parser } from "../core/parser";
-import { ERROR, ResultCode } from "../core/results";
-import { Script } from "../core/syntax";
-import { Tokenizer } from "../core/tokenizer";
-import { STR, StringValue, Value } from "../core/values";
-import { childProcessCmd } from "./node-child_process";
+import { Command } from "../../core/commands";
+import { Compiler, Executor } from "../../core/compiler";
+import { CommandResolver, VariableResolver } from "../../core/resolvers";
+import { Parser } from "../../core/parser";
+import { ERROR, ResultCode } from "../../core/results";
+import { Script } from "../../core/syntax";
+import { Tokenizer } from "../../core/tokenizer";
+import { STR, StringValue, Value } from "../../core/values";
+import { childProcessCmd } from "./child_process";
 
 const asString = (value) => StringValue.toString(value)[1];
 

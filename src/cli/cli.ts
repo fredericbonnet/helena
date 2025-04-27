@@ -25,7 +25,6 @@ import {
   isValue,
   ListValue,
   DictionaryValue,
-  STR,
   Value,
   ValueType,
   StringValue,
@@ -39,11 +38,7 @@ import { displayDictionaryValue } from "../helena-dialect/dicts";
 import { Command } from "../core/commands";
 import { ARITY_ERROR } from "../helena-dialect/arguments";
 import { PicolScope, initPicolCommands } from "../picol-dialect/picol-dialect";
-import { regexpCmd } from "../native/javascript-regexp";
-import { childProcessCmd } from "../native/node-child_process";
-import { consoleCmd } from "../native/javascript-console";
-import { CallbackContext, fsCmd } from "../native/node-fs";
-import { Module, ModuleRegistry } from "../helena-dialect/modules";
+import { ModuleRegistry } from "../helena-dialect/modules";
 import { ContinuationValue } from "../helena-dialect/core";
 import { ErrorStack } from "../core/errors";
 
@@ -133,25 +128,20 @@ function init() {
   // Dynamic native module loading
   rootScope.registerNamedCommand("load", loadCmd);
 
-  // Native modules
-  registerNativeModule("javascript:RegExp", "RegExp", regexpCmd);
-  registerNativeModule("javascript:console", "console", consoleCmd);
-  registerNativeModule("node:child_process", "child_process", childProcessCmd);
-  registerNativeModule("node:fs", "fs", {
-    execute: (args: Value[], scope: Scope): Result => {
-      const callbackContext: CallbackContext = {
-        callback: (args, scope: Scope) => {
-          const program = scope.compileArgs(args);
-          const process = scope.prepareProcess(program);
-          const result = process.run();
-          if (result.code == ResultCode.ERROR)
-            throw new Error(StringValue.toString(result.value)[1]);
-        },
-        context: scope,
-      };
-      return fsCmd.execute(args, callbackContext);
-    },
-  });
+  // Built-in native modules
+  loadNativeModule(
+    path.resolve(__dirname, "../native/javascript-console"),
+    "javascript:console"
+  );
+  loadNativeModule(
+    path.resolve(__dirname, "../native/javascript-regexp"),
+    "javascript:RegExp"
+  );
+  loadNativeModule(
+    path.resolve(__dirname, "../native/node-child_process"),
+    "node:child_process"
+  );
+  loadNativeModule(path.resolve(__dirname, "../native/node-fs"), "node:fs");
 
   return rootScope;
 }
@@ -176,18 +166,6 @@ function source(path: string) {
       exit(-1);
     }
   );
-}
-
-function registerNativeModule(
-  moduleName: string,
-  exportName: string,
-  command: Command
-) {
-  const scope = Scope.newRootScope();
-  const exports = new Map();
-  scope.registerNamedCommand(exportName, command);
-  exports.set(exportName, STR(exportName));
-  moduleRegistry.register(moduleName, new Module(scope, exports));
 }
 
 function prompt() {

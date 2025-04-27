@@ -1,7 +1,7 @@
 /* eslint-disable jsdoc/require-jsdoc */ // TODO
 import * as fs from "node:fs";
-import { Command } from "../core/commands";
-import { ERROR, OK, Result, ResultCode } from "../core/results";
+import { Command } from "../../core/commands";
+import { ERROR, OK, Result, ResultCode } from "../../core/results";
 import {
   IntegerValue,
   DictionaryValue,
@@ -10,7 +10,7 @@ import {
   Value,
   ValueType,
   StringValue,
-} from "../core/values";
+} from "../../core/values";
 
 const asString = (value) => StringValue.toString(value)[1];
 
