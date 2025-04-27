@@ -614,14 +614,33 @@ describe("Helena lists", () => {
 
           specify("usage", () => {
             expect(evaluate("help list () sort")).to.eql(
-              STR("list value sort")
+              STR("list value sort ?comparator?")
             );
           });
 
-          it("should sort elements as strings in lexical order", () => {
-            expect(evaluate("list (c a d b) sort")).to.eql(
-              evaluate("list (a b c d)")
-            );
+          describe("no comparator", () => {
+            it("should sort elements as strings in lexical order", () => {
+              expect(evaluate("list (c a d b) sort")).to.eql(
+                evaluate("list (a b c d)")
+              );
+            });
+            describe("Exceptions", () => {
+              specify("values with no string representation", () => {
+                expect(execute("list ([] ()) sort")).to.eql(
+                  ERROR("value has no string representation")
+                );
+              });
+            });
+          });
+          describe("comparator", () => {
+            it("should sort elements according to the comparator result", () => {
+              expect(evaluate("list (3 1 2 4) sort -")).to.eql(
+                evaluate("list (1 2 3 4)")
+              );
+              expect(
+                evaluate("list (3 1 2 4) sort [[macro {a b} {$b - $a}]]")
+              ).to.eql(evaluate("list (4 3 2 1)"));
+            });
           });
 
           describe("Exceptions", () => {
@@ -630,16 +649,24 @@ describe("Helena lists", () => {
                * The subcommand will return an error message with usage when
                * given the wrong number of arguments.
                */
-              expect(execute("list (a b c) sort a")).to.eql(
-                ERROR('wrong # args: should be "list value sort"')
+              expect(execute("list (a b c) sort a b")).to.eql(
+                ERROR('wrong # args: should be "list value sort ?comparator?"')
               );
-              expect(execute("help list (a b c) sort a")).to.eql(
-                ERROR('wrong # args: should be "list value sort"')
+              expect(execute("help list (a b c) sort a b")).to.eql(
+                ERROR('wrong # args: should be "list value sort ?comparator?"')
               );
             });
-            specify("values with no string representation", () => {
-              expect(execute("list ([] ()) sort")).to.eql(
-                ERROR("value has no string representation")
+            specify("invalid command", () => {
+              expect(execute("list (a b c) sort []")).to.eql(
+                ERROR("invalid command name")
+              );
+            });
+            specify("wrong command arity", () => {
+              expect(execute("list (a b c) sort [[macro {a} {}]]")).to.eql(
+                ERROR('wrong # args: should be "<macro> a"')
+              );
+              expect(execute("list (a b c) sort [[macro {a b c} {}]]")).to.eql(
+                ERROR('wrong # args: should be "<macro> a b c"')
               );
             });
           });

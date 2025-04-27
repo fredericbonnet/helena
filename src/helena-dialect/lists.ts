@@ -185,28 +185,58 @@ const listReplaceCmd: Command = {
   },
 };
 
-const LIST_SORT_SIGNATURE = "list value sort";
+const LIST_SORT_SIGNATURE = "list value sort ?comparator?";
 const listSortCmd: Command = {
-  execute(args) {
-    if (args.length != 2) return ARITY_ERROR(LIST_SORT_SIGNATURE);
+  execute(args, scope: Scope) {
+    let comparator: Value;
+    switch (args.length) {
+      case 2:
+        break;
+      case 3: {
+        comparator = args[2];
+        break;
+      }
+      default:
+        return ARITY_ERROR(LIST_SORT_SIGNATURE);
+    }
     const [result, values] = valueToArray(args[1]);
     if (result.code != ResultCode.OK) return result;
     const values2 = [...values];
     let error;
     try {
-      values2.sort((a, b) => {
-        const [resulta, sa] = StringValue.toString(a);
-        if (resulta.code != ResultCode.OK) {
-          error = resulta;
-          throw new Error("string conversion error");
-        }
-        const [resultb, sb] = StringValue.toString(b);
-        if (resultb.code != ResultCode.OK) {
-          error = resultb;
-          throw new Error("string conversion error");
-        }
-        return sa < sb ? -1 : sa > sb ? 1 : 0;
-      });
+      if (comparator) {
+        // Sort by comparator result
+        values2.sort((a, b) => {
+          const program = scope.compileArgs([comparator, a, b]);
+          const process = scope.prepareProcess(program);
+          const resultc = process.run();
+          if (resultc.code != ResultCode.OK) {
+            error = resultc;
+            throw new Error("comparator execution error");
+          }
+          const [resulti, i] = IntegerValue.toInteger(resultc.value);
+          if (resulti.code != ResultCode.OK) {
+            error = resulti;
+            throw new Error("integer conversion error");
+          }
+          return i < 0 ? -1 : i > 0 ? 1 : 0;
+        });
+      } else {
+        // Default sort by string value
+        values2.sort((a, b) => {
+          const [resulta, sa] = StringValue.toString(a);
+          if (resulta.code != ResultCode.OK) {
+            error = resulta;
+            throw new Error("string conversion error");
+          }
+          const [resultb, sb] = StringValue.toString(b);
+          if (resultb.code != ResultCode.OK) {
+            error = resultb;
+            throw new Error("string conversion error");
+          }
+          return sa < sb ? -1 : sa > sb ? 1 : 0;
+        });
+      }
     } catch (e) {
       if (error) return error;
       return ERROR(e.message);
@@ -214,7 +244,7 @@ const listSortCmd: Command = {
     return OK(LIST(values2));
   },
   help(args) {
-    if (args.length > 2) return ARITY_ERROR(LIST_SORT_SIGNATURE);
+    if (args.length > 3) return ARITY_ERROR(LIST_SORT_SIGNATURE);
     return OK(STR(LIST_SORT_SIGNATURE));
   },
 };

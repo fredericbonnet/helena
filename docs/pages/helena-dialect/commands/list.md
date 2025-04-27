@@ -258,11 +258,22 @@ list value replace first last value2
 Sort list elements
 
 ```lna
-list value sort
+list value sort ?comparator?
 ```
 
 - ✅ usage
-- ✅ should sort elements as strings in lexical order
+
+- no comparator
+
+  - ✅ should sort elements as strings in lexical order
+
+  - Exceptions
+
+    - ✅ values with no string representation
+
+- comparator
+
+  - ✅ should sort elements according to the comparator result
 
 - Exceptions
 
@@ -271,7 +282,8 @@ list value sort
     The subcommand will return an error message with usage when
     given the wrong number of arguments.
 
-  - ✅ values with no string representation
+  - ✅ invalid command
+  - ✅ wrong command arity
 
 ### <a id="list-subcommands-iteration"></a>Iteration
 
