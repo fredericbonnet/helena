@@ -36,6 +36,12 @@ export class RegExpValue implements CustomValue {
   }
 }
 
+//
+// Javascript RegExp wrapper
+//
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp
+//
+
 export const regexpCmd: Command = {
   execute: function (args: Value[]): Result {
     if (args.length < 2) {
@@ -44,7 +50,14 @@ export const regexpCmd: Command = {
     const method = asString(args[1]);
     if (method == null) return ERROR("invalid method name");
     switch (method) {
+      //
+      // Constructor
+      //
+      // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp#constructor
+      //
+
       case "new":
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/RegExp
         if (args.length < 3 || args.length > 4) {
           return ERROR('wrong # args: should be "RegExp new pattern ?flags?"');
         }
@@ -60,7 +73,15 @@ export const regexpCmd: Command = {
         } catch (e) {
           return ERROR(e.message);
         }
+
+      //
+      // Instance methods
+      //
+      // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp#instance_methods
+      //
+
       case "exec": {
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec
         if (args.length != 4)
           return ERROR('wrong # args: should be "RegExp exec regexp str"');
         if (!isCustomValue(args[2], regexpValueType))
@@ -70,21 +91,11 @@ export const regexpCmd: Command = {
         const regexp = args[2] as RegExpValue;
         const matches = regexp.regexp.exec(str);
         if (!matches) return OK(NIL);
-        const map = {
-          matches: TO_LIST(STR_OR_NIL)(matches),
-          index: INT(matches.index),
-          input: args[3],
-          groups: matches.groups ? TO_MAP(STR_OR_NIL)(matches.groups) : NIL,
-        };
-        if (matches["indices"]) {
-          map["indices"] = TO_LIST(TO_LIST(INT))(matches["indices"]);
-          map["indices.groups"] = TO_MAP(TO_LIST(INT))(
-            matches["indices"].groups
-          );
-        }
-        return OK(DICT(map));
+        return OK(MATCHES_TO_DICT(matches));
       }
+
       case "test": {
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/test
         if (args.length != 4)
           return ERROR('wrong # args: should be "RegExp test regexp str"');
         if (!isCustomValue(args[2], regexpValueType))
@@ -95,7 +106,110 @@ export const regexpCmd: Command = {
         const test = regexp.regexp.test(str);
         return OK(BOOL(test));
       }
+
+      case "toString": {
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/toString
+        if (args.length != 3)
+          return ERROR('wrong # args: should be "RegExp toString regexp"');
+        if (!isCustomValue(args[2], regexpValueType))
+          return ERROR("invalid regexp value");
+        const regexp = args[2] as RegExpValue;
+        return OK(STR(regexp.regexp.toString()));
+      }
+
+      case "Symbol.match": {
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/Symbol.match
+        if (args.length != 4)
+          return ERROR(
+            'wrong # args: should be "RegExp Symbol.match regexp str"'
+          );
+        if (!isCustomValue(args[2], regexpValueType))
+          return ERROR("invalid regexp value");
+        const regexp = args[2] as RegExpValue;
+        const [result, str] = StringValue.toString(args[3]);
+        if (result.code != ResultCode.OK) return result;
+        const matches = regexp.regexp[Symbol.match](str);
+        if (!matches) return OK(NIL);
+        return OK(MATCHES_TO_DICT(matches));
+      }
+
+      case "Symbol.matchAll": {
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/Symbol.matchAll
+        if (args.length != 4)
+          return ERROR(
+            'wrong # args: should be "RegExp Symbol.matchAll regexp str"'
+          );
+        if (!isCustomValue(args[2], regexpValueType))
+          return ERROR("invalid regexp value");
+        const regexp = args[2] as RegExpValue;
+        const [result, str] = StringValue.toString(args[3]);
+        if (result.code != ResultCode.OK) return result;
+        const matches = Array.from(
+          regexp.regexp[Symbol.matchAll](str),
+          MATCHES_TO_DICT
+        );
+        return OK(LIST(matches));
+      }
+
+      case "Symbol.replace": {
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/Symbol.replace
+        if (args.length != 5)
+          return ERROR(
+            'wrong # args: should be "RegExp Symbol.replace regexp str replacement"'
+          );
+        if (!isCustomValue(args[2], regexpValueType))
+          return ERROR("invalid regexp value");
+        const regexp = args[2] as RegExpValue;
+        const [result, str] = StringValue.toString(args[3]);
+        if (result.code != ResultCode.OK) return result;
+        const [result2, replacement] = StringValue.toString(args[4]);
+        if (result2.code != ResultCode.OK) return result2;
+        const replaced = regexp.regexp[Symbol.replace](str, replacement);
+        return OK(STR(replaced));
+      }
+
+      case "Symbol.search": {
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/Symbol.search
+        if (args.length != 4)
+          return ERROR(
+            'wrong # args: should be "RegExp Symbol.search regexp str"'
+          );
+        if (!isCustomValue(args[2], regexpValueType))
+          return ERROR("invalid regexp value");
+        const regexp = args[2] as RegExpValue;
+        const [result, str] = StringValue.toString(args[3]);
+        if (result.code != ResultCode.OK) return result;
+        const index = regexp.regexp[Symbol.search](str);
+        return OK(INT(index));
+      }
+
+      case "Symbol.split": {
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/Symbol.split
+        if (args.length != 4 && args.length != 5)
+          return ERROR(
+            'wrong # args: should be "RegExp Symbol.split regexp str ?limit?"'
+          );
+        if (!isCustomValue(args[2], regexpValueType))
+          return ERROR("invalid regexp value");
+        const regexp = args[2] as RegExpValue;
+        const [result, str] = StringValue.toString(args[3]);
+        if (result.code != ResultCode.OK) return result;
+        if (args.length == 5) {
+          const [result2, limit] = IntegerValue.toInteger(args[4]);
+          if (result2.code != ResultCode.OK) return result2;
+          const split = regexp.regexp[Symbol.split](str, limit);
+          return OK(LIST(split.map(STR)));
+        }
+        const split = regexp.regexp[Symbol.split](str);
+        return OK(LIST(split.map(STR)));
+      }
+
+      //
+      // Instance properties
+      //
+
       case "lastIndex": {
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/lastIndex
         if (args.length != 3 && args.length != 4)
           return ERROR(
             'wrong # args: should be "RegExp lastIndex regexp ?value?"'
@@ -116,9 +230,10 @@ export const regexpCmd: Command = {
   },
 };
 
-const STR_OR_NIL = (v) => (v ? STR(v) : NIL);
+const INT_OR_NIL = (v) => (v == undefined || v == null ? NIL : INT(v));
+const STR_OR_NIL = (v) => (v == undefined || v == null ? NIL : STR(v));
 const TO_LIST = (fn) => (a) => LIST(a.map(fn));
-const TO_MAP = (fn) => (m) =>
+const TO_DICT = (fn) => (m) =>
   DICT(
     Object.fromEntries(
       Object.entries(m)
@@ -126,3 +241,16 @@ const TO_MAP = (fn) => (m) =>
         .map(([key, value]) => [key, fn(value)])
     )
   );
+const MATCHES_TO_DICT = (matches: RegExpExecArray | RegExpMatchArray) => {
+  const map = {
+    matches: TO_LIST(STR_OR_NIL)(matches),
+    index: INT_OR_NIL(matches.index),
+    input: STR_OR_NIL(matches.input),
+    groups: matches.groups ? TO_DICT(STR_OR_NIL)(matches.groups) : NIL,
+  };
+  if (matches["indices"]) {
+    map["indices"] = TO_LIST(TO_LIST(INT))(matches["indices"]);
+    map["indices.groups"] = TO_DICT(TO_LIST(INT))(matches["indices"].groups);
+  }
+  return DICT(map);
+};

@@ -76,18 +76,14 @@ describe("Javascript RegExp", () => {
       const value = new RegExpValue(re);
       expect(value.display()).to.eql(`{#{RegExp ${re}}#}`);
     });
-    it("should have no string representation", () => {
-      const value = new RegExpValue(new RegExp(""));
-      expect(value).to.not.have.property("asString");
-    });
   });
 
   describe("javascript:RegExp", () => {
     beforeEach(() => {
       commandResolver.register("javascript:RegExp", regexpCmd);
     });
-    describe("methods", () => {
-      describe("new", () => {
+    describe("Constructor", () => {
+      describe("`new`", () => {
         it("should return a RegexpValue", () => {
           expect(
             isCustomValue(evaluate('javascript:RegExp new ""'), regexpValueType)
@@ -99,45 +95,52 @@ describe("Javascript RegExp", () => {
             )
           ).to.be.true;
         });
-        specify("wrong arity", () => {
-          expect(execute("javascript:RegExp new")).to.eql(
-            ERROR('wrong # args: should be "RegExp new pattern ?flags?"')
-          );
-          expect(execute("javascript:RegExp new a b c")).to.eql(
-            ERROR('wrong # args: should be "RegExp new pattern ?flags?"')
-          );
-        });
-        specify("invalid pattern value", () => {
-          expect(execute("javascript:RegExp new []")).to.eql(
-            ERROR("invalid pattern value")
-          );
-        });
-        specify("invalid flags value", () => {
-          expect(execute('javascript:RegExp new "" []')).to.eql(
-            ERROR("invalid flags value")
-          );
-        });
-        specify("invalid regular expression", () => {
-          let message;
-          try {
-            /* eslint-disable-next-line */
-            new RegExp("(");
-          } catch (e) {
-            message = e.message;
-          }
-          expect(execute('javascript:RegExp new "("')).to.eql(ERROR(message));
-        });
-        specify("invalid flags", () => {
-          let message;
-          try {
-            /* eslint-disable-next-line */
-            new RegExp("", "gg");
-          } catch (e) {
-            message = e.message;
-          }
-          expect(execute('javascript:RegExp new "" gg')).to.eql(ERROR(message));
+        describe("Exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("javascript:RegExp new")).to.eql(
+              ERROR('wrong # args: should be "RegExp new pattern ?flags?"')
+            );
+            expect(execute("javascript:RegExp new a b c")).to.eql(
+              ERROR('wrong # args: should be "RegExp new pattern ?flags?"')
+            );
+          });
+          specify("invalid pattern value", () => {
+            expect(execute("javascript:RegExp new []")).to.eql(
+              ERROR("invalid pattern value")
+            );
+          });
+          specify("invalid flags value", () => {
+            expect(execute('javascript:RegExp new "" []')).to.eql(
+              ERROR("invalid flags value")
+            );
+          });
+          specify("invalid regular expression", () => {
+            let message;
+            try {
+              /* eslint-disable-next-line */
+              new RegExp("(");
+            } catch (e) {
+              message = e.message;
+            }
+            expect(execute('javascript:RegExp new "("')).to.eql(ERROR(message));
+          });
+          specify("invalid flags", () => {
+            let message;
+            try {
+              /* eslint-disable-next-line */
+              new RegExp("", "gg");
+            } catch (e) {
+              message = e.message;
+            }
+            expect(execute('javascript:RegExp new "" gg')).to.eql(
+              ERROR(message)
+            );
+          });
         });
       });
+    });
+
+    describe("Instance methods", () => {
       describe("exec", () => {
         specify("MDN demo", () => {
           // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec#try_it
@@ -205,9 +208,9 @@ describe("Javascript RegExp", () => {
             })
           );
         });
-        describe("exceptions", () => {
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
-            expect(execute("javascript:RegExp exec")).to.eql(
+            expect(execute("javascript:RegExp exec a")).to.eql(
               ERROR('wrong # args: should be "RegExp exec regexp str"')
             );
             expect(execute("javascript:RegExp exec a b c")).to.eql(
@@ -226,7 +229,7 @@ describe("Javascript RegExp", () => {
           });
         });
       });
-      describe("test", () => {
+      describe("`test`", () => {
         specify("MDN demo", () => {
           // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec#try_it
           variableResolver.register("str", STR("table football"));
@@ -253,9 +256,9 @@ describe("Javascript RegExp", () => {
             FALSE
           );
         });
-        describe("exceptions", () => {
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
-            expect(execute("javascript:RegExp test")).to.eql(
+            expect(execute("javascript:RegExp test a")).to.eql(
               ERROR('wrong # args: should be "RegExp test regexp str"')
             );
             expect(execute("javascript:RegExp test a b c")).to.eql(
@@ -274,7 +277,284 @@ describe("Javascript RegExp", () => {
           });
         });
       });
-      describe("lastIndex", () => {
+      describe("`toString`", () => {
+        specify("MDN demo", () => {
+          // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/toString#try_it
+          expect(
+            evaluate(
+              `javascript:RegExp toString [javascript:RegExp new "a+b+c"]`
+            )
+          ).to.eql(STR("/a+b+c/"));
+          expect(
+            evaluate(
+              `javascript:RegExp toString [javascript:RegExp new "bar" "g"]`
+            )
+          ).to.eql(STR("/bar/g"));
+          expect(
+            evaluate(
+              `javascript:RegExp toString [javascript:RegExp new "\n" "g"]`
+            )
+          ).to.eql(STR("/\\n/g"));
+          expect(
+            evaluate(
+              `javascript:RegExp toString [javascript:RegExp new "\\n" "g"]`
+            )
+          ).to.eql(STR("/\\n/g"));
+        });
+        describe("Exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("javascript:RegExp toString")).to.eql(
+              ERROR('wrong # args: should be "RegExp toString regexp"')
+            );
+            expect(execute("javascript:RegExp toString a b c")).to.eql(
+              ERROR('wrong # args: should be "RegExp toString regexp"')
+            );
+          });
+          specify("invalid regexp value", () => {
+            expect(execute("javascript:RegExp toString a")).to.eql(
+              ERROR("invalid regexp value")
+            );
+          });
+        });
+      });
+      describe("`Symbol.match`", () => {
+        specify("MDN examples", () => {
+          // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/Symbol.match#examples
+          variableResolver.register(
+            "re",
+            evaluate('javascript:RegExp new """[0-9]+""" g')
+          );
+          const str = STR("2016-01-02");
+          variableResolver.register("str", str);
+
+          const result = evaluate("javascript:RegExp Symbol.match $re $str");
+          expect(result).to.eql(
+            DICT({
+              matches: LIST([STR("2016"), STR("01"), STR("02")]),
+              index: NIL,
+              input: NIL,
+              groups: NIL,
+            })
+          );
+        });
+        describe("Exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("javascript:RegExp Symbol.match a")).to.eql(
+              ERROR('wrong # args: should be "RegExp Symbol.match regexp str"')
+            );
+            expect(execute("javascript:RegExp Symbol.match a b c")).to.eql(
+              ERROR('wrong # args: should be "RegExp Symbol.match regexp str"')
+            );
+          });
+          specify("invalid regexp value", () => {
+            expect(execute("javascript:RegExp Symbol.match a b")).to.eql(
+              ERROR("invalid regexp value")
+            );
+          });
+          specify("invalid string value", () => {
+            expect(
+              execute(
+                "javascript:RegExp Symbol.match [javascript:RegExp new {}] []"
+              )
+            ).to.eql(ERROR("value has no string representation"));
+          });
+        });
+      });
+      describe("`Symbol.matchAll`", () => {
+        specify("MDN examples", () => {
+          // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/Symbol.matchAll#examples
+          variableResolver.register(
+            "re",
+            evaluate('javascript:RegExp new """[0-9]+""" g')
+          );
+          const str = STR("2016-01-02");
+          variableResolver.register("str", str);
+
+          const result = evaluate("javascript:RegExp Symbol.matchAll $re $str");
+          expect(result).to.eql(
+            LIST([
+              DICT({
+                matches: LIST([STR("2016")]),
+                index: INT(0),
+                input: str,
+                groups: NIL,
+              }),
+              DICT({
+                matches: LIST([STR("01")]),
+                index: INT(5),
+                input: str,
+                groups: NIL,
+              }),
+              DICT({
+                matches: LIST([STR("02")]),
+                index: INT(8),
+                input: str,
+                groups: NIL,
+              }),
+            ])
+          );
+        });
+        describe("Exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("javascript:RegExp Symbol.matchAll a")).to.eql(
+              ERROR(
+                'wrong # args: should be "RegExp Symbol.matchAll regexp str"'
+              )
+            );
+            expect(execute("javascript:RegExp Symbol.matchAll a b c")).to.eql(
+              ERROR(
+                'wrong # args: should be "RegExp Symbol.matchAll regexp str"'
+              )
+            );
+          });
+          specify("invalid regexp value", () => {
+            expect(execute("javascript:RegExp Symbol.matchAll a b")).to.eql(
+              ERROR("invalid regexp value")
+            );
+          });
+          specify("invalid string value", () => {
+            expect(
+              execute(
+                "javascript:RegExp Symbol.matchAll [javascript:RegExp new {}] []"
+              )
+            ).to.eql(ERROR("value has no string representation"));
+          });
+        });
+      });
+      describe("`Symbol.replace`", () => {
+        specify("MDN examples", () => {
+          // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/Symbol.replace#examples
+          variableResolver.register(
+            "re",
+            evaluate('javascript:RegExp new "-" g')
+          );
+          const str = STR("2016-01-01");
+          variableResolver.register("str", str);
+
+          const result = evaluate(
+            'javascript:RegExp Symbol.replace $re $str "."'
+          );
+          expect(result).to.eql(STR("2016.01.01"));
+        });
+        describe("Exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("javascript:RegExp Symbol.replace a b")).to.eql(
+              ERROR(
+                'wrong # args: should be "RegExp Symbol.replace regexp str replacement"'
+              )
+            );
+            expect(execute("javascript:RegExp Symbol.replace a b c d")).to.eql(
+              ERROR(
+                'wrong # args: should be "RegExp Symbol.replace regexp str replacement"'
+              )
+            );
+          });
+          specify("invalid regexp value", () => {
+            expect(execute("javascript:RegExp Symbol.replace a b c")).to.eql(
+              ERROR("invalid regexp value")
+            );
+          });
+          specify("invalid string value", () => {
+            expect(
+              execute(
+                "javascript:RegExp Symbol.replace [javascript:RegExp new {}] [] []"
+              )
+            ).to.eql(ERROR("value has no string representation"));
+            expect(
+              execute(
+                "javascript:RegExp Symbol.replace [javascript:RegExp new {}] a []"
+              )
+            ).to.eql(ERROR("value has no string representation"));
+          });
+        });
+      });
+      describe("`Symbol.search`", () => {
+        specify("MDN examples", () => {
+          // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/Symbol.search#examples
+          variableResolver.register(
+            "re",
+            evaluate('javascript:RegExp new "-" g')
+          );
+          const str = STR("2016-01-02");
+          variableResolver.register("str", str);
+
+          const result = evaluate("javascript:RegExp Symbol.search $re $str");
+          expect(result).to.eql(INT(4));
+        });
+        describe("Exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("javascript:RegExp Symbol.search a")).to.eql(
+              ERROR('wrong # args: should be "RegExp Symbol.search regexp str"')
+            );
+            expect(execute("javascript:RegExp Symbol.search a b c")).to.eql(
+              ERROR('wrong # args: should be "RegExp Symbol.search regexp str"')
+            );
+          });
+          specify("invalid regexp value", () => {
+            expect(execute("javascript:RegExp Symbol.search a b")).to.eql(
+              ERROR("invalid regexp value")
+            );
+          });
+          specify("invalid string value", () => {
+            expect(
+              execute(
+                "javascript:RegExp Symbol.search [javascript:RegExp new {}] []"
+              )
+            ).to.eql(ERROR("value has no string representation"));
+          });
+        });
+      });
+      describe("`Symbol.split`", () => {
+        specify("MDN examples", () => {
+          // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/Symbol.split#examples
+          variableResolver.register(
+            "re",
+            evaluate('javascript:RegExp new "-" g')
+          );
+          const str = STR("2016-01-02");
+          variableResolver.register("str", str);
+
+          const result = evaluate("javascript:RegExp Symbol.split $re $str");
+          expect(result).to.eql(LIST([STR("2016"), STR("01"), STR("02")]));
+        });
+        describe("Exceptions", () => {
+          specify("wrong arity", () => {
+            expect(execute("javascript:RegExp Symbol.split a")).to.eql(
+              ERROR(
+                'wrong # args: should be "RegExp Symbol.split regexp str ?limit?"'
+              )
+            );
+            expect(execute("javascript:RegExp Symbol.split a b c d")).to.eql(
+              ERROR(
+                'wrong # args: should be "RegExp Symbol.split regexp str ?limit?"'
+              )
+            );
+          });
+          specify("invalid regexp value", () => {
+            expect(execute("javascript:RegExp Symbol.split a b")).to.eql(
+              ERROR("invalid regexp value")
+            );
+          });
+          specify("invalid string value", () => {
+            expect(
+              execute(
+                "javascript:RegExp Symbol.split [javascript:RegExp new {}] []"
+              )
+            ).to.eql(ERROR("value has no string representation"));
+          });
+          specify("invalid limit value", () => {
+            expect(
+              execute(
+                "javascript:RegExp Symbol.split [javascript:RegExp new {}] a b"
+              )
+            ).to.eql(ERROR('invalid integer "b"'));
+          });
+        });
+      });
+    });
+
+    describe("Instance properties", () => {
+      describe("`lastIndex`", () => {
         specify("initial", () => {
           expect(
             evaluate("javascript:RegExp lastIndex [javascript:RegExp new {}]")
@@ -313,7 +593,7 @@ describe("Javascript RegExp", () => {
             INT(19)
           );
         });
-        describe("exceptions", () => {
+        describe("Exceptions", () => {
           specify("wrong arity", () => {
             expect(execute("javascript:RegExp lastIndex")).to.eql(
               ERROR('wrong # args: should be "RegExp lastIndex regexp ?value?"')
@@ -336,18 +616,17 @@ describe("Javascript RegExp", () => {
           });
         });
       });
-      describe("exceptions", () => {
-        specify("unknown method", () => {
-          expect(execute("javascript:RegExp unknownMethod")).to.eql(
-            ERROR('unknown method "unknownMethod"')
-          );
-        });
-      });
     });
-    describe("exceptions", () => {
+
+    describe("Exceptions", () => {
       specify("wrong arity", () => {
         expect(execute("javascript:RegExp")).to.eql(
           ERROR('wrong # args: should be "RegExp method ?arg ...?"')
+        );
+      });
+      specify("unknown method", () => {
+        expect(execute("javascript:RegExp unknownMethod")).to.eql(
+          ERROR('unknown method "unknownMethod"')
         );
       });
     });
