@@ -215,7 +215,9 @@ export class IntegerValue implements Value {
    * @returns       True if value is convertible
    */
   static isInteger(value: string): boolean {
-    const n = Number(value);
+    const s = value.trim();
+    if (s == "" || s != value) return false;
+    const n = Number(s);
     return !isNaN(n) && Number.isSafeInteger(n);
   }
 
@@ -239,7 +241,9 @@ export class IntegerValue implements Value {
     }
     const [result, s] = StringValue.toString(value);
     if (result.code != ResultCode.OK) return [result];
-    const n = Number(s);
+    const s2 = s.trim();
+    if (s2 == "" || s2 != s) return [ERROR(`invalid integer "${s}"`)];
+    const n = Number(s2);
     if (isNaN(n) || !Number.isSafeInteger(n))
       return [ERROR(`invalid integer "${s}"`)];
     return [OK(NIL), n];
@@ -297,6 +301,8 @@ export class RealValue implements Value {
    * @returns       True if value is convertible
    */
   static isNumber(value: string): boolean {
+    const s = value.trim();
+    if (s == "" || s != value) return false;
     return !isNaN(Number(value));
   }
 
@@ -316,7 +322,9 @@ export class RealValue implements Value {
       return [OK(NIL), (value as IntegerValue).value];
     const [result, s] = StringValue.toString(value);
     if (result.code != ResultCode.OK) return [result];
-    const n = Number(s);
+    const s2 = s.trim();
+    if (s2 == "" || s2 != s) return [ERROR(`invalid number "${s}"`)];
+    const n = Number(s2);
     if (isNaN(n)) return [ERROR(`invalid number "${s}"`)];
     return [OK(NIL), n];
   }
@@ -622,7 +630,7 @@ class ScriptValueCache {
   program?: Program;
 
   /** Cached array of values */
-  values?: 	Value[];
+  values?: Value[];
 }
 
 /**

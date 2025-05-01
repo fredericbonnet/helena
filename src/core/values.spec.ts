@@ -173,6 +173,17 @@ describe("values", () => {
         expect(IntegerValue.fromValue(new StringValue("1.2"))).to.eql([
           ERROR('invalid integer "1.2"'),
         ]);
+        expect(IntegerValue.fromValue(new StringValue(""))).to.eql([
+          ERROR('invalid integer ""'),
+        ]);
+        expect(IntegerValue.fromValue(new StringValue(" "))).to.eql([
+          ERROR('invalid integer " "'),
+        ]);
+      });
+      it("should reject integer strings with spaces", () => {
+        expect(IntegerValue.fromValue(new StringValue(" 1 "))).to.eql([
+          ERROR('invalid integer " 1 "'),
+        ]);
       });
     });
     it("should not be index-selectable", () => {
@@ -228,6 +239,17 @@ describe("values", () => {
         ]);
         expect(RealValue.fromValue(new StringValue("a"))).to.eql([
           ERROR('invalid number "a"'),
+        ]);
+        expect(RealValue.fromValue(new StringValue(""))).to.eql([
+          ERROR('invalid number ""'),
+        ]);
+        expect(RealValue.fromValue(new StringValue(" "))).to.eql([
+          ERROR('invalid number " "'),
+        ]);
+      });
+      it("should reject number strings with spaces", () => {
+        expect(RealValue.fromValue(new StringValue(" 12.34 "))).to.eql([
+          ERROR('invalid number " 12.34 "'),
         ]);
       });
     });
