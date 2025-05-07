@@ -2167,7 +2167,6 @@ describe("Helena control flow commands", () => {
         );
         expect(evaluate("exists res")).to.eql(FALSE);
       });
-
       describe("Control flow", () => {
         describe("`return`", () => {
           it("should interrupt handler with `RETURN` code", () => {
@@ -2729,7 +2728,6 @@ describe("Helena control flow commands", () => {
           CONTINUE()
         );
       });
-
       describe("Control flow", () => {
         describe("`return`", () => {
           it("should interrupt handler with `RETURN` code", () => {
