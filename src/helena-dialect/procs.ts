@@ -93,7 +93,7 @@ class ProcCommand implements Command {
     if (result.code != ResultCode.OK) return result;
     const subscope = this.scope.newChildScope();
     const result2 = subscope.setNamedVariables(
-      this.argspec.argspec.names,
+      this.argspec.argspec.slots,
       values
     );
     if (result2.code != ResultCode.OK) return result2;

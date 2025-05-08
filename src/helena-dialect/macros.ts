@@ -75,7 +75,7 @@ class MacroCommand implements Command {
     const [result, values] = this.argspec.collectArguments(scope, args, 1);
     if (result.code != ResultCode.OK) return result;
     const subscope = scope.newLocalScope();
-    subscope.setNamedLocals(this.argspec.argspec.names, values);
+    subscope.setNamedLocals(this.argspec.argspec.slots, values);
     const program = subscope.compileScriptValue(this.body as ScriptValue);
     if (this.guard) {
       return ContinuationValue.create(subscope, program, (result) => {

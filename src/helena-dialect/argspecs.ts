@@ -47,7 +47,7 @@ export const USAGE_ARGSPEC = (
 
 export class Argspec {
   readonly args: Argument[];
-  readonly names: string[];
+  readonly slots: Map<string, number>;
   readonly nbRequired: number = 0;
   readonly nbOptional: number = 0;
   readonly hasRemainder: boolean = false;
@@ -56,15 +56,15 @@ export class Argspec {
   readonly hasGuards: boolean = false;
   constructor(args: Argument[]) {
     this.args = args;
-    this.names = Array(args.length);
-    for (let i = 0; i < args.length; i++) {
-      const arg = args[i];
-      this.names[i] = arg.name;
+    this.slots = new Map<string, number>();
+    for (let slot = 0; slot < args.length; slot++) {
+      const arg = args[slot];
+      this.slots.set(arg.name, slot);
       if (arg.option) {
         this.hasOptions = true;
         if (arg.type == "required") this.nbRequired += 2;
         if (!this.optionSlots) this.optionSlots = new Map<string, number>();
-        for (const name of arg.option.names) this.optionSlots.set(name, i);
+        for (const name of arg.option.names) this.optionSlots.set(name, slot);
       } else {
         switch (arg.type) {
           case "required":
@@ -452,7 +452,7 @@ const argspecSetCmd: Command = {
       return ERROR(`wrong # values: should be "${argspec.usage()}"`);
     const [result3, values2] = argspec.collectArguments(scope, values, 0);
     if (result3.code != ResultCode.OK) return result3;
-    return scope.setNamedVariables(argspec.argspec.names, values2);
+    return scope.setNamedVariables(argspec.argspec.slots, values2);
   },
   help(args) {
     if (args.length > 3) return ARITY_ERROR(ARGSPEC_SET_SIGNATURE);

@@ -223,7 +223,8 @@ export type ScopeOptions = {
 export class Scope {
   private readonly options: ScopeOptions;
   readonly context: ScopeContext;
-  private readonly locals: Map<string, Value> = new Map();
+  private localSlots: Map<string, number>;
+  private localValues: Value[];
   private readonly compiler: Compiler;
   private readonly executor: Executor;
 
@@ -310,7 +311,8 @@ export class Scope {
   }
 
   resolveVariable(name: string): Value {
-    if (this.locals.has(name)) return this.locals.get(name);
+    if (this.localSlots?.has(name))
+      return this.localValues?.[this.localSlots.get(name)];
     if (this.context.constants.has(name))
       return this.context.constants.get(name);
     if (this.context.variables.has(name))
@@ -350,16 +352,22 @@ export class Scope {
   }
 
   clearLocals() {
-    this.locals.clear();
+    if (this.localValues) this.localValues.fill(undefined);
   }
   setNamedLocal(name: string, value: Value) {
-    this.locals.set(name, value);
-  }
-  setNamedLocals(names: string[], values: Value[]) {
-    for (let i = 0; i < names.length; i++) {
-      if (!values[i]) continue;
-      this.locals.set(names[i], values[i]);
+    if (this.localSlots?.has(name)) {
+      this.localValues[this.localSlots.get(name)] = value;
+    } else {
+      if (!this.localSlots) this.localSlots = new Map<string, number>();
+      if (!this.localValues) this.localValues = Array(this.localSlots.size);
+      const slot = this.localValues.length;
+      this.localSlots.set(name, slot);
+      this.localValues.push(value);
     }
+  }
+  setNamedLocals(slots: Map<string, number>, values: Value[]) {
+    this.localSlots = slots;
+    this.localValues = values;
   }
   destructureLocal(local: Value, value: Value, check: boolean): Result {
     const [result, name] = StringValue.toString(local);
@@ -382,7 +390,7 @@ export class Scope {
     return OK(NIL);
   }
   private checkNamedConstant(name: string): Result {
-    if (this.locals.has(name)) {
+    if (this.localSlots?.has(name)) {
       return ERROR(`cannot define constant "${name}": local already exists`);
     }
     if (this.context.constants.has(name)) {
@@ -399,10 +407,10 @@ export class Scope {
     this.context.variables.set(name, value);
     return OK(value);
   }
-  setNamedVariables(names: string[], values: Value[]): Result {
-    for (let i = 0; i < names.length; i++) {
-      if (!values[i]) continue;
-      const result = this.setNamedVariable(names[i], values[i]);
+  setNamedVariables(slots: Map<string, number>, values: Value[]): Result {
+    for (const [name, slot] of slots.entries()) {
+      if (!values[slot]) continue;
+      const result = this.setNamedVariable(name, values[slot]);
       if (result.code != ResultCode.OK) return result;
     }
     return OK(NIL);
@@ -415,7 +423,7 @@ export class Scope {
     return OK(NIL);
   }
   private checkNamedVariable(name: string): Result {
-    if (this.locals.has(name)) {
+    if (this.localSlots?.has(name)) {
       return ERROR(`cannot redefine local "${name}"`);
     }
     if (this.context.constants.has(name)) {
@@ -426,7 +434,7 @@ export class Scope {
   unsetVariable(variable: Value, check = false): Result {
     const [result, name] = StringValue.toString(variable);
     if (result.code != ResultCode.OK) return ERROR("invalid variable name");
-    if (this.locals.has(name)) {
+    if (this.localSlots?.has(name)) {
       return ERROR(`cannot unset local "${name}"`);
     }
     if (this.context.constants.has(name)) {
