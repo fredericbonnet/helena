@@ -47,16 +47,21 @@ export const USAGE_ARGSPEC = (
 
 export class Argspec {
   readonly args: Argument[];
+  readonly names: string[];
   readonly nbRequired: number = 0;
   readonly nbOptional: number = 0;
   readonly hasRemainder: boolean = false;
+  readonly hasOptions: boolean = false;
   readonly optionSlots: Map<string, number>;
   readonly hasGuards: boolean = false;
   constructor(args: Argument[]) {
     this.args = args;
+    this.names = Array(args.length);
     for (let i = 0; i < args.length; i++) {
       const arg = args[i];
+      this.names[i] = arg.name;
       if (arg.option) {
+        this.hasOptions = true;
         if (arg.type == "required") this.nbRequired += 2;
         if (!this.optionSlots) this.optionSlots = new Map<string, number>();
         for (const name of arg.option.names) this.optionSlots.set(name, i);
@@ -81,9 +86,6 @@ export class Argspec {
   isVariadic(): boolean {
     return this.nbOptional > 0 || this.hasRemainder;
   }
-  hasOptions(): boolean {
-    return !!this.optionSlots?.size;
-  }
 }
 
 export class ArgspecValue implements CustomValue {
@@ -107,7 +109,7 @@ export class ArgspecValue implements CustomValue {
     return buildUsage(this.argspec.args, skip);
   }
   checkArity(values: Value[], skip: number) {
-    if (this.argspec.hasOptions()) {
+    if (this.argspec.hasOptions) {
       // There is no fast way to check arity without parsing all options, so
       // just check that there are enough to cover all the required ones
       return values.length - skip >= this.argspec.nbRequired;
@@ -119,17 +121,25 @@ export class ArgspecValue implements CustomValue {
           this.argspec.nbRequired + this.argspec.nbOptional)
     );
   }
-  applyArguments(
+  collectArguments(
     scope: Scope,
-    values: Value[],
+    args: Value[],
+    skip: number
+  ): [Result, Value[]] {
+    const slotValues = Array(this.argspec.args.length);
+    return [this.setSlotValues(scope, args, skip, slotValues), slotValues];
+  }
+  private setSlotValues(
+    scope: Scope,
+    args: Value[],
     skip: number,
-    setArgument: (name: string, value: Value) => Result
+    slotValues: Value[]
   ): Result {
-    if (!this.argspec.hasOptions()) {
+    if (!this.argspec.hasOptions) {
       // Use faster algorithm for the common case with all positionals
-      return this.applyPositionals(scope, values, skip, setArgument);
+      return this.setPositionalSlotValues(scope, args, skip, slotValues);
     }
-    const [result, data] = this.findSlots(values, skip);
+    const [result, data] = this.findSlots(args, skip);
     if (result.code != ResultCode.OK) return result;
     const { slots, remainders } = data;
     for (let slot = 0; slot < this.argspec.args.length; slot++) {
@@ -146,14 +156,14 @@ export class ArgspecValue implements CustomValue {
               return ERROR(`missing value for argument "${arg.name}"`);
             }
           }
-          value = values[slots[slot]];
+          value = args[slots[slot]];
           break;
         case "optional":
           if (slots[slot] >= 0) {
             if (arg.option && arg.option.type == "flag") {
               value = TRUE;
             } else {
-              value = values[slots[slot]];
+              value = args[slots[slot]];
             }
           } else if (arg.option && arg.option.type == "flag") {
             value = FALSE;
@@ -183,14 +193,12 @@ export class ArgspecValue implements CustomValue {
               // No remainder
               value = TUPLE([]);
             } else {
-              value = TUPLE(
-                values.slice(slots[slot], slots[slot] + remainders)
-              );
+              value = TUPLE(args.slice(slots[slot], slots[slot] + remainders));
             }
           }
           break;
       }
-      const result = this.setArgument(scope, arg, value, setArgument);
+      const result = this.setSlotValue(scope, arg, value, slot, slotValues);
       switch (result.code) {
         case ResultCode.OK:
           break;
@@ -203,7 +211,7 @@ export class ArgspecValue implements CustomValue {
     return OK(NIL);
   }
   private findSlots(
-    values: Value[],
+    args: Value[],
     skip: number
   ): [Result, { slots: number[]; remainders: number }?] {
     let nbRequired = this.argspec.nbRequired;
@@ -215,7 +223,7 @@ export class ArgspecValue implements CustomValue {
     // Consume positional arguments and options alternatively
     let slot = 0;
     let i = skip;
-    while (i < values.length) {
+    while (i < args.length) {
       // Positional arguments in order
       let firstSlot = slot;
       let lastSlot = slot;
@@ -224,9 +232,9 @@ export class ArgspecValue implements CustomValue {
         if (arg.option) break;
         lastSlot++;
       }
-      while (i < values.length && slot < lastSlot) {
+      while (i < args.length && slot < lastSlot) {
         const arg = this.argspec.args[slot];
-        const remaining = values.length - i;
+        const remaining = args.length - i;
         switch (arg.type) {
           case "required":
             nbRequired--;
@@ -248,7 +256,7 @@ export class ArgspecValue implements CustomValue {
         }
         slot++;
       }
-      if (i >= values.length) break;
+      if (i >= args.length) break;
 
       // Options out-of-order
       let requiredOptions = 0;
@@ -260,8 +268,8 @@ export class ArgspecValue implements CustomValue {
         lastSlot++;
       }
       let nbOptions = 0;
-      while (i < values.length && nbOptions < lastSlot - firstSlot) {
-        const [result, optname] = StringValue.toString(values[i]);
+      while (i < args.length && nbOptions < lastSlot - firstSlot) {
+        const [result, optname] = StringValue.toString(args[i]);
         if (result.code != ResultCode.OK) {
           if (!requiredOptions) break;
           return [ERROR("invalid option")];
@@ -307,9 +315,9 @@ export class ArgspecValue implements CustomValue {
             break;
         }
       }
-      if (i < values.length) {
+      if (i < args.length) {
         // Skip first trailing terminator
-        const [result, optname] = StringValue.toString(values[i]);
+        const [result, optname] = StringValue.toString(args[i]);
         if (result.code == ResultCode.OK && optname == "--") {
           i++;
         }
@@ -317,30 +325,31 @@ export class ArgspecValue implements CustomValue {
       slot = lastSlot;
       if (slot >= nbArgs) break;
     }
-    if (i < values.length) return [ERROR("extra values after arguments")];
+    if (i < args.length) return [ERROR("extra values after arguments")];
     return [OK(NIL), { slots, remainders }];
   }
-  private applyPositionals(
+  private setPositionalSlotValues(
     scope: Scope,
-    values: Value[],
+    args: Value[],
     skip: number,
-    setArgument: (name: string, value: Value) => Result
+    slotValues: Value[]
   ): Result {
-    const total = values.length - skip;
+    const total = args.length - skip;
     const nbNonRequired = total - this.argspec.nbRequired;
     let nbOptional = Math.min(this.argspec.nbOptional, nbNonRequired);
     const remainders = nbNonRequired - nbOptional;
     let i = skip;
-    for (const arg of this.argspec.args) {
+    for (let slot = 0; slot < this.argspec.args.length; slot++) {
+      const arg = this.argspec.args[slot];
       let value: Value;
       switch (arg.type) {
         case "required":
-          value = values[i++];
+          value = args[i++];
           break;
         case "optional":
           if (nbOptional > 0) {
             nbOptional--;
-            value = values[i++];
+            value = args[i++];
           } else if (arg.default) {
             if (arg.default.type == ValueType.SCRIPT) {
               const program = scope.compileScriptValue(
@@ -362,11 +371,11 @@ export class ArgspecValue implements CustomValue {
           } else continue; // Skip missing optional
           break;
         case "remainder":
-          value = TUPLE(values.slice(i, i + remainders));
+          value = TUPLE(args.slice(i, i + remainders));
           i += remainders;
           break;
       }
-      const result = this.setArgument(scope, arg, value, setArgument);
+      const result = this.setSlotValue(scope, arg, value, slot, slotValues);
       switch (result.code) {
         case ResultCode.OK:
           break;
@@ -378,11 +387,12 @@ export class ArgspecValue implements CustomValue {
     }
     return OK(NIL);
   }
-  private setArgument(
+  private setSlotValue(
     scope: Scope,
     arg: Argument,
     value: Value,
-    setArgument: (name: string, value: Value) => Result
+    slot: number,
+    slotValues: Value[]
   ): Result {
     if (arg.guard) {
       const program = scope.compilePair(arg.guard, value);
@@ -391,7 +401,8 @@ export class ArgspecValue implements CustomValue {
       if (result.code != ResultCode.OK) return result;
       value = result.value;
     }
-    return setArgument(arg.name, value);
+    slotValues[slot] = value;
+    return OK(NIL);
   }
 }
 
@@ -433,15 +444,15 @@ const ARGSPEC_SET_SIGNATURE = "argspec value set values";
 const argspecSetCmd: Command = {
   execute(args, scope: Scope) {
     if (args.length != 3) return ARITY_ERROR(ARGSPEC_SET_SIGNATURE);
-    const [result, value] = ArgspecValue.fromValue(args[1]);
+    const [result, argspec] = ArgspecValue.fromValue(args[1]);
     if (result.code != ResultCode.OK) return result;
     const [result2, values] = valueToArray(args[2]);
     if (result2.code != ResultCode.OK) return result2;
-    if (!value.checkArity(values, 0))
-      return ERROR(`wrong # values: should be "${value.usage()}"`);
-    return value.applyArguments(scope, values, 0, (name, value) =>
-      scope.setNamedVariable(name, value)
-    );
+    if (!argspec.checkArity(values, 0))
+      return ERROR(`wrong # values: should be "${argspec.usage()}"`);
+    const [result3, values2] = argspec.collectArguments(scope, values, 0);
+    if (result3.code != ResultCode.OK) return result3;
+    return scope.setNamedVariables(argspec.argspec.names, values2);
   },
   help(args) {
     if (args.length > 3) return ARITY_ERROR(ARGSPEC_SET_SIGNATURE);

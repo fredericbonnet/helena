@@ -78,13 +78,10 @@ class ClosureCommand implements Command {
     if (!this.argspec.checkArity(args, 1)) {
       return ARITY_ERROR(CLOSURE_COMMAND_SIGNATURE(args[0], this.argspec));
     }
-    const subscope = this.scope.newLocalScope();
-    const setarg = (name, value) => {
-      subscope.setNamedLocal(name, value);
-      return OK(value);
-    };
-    const result = this.argspec.applyArguments(this.scope, args, 1, setarg);
+    const [result, values] = this.argspec.collectArguments(this.scope, args, 1);
     if (result.code != ResultCode.OK) return result;
+    const subscope = this.scope.newLocalScope();
+    subscope.setNamedLocals(this.argspec.argspec.names, values);
     const program = subscope.compileScriptValue(this.body as ScriptValue);
     if (this.guard) {
       return ContinuationValue.create(subscope, program, (result) => {

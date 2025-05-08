@@ -355,6 +355,12 @@ export class Scope {
   setNamedLocal(name: string, value: Value) {
     this.locals.set(name, value);
   }
+  setNamedLocals(names: string[], values: Value[]) {
+    for (let i = 0; i < names.length; i++) {
+      if (!values[i]) continue;
+      this.locals.set(names[i], values[i]);
+    }
+  }
   destructureLocal(local: Value, value: Value, check: boolean): Result {
     const [result, name] = StringValue.toString(local);
     if (result.code != ResultCode.OK) return ERROR("invalid local name");
@@ -392,6 +398,14 @@ export class Scope {
     if (result.code != ResultCode.OK) return result;
     this.context.variables.set(name, value);
     return OK(value);
+  }
+  setNamedVariables(names: string[], values: Value[]): Result {
+    for (let i = 0; i < names.length; i++) {
+      if (!values[i]) continue;
+      const result = this.setNamedVariable(names[i], values[i]);
+      if (result.code != ResultCode.OK) return result;
+    }
+    return OK(NIL);
   }
   destructureVariable(variable: Value, value: Value, check: boolean): Result {
     const [result, name] = StringValue.toString(variable);

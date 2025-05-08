@@ -133,16 +133,10 @@ export class EnsembleCommand implements Command {
           " ?subcommand? ?arg ...?"
       );
     if (args.length == minArgs) {
-      const ensembleArgs = [];
-      const getargs = (_name, value) => {
-        ensembleArgs.push(value);
-        return OK(value);
-      };
-      const result = this.argspec.applyArguments(
+      const [result, ensembleArgs] = this.argspec.collectArguments(
         scope,
-        args.slice(1, minArgs),
-        0,
-        getargs
+        args,
+        1
       );
       if (result.code != ResultCode.OK) return result;
       return OK(TUPLE(ensembleArgs));
@@ -169,17 +163,10 @@ export class EnsembleCommand implements Command {
       // If we have no guards to apply then can just copy the args over
       cmdline.push(...args.slice(1, minArgs));
     } else {
-      const getargs = (_name, value) => {
-        cmdline.push(value);
-        return OK(value);
-      };
-      const result = this.argspec.applyArguments(
-        scope,
-        args.slice(1, minArgs),
-        0,
-        getargs
-      );
+      // Note: this will only collect the required args and ignore the remainder so we can just pass the whole array
+      const [result, values] = this.argspec.collectArguments(scope, args, 1);
       if (result.code != ResultCode.OK) return result;
+      cmdline.push(...values);
     }
     cmdline.push(...args.slice(minArgs + 1));
     const result = command.command.execute(cmdline, scope);
@@ -252,7 +239,7 @@ export const ensembleCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     if (argspec.argspec.isVariadic())
       return ERROR("ensemble arguments cannot be variadic");
-    if (argspec.argspec.hasOptions())
+    if (argspec.argspec.hasOptions)
       return ERROR("ensemble arguments cannot have options");
 
     const subscope = scope.newChildScope();

@@ -89,10 +89,14 @@ class ProcCommand implements Command {
     if (!this.argspec.checkArity(args, 1)) {
       return ARITY_ERROR(PROC_COMMAND_SIGNATURE(args[0], this.argspec));
     }
-    const subscope = this.scope.newChildScope();
-    const setarg = (name, value) => subscope.setNamedVariable(name, value);
-    const result = this.argspec.applyArguments(this.scope, args, 1, setarg);
+    const [result, values] = this.argspec.collectArguments(this.scope, args, 1);
     if (result.code != ResultCode.OK) return result;
+    const subscope = this.scope.newChildScope();
+    const result2 = subscope.setNamedVariables(
+      this.argspec.argspec.names,
+      values
+    );
+    if (result2.code != ResultCode.OK) return result2;
     if (this.guard) {
       return ContinuationValue.create(subscope, this.program, (result) => {
         switch (result.code) {
