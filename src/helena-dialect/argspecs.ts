@@ -86,6 +86,14 @@ export class Argspec {
   isVariadic(): boolean {
     return this.nbOptional > 0 || this.hasRemainder;
   }
+  isFast(): boolean {
+    return (
+      this.nbOptional == 0 &&
+      !this.hasRemainder &&
+      !this.hasOptions &&
+      !this.hasGuards
+    );
+  }
 }
 
 export class ArgspecValue implements CustomValue {
@@ -126,6 +134,9 @@ export class ArgspecValue implements CustomValue {
     args: Value[],
     skip: number
   ): [Result, Value[]] {
+    if (this.argspec.isFast()) {
+      return [OK(NIL), args.slice(skip, this.argspec.args.length + skip)];
+    }
     const slotValues = Array(this.argspec.args.length);
     return [this.setSlotValues(scope, args, skip, slotValues), slotValues];
   }

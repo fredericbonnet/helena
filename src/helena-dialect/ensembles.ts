@@ -159,8 +159,8 @@ export class EnsembleCommand implements Command {
     const command = this.scope.resolveLocalCommand(subcommand);
     if (!command) return UNKNOWN_SUBCOMMAND_ERROR(subcommand);
     const cmdline: Value[] = [command];
-    if (!this.argspec.argspec.hasGuards) {
-      // If we have no guards to apply then can just copy the args over
+    if (this.argspec.argspec.isFast()) {
+      // Here we can just copy the args over
       cmdline.push(...args.slice(1, minArgs));
     } else {
       // Note: this will only collect the required args and ignore the remainder so we can just pass the whole array
