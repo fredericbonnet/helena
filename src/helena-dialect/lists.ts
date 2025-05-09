@@ -22,7 +22,12 @@ import {
 } from "../core/values";
 import { ArgspecValue } from "./argspecs";
 import { ARITY_ERROR } from "./arguments";
-import { ContinuationValue, destructureValue, Scope } from "./core";
+import {
+  ContinuationValue,
+  destructureLocalSlots,
+  destructureValue,
+  Scope,
+} from "./core";
 import { EnsembleCommand } from "./ensembles";
 
 class ListCommand implements Command {
@@ -274,7 +279,13 @@ const listForeachCmd: Command = {
     if (result.code != ResultCode.OK) return result;
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
     const program = scope.compileScriptValue(body as ScriptValue);
-    const subscope = scope.newLocalScope();
+    const slots = new Map<string, number>();
+    if (index) {
+      slots.set(index, 0);
+    }
+    const result2 = destructureLocalSlots(varname, slots);
+    if (result2.code != ResultCode.OK) return result2;
+    const subscope = scope.newLocalScope(slots);
     let i = 0;
     let lastResult = OK(NIL);
     const next = () => {

@@ -30,6 +30,7 @@ import { ARITY_ERROR } from "./arguments";
 import {
   ContinuationCallback,
   ContinuationValue,
+  destructureLocalSlots,
   destructureValue,
   Process,
   Scope,
@@ -49,12 +50,20 @@ const loopCmd: Command = {
     }
     const body = args[args.length - 1];
     if (body.type != ValueType.SCRIPT) return ERROR("body must be a script");
-    const subscope = scope.newLocalScope();
+    const slots = new Map<string, number>();
+    if (index) {
+      slots.set(index, 0);
+    }
     const varnames: Value[] = [];
-    const sources: LoopSourceFn[] = [];
     for (let i = index ? 2 : 1; i < args.length - 1; i += 2) {
       const varname = args[i];
       varnames.push(varname);
+      const result = destructureLocalSlots(varname, slots);
+      if (result.code != ResultCode.OK) return result;
+    }
+    const subscope = scope.newLocalScope(slots);
+    const sources: LoopSourceFn[] = [];
+    for (let i = index ? 2 : 1; i < args.length - 1; i += 2) {
       const source = args[i + 1];
       switch (source.type) {
         case ValueType.LIST: {
@@ -471,8 +480,10 @@ class CatchCommand implements Command {
             case ResultCode.ERROR: {
               const [, varname] = StringValue.toString(state.args[i + 1]);
               const handler = state.args[i + 2];
-              const subscope = scope.newLocalScope();
-              subscope.setNamedLocal(varname, state.bodyResult.value);
+              const subscope = scope.newLocalScope(
+                new Map<string, number>([[varname, 0]]),
+                [state.bodyResult.value]
+              );
               const program = subscope.compileScriptValue(
                 handler as ScriptValue
               ); // TODO check type

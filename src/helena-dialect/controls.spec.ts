@@ -119,30 +119,6 @@ describe("Helena control flow commands", () => {
         it("should be local to the `body` scope", () => {
           expect(evaluate("loop v [list (a b c)] {}; exists v")).to.eql(FALSE);
         });
-        it("should be defined left-to-right", () => {
-          /**
-           * If several sources use the same variable name, the last active
-           * source takes precedence.
-           */
-          expect(
-            evaluate("loop v [list (val1)] v [list (val2)] {get v}")
-          ).to.eql(STR("val2"));
-          expect(
-            evaluate(`
-              set l [list ()]
-              loop index v {
-                if {$index != 0} {continue}
-                idem val1
-              } v {
-                if {$index != 1} {continue}
-                idem val2
-              } {
-                if {$index == 2} {break}
-                set l [list $l append ($v)]
-              }
-            `)
-          ).to.eql(evaluate("list (val1 val2)"));
-        });
       });
     });
 
@@ -166,6 +142,25 @@ describe("Helena control flow commands", () => {
          * Index variable name must have a valid string representation.
          */
         expect(execute("loop [] {}")).to.eql(ERROR("invalid index name"));
+      });
+      specify("invalid `value` name", () => {
+        /**
+         * Value variable names must have a valid string representation.
+         */
+        expect(execute("loop [] [list {}] {}")).to.eql(
+          ERROR("invalid local name")
+        );
+      });
+      specify("duplicate variable names", () => {
+        /**
+         * Index and value variable names must be unique.
+         */
+        expect(execute("loop v v [list ()] {}")).to.eql(
+          ERROR(`duplicate local name "v"`)
+        );
+        expect(execute("loop (a (b c)) [list ()] c [list ()] {}")).to.eql(
+          ERROR(`duplicate local name "c"`)
+        );
       });
       specify("invalid sources", () => {
         /**

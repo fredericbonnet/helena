@@ -44,11 +44,6 @@ The `value` argument of each source gives the name of the
 source for the current iteration.
 
 - ✅ should be local to the `body` scope
-- ✅ should be defined left-to-right
-
-  If several sources use the same variable name, the last active
-  source takes precedence.
-
 
 ## <a id="loop-exceptions"></a>Exceptions
 
@@ -61,6 +56,14 @@ source for the current iteration.
 - ✅ invalid `index` name
 
   Index variable name must have a valid string representation.
+
+- ✅ invalid `value` name
+
+  Value variable names must have a valid string representation.
+
+- ✅ duplicate variable names
+
+  Index and value variable names must be unique.
 
 - ✅ invalid sources
 

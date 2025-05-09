@@ -80,8 +80,10 @@ class ClosureCommand implements Command {
     }
     const [result, values] = this.argspec.collectArguments(this.scope, args, 1);
     if (result.code != ResultCode.OK) return result;
-    const subscope = this.scope.newLocalScope();
-    subscope.setNamedLocals(this.argspec.argspec.slots, values);
+    const subscope = this.scope.newLocalScope(
+      this.argspec.argspec.slots,
+      values
+    );
     const program = subscope.compileScriptValue(this.body as ScriptValue);
     if (this.guard) {
       return ContinuationValue.create(subscope, program, (result) => {

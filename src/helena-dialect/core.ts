@@ -255,8 +255,17 @@ export class Scope {
   newChildScope() {
     return new Scope(new ScopeContext(this.context), this.options);
   }
-  newLocalScope() {
-    return new Scope(this.context, this.options);
+  newLocalScope(slots?: Map<string, number>, values?: Value[]) {
+    const child = new Scope(this.context, this.options);
+    if (slots) {
+      child.localSlots = slots;
+      if (values) {
+        child.localValues = values;
+      } else {
+        child.localValues = Array(slots.size);
+      }
+    }
+    return child;
   }
 
   compile(script: Script): Program {
@@ -354,26 +363,23 @@ export class Scope {
   clearLocals() {
     if (this.localValues) this.localValues.fill(undefined);
   }
-  setNamedLocal(name: string, value: Value) {
-    if (this.localSlots?.has(name)) {
-      this.localValues[this.localSlots.get(name)] = value;
-    } else {
-      if (!this.localSlots) this.localSlots = new Map<string, number>();
-      if (!this.localValues) this.localValues = Array(this.localSlots.size);
-      const slot = this.localValues.length;
-      this.localSlots.set(name, slot);
-      this.localValues.push(value);
-    }
-  }
-  setNamedLocals(slots: Map<string, number>, values: Value[]) {
-    this.localSlots = slots;
-    this.localValues = values;
+  setNamedLocal(name: string, value: Value): Result {
+    const result = this.checkNamedLocal(name);
+    if (result.code != ResultCode.OK) return result;
+    this.localValues[this.localSlots.get(name)] = value;
+    return OK(value);
   }
   destructureLocal(local: Value, value: Value, check: boolean): Result {
     const [result, name] = StringValue.toString(local);
     if (result.code != ResultCode.OK) return ERROR("invalid local name");
-    if (check) return OK(NIL);
-    this.setNamedLocal(name, value);
+    if (check) return this.checkNamedLocal(name);
+    this.localValues[this.localSlots.get(name)] = value;
+    return OK(NIL);
+  }
+  private checkNamedLocal(name: string): Result {
+    if (!this.localSlots?.has(name)) {
+      return ERROR(`unknown local "${name}"`);
+    }
     return OK(NIL);
   }
   setNamedConstant(name: string, value: Value): Result {
@@ -515,6 +521,27 @@ function resolveLeadingTuple(args: Value[], scope: Scope): [Command, Value[]] {
   }
   const tuple = lead as TupleValue;
   return resolveLeadingTuple([...tuple.values, ...rest], scope);
+}
+
+export function destructureLocalSlots(
+  shape: Value,
+  slots: Map<string, number>
+): Result {
+  if (shape.type != ValueType.TUPLE) return addLocalSlot(shape, slots);
+  const locals = (shape as TupleValue).values;
+  for (let i = 0; i < locals.length; i++) {
+    const result = destructureLocalSlots(locals[i], slots);
+    if (result.code != ResultCode.OK) return result;
+  }
+  return OK(NIL);
+}
+function addLocalSlot(local: Value, slots: Map<string, number>): Result {
+  const [result, name] = StringValue.toString(local);
+  if (result.code != ResultCode.OK) return ERROR("invalid local name");
+  if (slots.has(name)) return ERROR(`duplicate local name "${name}"`);
+  const slot = slots.size;
+  slots.set(name, slot);
+  return OK(NIL);
 }
 
 export function destructureValue(
