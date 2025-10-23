@@ -9,7 +9,12 @@ import {
   SelectorResolver,
   VariableResolver,
 } from "./resolvers";
-import { IndexedSelector, KeyedSelector, Selector } from "./selectors";
+import {
+  IndexedSelector,
+  KeyedSelector,
+  Selector,
+  applySelector,
+} from "./selectors";
 import {
   BlockMorpheme,
   ExpressionMorpheme,
@@ -37,7 +42,6 @@ import {
   TupleValue,
   Value,
   ValueType,
-  applySelector,
 } from "./values";
 import { displayList } from "./display";
 import { Source, SourcePosition } from "./source";

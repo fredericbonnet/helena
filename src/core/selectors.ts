@@ -3,7 +3,7 @@
  */
 
 import { ERROR, OK, Result, ResultCode } from "./results";
-import { NIL, TupleValue, Value, ValueType, selectGeneric } from "./values";
+import { NIL, TupleValue, Value, ValueType } from "./values";
 import { defaultDisplayFunction, Displayable, displayList } from "./display";
 
 /**
@@ -202,4 +202,33 @@ export class GenericSelector implements Selector {
       )
       .join("; ")}}`;
   }
+}
+
+/**
+ * Apply a selector to a value
+ *
+ * @param value    - Value to select
+ * @param selector - Selector to apply
+ *
+ * @returns          Selected subvalue
+ */
+export function applySelector(value: Value, selector: Selector): Result {
+  return value.select ? value.select(selector) : selector.apply(value);
+}
+
+/**
+ * Select value with either {@link Value.select} or {@link Value.selectRules} in
+ * this order of precedence.
+ *
+ * @param value    - Value to select
+ * @param selector - Selector to apply
+ *
+ * @returns          Selected value
+ */
+export function selectGeneric(value: Value, selector: GenericSelector): Result {
+  if (!value.select && !value.selectRules)
+    return ERROR("value is not selectable");
+  return value.select
+    ? value.select(selector)
+    : value.selectRules(selector.rules);
 }
