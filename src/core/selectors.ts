@@ -92,7 +92,7 @@ export class IndexedSelector implements Selector {
    *
    * @returns       New selector or error
    */
-  static create(index: Value): [Result, Selector?] {
+  static create(index: Value): [Result, IndexedSelector?] {
     if (index == NIL) return [ERROR("invalid index")];
     return [OK(NIL), new IndexedSelector(index)];
   }
@@ -135,7 +135,7 @@ export class KeyedSelector implements Selector {
    *
    * @returns      New selector or error
    */
-  static create(keys: Value[]): [Result, Selector?] {
+  static create(keys: Value[]): [Result, KeyedSelector?] {
     if (keys.length == 0) return [ERROR("empty selector")];
     return [OK(NIL), new KeyedSelector(keys)];
   }
@@ -182,7 +182,7 @@ export class GenericSelector implements Selector {
    *
    * @returns       New selector or error
    */
-  static create(rules: Value[]): [Result, Selector?] {
+  static create(rules: Value[]): [Result, GenericSelector?] {
     if (rules.length == 0) return [ERROR("empty selector")];
     return [OK(NIL), new GenericSelector(rules)];
   }
