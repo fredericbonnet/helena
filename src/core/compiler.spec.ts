@@ -2277,7 +2277,7 @@ describe("Compilation and execution", () => {
                 );
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(STR("varname"), [
-                    new IndexedSelector(STR("index")),
+                    IndexedSelector.create(STR("index"))[1],
                   ])
                 );
               });
@@ -2301,7 +2301,7 @@ describe("Compilation and execution", () => {
 
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(STR("varname"), [
-                    new KeyedSelector([STR("key1"), STR("key2")]),
+                    KeyedSelector.create([STR("key1"), STR("key2")])[1],
                   ])
                 );
               });
@@ -2338,10 +2338,10 @@ describe("Compilation and execution", () => {
                 );
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(STR("varname"), [
-                    new GenericSelector([
+                    GenericSelector.create([
                       TUPLE([STR("rule1"), STR("arg1")]),
                       TUPLE([STR("rule2"), STR("arg2")]),
-                    ]),
+                    ])[1],
                   ])
                 );
               });
@@ -2426,13 +2426,13 @@ describe("Compilation and execution", () => {
                 );
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(STR("varname"), [
-                    new KeyedSelector([STR("key1"), STR("key2")]),
-                    new GenericSelector([
+                    KeyedSelector.create([STR("key1"), STR("key2")])[1],
+                    GenericSelector.create([
                       TUPLE([STR("rule1")]),
                       TUPLE([STR("rule2")]),
-                    ]),
-                    new IndexedSelector(STR("index1")),
-                    new KeyedSelector([STR("key3"), STR("key4")]),
+                    ])[1],
+                    IndexedSelector.create(STR("index1"))[1],
+                    KeyedSelector.create([STR("key3"), STR("key4")])[1],
                   ])
                 );
               });
@@ -2468,7 +2468,7 @@ describe("Compilation and execution", () => {
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(
                     TUPLE([STR("varname1"), STR("varname2")]),
-                    [new IndexedSelector(STR("index"))]
+                    [IndexedSelector.create(STR("index"))[1]]
                   )
                 );
               });
@@ -2498,7 +2498,7 @@ describe("Compilation and execution", () => {
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(
                     TUPLE([STR("varname1"), STR("varname2")]),
-                    [new KeyedSelector([STR("key1"), STR("key2")])]
+                    [KeyedSelector.create([STR("key1"), STR("key2")])[1]]
                   )
                 );
               });
@@ -2544,10 +2544,10 @@ describe("Compilation and execution", () => {
                   new QualifiedValue(
                     TUPLE([STR("varname1"), STR("varname2")]),
                     [
-                      new GenericSelector([
+                      GenericSelector.create([
                         TUPLE([STR("rule1"), STR("arg1")]),
                         TUPLE([STR("rule2"), STR("arg2")]),
-                      ]),
+                      ])[1],
                     ]
                   )
                 );
@@ -2648,17 +2648,17 @@ describe("Compilation and execution", () => {
                   new QualifiedValue(
                     TUPLE([STR("varname1"), STR("varname2")]),
                     [
-                      new IndexedSelector(STR("index1")),
-                      new KeyedSelector([
+                      IndexedSelector.create(STR("index1"))[1],
+                      KeyedSelector.create([
                         STR("key1"),
                         STR("key2"),
                         STR("key3"),
-                      ]),
-                      new GenericSelector([
+                      ])[1],
+                      GenericSelector.create([
                         TUPLE([STR("rule1")]),
                         TUPLE([STR("rule2")]),
-                      ]),
-                      new IndexedSelector(STR("index2")),
+                      ])[1],
+                      IndexedSelector.create(STR("index2"))[1],
                     ]
                   )
                 );
@@ -2689,7 +2689,7 @@ describe("Compilation and execution", () => {
                 );
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(STR("source name"), [
-                    new IndexedSelector(STR("index")),
+                    IndexedSelector.create(STR("index"))[1],
                   ])
                 );
               });
@@ -2713,7 +2713,7 @@ describe("Compilation and execution", () => {
 
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(STR("source name"), [
-                    new KeyedSelector([STR("key1"), STR("key2")]),
+                    KeyedSelector.create([STR("key1"), STR("key2")])[1],
                   ])
                 );
               });
@@ -2750,10 +2750,10 @@ describe("Compilation and execution", () => {
                 );
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(STR("source name"), [
-                    new GenericSelector([
+                    GenericSelector.create([
                       TUPLE([STR("rule1"), STR("arg1")]),
                       TUPLE([STR("rule2"), STR("arg2")]),
-                    ]),
+                    ])[1],
                   ])
                 );
               });
@@ -2838,13 +2838,13 @@ describe("Compilation and execution", () => {
                 );
                 expect(evaluate(program)).to.eql(
                   new QualifiedValue(STR("source name"), [
-                    new KeyedSelector([STR("key1"), STR("key2")]),
-                    new GenericSelector([
+                    KeyedSelector.create([STR("key1"), STR("key2")])[1],
+                    GenericSelector.create([
                       TUPLE([STR("rule1")]),
                       TUPLE([STR("rule2")]),
-                    ]),
-                    new IndexedSelector(STR("index1")),
-                    new KeyedSelector([STR("key3"), STR("key4")]),
+                    ])[1],
+                    IndexedSelector.create(STR("index1"))[1],
+                    KeyedSelector.create([STR("key3"), STR("key4")])[1],
                   ])
                 );
               });

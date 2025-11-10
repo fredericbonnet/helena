@@ -7,49 +7,6 @@ import { NIL, TupleValue, Value, ValueType } from "./values";
 import { defaultDisplayFunction, Displayable, displayList } from "./display";
 
 /**
- * Generic selector creation error
- */
-export class SelectorCreationError extends Error {
-  /**
-   *
-   * @param message - Error message
-   */
-  constructor(message) {
-    super(message);
-    this.name = "SelectorCreationError";
-  }
-}
-
-/**
- * Thrown when creating an indexed selector with an invalid index
- */
-export class InvalidIndexError extends SelectorCreationError {
-  /**
-   *
-   * @param message - Error message
-   */
-  constructor(message) {
-    super(message);
-    this.name = "InvalidIndexError";
-  }
-}
-
-/**
- * Thrown when creating a keyed selector with no keys, or a generic selector
- * with no rules.
- */
-export class EmptySelectorError extends SelectorCreationError {
-  /**
-   *
-   * @param message - Error message
-   */
-  constructor(message) {
-    super(message);
-    this.name = "EmptySelectorError";
-  }
-}
-
-/**
  * Helena selector
  *
  * Selectors apply to values to access their subvalues
@@ -80,13 +37,14 @@ export class IndexedSelector implements Selector {
   /**
    * @param index - Index to select
    */
-  constructor(index: Value) {
-    if (index == NIL) throw new InvalidIndexError("invalid index");
+  private constructor(index: Value) {
+    if (index == NIL) throw new Error("invalid index");
     this.index = index;
   }
 
   /**
-   * Factory function, returns a result instead of throwing.
+   * Factory function, returns a result instead of throwing like the
+   * constructor.
    *
    * @param index - Index to select
    *
@@ -123,8 +81,8 @@ export class KeyedSelector implements Selector {
   /**
    * @param keys - Keys to select
    */
-  constructor(keys: Value[]) {
-    if (keys.length == 0) throw new EmptySelectorError("empty selector");
+  private constructor(keys: Value[]) {
+    if (keys.length == 0) throw new Error("empty selector");
     this.keys = keys;
   }
 
@@ -170,8 +128,8 @@ export class GenericSelector implements Selector {
   /**
    * @param rules - Rules to apply
    */
-  constructor(rules: Value[]) {
-    if (rules.length == 0) throw new EmptySelectorError("empty selector");
+  private constructor(rules: Value[]) {
+    if (rules.length == 0) throw new Error("empty selector");
     this.rules = rules;
   }
 

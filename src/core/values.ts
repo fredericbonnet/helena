@@ -670,7 +670,9 @@ export class QualifiedValue implements Value {
 
   /** @override */
   selectIndex(index: Value): Result {
-    return this.select(new IndexedSelector(index));
+    const [result, selector] = IndexedSelector.create(index);
+    if (result.code != ResultCode.OK) return result;
+    return this.select(selector);
   }
 
   /** @override */
@@ -681,19 +683,25 @@ export class QualifiedValue implements Value {
     ) {
       // Merge successive keys
       const last = this.selectors[this.selectors.length - 1] as KeyedSelector;
+      const [result, selector] = KeyedSelector.create([...last.keys, key]);
+      if (result.code != ResultCode.OK) return result;
       return OK(
         new QualifiedValue(this.source, [
           ...this.selectors.slice(0, -1),
-          new KeyedSelector([...last.keys, key]),
+          selector,
         ])
       );
     }
-    return this.select(new KeyedSelector([key]));
+    const [result, selector] = KeyedSelector.create([key]);
+    if (result.code != ResultCode.OK) return result;
+    return this.select(selector);
   }
 
   /** @override */
   selectRules(rules: Value[]): Result {
-    return this.select(new GenericSelector(rules));
+    const [result, selector] = GenericSelector.create(rules);
+    if (result.code != ResultCode.OK) return result;
+    return this.select(selector);
   }
 
   /** @override */
